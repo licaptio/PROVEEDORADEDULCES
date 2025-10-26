@@ -44,11 +44,8 @@
       margin-bottom: 20px;
     }
 
-    input, button, textarea {
+    input, button, textarea, select {
       font-family: inherit;
-    }
-
-    input, textarea {
       width: 100%;
       padding: 12px;
       border-radius: 10px;
@@ -58,17 +55,13 @@
     }
 
     button {
-      width: 100%;
-      padding: 12px;
       background: var(--azul);
       color: white;
       border: none;
-      border-radius: 10px;
       font-size: 16px;
       font-weight: 600;
       cursor: pointer;
       box-shadow: 0 3px 10px var(--sombra);
-      margin-top: 10px;
     }
 
     button:hover {
@@ -108,7 +101,6 @@
     }
   </style>
 </head>
-
 <body>
 
 <!-- ==========================================================
@@ -143,7 +135,6 @@
   </div>
 </div>
 
-
 <!-- ==========================================================
      🧱 SECCIÓN 4: CAPTURA DE ARTÍCULOS
 =========================================================== -->
@@ -155,7 +146,6 @@
     <button id="btnVerCarrito">Ver carrito</button>
   </div>
 </div>
-
 
 <!-- ==========================================================
      🧱 SECCIÓN 5: REVISIÓN DEL CARRITO
@@ -199,11 +189,9 @@
      🧱 SECCIÓN 7: SCRIPTS DE LA APLICACIÓN
 =========================================================== -->
 <script type="module">
-  // ===== SECCIÓN 7.1: IMPORTAR FIREBASE =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import {
-  getFirestore, doc, getDoc, getDocs, addDoc, collection, query, where
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, addDoc, collection, query, where } 
+  from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // ===== CONFIGURACIÓN FIREBASE =====
 const firebaseConfig = {
@@ -217,12 +205,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ===== VARIABLES GLOBALES =====
+// ===== VARIABLES =====
 let usuarioActual = null;
 let datosSalida = {};
 let carrito = [];
 
-// ===== FUNCIÓN CAMBIO DE PANTALLA =====
+// ===== CAMBIO DE PANTALLAS =====
 function mostrarPantalla(id) {
   document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
   document.getElementById(id).classList.add('activa');
@@ -231,36 +219,27 @@ function mostrarPantalla(id) {
 // =======================================================
 // 🧱 BLOQUE 1: LOGIN
 // =======================================================
-const btnLogin = document.getElementById('btnLogin');
-const mensajeLogin = document.getElementById('mensajeLogin');
-
 async function validarUsuario(usuario, password) {
-  const ref = collection(db, "usuarios_ruta");
-  const snap = await getDocs(ref);
+  const snap = await getDocs(collection(db, "usuarios_ruta"));
   let user = null;
-
   snap.forEach(docu => {
     const data = docu.data();
-    if (data.usuario === usuario && data.password === password && data.activo === true) {
-      user = data;
-    }
+    if (data.usuario === usuario && data.password === password && data.activo) user = data;
   });
   return user;
 }
 
-btnLogin.onclick = async () => {
-  const usuario = document.getElementById('usuario').value.trim();
-  const pass = document.getElementById('password').value.trim();
-  if (!usuario || !pass) {
-    mensajeLogin.textContent = "Ingresa usuario y contraseña";
-    return;
-  }
+const usuarioInput = document.getElementById("usuario");
+const passwordInput = document.getElementById("password");
+const mensajeLogin = document.getElementById("mensajeLogin");
+	
+document.getElementById('btnLogin').onclick = async () => {
+  const usuario = usuarioInput.value.trim();
+  const pass = passwordInput.value.trim();
+  if (!usuario || !pass) return mensajeLogin.textContent = "Ingresa usuario y contraseña";
 
   const user = await validarUsuario(usuario, pass);
-  if (!user) {
-    mensajeLogin.textContent = "Datos incorrectos";
-    return;
-  }
+  if (!user) return mensajeLogin.textContent = "Datos incorrectos";
 
   usuarioActual = { usuario, nombre: user.nombre };
   localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
@@ -269,27 +248,15 @@ btnLogin.onclick = async () => {
   mostrarPantalla('datosSalida');
 };
 
-window.addEventListener('load', async () => {
-  const saved = localStorage.getItem('usuarioActual');
-  if (saved) {
-    usuarioActual = JSON.parse(saved);
-    document.getElementById('txtUsuario').value = usuarioActual.nombre;
-    await cargarListas();
-    mostrarPantalla('datosSalida');
-  }
-});
-
 // =======================================================
-// 🧱 BLOQUE 2: DATOS DE SALIDA (con Firestore)
+// 🧱 BLOQUE 2: DATOS DE SALIDA
 // =======================================================
 const selectRecibe = document.getElementById("selectRecibe");
 const selectDestino = document.getElementById("selectDestino");
 
 async function cargarListas() {
-  // --- Cargar trabajadores ---
-  const refTrab = collection(db, "trabajadores_proveedora");
-  const snapTrab = await getDocs(refTrab);
   selectRecibe.innerHTML = "<option value=''>Selecciona quien recibe...</option>";
+  const snapTrab = await getDocs(collection(db, "trabajadores_proveedora"));
   snapTrab.forEach(docu => {
     const t = docu.data();
     const opt = document.createElement("option");
@@ -298,47 +265,19 @@ async function cargarListas() {
     selectRecibe.appendChild(opt);
   });
 
-  // --- Cargar destinos ---
-  const refDest = collection(db, "destinos");
-  const snapDest = await getDocs(refDest);
   selectDestino.innerHTML = "<option value=''>Selecciona destino...</option>";
+  const snapDest = await getDocs(collection(db, "destinos"));
   snapDest.forEach(docu => {
     const d = docu.data();
     const opt = document.createElement("option");
     opt.value = docu.id;
-    opt.textContent = d.nombre || d.direccion || "Destino sin nombre";
+    opt.textContent = d.nombre || d.direccion;
     selectDestino.appendChild(opt);
   });
 }
-
-document.getElementById('btnContinuarDatos').onclick = async () => {
-  const recibeId = selectRecibe.value;
-  const destinoId = selectDestino.value;
-  if (!recibeId || !destinoId) return alert("Selecciona ambos campos");
-
-  const recibeSnap = await getDoc(doc(db, "trabajadores_proveedora", recibeId));
-  const destinoSnap = await getDoc(doc(db, "destinos", destinoId));
-
-  const recibeData = recibeSnap.exists() ? recibeSnap.data() : {};
-  const destinoData = destinoSnap.exists() ? destinoSnap.data() : {};
-
-  datosSalida = {
-    usuario: usuarioActual.nombre,
-    recibeId,
-    recibeNombre: recibeData.nombreCompleto || "Sin nombre",
-    destinoId,
-    destinoNombre: destinoData.nombre || "Sin nombre",
-    destinoDireccion: destinoData.direccion || "",
-    destinoUbicacion: destinoData.ubicacion || null
-  };
-
-  console.log("📦 Datos de salida:", datosSalida);
-  mostrarPantalla('captura');
-};
-
-// =======================================================
+// ==========================================================
 // 🧱 BLOQUE 3: CAPTURA DE ARTÍCULOS
-// =======================================================
+// ==========================================================
 const buscarProd = document.getElementById('buscarProd');
 const resultadosDiv = document.getElementById('resultadosBusqueda');
 
@@ -348,12 +287,20 @@ buscarProd.addEventListener('input', async e => {
   if (texto.length < 2) return;
 
   const ref = collection(db, "productos");
-  const snapshot = await getDocs(query(ref, where("concepto", ">=", texto), where("concepto", "<=", texto + "\uf8ff")));
+  const snapshot = await getDocs(
+    query(ref,
+      where("concepto", ">=", texto),
+      where("concepto", "<=", texto + "\uf8ff")
+    )
+  );
+
   snapshot.forEach(docu => {
     const p = docu.data();
     const item = document.createElement('div');
-    item.textContent = `${p.concepto} - $${p.costoSinImpuesto}`;
+    item.textContent = `${p.concepto} – $${p.costoSinImpuesto}`;
+    item.style.padding = "6px";
     item.style.cursor = "pointer";
+    item.style.borderBottom = "1px solid #ccc";
     item.onclick = () => agregarAlCarrito(docu.id, p);
     resultadosDiv.appendChild(item);
   });
@@ -369,7 +316,8 @@ function agregarAlCarrito(id, prod) {
     cantidad: parseInt(cant),
     costo: prod.costoSinImpuesto
   });
-  alert("Agregado al carrito");
+
+  alert("✅ Agregado al carrito");
   buscarProd.value = "";
   resultadosDiv.innerHTML = "";
 }
@@ -379,18 +327,20 @@ document.getElementById('btnVerCarrito').onclick = () => {
   mostrarPantalla('carrito');
 };
 
-// =======================================================
+// ==========================================================
 // 🧱 BLOQUE 4: REVISIÓN DE CARRITO
-// =======================================================
+// ==========================================================
 const tbody = document.querySelector('#tablaCarrito tbody');
 const totalGeneral = document.getElementById('totalGeneral');
 
 function renderCarrito() {
   tbody.innerHTML = "";
   let total = 0;
+
   carrito.forEach((p, i) => {
     const subt = p.cantidad * p.costo;
     total += subt;
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${p.concepto}</td>
@@ -400,9 +350,11 @@ function renderCarrito() {
       <td>
         <button onclick="editar(${i})">✏️</button>
         <button onclick="eliminar(${i})">❌</button>
-      </td>`;
+      </td>
+    `;
     tbody.appendChild(tr);
   });
+
   totalGeneral.textContent = `Total: $${total.toFixed(2)}`;
 }
 
@@ -415,7 +367,7 @@ window.editar = (i) => {
 };
 
 window.eliminar = (i) => {
-  if (confirm("Eliminar producto?")) {
+  if (confirm("¿Eliminar producto?")) {
     carrito.splice(i, 1);
     renderCarrito();
   }
@@ -430,21 +382,23 @@ document.getElementById('btnConfirmarSalida').onclick = () => {
   mostrarPantalla('firmas');
 };
 
-// =======================================================
-// 🧱 BLOQUE 5: FIRMAS Y GUARDADO
-// =======================================================
+// ==========================================================
+// 🧱 BLOQUE 5: FIRMAS Y GUARDADO EN FIRESTORE
+// ==========================================================
 const canvas1 = document.getElementById('firmaRecibe');
 const ctx1 = canvas1.getContext('2d');
 const canvas2 = document.getElementById('firmaEncargado');
 const ctx2 = canvas2.getContext('2d');
-let dibujando = false;
 
 function activarDibujo(canvas, ctx) {
+  let dibujando = false;
+
   canvas.addEventListener('mousedown', () => dibujando = true);
   canvas.addEventListener('mouseup', () => {
     dibujando = false;
     ctx.beginPath();
   });
+
   canvas.addEventListener('mousemove', e => {
     if (!dibujando) return;
     ctx.lineWidth = 2;
@@ -462,7 +416,7 @@ activarDibujo(canvas2, ctx2);
 
 document.getElementById('btnGuardarSalida').onclick = async () => {
   if (!datosSalida.recibeId || !datosSalida.destinoId || carrito.length === 0)
-    return alert("Faltan datos o carrito vacío");
+    return alert("⚠️ Faltan datos o carrito vacío");
 
   const salida = {
     fecha: new Date().toISOString(),
@@ -487,19 +441,18 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
     await addDoc(ref, salida);
     alert("✅ Salida registrada correctamente en Firestore");
 
+    // Resetear
     carrito = [];
     datosSalida = {};
-    localStorage.removeItem('usuarioActual');
-    mostrarPantalla('login');
     ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
     ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+    mostrarPantalla('login');
+    localStorage.removeItem('usuarioActual');
   } catch (err) {
     console.error(err);
-    alert("Error al guardar en Firestore");
+    alert("❌ Error al guardar en Firestore");
   }
 };
-
-
 </script>
 </body>
 </html>
