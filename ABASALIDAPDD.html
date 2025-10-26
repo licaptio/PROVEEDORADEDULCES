@@ -311,56 +311,56 @@ document.getElementById('btnContinuarDatos').onclick = async () => {
 };
 
 // ==========================================================
-// 🧱 BLOQUE 3: CAPTURA DE ARTÍCULOS
+// 🧱 BLOQUE 3: CAPTURA DE ARTÍCULOS (con debounce 400ms)
 // ==========================================================
 const buscarProd = document.getElementById('buscarProd');
 const resultadosDiv = document.getElementById('resultadosBusqueda');
+let debounceTimer = null;
 
-buscarProd.addEventListener('input', async e => {
-  const texto = e.target.value.trim().toUpperCase();
+buscarProd.addEventListener('input', e => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => buscarProductos(e.target.value.trim().toUpperCase()), 400);
+});
+
+async function buscarProductos(texto) {
   resultadosDiv.innerHTML = "";
   if (texto.length < 2) return;
 
-  const ref = collection(db, "productos");
-  const snapshot = await getDocs(
-    query(ref,
-      where("concepto", ">=", texto),
-      where("concepto", "<=", texto + "\uf8ff")
-    )
-  );
+  try {
+    const ref = collection(db, "productos");
+    const snapshot = await getDocs(
+      query(
+        ref,
+        where("activo", "==", true),
+        where("concepto", ">=", texto),
+        where("concepto", "<=", texto + "\uf8ff")
+      )
+    );
 
-  snapshot.forEach(docu => {
-    const p = docu.data();
-    const item = document.createElement('div');
-    item.textContent = `${p.concepto} – $${p.costoSinImpuesto}`;
-    item.style.padding = "6px";
-    item.style.cursor = "pointer";
-    item.style.borderBottom = "1px solid #ccc";
-    item.onclick = () => agregarAlCarrito(docu.id, p);
-    resultadosDiv.appendChild(item);
-  });
-});
+    if (snapshot.empty) {
+      resultadosDiv.innerHTML = "<p style='color:gray;text-align:center'>Sin coincidencias</p>";
+      return;
+    }
 
-function agregarAlCarrito(id, prod) {
-  const cant = prompt(`Cantidad de "${prod.concepto}":`);
-  if (!cant || isNaN(cant) || cant <= 0) return;
-
-  carrito.push({
-    codigoBarra: id,
-    concepto: prod.concepto,
-    cantidad: parseInt(cant),
-    costo: prod.costoSinImpuesto
-  });
-
-  alert("✅ Agregado al carrito");
-  buscarProd.value = "";
-  resultadosDiv.innerHTML = "";
+    snapshot.forEach(docu => {
+      const p = docu.data();
+      const item = document.createElement('div');
+      item.innerHTML = `
+        <strong>${p.concepto}</strong><br>
+        <small>Código: ${p.codigoBarra}</small><br>
+        <small>Precio: $${p.costoSinImpuesto.toFixed(2)}</small>
+      `;
+      item.style.padding = "8px";
+      item.style.borderBottom = "1px solid #ddd";
+      item.style.cursor = "pointer";
+      item.onclick = () => agregarAlCarrito(docu.id, p);
+      resultadosDiv.appendChild(item);
+    });
+  } catch (err) {
+    console.error("Error al buscar productos:", err);
+    resultadosDiv.innerHTML = "<p style='color:red;text-align:center'>Error al buscar productos</p>";
+  }
 }
-
-document.getElementById('btnVerCarrito').onclick = () => {
-  renderCarrito();
-  mostrarPantalla('carrito');
-};
 
 // ==========================================================
 // 🧱 BLOQUE 4: REVISIÓN DE CARRITO
