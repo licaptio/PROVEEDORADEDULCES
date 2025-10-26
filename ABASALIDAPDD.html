@@ -99,6 +99,23 @@
       display: block;
       margin: 10px auto;
     }
+	/* Mejor visualización del carrito en móviles */
+.tabla td, .tabla th {
+  padding: 6px;
+  word-wrap: break-word;
+  font-size: 13px;
+}
+
+.tabla tr {
+  border-bottom: 1px solid #eee;
+}
+
+@media (max-width: 480px) {
+  .tabla td {
+    font-size: 12px;
+  }
+}
+  
   </style>
 </head>
 <body>
@@ -154,15 +171,14 @@
   <div class="card">
     <h2>Revisión del carrito</h2>
     <table class="tabla" id="tablaCarrito">
-      <thead>
-        <tr>
-          <th>Artículo</th>
-          <th>Cant.</th>
-          <th>Precio</th>
-          <th>Total</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
+<thead>
+  <tr>
+    <th style="width:15%;">Cant.</th>
+    <th style="width:25%;">Código</th>
+    <th style="width:45%;">Concepto</th>
+    <th style="width:15%;">❌</th>
+  </tr>
+</thead>
       <tbody></tbody>
     </table>
     <h3 id="totalGeneral" style="text-align:right;"></h3>
@@ -430,27 +446,41 @@ const totalGeneral = document.getElementById('totalGeneral');
 
 function renderCarrito() {
   tbody.innerHTML = "";
-  let total = 0;
 
   carrito.forEach((p, i) => {
-    const subt = p.cantidad * p.costo;
-    total += subt;
-
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${p.concepto}</td>
-      <td>${p.cantidad}</td>
-      <td>$${p.costo.toFixed(2)}</td>
-      <td>$${subt.toFixed(2)}</td>
+      <td style="font-weight:600;">${p.cantidad}</td>
+      <td title="${p.codigoBarra}" style="
+        max-width:80px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+        font-size:13px;
+      ">${p.codigoBarra}</td>
+      <td title="${p.concepto}" style="
+        max-width:160px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+        font-size:13px;
+        text-align:left;
+      ">${p.concepto}</td>
       <td>
-        <button onclick="editar(${i})">✏️</button>
-        <button onclick="eliminar(${i})">❌</button>
+        <button onclick="eliminar(${i})"
+          style="background:#b30000;
+                 border:none;
+                 color:white;
+                 border-radius:8px;
+                 padding:4px 10px;
+                 cursor:pointer;
+                 font-size:14px;">❌</button>
       </td>
     `;
     tbody.appendChild(tr);
   });
 
-  totalGeneral.textContent = `Total: $${total.toFixed(2)}`;
+  totalGeneral.textContent = ""; // sin total
 }
 
 window.editar = (i) => {
