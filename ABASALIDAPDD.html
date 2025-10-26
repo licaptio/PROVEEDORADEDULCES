@@ -361,7 +361,67 @@ async function buscarProductos(texto) {
     resultadosDiv.innerHTML = "<p style='color:red;text-align:center'>Error al buscar productos</p>";
   }
 }
+// ==========================================================
+// 🧱 BLOQUE 3.2: AGREGAR PRODUCTO AL CARRITO
+// ==========================================================
+function agregarAlCarrito(id, producto) {
+  const cantidad = prompt(`Cantidad para "${producto.concepto}"`, "1");
+  if (!cantidad || isNaN(cantidad) || cantidad <= 0) return;
 
+  // Verificar si ya está en el carrito
+  const existente = carrito.find(p => p.id === id);
+  if (existente) {
+    existente.cantidad += parseInt(cantidad);
+  } else {
+    carrito.push({
+      id,
+      concepto: producto.concepto,
+      costo: producto.costoSinImpuesto || 0,
+      cantidad: parseInt(cantidad),
+      codigoBarra: producto.codigoBarra || ""
+    });
+  }
+
+  // Mostrar confirmación visual
+  alert(`✅ ${producto.concepto} agregado (${cantidad})`);
+  buscarProd.value = "";
+  resultadosDiv.innerHTML = "";
+  actualizarContador();
+}
+// ==========================================================
+// 🧱 BLOQUE 3.3: BOTÓN FLOTANTE DE CARRITO 🛒
+// ==========================================================
+const btnFlotante = document.createElement('button');
+btnFlotante.id = "btnFlotanteCarrito";
+btnFlotante.innerHTML = "🛒 <span id='contadorCarrito'>0</span>";
+btnFlotante.style.position = "fixed";
+btnFlotante.style.bottom = "24px";
+btnFlotante.style.right = "24px";
+btnFlotante.style.background = "#00416A";
+btnFlotante.style.color = "white";
+btnFlotante.style.fontWeight = "600";
+btnFlotante.style.border = "none";
+btnFlotante.style.borderRadius = "50px";
+btnFlotante.style.boxShadow = "0 4px 14px rgba(0,0,0,0.3)";
+btnFlotante.style.padding = "12px 18px";
+btnFlotante.style.cursor = "pointer";
+btnFlotante.style.zIndex = "999";
+btnFlotante.style.display = "none";
+document.body.appendChild(btnFlotante);
+
+function actualizarContador() {
+  const c = document.getElementById('contadorCarrito');
+  c.textContent = carrito.reduce((acc, p) => acc + p.cantidad, 0);
+  btnFlotante.style.display = carrito.length > 0 ? "block" : "none";
+}
+
+// Evento para abrir el carrito
+btnFlotante.addEventListener("click", () => {
+  renderCarrito();
+  mostrarPantalla('carrito');
+});
+
+	
 // ==========================================================
 // 🧱 BLOQUE 4: REVISIÓN DE CARRITO
 // ==========================================================
