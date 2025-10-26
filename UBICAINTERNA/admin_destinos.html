@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Destinos – PROVSOFT</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 20px;
+    }
+    h2 {
+      color: #00416A;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      background: #00416A;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+      font-weight: 600;
+    }
+    button:hover {
+      background: #033b5a;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border-bottom: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background: #00416A;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🏢 Administración de Destinos</h2>
+
+  <div class="card">
+    <label>Nombre del destino:</label>
+    <input type="text" id="nombre" placeholder="Ej. MATRIZ" />
+
+    <label>Dirección:</label>
+    <textarea id="direccion" rows="2" placeholder="Calle, número, colonia, ciudad"></textarea>
+
+    <label>Teléfono:</label>
+    <input type="text" id="telefono" placeholder="Ej. 8123456789" />
+
+    <label>Referencia:</label>
+    <input type="text" id="referencia" placeholder="Ej. Frente al OXXO" />
+
+    <button id="btnGuardar">Guardar destino</button>
+  </div>
+
+  <div class="card">
+    <h3>📋 Lista de destinos registrados</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Dirección</th>
+          <th>Teléfono</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tablaDestinos"></tbody>
+    </table>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getFirestore, collection, addDoc, getDocs, deleteDoc, doc 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // ===== CONFIGURACIÓN FIREBASE =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ===== FUNCIONES PRINCIPALES =====
+    const nombre = document.getElementById("nombre");
+    const direccion = document.getElementById("direccion");
+    const telefono = document.getElementById("telefono");
+    const referencia = document.getElementById("referencia");
+    const btnGuardar = document.getElementById("btnGuardar");
+    const tabla = document.getElementById("tablaDestinos");
+
+    async function cargarDestinos() {
+      tabla.innerHTML = "";
+      const ref = collection(db, "destinos");
+      const snapshot = await getDocs(ref);
+      snapshot.forEach(docu => {
+        const d = docu.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${d.nombre}</td>
+          <td>${d.direccion}</td>
+          <td>${d.telefono}</td>
+          <td><button onclick="eliminarDestino('${docu.id}')">🗑️</button></td>
+        `;
+        tabla.appendChild(tr);
+      });
+    }
+
+    btnGuardar.onclick = async () => {
+      if (!nombre.value.trim()) return alert("Escribe un nombre de destino");
+      await addDoc(collection(db, "destinos"), {
+        nombre: nombre.value.toUpperCase(),
+        direccion: direccion.value,
+        telefono: telefono.value,
+        referencia: referencia.value,
+        activo: true
+      });
+      alert("Destino guardado correctamente ✅");
+      nombre.value = direccion.value = telefono.value = referencia.value = "";
+      cargarDestinos();
+    };
+
+    window.eliminarDestino = async (id) => {
+      if (confirm("¿Eliminar este destino?")) {
+        await deleteDoc(doc(db, "destinos", id));
+        cargarDestinos();
+      }
+    };
+
+    // Cargar lista al iniciar
+    cargarDestinos();
+  </script>
+</body>
+</html>
