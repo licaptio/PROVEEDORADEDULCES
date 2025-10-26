@@ -158,6 +158,18 @@
 <div id="captura" class="pantalla">
   <div class="card">
     <h2>Captura de artículos</h2>
+	<button id="btnLogout" style="
+  background:#b30000;
+  color:white;
+  font-weight:600;
+  border:none;
+  border-radius:10px;
+  padding:10px;
+  margin-bottom:10px;
+  cursor:pointer;
+  width:100%;
+">🔒 Cerrar sesión</button>
+
     <input type="text" id="buscarProd" placeholder="Buscar producto...">
     <div id="resultadosBusqueda"></div>
     
@@ -231,6 +243,40 @@ function mostrarPantalla(id) {
   document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
   document.getElementById(id).classList.add('activa');
 }
+// ===== FUNCIONES DE SESIÓN =====
+function cerrarSesion() {
+  usuarioActual = null;
+  datosSalida = {};
+  carrito = [];
+  renderCarrito();
+  actualizarContador();
+  localStorage.removeItem('usuarioActual');
+  alert("🔒 Sesión cerrada por seguridad");
+  mostrarPantalla('login');
+}
+
+// Asignar al botón de cierre manual
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "btnLogout") {
+    cerrarSesion();
+  }
+});
+// ===== AUTO-CIERRE POR INACTIVIDAD =====
+let inactividadTimer;
+
+function reiniciarTemporizador() {
+  clearTimeout(inactividadTimer);
+  inactividadTimer = setTimeout(() => {
+    if (usuarioActual) cerrarSesion();
+  }, 10 * 60 * 1000); // 10 minutos = 600000 ms
+}
+
+// Eventos que reinician el contador
+["click", "keypress", "mousemove", "touchstart"].forEach(evt => {
+  document.addEventListener(evt, reiniciarTemporizador);
+});
+
+reiniciarTemporizador(); // Iniciar al cargar
 
 // =======================================================
 // 🧱 BLOQUE 1: LOGIN
