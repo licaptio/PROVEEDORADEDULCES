@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salidas Abarrote PDD – PROVSOFT</title>
+
+  <!-- ===== SECCIÓN 1: ESTILOS GLOBALES ===== -->
+  <style>
+    :root {
+      --azul: #00416A;
+      --gris: #f5f5f5;
+      --blanco: #fff;
+      --sombra: rgba(0,0,0,0.15);
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--gris);
+      margin: 0;
+      padding: 0;
+    }
+
+    .pantalla {
+      display: none;
+      padding: 20px;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .activa {
+      display: block;
+      animation: fade 0.3s ease-in-out;
+    }
+
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+      text-align: center;
+      color: var(--azul);
+      margin-bottom: 20px;
+    }
+
+    input, button, textarea {
+      font-family: inherit;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: var(--azul);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 3px 10px var(--sombra);
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #033a5a;
+    }
+
+    .card {
+      background: var(--blanco);
+      border-radius: 16px;
+      box-shadow: 0 4px 14px var(--sombra);
+      padding: 20px;
+      max-width: 420px;
+      margin: 30px auto;
+    }
+
+    .tabla {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .tabla th, .tabla td {
+      border-bottom: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .tabla th {
+      background: var(--azul);
+      color: white;
+    }
+
+    canvas {
+      border: 2px dashed var(--azul);
+      border-radius: 10px;
+      display: block;
+      margin: 10px auto;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- ==========================================================
+     🧱 SECCIÓN 2: LOGIN
+=========================================================== -->
+<div id="login" class="pantalla activa">
+  <div class="card">
+    <h2>PROVSOFT – Abarrote PDD</h2>
+    <input type="text" id="usuario" placeholder="Usuario" autocomplete="off" />
+    <input type="password" id="password" placeholder="Contraseña" />
+    <button id="btnLogin">Entrar</button>
+    <p id="mensajeLogin" style="text-align:center;color:red;"></p>
+  </div>
+</div>
+
+<!-- ==========================================================
+     🧱 SECCIÓN 3: DATOS DE SALIDA
+=========================================================== -->
+<div id="datosSalida" class="pantalla">
+  <div class="card">
+    <h2>Datos de salida</h2>
+    <label>Usuario:</label>
+    <input type="text" id="txtUsuario" readonly>
+    <label>Persona que recibe:</label>
+    <input type="text" id="txtRecibe" placeholder="Ej. Juan Pérez">
+    <label>Destino o dirección:</label>
+    <input type="text" id="txtDestino" placeholder="Ej. Tienda Zapata">
+    <button id="btnContinuarDatos">Continuar →</button>
+  </div>
+</div>
+
+<!-- ==========================================================
+     🧱 SECCIÓN 4: CAPTURA DE ARTÍCULOS
+=========================================================== -->
+<div id="captura" class="pantalla">
+  <div class="card">
+    <h2>Captura de artículos</h2>
+    <input type="text" id="buscarProd" placeholder="Buscar producto...">
+    <div id="resultadosBusqueda"></div>
+    <button id="btnVerCarrito">Ver carrito</button>
+  </div>
+</div>
+
+
+<!-- ==========================================================
+     🧱 SECCIÓN 5: REVISIÓN DEL CARRITO
+=========================================================== -->
+<div id="carrito" class="pantalla">
+  <div class="card">
+    <h2>Revisión del carrito</h2>
+    <table class="tabla" id="tablaCarrito">
+      <thead>
+        <tr>
+          <th>Artículo</th>
+          <th>Cant.</th>
+          <th>Precio</th>
+          <th>Total</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <h3 id="totalGeneral" style="text-align:right;"></h3>
+    <button id="btnRegresarCaptura">⬅️ Regresar</button>
+    <button id="btnConfirmarSalida">Confirmar salida →</button>
+  </div>
+</div>
+
+<!-- ==========================================================
+     🧱 SECCIÓN 6: FIRMAS
+=========================================================== -->
+<div id="firmas" class="pantalla">
+  <div class="card">
+    <h2>Firmas de confirmación</h2>
+    <p>Firma quien recibe:</p>
+    <canvas id="firmaRecibe" width="300" height="150"></canvas>
+    <p>Firma encargado:</p>
+    <canvas id="firmaEncargado" width="300" height="150"></canvas>
+    <button id="btnGuardarSalida">Guardar salida en Firestore</button>
+  </div>
+</div>
+
+<!-- ==========================================================
+     🧱 SECCIÓN 7: SCRIPTS DE LA APLICACIÓN
+=========================================================== -->
+<script type="module">
+  // ===== SECCIÓN 7.1: IMPORTAR FIREBASE =====
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import {
+    getFirestore, doc, getDoc, getDocs, addDoc, collection, query, where
+  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // ===== SECCIÓN 7.2: CONFIGURACIÓN FIREBASE =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.firebasestorage.app",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ===== SECCIÓN 7.3: VARIABLES GLOBALES =====
+  let usuarioActual = null;
+  let datosSalida = {};
+  let carrito = [];
+
+  // ===== SECCIÓN 7.4: FUNCIÓN CAMBIO DE PANTALLA =====
+  function mostrarPantalla(id) {
+    document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+    document.getElementById(id).classList.add('activa');
+  }
+
+  // =======================================================
+  // 🧱 BLOQUE 1: LOGIN
+  // =======================================================
+  const btnLogin = document.getElementById('btnLogin');
+  const mensajeLogin = document.getElementById('mensajeLogin');
+
+  async function validarUsuario(usuario, password) {
+    const ref = doc(db, "usuarios_almacen", usuario);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return null;
+    const data = snap.data();
+    return data.password === password ? data : null;
+  }
+
+  btnLogin.onclick = async () => {
+    const usuario = document.getElementById('usuario').value.trim();
+    const pass = document.getElementById('password').value.trim();
+    if (!usuario || !pass) {
+      mensajeLogin.textContent = "Ingresa usuario y contraseña";
+      return;
+    }
+
+    const user = await validarUsuario(usuario, pass);
+    if (!user) {
+      mensajeLogin.textContent = "Datos incorrectos";
+      return;
+    }
+
+    usuarioActual = { usuario, nombre: user.nombre };
+    localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
+    mostrarPantalla('datosSalida');
+    document.getElementById('txtUsuario').value = user.nombre;
+  };
+
+  // Si ya hay sesión guardada, saltar login
+  window.addEventListener('load', () => {
+    const saved = localStorage.getItem('usuarioActual');
+    if (saved) {
+      usuarioActual = JSON.parse(saved);
+      document.getElementById('txtUsuario').value = usuarioActual.nombre;
+      mostrarPantalla('datosSalida');
+    }
+  });
+
+  // =======================================================
+  // 🧱 BLOQUE 2: DATOS DE SALIDA
+  // =======================================================
+  document.getElementById('btnContinuarDatos').onclick = () => {
+    const recibe = document.getElementById('txtRecibe').value.trim();
+    const destino = document.getElementById('txtDestino').value.trim();
+    if (!recibe || !destino) return alert("Completa los datos");
+
+    datosSalida = { usuario: usuarioActual.nombre, recibe, destino };
+    mostrarPantalla('captura');
+  };
+
+  // =======================================================
+  // 🧱 BLOQUE 3: CAPTURA DE ARTÍCULOS
+  // =======================================================
+  const buscarProd = document.getElementById('buscarProd');
+  const resultadosDiv = document.getElementById('resultadosBusqueda');
+
+  buscarProd.addEventListener('input', async e => {
+    const texto = e.target.value.trim().toUpperCase();
+    resultadosDiv.innerHTML = "";
+    if (texto.length < 2) return;
+
+    const ref = collection(db, "productos");
+    const snapshot = await getDocs(query(ref, where("concepto", ">=", texto), where("concepto", "<=", texto + "\uf8ff")));
+    snapshot.forEach(docu => {
+      const p = docu.data();
+      const item = document.createElement('div');
+      item.textContent = `${p.concepto} - $${p.costoSinImpuesto}`;
+      item.style.cursor = "pointer";
+      item.onclick = () => agregarAlCarrito(docu.id, p);
+      resultadosDiv.appendChild(item);
+    });
+  });
+
+  function agregarAlCarrito(id, prod) {
+    const cant = prompt(`Cantidad de "${prod.concepto}":`);
+    if (!cant || isNaN(cant) || cant <= 0) return;
+
+    carrito.push({
+      codigoBarra: id,
+      concepto: prod.concepto,
+      cantidad: parseInt(cant),
+      costo: prod.costoSinImpuesto
+    });
+    alert("Agregado al carrito");
+    buscarProd.value = "";
+    resultadosDiv.innerHTML = "";
+  }
+
+  document.getElementById('btnVerCarrito').onclick = () => {
+    renderCarrito();
+    mostrarPantalla('carrito');
+  };
+
+  // =======================================================
+  // 🧱 BLOQUE 4: REVISIÓN DE CARRITO
+  // =======================================================
+  const tbody = document.querySelector('#tablaCarrito tbody');
+  const totalGeneral = document.getElementById('totalGeneral');
+
+  function renderCarrito() {
+    tbody.innerHTML = "";
+    let total = 0;
+    carrito.forEach((p, i) => {
+      const subt = p.cantidad * p.costo;
+      total += subt;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.concepto}</td>
+        <td>${p.cantidad}</td>
+        <td>$${p.costo.toFixed(2)}</td>
+        <td>$${subt.toFixed(2)}</td>
+        <td>
+          <button onclick="editar(${i})">✏️</button>
+          <button onclick="eliminar(${i})">❌</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    totalGeneral.textContent = `Total: $${total.toFixed(2)}`;
+  }
+
+  window.editar = (i) => {
+    const nueva = prompt("Nueva cantidad:", carrito[i].cantidad);
+    if (nueva && !isNaN(nueva) && nueva > 0) {
+      carrito[i].cantidad = parseInt(nueva);
+      renderCarrito();
+    }
+  };
+
+  window.eliminar = (i) => {
+    if (confirm("Eliminar producto?")) {
+      carrito.splice(i, 1);
+      renderCarrito();
+    }
+  };
+
+  document.getElementById('btnRegresarCaptura').onclick = () => {
+    mostrarPantalla('captura');
+  };
+
+  document.getElementById('btnConfirmarSalida').onclick = () => {
+    if (carrito.length === 0) return alert("Carrito vacío");
+    mostrarPantalla('firmas');
+  };
+
+  // =======================================================
+  // 🧱 BLOQUE 5: FIRMAS Y GUARDADO
+  // =======================================================
+  const canvas1 = document.getElementById('firmaRecibe');
+  const ctx1 = canvas1.getContext('2d');
+  const canvas2 = document.getElementById('firmaEncargado');
+  const ctx2 = canvas2.getContext('2d');
+  let dibujando = false;
+
+  function activarDibujo(canvas, ctx) {
+    canvas.addEventListener('mousedown', () => dibujando = true);
+    canvas.addEventListener('mouseup', () => {
+      dibujando = false;
+      ctx.beginPath();
+    });
+    canvas.addEventListener('mousemove', e => {
+      if (!dibujando) return;
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#00416A";
+      ctx.lineTo(e.offsetX, e.offsetY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(e.offsetX, e.offsetY);
+    });
+  }
+
+  activarDibujo(canvas1, ctx1);
+  activarDibujo(canvas2, ctx2);
+
+  // ====== GUARDAR EN FIRESTORE ======
+  document.getElementById('btnGuardarSalida').onclick = async () => {
+    if (!datosSalida.recibe || !datosSalida.destino || carrito.length === 0)
+      return alert("Faltan datos o carrito vacío");
+
+    const salida = {
+      fecha: new Date().toISOString(),
+      usuario: datosSalida.usuario,
+      recibe: datosSalida.recibe,
+      destino: datosSalida.destino,
+      productos: carrito,
+      firmaRecibe: canvas1.toDataURL(),
+      firmaEncargado: canvas2.toDataURL()
+    };
+
+    try {
+      const ref = collection(db, "almacenes", "almacenabarrotepdd", "salidas");
+      await addDoc(ref, salida);
+      alert("✅ Salida registrada correctamente en Firestore");
+
+      // Limpiar variables y reiniciar flujo
+      carrito = [];
+      datosSalida = {};
+      localStorage.removeItem('usuarioActual');
+      mostrarPantalla('login');
+      ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+      ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+    } catch (err) {
+      console.error(err);
+      alert("Error al guardar en Firestore");
+    }
+  };
+
+</script>
+</body>
+</html>
