@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROVSOFT – Menú Principal</title>
+  <style>
+    :root {
+      --azul: #00416A;
+      --gris: #f7f7f7;
+      --blanco: #fff;
+      --sombra: rgba(0,0,0,0.15);
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: var(--gris);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--azul);
+      color: white;
+      text-align: center;
+      padding: 20px 10px;
+      box-shadow: 0 3px 10px var(--sombra);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 1px;
+    }
+
+    .contenedor {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .tarjeta {
+      background: var(--blanco);
+      border-radius: 18px;
+      box-shadow: 0 4px 14px var(--sombra);
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.15s ease-in-out;
+    }
+
+    .tarjeta:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 20px var(--sombra);
+    }
+
+    .tarjeta h2 {
+      color: var(--azul);
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .tarjeta p {
+      font-size: 14px;
+      color: #333;
+      margin: 0;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      padding: 10px;
+      background: #e9e9e9;
+    }
+
+    a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== ENCABEZADO PRINCIPAL ===== -->
+  <header>
+    <h1>🏭 PROVSOFT – Panel Principal</h1>
+    <p>Menú de módulos empresariales</p>
+  </header>
+
+  <!-- ===== MENÚ DE MÓDULOS ===== -->
+  <div class="contenedor">
+
+    <a href="ABASALIDADPDD.html">
+      <div class="tarjeta">
+        <h2>🚚 Salidas Abarrote PDD</h2>
+        <p>Control de salidas con firmas y guardado en Firestore</p>
+      </div>
+    </a>
+
+    <div class="tarjeta" onclick="alert('Módulo en desarrollo')">
+      <h2>📦 Inventarios</h2>
+      <p>Gestión de productos y existencias</p>
+    </div>
+
+    <div class="tarjeta" onclick="alert('Módulo en desarrollo')">
+      <h2>💰 Ventas</h2>
+      <p>Resumen y control de ventas diarias</p>
+    </div>
+
+    <div class="tarjeta" onclick="alert('Módulo en desarrollo')">
+      <h2>📊 Dashboard</h2>
+      <p>Análisis e indicadores en tiempo real</p>
+    </div>
+
+  </div>
+
+  <footer>© 2025 PROVSOFT – Sistema Empresarial Integrado</footer>
+</body>
+</html>
