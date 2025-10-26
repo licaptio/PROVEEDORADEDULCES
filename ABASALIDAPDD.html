@@ -200,43 +200,41 @@
 =========================================================== -->
 <script type="module">
   // ===== SECCIÓN 7.1: IMPORTAR FIREBASE =====
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import {
-    getFirestore, doc, getDoc, getDocs, addDoc, collection, query, where
-  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, getDocs, addDoc, collection, query, where
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // ===== SECCIÓN 7.2: CONFIGURACIÓN FIREBASE =====
-  const firebaseConfig = {
-    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-    authDomain: "inventariopv-643f1.firebaseapp.com",
-    projectId: "inventariopv-643f1",
-    storageBucket: "inventariopv-643f1.firebasestorage.app",
-    messagingSenderId: "96242533231",
-    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+// ===== CONFIGURACIÓN FIREBASE =====
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  // ===== SECCIÓN 7.3: VARIABLES GLOBALES =====
-  let usuarioActual = null;
-  let datosSalida = {};
-  let carrito = [];
+// ===== VARIABLES GLOBALES =====
+let usuarioActual = null;
+let datosSalida = {};
+let carrito = [];
 
-  // ===== SECCIÓN 7.4: FUNCIÓN CAMBIO DE PANTALLA =====
-  function mostrarPantalla(id) {
-    document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
-    document.getElementById(id).classList.add('activa');
-  }
+// ===== FUNCIÓN CAMBIO DE PANTALLA =====
+function mostrarPantalla(id) {
+  document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
+  document.getElementById(id).classList.add('activa');
+}
 
-  // =======================================================
-  // 🧱 BLOQUE 1: LOGIN
-  // =======================================================
-  const btnLogin = document.getElementById('btnLogin');
-  const mensajeLogin = document.getElementById('mensajeLogin');
+// =======================================================
+// 🧱 BLOQUE 1: LOGIN
+// =======================================================
+const btnLogin = document.getElementById('btnLogin');
+const mensajeLogin = document.getElementById('mensajeLogin');
 
-// ===== LOGIN USANDO COLECCIÓN usuarios_ruta =====
 async function validarUsuario(usuario, password) {
-  // Buscar todos los usuarios activos
   const ref = collection(db, "usuarios_ruta");
   const snap = await getDocs(ref);
   let user = null;
@@ -247,45 +245,43 @@ async function validarUsuario(usuario, password) {
       user = data;
     }
   });
-
   return user;
 }
 
+btnLogin.onclick = async () => {
+  const usuario = document.getElementById('usuario').value.trim();
+  const pass = document.getElementById('password').value.trim();
+  if (!usuario || !pass) {
+    mensajeLogin.textContent = "Ingresa usuario y contraseña";
+    return;
+  }
 
-  btnLogin.onclick = async () => {
-    const usuario = document.getElementById('usuario').value.trim();
-    const pass = document.getElementById('password').value.trim();
-    if (!usuario || !pass) {
-      mensajeLogin.textContent = "Ingresa usuario y contraseña";
-      return;
-    }
+  const user = await validarUsuario(usuario, pass);
+  if (!user) {
+    mensajeLogin.textContent = "Datos incorrectos";
+    return;
+  }
 
-    const user = await validarUsuario(usuario, pass);
-    if (!user) {
-      mensajeLogin.textContent = "Datos incorrectos";
-      return;
-    }
+  usuarioActual = { usuario, nombre: user.nombre };
+  localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
+  document.getElementById('txtUsuario').value = user.nombre;
+  await cargarListas();
+  mostrarPantalla('datosSalida');
+};
 
-    usuarioActual = { usuario, nombre: user.nombre };
-    localStorage.setItem('usuarioActual', JSON.stringify(usuarioActual));
+window.addEventListener('load', async () => {
+  const saved = localStorage.getItem('usuarioActual');
+  if (saved) {
+    usuarioActual = JSON.parse(saved);
+    document.getElementById('txtUsuario').value = usuarioActual.nombre;
+    await cargarListas();
     mostrarPantalla('datosSalida');
-    document.getElementById('txtUsuario').value = user.nombre;
-  };
-
-  // Si ya hay sesión guardada, saltar login
-  window.addEventListener('load', () => {
-    const saved = localStorage.getItem('usuarioActual');
-    if (saved) {
-      usuarioActual = JSON.parse(saved);
-      document.getElementById('txtUsuario').value = usuarioActual.nombre;
-      mostrarPantalla('datosSalida');
-    }
-  });
+  }
+});
 
 // =======================================================
 // 🧱 BLOQUE 2: DATOS DE SALIDA (con Firestore)
 // =======================================================
-
 const selectRecibe = document.getElementById("selectRecibe");
 const selectDestino = document.getElementById("selectDestino");
 
@@ -320,7 +316,6 @@ document.getElementById('btnContinuarDatos').onclick = async () => {
   const destinoId = selectDestino.value;
   if (!recibeId || !destinoId) return alert("Selecciona ambos campos");
 
-  // Obtener los documentos seleccionados
   const recibeSnap = await getDoc(doc(db, "trabajadores_proveedora", recibeId));
   const destinoSnap = await getDoc(doc(db, "destinos", destinoId));
 
@@ -334,172 +329,176 @@ document.getElementById('btnContinuarDatos').onclick = async () => {
     destinoId,
     destinoNombre: destinoData.nombre || "Sin nombre",
     destinoDireccion: destinoData.direccion || "",
+    destinoUbicacion: destinoData.ubicacion || null
   };
 
   console.log("📦 Datos de salida:", datosSalida);
   mostrarPantalla('captura');
 };
 
-// Cargar listas al entrar en pantalla de datos
-window.addEventListener('load', cargarListas);
+// =======================================================
+// 🧱 BLOQUE 3: CAPTURA DE ARTÍCULOS
+// =======================================================
+const buscarProd = document.getElementById('buscarProd');
+const resultadosDiv = document.getElementById('resultadosBusqueda');
 
+buscarProd.addEventListener('input', async e => {
+  const texto = e.target.value.trim().toUpperCase();
+  resultadosDiv.innerHTML = "";
+  if (texto.length < 2) return;
 
-  // =======================================================
-  // 🧱 BLOQUE 3: CAPTURA DE ARTÍCULOS
-  // =======================================================
-  const buscarProd = document.getElementById('buscarProd');
-  const resultadosDiv = document.getElementById('resultadosBusqueda');
-
-  buscarProd.addEventListener('input', async e => {
-    const texto = e.target.value.trim().toUpperCase();
-    resultadosDiv.innerHTML = "";
-    if (texto.length < 2) return;
-
-    const ref = collection(db, "productos");
-    const snapshot = await getDocs(query(ref, where("concepto", ">=", texto), where("concepto", "<=", texto + "\uf8ff")));
-    snapshot.forEach(docu => {
-      const p = docu.data();
-      const item = document.createElement('div');
-      item.textContent = `${p.concepto} - $${p.costoSinImpuesto}`;
-      item.style.cursor = "pointer";
-      item.onclick = () => agregarAlCarrito(docu.id, p);
-      resultadosDiv.appendChild(item);
-    });
+  const ref = collection(db, "productos");
+  const snapshot = await getDocs(query(ref, where("concepto", ">=", texto), where("concepto", "<=", texto + "\uf8ff")));
+  snapshot.forEach(docu => {
+    const p = docu.data();
+    const item = document.createElement('div');
+    item.textContent = `${p.concepto} - $${p.costoSinImpuesto}`;
+    item.style.cursor = "pointer";
+    item.onclick = () => agregarAlCarrito(docu.id, p);
+    resultadosDiv.appendChild(item);
   });
+});
 
-  function agregarAlCarrito(id, prod) {
-    const cant = prompt(`Cantidad de "${prod.concepto}":`);
-    if (!cant || isNaN(cant) || cant <= 0) return;
+function agregarAlCarrito(id, prod) {
+  const cant = prompt(`Cantidad de "${prod.concepto}":`);
+  if (!cant || isNaN(cant) || cant <= 0) return;
 
-    carrito.push({
-      codigoBarra: id,
-      concepto: prod.concepto,
-      cantidad: parseInt(cant),
-      costo: prod.costoSinImpuesto
-    });
-    alert("Agregado al carrito");
-    buscarProd.value = "";
-    resultadosDiv.innerHTML = "";
-  }
+  carrito.push({
+    codigoBarra: id,
+    concepto: prod.concepto,
+    cantidad: parseInt(cant),
+    costo: prod.costoSinImpuesto
+  });
+  alert("Agregado al carrito");
+  buscarProd.value = "";
+  resultadosDiv.innerHTML = "";
+}
 
-  document.getElementById('btnVerCarrito').onclick = () => {
+document.getElementById('btnVerCarrito').onclick = () => {
+  renderCarrito();
+  mostrarPantalla('carrito');
+};
+
+// =======================================================
+// 🧱 BLOQUE 4: REVISIÓN DE CARRITO
+// =======================================================
+const tbody = document.querySelector('#tablaCarrito tbody');
+const totalGeneral = document.getElementById('totalGeneral');
+
+function renderCarrito() {
+  tbody.innerHTML = "";
+  let total = 0;
+  carrito.forEach((p, i) => {
+    const subt = p.cantidad * p.costo;
+    total += subt;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.concepto}</td>
+      <td>${p.cantidad}</td>
+      <td>$${p.costo.toFixed(2)}</td>
+      <td>$${subt.toFixed(2)}</td>
+      <td>
+        <button onclick="editar(${i})">✏️</button>
+        <button onclick="eliminar(${i})">❌</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  totalGeneral.textContent = `Total: $${total.toFixed(2)}`;
+}
+
+window.editar = (i) => {
+  const nueva = prompt("Nueva cantidad:", carrito[i].cantidad);
+  if (nueva && !isNaN(nueva) && nueva > 0) {
+    carrito[i].cantidad = parseInt(nueva);
     renderCarrito();
-    mostrarPantalla('carrito');
-  };
-
-  // =======================================================
-  // 🧱 BLOQUE 4: REVISIÓN DE CARRITO
-  // =======================================================
-  const tbody = document.querySelector('#tablaCarrito tbody');
-  const totalGeneral = document.getElementById('totalGeneral');
-
-  function renderCarrito() {
-    tbody.innerHTML = "";
-    let total = 0;
-    carrito.forEach((p, i) => {
-      const subt = p.cantidad * p.costo;
-      total += subt;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${p.concepto}</td>
-        <td>${p.cantidad}</td>
-        <td>$${p.costo.toFixed(2)}</td>
-        <td>$${subt.toFixed(2)}</td>
-        <td>
-          <button onclick="editar(${i})">✏️</button>
-          <button onclick="eliminar(${i})">❌</button>
-        </td>`;
-      tbody.appendChild(tr);
-    });
-    totalGeneral.textContent = `Total: $${total.toFixed(2)}`;
   }
+};
 
-  window.editar = (i) => {
-    const nueva = prompt("Nueva cantidad:", carrito[i].cantidad);
-    if (nueva && !isNaN(nueva) && nueva > 0) {
-      carrito[i].cantidad = parseInt(nueva);
-      renderCarrito();
-    }
-  };
-
-  window.eliminar = (i) => {
-    if (confirm("Eliminar producto?")) {
-      carrito.splice(i, 1);
-      renderCarrito();
-    }
-  };
-
-  document.getElementById('btnRegresarCaptura').onclick = () => {
-    mostrarPantalla('captura');
-  };
-
-  document.getElementById('btnConfirmarSalida').onclick = () => {
-    if (carrito.length === 0) return alert("Carrito vacío");
-    mostrarPantalla('firmas');
-  };
-
-  // =======================================================
-  // 🧱 BLOQUE 5: FIRMAS Y GUARDADO
-  // =======================================================
-  const canvas1 = document.getElementById('firmaRecibe');
-  const ctx1 = canvas1.getContext('2d');
-  const canvas2 = document.getElementById('firmaEncargado');
-  const ctx2 = canvas2.getContext('2d');
-  let dibujando = false;
-
-  function activarDibujo(canvas, ctx) {
-    canvas.addEventListener('mousedown', () => dibujando = true);
-    canvas.addEventListener('mouseup', () => {
-      dibujando = false;
-      ctx.beginPath();
-    });
-    canvas.addEventListener('mousemove', e => {
-      if (!dibujando) return;
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "#00416A";
-      ctx.lineTo(e.offsetX, e.offsetY);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(e.offsetX, e.offsetY);
-    });
+window.eliminar = (i) => {
+  if (confirm("Eliminar producto?")) {
+    carrito.splice(i, 1);
+    renderCarrito();
   }
+};
 
-  activarDibujo(canvas1, ctx1);
-  activarDibujo(canvas2, ctx2);
+document.getElementById('btnRegresarCaptura').onclick = () => {
+  mostrarPantalla('captura');
+};
 
-  // ====== GUARDAR EN FIRESTORE ======
-  document.getElementById('btnGuardarSalida').onclick = async () => {
-    if (!datosSalida.recibe || !datosSalida.destino || carrito.length === 0)
-      return alert("Faltan datos o carrito vacío");
+document.getElementById('btnConfirmarSalida').onclick = () => {
+  if (carrito.length === 0) return alert("Carrito vacío");
+  mostrarPantalla('firmas');
+};
 
-    const salida = {
-      fecha: new Date().toISOString(),
-      usuario: datosSalida.usuario,
-      recibe: datosSalida.recibe,
-      destino: datosSalida.destino,
-      productos: carrito,
-      firmaRecibe: canvas1.toDataURL(),
-      firmaEncargado: canvas2.toDataURL()
-    };
+// =======================================================
+// 🧱 BLOQUE 5: FIRMAS Y GUARDADO
+// =======================================================
+const canvas1 = document.getElementById('firmaRecibe');
+const ctx1 = canvas1.getContext('2d');
+const canvas2 = document.getElementById('firmaEncargado');
+const ctx2 = canvas2.getContext('2d');
+let dibujando = false;
 
-    try {
-      const ref = collection(db, "almacenes", "almacenabarrotepdd", "salidas");
-      await addDoc(ref, salida);
-      alert("✅ Salida registrada correctamente en Firestore");
+function activarDibujo(canvas, ctx) {
+  canvas.addEventListener('mousedown', () => dibujando = true);
+  canvas.addEventListener('mouseup', () => {
+    dibujando = false;
+    ctx.beginPath();
+  });
+  canvas.addEventListener('mousemove', e => {
+    if (!dibujando) return;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#00416A";
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
+  });
+}
 
-      // Limpiar variables y reiniciar flujo
-      carrito = [];
-      datosSalida = {};
-      localStorage.removeItem('usuarioActual');
-      mostrarPantalla('login');
-      ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
-      ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
-    } catch (err) {
-      console.error(err);
-      alert("Error al guardar en Firestore");
-    }
+activarDibujo(canvas1, ctx1);
+activarDibujo(canvas2, ctx2);
+
+document.getElementById('btnGuardarSalida').onclick = async () => {
+  if (!datosSalida.recibeId || !datosSalida.destinoId || carrito.length === 0)
+    return alert("Faltan datos o carrito vacío");
+
+  const salida = {
+    fecha: new Date().toISOString(),
+    usuario: datosSalida.usuario,
+    recibe: {
+      id: datosSalida.recibeId,
+      nombre: datosSalida.recibeNombre
+    },
+    destino: {
+      id: datosSalida.destinoId,
+      nombre: datosSalida.destinoNombre,
+      direccion: datosSalida.destinoDireccion,
+      ubicacion: datosSalida.destinoUbicacion
+    },
+    productos: carrito,
+    firmaRecibe: canvas1.toDataURL(),
+    firmaEncargado: canvas2.toDataURL()
   };
+
+  try {
+    const ref = collection(db, "almacenes", "almacenabarrotepdd", "salidas");
+    await addDoc(ref, salida);
+    alert("✅ Salida registrada correctamente en Firestore");
+
+    carrito = [];
+    datosSalida = {};
+    localStorage.removeItem('usuarioActual');
+    mostrarPantalla('login');
+    ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+    ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+  } catch (err) {
+    console.error(err);
+    alert("Error al guardar en Firestore");
+  }
+};
+
 
 </script>
 </body>
