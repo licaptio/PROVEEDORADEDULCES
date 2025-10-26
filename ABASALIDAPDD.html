@@ -230,13 +230,23 @@
   const btnLogin = document.getElementById('btnLogin');
   const mensajeLogin = document.getElementById('mensajeLogin');
 
-  async function validarUsuario(usuario, password) {
-    const ref = doc(db, "usuarios_almacen", usuario);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return null;
-    const data = snap.data();
-    return data.password === password ? data : null;
-  }
+// ===== LOGIN USANDO COLECCIÓN usuarios_ruta =====
+async function validarUsuario(usuario, password) {
+  // Buscar todos los usuarios activos
+  const ref = collection(db, "usuarios_ruta");
+  const snap = await getDocs(ref);
+  let user = null;
+
+  snap.forEach(docu => {
+    const data = docu.data();
+    if (data.usuario === usuario && data.password === password && data.activo === true) {
+      user = data;
+    }
+  });
+
+  return user;
+}
+
 
   btnLogin.onclick = async () => {
     const usuario = document.getElementById('usuario').value.trim();
