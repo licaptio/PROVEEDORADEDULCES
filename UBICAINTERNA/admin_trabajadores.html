@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Trabajadores – PROVSOFT</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f3f6f9;
+      padding: 20px;
+      color: #222;
+    }
+    h2 { text-align: center; color: #00416A; }
+    .formulario {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      padding: 20px;
+      max-width: 700px;
+      margin: 0 auto 25px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 6px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #00416A;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover { background: #01385c; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    th { background: #00416A; color: white; }
+  </style>
+</head>
+<body>
+  <h2>👷 Registro General de Trabajadores</h2>
+
+  <div class="formulario">
+    <label>Nombre Completo:</label>
+    <input id="nombre" placeholder="Ej. Juan G. Serrato Alejos">
+
+    <label>Puesto / Rol:</label>
+    <input id="puesto" placeholder="Ej. Vendedor, Encargado de Bodega, etc.">
+
+    <label>Departamento:</label>
+    <input id="departamento" placeholder="Ej. Ventas, Logística, Administración">
+
+    <label>Teléfono:</label>
+    <input id="telefono" placeholder="Ej. 8181234567">
+
+    <label>Correo:</label>
+    <input id="correo" placeholder="Ej. trabajador@empresa.com">
+
+    <label>Descripción / Ubicación física:</label>
+    <textarea id="ubicacionDesc" rows="2" placeholder="Ej. Zona de carga, oficina, etc."></textarea>
+
+    <label>Coordenadas (lat, lng):</label>
+    <input id="lat" placeholder="Ej. 25.6866">
+    <input id="lng" placeholder="Ej. -100.3161">
+
+    <label>Observaciones:</label>
+    <textarea id="observaciones" rows="2"></textarea>
+
+    <button id="btnGuardar">Guardar trabajador</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th><th>Puesto</th><th>Departamento</th><th>Ubicación</th><th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+  </table>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getFirestore, collection, addDoc, getDocs, deleteDoc, doc 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const nombre = document.getElementById("nombre");
+    const puesto = document.getElementById("puesto");
+    const departamento = document.getElementById("departamento");
+    const telefono = document.getElementById("telefono");
+    const correo = document.getElementById("correo");
+    const ubicacionDesc = document.getElementById("ubicacionDesc");
+    const lat = document.getElementById("lat");
+    const lng = document.getElementById("lng");
+    const observaciones = document.getElementById("observaciones");
+    const tabla = document.getElementById("tabla");
+    const btnGuardar = document.getElementById("btnGuardar");
+
+    // ===== GUARDAR TRABAJADOR =====
+    btnGuardar.onclick = async () => {
+      if (!nombre.value.trim() || !puesto.value.trim()) {
+        alert("Completa al menos nombre y puesto");
+        return;
+      }
+      await addDoc(collection(db, "trabajadores_proveedora"), {
+        nombreCompleto: nombre.value,
+        puesto: puesto.value,
+        departamento: departamento.value,
+        telefono: telefono.value,
+        correo: correo.value,
+        ubicacion: {
+          lat: parseFloat(lat.value) || null,
+          lng: parseFloat(lng.value) || null,
+          descripcion: ubicacionDesc.value
+        },
+        observaciones: observaciones.value,
+        activo: true,
+        fechaAlta: new Date().toISOString()
+      });
+      alert("✅ Trabajador agregado correctamente");
+      limpiarCampos();
+      cargarTrabajadores();
+    };
+
+    function limpiarCampos() {
+      nombre.value = puesto.value = departamento.value = telefono.value = correo.value =
+      ubicacionDesc.value = lat.value = lng.value = observaciones.value = "";
+    }
+
+    // ===== CARGAR LISTA =====
+    async function cargarTrabajadores() {
+      tabla.innerHTML = "";
+      const ref = collection(db, "trabajadores_proveedora");
+      const snapshot = await getDocs(ref);
+      snapshot.forEach(docu => {
+        const d = docu.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${d.nombreCompleto}</td>
+          <td>${d.puesto}</td>
+          <td>${d.departamento}</td>
+          <td>${d.ubicacion?.descripcion || "—"}</td>
+          <td><button onclick="eliminarTrabajador('${docu.id}')">🗑️</button></td>
+        `;
+        tabla.appendChild(tr);
+      });
+    }
+
+    // ===== ELIMINAR =====
+    window.eliminarTrabajador = async (id) => {
+      if (confirm("¿Eliminar trabajador?")) {
+        await deleteDoc(doc(db, "trabajadores_proveedora", id));
+        cargarTrabajadores();
+      }
+    };
+
+    cargarTrabajadores();
+  </script>
+</body>
+</html>
