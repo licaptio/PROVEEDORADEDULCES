@@ -275,6 +275,41 @@ async function cargarListas() {
     selectDestino.appendChild(opt);
   });
 }
+
+// =======================================================
+// 🧱 BLOQUE 2.2: CONTINUAR A CAPTURA DE ARTÍCULOS
+// =======================================================
+document.getElementById('btnContinuarDatos').onclick = async () => {
+  const recibeId = selectRecibe.value;
+  const destinoId = selectDestino.value;
+
+  if (!recibeId || !destinoId) {
+    alert("Selecciona quien recibe y el destino antes de continuar");
+    return;
+  }
+
+  // Obtener los documentos seleccionados
+  const recibeSnap = await getDoc(doc(db, "trabajadores_proveedora", recibeId));
+  const destinoSnap = await getDoc(doc(db, "destinos", destinoId));
+
+  const recibeData = recibeSnap.exists() ? recibeSnap.data() : {};
+  const destinoData = destinoSnap.exists() ? destinoSnap.data() : {};
+
+  // Guardar los datos de salida
+  datosSalida = {
+    usuario: usuarioActual.nombre,
+    recibeId,
+    recibeNombre: recibeData.nombreCompleto || "Sin nombre",
+    destinoId,
+    destinoNombre: destinoData.nombre || "Sin nombre",
+    destinoDireccion: destinoData.direccion || "",
+    destinoUbicacion: destinoData.ubicacion || null
+  };
+
+  console.log("📦 Datos de salida:", datosSalida);
+  mostrarPantalla('captura');
+};
+
 // ==========================================================
 // 🧱 BLOQUE 3: CAPTURA DE ARTÍCULOS
 // ==========================================================
