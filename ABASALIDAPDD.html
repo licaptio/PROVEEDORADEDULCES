@@ -607,11 +607,88 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
     firmaEncargado: canvas2.toDataURL()
   };
 
-  try {
-    const ref = collection(db, "almacenes", "almacenabarrotepdd", "salidas");
-    await addDoc(ref, salida);
+try {
+  const ref = collection(db, "almacenes", "almacenabarrotepdd", "salidas");
+  await addDoc(ref, salida);
 
-    alert("✅ Salida registrada correctamente en Firestore");
+  // ==========================================================
+  // 🧱 SECCIÓN 8: INTEGRACIÓN CON BOTS DE TELEGRAM
+  // ==========================================================
+  const BOT_TOKEN = "TU_TOKEN_DE_BOT_AQUI";     // Token de ALIKA, LOBA o STAR
+  const CHAT_ID = "TU_CHAT_ID_AQUI";             // ID del grupo o chat destino
+
+  const mensaje = `
+📦 *Nueva salida registrada en Abarrote PDD*
+👨‍💼 Usuario: ${datosSalida.usuario}
+🙋‍♂️ Recibe: ${datosSalida.recibeNombre}
+📍 Destino: ${datosSalida.destinoNombre}
+🛒 Artículos: ${carrito.length}
+🕒 Fecha: ${new Date().toLocaleString("es-MX")}
+`;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: mensaje,
+        parse_mode: "Markdown"
+      })
+    });
+    mostrarAvisoFlotante("📤 Salida enviada a central (ALIKA)");
+  } catch (error) {
+    console.error("⚠️ Error al enviar mensaje al bot:", error);
+    mostrarAvisoFlotante("⚠️ No se pudo notificar a Telegram");
+  }
+
+  // ==========================================================
+  // 🧱 SECCIÓN 9: AVISO FLOTANTE VISUAL
+  // ==========================================================
+  function mostrarAvisoFlotante(msg) {
+    const aviso = document.createElement('div');
+    aviso.textContent = msg;
+    aviso.style.position = 'fixed';
+    aviso.style.bottom = '30px';
+    aviso.style.left = '50%';
+    aviso.style.transform = 'translateX(-50%)';
+    aviso.style.background = '#333';
+    aviso.style.color = '#fff';
+    aviso.style.padding = '10px 20px';
+    aviso.style.borderRadius = '10px';
+    aviso.style.fontSize = '14px';
+    aviso.style.boxShadow = '0 3px 10px rgba(0,0,0,0.3)';
+    aviso.style.opacity = '0';
+    aviso.style.transition = 'opacity 0.3s';
+    aviso.style.zIndex = '10000';
+    document.body.appendChild(aviso);
+    setTimeout(() => aviso.style.opacity = '1', 100);
+    setTimeout(() => {
+      aviso.style.opacity = '0';
+      setTimeout(() => aviso.remove(), 500);
+    }, 3000);
+  }
+
+  // ==========================================================
+  // 🧱 SECCIÓN 10: LIMPIEZA Y REGRESO
+  // ==========================================================
+  alert("✅ Salida registrada correctamente en Firestore");
+
+  carrito = [];
+  renderCarrito();
+  actualizarContador();
+  ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+  ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+
+  datosSalida = {};
+  selectRecibe.value = "";
+  selectDestino.value = "";
+  mostrarPantalla('datosSalida');
+} catch (err) {
+  console.error(err);
+  alert("❌ Error al guardar en Firestore");
+}
+
 
     // 🔹 Limpieza visual completa
     carrito = [];
