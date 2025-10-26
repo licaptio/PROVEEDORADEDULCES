@@ -670,7 +670,9 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
           parse_mode: "Markdown"
         })
       });
-      mostrarAvisoFlotante("📤 Salida enviada a central (ALIKA)");
+      // 🧠 Llamar al BOT 2 (LOBA/STAR) para revisar inventarios fijados
+await ejecutarBotInventario(salida, carrito);
+		mostrarAvisoFlotante("📤 Salida enviada a central (ALIKA)");
     } catch (error) {
       console.error("⚠️ Error al enviar mensaje al bot:", error);
       mostrarAvisoFlotante("⚠️ No se pudo notificar a Telegram");
@@ -724,6 +726,87 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
     alert("❌ Error al guardar en Firestore");
   }
 };
+// ==========================================================
+// 🧱 SECCIÓN 11: BOT SUPERVISOR DE INVENTARIOS (LOBA / STAR)
+// ==========================================================
+
+// 🔧 Configuración del bot de supervisión
+const BOT2_TOKEN = "TU_TOKEN_DE_LOBA_O_STAR_AQUI";  // Token real del bot supervisor
+const BOT2_CHAT_ID = "TU_CHAT_ID_DEL_GRUPO";         // ID del chat o canal
+
+/**
+ * BOT 2: Verifica inventarios fijados, actualiza historial
+ * y envía notificaciones a Telegram.
+ */
+async function ejecutarBotInventario(salida, carrito) {
+  try {
+    for (const p of carrito) {
+      const productoRef = doc(db, "productos", p.id);
+      const snap = await getDoc(productoRef);
+      if (!snap.exists()) continue;
+
+      const prod = snap.data();
+      const inventarioAntes = prod.inventario_fijado || 0;
+      const inventarioNuevo = inventarioAntes - p.cantidad;
+
+      // Actualizar inventario y fecha de última salida
+      await addDoc(collection(productoRef, "historial_salidas"), {
+        fecha: new Date().toISOString(),
+        usuario: salida.usuario,
+        cantidad: p.cantidad,
+        inventario_antes: inventarioAntes,
+        inventario_despues: inventarioNuevo,
+        destino: salida.destino.nombre,
+        folio_salida: salida.folio
+      });
+
+      await updateDoc(productoRef, {
+        inventario_fijado: inventarioNuevo,
+        ultima_salida: new Date().toISOString(),
+        actualizadoEn: new Date().toISOString()
+      });
+
+      // Evaluar estado del inventario
+      const alertaCritica = inventarioNuevo <= (prod.inventario_minimo || 0);
+
+      // Mensaje a Telegram
+      const msg = alertaCritica
+        ? `
+🚨 *ALERTA CRÍTICA DE INVENTARIO*  
+📦 ${p.concepto}  
+🔢 Código: ${p.codigoBarra || "N/A"}  
+📉 Stock actual: ${inventarioNuevo} (mínimo ${prod.inventario_minimo || 0})  
+📤 Última salida: ${p.cantidad} unidades  
+👨‍💼 Usuario: ${salida.usuario}  
+🕒 ${new Date().toLocaleString("es-MX")}
+        `
+        : `
+📦 *Movimiento detectado en inventario*  
+🧾 Folio: ${salida.folio}  
+📄 ${p.concepto}  
+📉 Salida: ${p.cantidad} unidades  
+📊 Antes: ${inventarioAntes} → Ahora: ${inventarioNuevo}  
+📍 Destino: ${salida.destino.nombre}  
+👨‍💼 Usuario: ${salida.usuario}  
+🕒 ${new Date().toLocaleString("es-MX")}
+        `;
+
+      await fetch(`https://api.telegram.org/bot${BOT2_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: BOT2_CHAT_ID,
+          text: msg,
+          parse_mode: "Markdown"
+        })
+      });
+    }
+
+    console.log("✅ BOT 2 ejecutado: inventarios y notificaciones actualizados.");
+  } catch (err) {
+    console.error("⚠️ Error en BOT 2:", err);
+  }
+}
 
 </script>
 </body>
