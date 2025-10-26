@@ -564,20 +564,29 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
   try {
     const ref = collection(db, "almacenes", "almacenabarrotepdd", "salidas");
     await addDoc(ref, salida);
+
     alert("✅ Salida registrada correctamente en Firestore");
 
-    // Resetear
+    // 🔹 Limpieza visual completa
     carrito = [];
-    datosSalida = {};
+    renderCarrito();
+    actualizarContador();
     ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
     ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
-    mostrarPantalla('login');
-    localStorage.removeItem('usuarioActual');
+
+    // 🔹 Reiniciar datos pero conservar sesión
+    datosSalida = {};
+    selectRecibe.value = "";
+    selectDestino.value = "";
+
+    // 🔹 Regresar a pantalla de datos de salida, no al login
+    mostrarPantalla('datosSalida');
   } catch (err) {
     console.error(err);
     alert("❌ Error al guardar en Firestore");
   }
 };
+
 </script>
 </body>
 </html>
