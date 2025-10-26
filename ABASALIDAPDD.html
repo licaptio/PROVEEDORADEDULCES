@@ -132,13 +132,17 @@
     <h2>Datos de salida</h2>
     <label>Usuario:</label>
     <input type="text" id="txtUsuario" readonly>
+
     <label>Persona que recibe:</label>
-    <input type="text" id="txtRecibe" placeholder="Ej. Juan Pérez">
+    <select id="selectRecibe"></select>
+
     <label>Destino o dirección:</label>
-    <input type="text" id="txtDestino" placeholder="Ej. Tienda Zapata">
+    <select id="selectDestino"></select>
+
     <button id="btnContinuarDatos">Continuar →</button>
   </div>
 </div>
+
 
 <!-- ==========================================================
      🧱 SECCIÓN 4: CAPTURA DE ARTÍCULOS
@@ -278,17 +282,68 @@ async function validarUsuario(usuario, password) {
     }
   });
 
-  // =======================================================
-  // 🧱 BLOQUE 2: DATOS DE SALIDA
-  // =======================================================
-  document.getElementById('btnContinuarDatos').onclick = () => {
-    const recibe = document.getElementById('txtRecibe').value.trim();
-    const destino = document.getElementById('txtDestino').value.trim();
-    if (!recibe || !destino) return alert("Completa los datos");
+// =======================================================
+// 🧱 BLOQUE 2: DATOS DE SALIDA (con Firestore)
+// =======================================================
+import { getDocs, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    datosSalida = { usuario: usuarioActual.nombre, recibe, destino };
-    mostrarPantalla('captura');
+const selectRecibe = document.getElementById("selectRecibe");
+const selectDestino = document.getElementById("selectDestino");
+
+async function cargarListas() {
+  // --- Cargar trabajadores ---
+  const refTrab = collection(db, "trabajadores_proveedora");
+  const snapTrab = await getDocs(refTrab);
+  selectRecibe.innerHTML = "<option value=''>Selecciona quien recibe...</option>";
+  snapTrab.forEach(docu => {
+    const t = docu.data();
+    const opt = document.createElement("option");
+    opt.value = docu.id;
+    opt.textContent = t.nombreCompleto;
+    selectRecibe.appendChild(opt);
+  });
+
+  // --- Cargar destinos ---
+  const refDest = collection(db, "destinos");
+  const snapDest = await getDocs(refDest);
+  selectDestino.innerHTML = "<option value=''>Selecciona destino...</option>";
+  snapDest.forEach(docu => {
+    const d = docu.data();
+    const opt = document.createElement("option");
+    opt.value = docu.id;
+    opt.textContent = d.nombre || d.direccion || "Destino sin nombre";
+    selectDestino.appendChild(opt);
+  });
+}
+
+document.getElementById('btnContinuarDatos').onclick = async () => {
+  const recibeId = selectRecibe.value;
+  const destinoId = selectDestino.value;
+  if (!recibeId || !destinoId) return alert("Selecciona ambos campos");
+
+  // Obtener los documentos seleccionados
+  const recibeSnap = await getDoc(doc(db, "trabajadores_proveedora", recibeId));
+  const destinoSnap = await getDoc(doc(db, "destinos", destinoId));
+
+  const recibeData = recibeSnap.exists() ? recibeSnap.data() : {};
+  const destinoData = destinoSnap.exists() ? destinoSnap.data() : {};
+
+  datosSalida = {
+    usuario: usuarioActual.nombre,
+    recibeId,
+    recibeNombre: recibeData.nombreCompleto || "Sin nombre",
+    destinoId,
+    destinoNombre: destinoData.nombre || "Sin nombre",
+    destinoDireccion: destinoData.direccion || "",
   };
+
+  console.log("📦 Datos de salida:", datosSalida);
+  mostrarPantalla('captura');
+};
+
+// Cargar listas al entrar en pantalla de datos
+window.addEventListener('load', cargarListas);
+
 
   // =======================================================
   // 🧱 BLOQUE 3: CAPTURA DE ARTÍCULOS
