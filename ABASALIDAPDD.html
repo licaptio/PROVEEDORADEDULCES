@@ -676,11 +676,12 @@ document.getElementById('btnRegresarCaptura').onclick = () => {
 
 document.getElementById('btnConfirmarSalida').onclick = () => {
   if (carrito.length === 0) return alert("Carrito vacío");
-  mostrarPantalla('firmas');
+  mostrarPantalla('firmaPaso1');
+
 };
 
 // ==========================================================
-// 🧱 BLOQUE 5: FIRMAS Y GUARDADO EN FIRESTORE
+// 🧱 BLOQUE 5: FIRMAS (EN DOS PASOS PARA CELULAR)
 // ==========================================================
 const canvas1 = document.getElementById('firmaRecibe');
 const ctx1 = canvas1.getContext('2d');
@@ -690,27 +691,25 @@ const ctx2 = canvas2.getContext('2d');
 function activarDibujo(canvas, ctx) {
   let dibujando = false;
 
-  // Configurar tamaño flexible (responsive)
+  // Ajuste responsivo
   function ajustarTamaño() {
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const temp = ctx.getImageData(0, 0, canvas.width, canvas.height);
     canvas.width = w;
     canvas.height = h;
-    ctx.putImageData(data, 0, 0);
+    ctx.putImageData(temp, 0, 0);
   }
   window.addEventListener("resize", ajustarTamaño);
   ajustarTamaño();
 
-  // ---- EVENTOS DE MOUSE ----
+  // Mouse
   canvas.addEventListener("mousedown", e => {
     dibujando = true;
     ctx.beginPath();
     ctx.moveTo(e.offsetX, e.offsetY);
   });
-
   canvas.addEventListener("mouseup", () => dibujando = false);
-
   canvas.addEventListener("mousemove", e => {
     if (!dibujando) return;
     ctx.lineWidth = 2;
@@ -720,36 +719,41 @@ function activarDibujo(canvas, ctx) {
     ctx.stroke();
   });
 
-  // ---- EVENTOS TÁCTILES (celulares) ----
+  // Touch
   canvas.addEventListener("touchstart", e => {
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
+    const t = e.touches[0];
     ctx.beginPath();
-    ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    ctx.moveTo(t.clientX - rect.left, t.clientY - rect.top);
     dibujando = true;
   });
-
   canvas.addEventListener("touchmove", e => {
     e.preventDefault();
     if (!dibujando) return;
     const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
+    const t = e.touches[0];
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
     ctx.strokeStyle = "#00416A";
-    ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    ctx.lineTo(t.clientX - rect.left, t.clientY - rect.top);
     ctx.stroke();
   });
-
-  canvas.addEventListener("touchend", e => {
-    e.preventDefault();
-    dibujando = false;
-  });
+  canvas.addEventListener("touchend", () => dibujando = false);
 }
 
 activarDibujo(canvas1, ctx1);
 activarDibujo(canvas2, ctx2);
+
+// Limpiar botones
+document.getElementById("btnLimpiarRecibe").onclick = () => ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+document.getElementById("btnLimpiarEncargado").onclick = () => ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+
+// Navegación entre pasos
+document.getElementById("btnSiguienteFirma").onclick = () => {
+  mostrarPantalla('firmaPaso2');
+};
+
 // ==========================================================
 // 🧱 SECCIÓN 5.1: FOLIADOR INTERNO (autonumérico)
 // ==========================================================
