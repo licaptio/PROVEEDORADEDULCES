@@ -652,14 +652,29 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
 const BOT_TOKEN = "8495270080:AAFBJ8Vxi6ZhqP6ghtJqMal9RZFz3YJBpo8";
 const CHAT_ID = "6617988297";
 
-    const mensaje = `
+// 🧾 Preparar desglose de artículos (solo nombre y cantidad, sin código)
+let detalleArticulos = carrito.map(p => {
+  let nombre = p.concepto;
+  if (nombre.length > 45) nombre = nombre.substring(0, 45) + "...";
+  return `• ${nombre} (x${p.cantidad})`;
+}).join("\n");
+
+// Limitar a los primeros 5 si hay muchos
+if (carrito.length > 5) {
+  detalleArticulos = detalleArticulos.split("\n").slice(0, 5).join("\n") + `\n…y ${carrito.length - 5} más`;
+}
+
+const mensaje = `
 📦 *Nueva salida registrada en Abarrote PDD*
 🔢 Folio: ${folio}
 👨‍💼 Usuario: ${datosSalida.usuario}
 🙋‍♂️ Recibe: ${datosSalida.recibeNombre}
 📍 Destino: ${datosSalida.destinoNombre}
-🛒 Artículos: ${carrito.length}
-🕒 Fecha: ${new Date().toLocaleString("es-MX")}
+🧾 *Detalle:*
+${detalleArticulos}
+
+🕒 ${new Date().toLocaleString("es-MX")}
+✅ Registro guardado y enviado a central
 `;
 
     try {
