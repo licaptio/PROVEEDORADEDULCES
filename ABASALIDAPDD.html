@@ -1091,93 +1091,59 @@ for (const p of carrito) {
 // ==========================================================
 async function imprimirTicketAndroid(salida) {
   try {
-    // 🧠 Mostrar aviso “Imprimiendo…”
-    const aviso = document.createElement('div');
-    aviso.textContent = "🖨️ Imprimiendo ticket...";
-    Object.assign(aviso.style, {
-      position: 'fixed',
-      bottom: '30px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: '#00416A',
-      color: '#fff',
-      padding: '10px 20px',
-      borderRadius: '10px',
-      fontSize: '14px',
-      fontWeight: '600',
-      boxShadow: '0 3px 10px rgba(0,0,0,0.3)',
-      zIndex: '9999',
-      opacity: '0',
-      transition: 'opacity 0.3s'
-    });
-    document.body.appendChild(aviso);
-    setTimeout(() => (aviso.style.opacity = '1'), 100);
-
-    // 🎟️ Construcción del ticket (texto plano)
     const separador = "--------------------------------";
-    let ticket = "";
-    ticket += "       REGISTRO DE SALIDA\n";
-    ticket += "       ALMACÉN ABARROTES\n";
-    ticket += "       PROVEEDORA DE DULCES\n";
-    ticket += separador + "\n";
-    ticket += `FOLIO: ${salida.folio}\n`;
-    ticket += `FECHA: ${new Date().toLocaleString("es-MX")}\n`;
-    ticket += separador + "\n";
-    ticket += `USUARIO: ${salida.usuario}\n`;
-    ticket += `RECIBE: ${salida.recibe.nombre}\n`;
-    ticket += `DESTINO: ${salida.destino.nombre}\n`;
-    ticket += separador + "\n";
-    ticket += "ARTÍCULOS:\n";
+    let ticket = `
+    <div style="text-align:center;margin-bottom:6px;">
+      <img src="https://lizandrolumbreras.github.io/logo_proveedora.webp" 
+           style="width:120px;margin-bottom:6px;">
+      <h3 style="margin:0;font-size:14px;">REGISTRO DE SALIDA</h3>
+      <div style="font-size:13px;">ALMACÉN ABARROTES<br>PROVEEDORA DE DULCES</div>
+    </div>
+    <pre style="font-family:monospace;font-size:13px;line-height:1.2;white-space:pre-wrap;">
+${separador}
+FOLIO: ${salida.folio}
+FECHA: ${new Date().toLocaleString("es-MX")}
+${separador}
+USUARIO: ${salida.usuario}
+RECIBE: ${salida.recibe.nombre}
+DESTINO: ${salida.destino.nombre}
+${separador}
+ARTÍCULOS:
+`;
 
     salida.productos.forEach(p => {
       const nombre = cortarTexto(p.concepto, 28);
       ticket += `${nombre}\n  x${p.cantidad}\n`;
     });
 
-    ticket += separador + "\n";
-    ticket += "AVISO DE CONFIRMACIÓN:\n";
-    ticket += "Los usuarios intervinientes han\n";
-    ticket += "firmado electrónicamente este registro.\n";
-    ticket += "Las firmas y evidencia digital están\n";
-    ticket += "almacenadas en la nube PROVSOFT.\n";
-    ticket += separador + "\n";
-    ticket += "     © PROVSOFT - Sistema PDD\n";
-    ticket += "          Seguridad y Control\n\n\n";
+    ticket += `${separador}
+AVISO DE CONFIRMACIÓN:
+Firmas electrónicas almacenadas
+en la nube PROVSOFT.
+${separador}
+© PROVSOFT - Sistema PDD
+Seguridad y Control
+    </pre>`;
 
-    // 🔥 Enviar a RawBT (texto plano)
-// ✅ Enviar texto plano directamente a RawBT
-const enlace = document.createElement("a");
-enlace.href = `rawbt:text,${encodeURIComponent(ticket)}`;
-enlace.style.display = "none";
-document.body.appendChild(enlace);
-enlace.click();
-setTimeout(() => enlace.remove(), 2000);
+    // 🖨️ Crear cuerpo de impresión
+    const original = document.body.innerHTML;
+    document.body.innerHTML = `
+      <div style="width:58mm;margin:auto;text-align:center;">
+        ${ticket}
+      </div>
+      <script>
+        window.onload = () => {
+          window.print();
+          setTimeout(() => location.reload(), 1000);
+        };
+      <\/script>
+    `;
 
-    // 🔊 Beep de confirmación
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "square";
-      o.frequency.setValueAtTime(900, ctx.currentTime);
-      g.gain.setValueAtTime(0.1, ctx.currentTime);
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start();
-      o.stop(ctx.currentTime + 0.15);
-    } catch {}
-
-    // ⏳ Ocultar aviso
-    setTimeout(() => {
-      aviso.style.opacity = '0';
-      setTimeout(() => aviso.remove(), 500);
-    }, 3000);
   } catch (err) {
     console.error("❌ Error al imprimir:", err);
-    alert("❌ No se pudo enviar a RawBT.");
+    alert("❌ No se pudo imprimir el ticket.");
   }
 }
-
 
 /* ==========================================================
    🔧 Funciones auxiliares para formateo de ticket
