@@ -684,21 +684,61 @@ const ctx2 = canvas2.getContext('2d');
 function activarDibujo(canvas, ctx) {
   let dibujando = false;
 
-  canvas.addEventListener('mousedown', () => dibujando = true);
-  canvas.addEventListener('mouseup', () => {
-    dibujando = false;
+  // Configurar tamaño flexible (responsive)
+  function ajustarTamaño() {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    canvas.width = w;
+    canvas.height = h;
+    ctx.putImageData(data, 0, 0);
+  }
+  window.addEventListener("resize", ajustarTamaño);
+  ajustarTamaño();
+
+  // ---- EVENTOS DE MOUSE ----
+  canvas.addEventListener("mousedown", e => {
+    dibujando = true;
     ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
   });
 
-  canvas.addEventListener('mousemove', e => {
+  canvas.addEventListener("mouseup", () => dibujando = false);
+
+  canvas.addEventListener("mousemove", e => {
     if (!dibujando) return;
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
     ctx.strokeStyle = "#00416A";
     ctx.lineTo(e.offsetX, e.offsetY);
     ctx.stroke();
+  });
+
+  // ---- EVENTOS TÁCTILES (celulares) ----
+  canvas.addEventListener("touchstart", e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
     ctx.beginPath();
-    ctx.moveTo(e.offsetX, e.offsetY);
+    ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    dibujando = true;
+  });
+
+  canvas.addEventListener("touchmove", e => {
+    e.preventDefault();
+    if (!dibujando) return;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#00416A";
+    ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+    ctx.stroke();
+  });
+
+  canvas.addEventListener("touchend", e => {
+    e.preventDefault();
+    dibujando = false;
   });
 }
 
