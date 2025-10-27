@@ -1108,10 +1108,15 @@ htmlTicket += `
 
 // Codificar y mandar correctamente
 // 🔥 Versión final RawBT HTML (renderiza imágenes y estilos)
-const blob = new Blob([htmlTicket], { type: "text/html" });
-const blobUrl = URL.createObjectURL(blob);
-const intentUrl = `intent://${blobUrl}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-window.location.href = intentUrl;
+// 🔥 Solución estable – abre RawBT correctamente con HTML codificado
+const html64 = btoa(unescape(encodeURIComponent(htmlTicket)));
+const enlace = document.createElement("a");
+enlace.href = `rawbt:html,${html64}`;
+enlace.style.display = "none";
+document.body.appendChild(enlace);
+enlace.click();
+setTimeout(() => enlace.remove(), 2000);
+
 
     // 🔊 Beep corto
     try {
