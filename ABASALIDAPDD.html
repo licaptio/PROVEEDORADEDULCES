@@ -219,18 +219,24 @@
     <button id="btnConfirmarSalida">Confirmar salida →</button>
   </div>
 </div>
-
 <!-- ==========================================================
-     🧱 SECCIÓN 6: FIRMAS
+     🧱 SECCIÓN 6: FIRMAS EN DOS PASOS
 =========================================================== -->
-<div id="firmas" class="pantalla">
+<div id="firmaPaso1" class="pantalla">
   <div class="card">
-    <h2>Firmas de confirmación</h2>
-    <p>Firma quien recibe:</p>
-    <canvas id="firmaRecibe" width="300" height="150"></canvas>
-    <p>Firma encargado:</p>
-    <canvas id="firmaEncargado" width="300" height="150"></canvas>
-    <button id="btnGuardarSalida">Guardar salida en Firestore</button>
+    <h2>Firma quien recibe</h2>
+    <canvas id="firmaRecibe" width="320" height="180"></canvas>
+    <button id="btnLimpiarRecibe" style="background:#888;">🧹 Limpiar firma</button>
+    <button id="btnSiguienteFirma">➡️ Siguiente (Encargado)</button>
+  </div>
+</div>
+
+<div id="firmaPaso2" class="pantalla">
+  <div class="card">
+    <h2>Firma encargado</h2>
+    <canvas id="firmaEncargado" width="320" height="180"></canvas>
+    <button id="btnLimpiarEncargado" style="background:#888;">🧹 Limpiar firma</button>
+    <button id="btnGuardarSalida">✅ Guardar salida</button>
   </div>
 </div>
 
