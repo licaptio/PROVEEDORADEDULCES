@@ -690,9 +690,15 @@ document.getElementById('btnRegresarCaptura').onclick = () => {
 
 document.getElementById('btnConfirmarSalida').onclick = () => {
   if (carrito.length === 0) return alert("Carrito vacío");
-  mostrarPantalla('firmaPaso1');
-
+  
+  // Primero mostrar la pantalla de firmas
+  mostrarPantalla('firmas');
+  
+  // Asegurar que el paso 1 esté visible y el 2 oculto
+  document.getElementById("firmaPaso1").style.display = "block";
+  document.getElementById("firmaPaso2").style.display = "none";
 };
+
 
 function activarDibujo(canvas, ctx) {
   let dibujando = false;
