@@ -758,7 +758,9 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
     firmaRecibe: canvas1.toDataURL(),
     firmaEncargado: canvas2.toDataURL()
   };
-
+alert(`✅ Salida registrada correctamente\nFolio: ${folio}`);
+imprimirTicketAndroid(salida);
+	
   try {
     const ref = collection(db, "almacenes", "almacenabarrotepdd", "salidas");
     await addDoc(ref, salida);
@@ -944,50 +946,117 @@ for (const p of carrito) {
 }
 
 // ==========================================================
-// 🧱 SECCIÓN 12: IMPRESIÓN DIRECTA ANDROID (58 mm)
+// 🧱 SECCIÓN 12: IMPRESIÓN DIRECTA ANDROID (58mm profesional)
 // ==========================================================
 async function imprimirTicketAndroid(salida) {
   try {
-    // 🎟️ Construcción del ticket en texto plano (monoespaciado)
+    // 🧠 Mostrar aviso flotante “Imprimiendo…”
+    const aviso = document.createElement('div');
+    aviso.textContent = "🖨️ Imprimiendo ticket...";
+    Object.assign(aviso.style, {
+      position: 'fixed',
+      bottom: '30px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: '#00416A',
+      color: '#fff',
+      padding: '10px 20px',
+      borderRadius: '10px',
+      fontSize: '14px',
+      fontWeight: '600',
+      boxShadow: '0 3px 10px rgba(0,0,0,0.3)',
+      zIndex: '9999',
+      opacity: '0',
+      transition: 'opacity 0.3s'
+    });
+    document.body.appendChild(aviso);
+    setTimeout(() => aviso.style.opacity = '1', 100);
+
+    // 🎟️ Cabecera centrada y formal
+    const titulo = "REGISTRO DE SALIDA\nALMACÉN ABARROTES\nPROVEEDORA DE DULCES";
+    const separador = "--------------------------------";
+
+    // 🧾 Armado del cuerpo
     let ticket = "";
-    ticket += "      PROVSOFT - Abarrote PDD\n";
-    ticket += "--------------------------------\n";
+    ticket += centrarTexto(titulo.toUpperCase()) + "\n";
+    ticket += separador + "\n";
     ticket += `FOLIO: ${salida.folio}\n`;
+    ticket += `FECHA: ${new Date().toLocaleString("es-MX")}\n`;
+    ticket += separador + "\n";
     ticket += `USUARIO: ${salida.usuario}\n`;
     ticket += `RECIBE: ${salida.recibe.nombre}\n`;
     ticket += `DESTINO: ${salida.destino.nombre}\n`;
-    ticket += "--------------------------------\n";
+    ticket += separador + "\n";
+    ticket += "ARTÍCULOS:\n";
 
+    // 🔹 Productos, ajustando nombres largos
     salida.productos.forEach(p => {
-      let nombre = p.concepto;
-      if (nombre.length > 25) nombre = nombre.substring(0, 25) + "...";
+      let nombre = cortarTexto(p.concepto, 28);
       ticket += `${nombre}\n   x${p.cantidad}\n`;
     });
 
-    ticket += "--------------------------------\n";
-    ticket += `FECHA: ${new Date().toLocaleString("es-MX")}\n`;
-    ticket += "--------------------------------\n";
-    ticket += "Firma Recibe: ____________\n";
-    ticket += "Firma Encargado: _________\n";
+    ticket += separador + "\n";
+    ticket += "\n";
+    ticket += "_________________________\n";
+    ticket += "  FIRMA USUARIO (Entrega)\n";
+    ticket += "\n";
+    ticket += "_________________________\n";
+    ticket += "  FIRMA QUIEN RECIBE\n";
     ticket += "\n\n\n\n";
 
-    // 🧾 Modo 1: impresión directa si el navegador Android lo soporta
+    // 🖨️ Enviar a impresión
     if (window.AndroidPrint) {
-      // 🔧 Si usas WebView con AndroidInterface.printText()
       window.AndroidPrint.printText(ticket);
-      console.log("🖨️ Impresión enviada vía AndroidPrint");
     } else {
-      // 🧾 Modo 2: fallback a print nativo de navegador
       const win = window.open('', '', 'width=400,height=600');
       win.document.write(`<pre style="font-family:monospace;font-size:11px;">${ticket}</pre>`);
       win.document.close();
       win.print();
       win.close();
     }
+
+    // 🔊 Beep corto al finalizar
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "square";
+      o.frequency.setValueAtTime(1000, ctx.currentTime);
+      g.gain.setValueAtTime(0.08, ctx.currentTime);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.15);
+    } catch {}
+
+    // 🕒 Ocultar aviso después de 3 segundos
+    setTimeout(() => {
+      aviso.style.opacity = '0';
+      setTimeout(() => aviso.remove(), 500);
+    }, 3000);
+
   } catch (e) {
     console.error("⚠️ Error al imprimir ticket:", e);
     alert("⚠️ No se pudo imprimir el ticket automáticamente.");
   }
+}
+
+/* ==========================================================
+   🔧 Funciones auxiliares para formateo de ticket
+========================================================== */
+function cortarTexto(texto, max) {
+  if (!texto) return "";
+  texto = texto.trim();
+  if (texto.length <= max) return texto;
+  return texto.substring(0, max - 3) + "...";
+}
+
+function centrarTexto(texto, ancho = 32) {
+  const lineas = texto.split("\n");
+  return lineas.map(linea => {
+    const espacios = Math.max(0, Math.floor((ancho - linea.length) / 2));
+    return " ".repeat(espacios) + linea;
+  }).join("\n");
 }
 	
 </script>
