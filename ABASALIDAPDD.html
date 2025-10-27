@@ -480,7 +480,26 @@ btnCamara.addEventListener("click", async () => {
         const barcodes = await detector.detect(videoCamara);
         if (barcodes.length > 0) {
           const codigoDetectado = barcodes[0].rawValue.trim();
-          detenerCamara();
+        // 🔊 Sonido al detectar código
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "square";
+    o.frequency.setValueAtTime(880, ctx.currentTime); // tono
+    g.gain.setValueAtTime(0.1, ctx.currentTime); // volumen
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 0.15); // duración 150 ms
+  } catch (e) {
+    console.warn("No se pudo reproducir el beep:", e);
+  }
+}
+beep(); // ✅ suena al detectar
+  
+		detenerCamara();
 
           buscarProd.value = codigoDetectado;
           await buscarProductos(codigoDetectado);
