@@ -781,18 +781,20 @@ async function generarFolioInterno() {
   return folioFormateado;
 }
 
+// ==========================================================
+// 🧱 SECCIÓN 10.1: GUARDAR SALIDA CON CONTROL DE ERRORES
+// ==========================================================
 document.getElementById('btnGuardarSalida').onclick = async () => {
   if (!datosSalida.recibeId || !datosSalida.destinoId || carrito.length === 0)
     return alert("⚠️ Faltan datos o carrito vacío");
 
-  // ==========================================================
-  // 🧾 Generar folio interno antes de guardar
-  // ==========================================================
+  // 🧾 Generar folio interno
   const folio = await generarFolioInterno();
   document.querySelector("#firmas h2").textContent = `FOLIO: ${folio}`;
 
+  // 🧩 Preparar objeto de salida
   const salida = {
-    folio, // 🔹 Se guarda también en Firestore
+    folio,
     fecha: new Date().toISOString(),
     usuario: datosSalida.usuario,
     recibe: {
@@ -806,113 +808,86 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
       ubicacion: datosSalida.destinoUbicacion
     },
     productos: carrito,
-firmaRecibe: canvasRecibe.toDataURL(),
-firmaEncargado: canvasEncargado.toDataURL()
+    firmaRecibe: canvasRecibe.toDataURL(),
+    firmaEncargado: canvasEncargado.toDataURL()
   };
-alert(`✅ Salida registrada correctamente\nFolio: ${folio}`);
-imprimirTicketAndroid(salida);
-	
+
   try {
     const ref = collection(db, "almacenes", "almacenabarrotepdd", "salidas");
-    await addDoc(ref, salida);
+    const docRef = await addDoc(ref, salida);
+    console.log("✅ Documento guardado:", docRef.id);
 
-    // ==========================================================
-    // 🧱 SECCIÓN 8: INTEGRACIÓN CON BOTS DE TELEGRAM
-    // ==========================================================
-const BOT_TOKEN = "8495270080:AAFBJ8Vxi6ZhqP6ghtJqMal9RZFz3YJBpo8";
-const CHAT_ID = "6617988297";
-
-// 🧾 Preparar desglose de artículos (solo nombre y cantidad, sin código)
-let detalleArticulos = carrito.map(p => {
-  let nombre = p.concepto;
-  if (nombre.length > 45) nombre = nombre.substring(0, 45) + "...";
-  return `• ${nombre} (x${p.cantidad})`;
-}).join("\n");
-
-// Limitar a los primeros 5 si hay muchos
-if (carrito.length > 5) {
-  detalleArticulos = detalleArticulos.split("\n").slice(0, 5).join("\n") + `\n…y ${carrito.length - 5} más`;
-}
-
-const mensaje = `
-📦 *Nueva salida registrada en Abarrote PDD*
-🔢 Folio: ${folio}
-👨‍💼 Usuario: ${datosSalida.usuario}
-🙋‍♂️ Recibe: ${datosSalida.recibeNombre}
-📍 Destino: ${datosSalida.destinoNombre}
-🧾 *Detalle:*
-${detalleArticulos}
-
-🕒 ${new Date().toLocaleString("es-MX")}
-✅ Registro guardado y enviado a central
-`;
-
-    try {
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: mensaje,
-          parse_mode: "Markdown"
-        })
-      });
-      // 🧠 Llamar al BOT 2 (LOBA/STAR) para revisar inventarios fijados
-await ejecutarBotInventario(salida, carrito);
-		mostrarAvisoFlotante("📤 Salida enviada a central (ALIKA)");
-    } catch (error) {
-      console.error("⚠️ Error al enviar mensaje al bot:", error);
-      mostrarAvisoFlotante("⚠️ No se pudo notificar a Telegram");
-    }
-
-    // ==========================================================
-    // 🧱 SECCIÓN 9: AVISO FLOTANTE VISUAL
-    // ==========================================================
-    function mostrarAvisoFlotante(msg) {
-      const aviso = document.createElement('div');
-      aviso.textContent = msg;
-      aviso.style.position = 'fixed';
-      aviso.style.bottom = '30px';
-      aviso.style.left = '50%';
-      aviso.style.transform = 'translateX(-50%)';
-      aviso.style.background = '#333';
-      aviso.style.color = '#fff';
-      aviso.style.padding = '10px 20px';
-      aviso.style.borderRadius = '10px';
-      aviso.style.fontSize = '14px';
-      aviso.style.boxShadow = '0 3px 10px rgba(0,0,0,0.3)';
-      aviso.style.opacity = '0';
-      aviso.style.transition = 'opacity 0.3s';
-      aviso.style.zIndex = '10000';
-      document.body.appendChild(aviso);
-      setTimeout(() => aviso.style.opacity = '1', 100);
-      setTimeout(() => {
-        aviso.style.opacity = '0';
-        setTimeout(() => aviso.remove(), 500);
-      }, 3000);
-    }
-
-    // ==========================================================
-    // 🧱 SECCIÓN 10: LIMPIEZA Y REGRESO
-    // ==========================================================
     alert(`✅ Salida registrada correctamente\nFolio: ${folio}`);
+    imprimirTicketAndroid(salida);
 
+    // Enviar bots fuera del bloque principal (no romper flujo)
+    try {
+      await enviarBotsTelegram(salida, carrito);
+    } catch (botErr) {
+      console.warn("⚠️ Error enviando a bots:", botErr);
+      mostrarAvisoFlotante("⚠️ Error al notificar a Telegram");
+    }
+
+    // Limpieza general
     carrito = [];
     renderCarrito();
     actualizarContador();
-    ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
-    ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
-
+    ctxRecibe.clearRect(0, 0, canvasRecibe.width, canvasRecibe.height);
+    ctxEncargado.clearRect(0, 0, canvasEncargado.width, canvasEncargado.height);
     datosSalida = {};
     selectRecibe.value = "";
     selectDestino.value = "";
     mostrarPantalla('datosSalida');
-
   } catch (err) {
-    console.error(err);
-    alert("❌ Error al guardar en Firestore");
+    console.error("❌ Error REAL al guardar en Firestore:", err);
+    alert("❌ Error real al guardar en Firestore. Revisa conexión o permisos.");
   }
 };
+
+// ==========================================================
+// 🧱 FUNCIÓN MODULAR PARA ENVIAR BOTS
+// ==========================================================
+async function enviarBotsTelegram(salida, carrito) {
+  // BOT 1: ALIKA
+  const BOT_TOKEN = "8495270080:AAFBJ8Vxi6ZhqP6ghtJqMal9RZFz3YJBpo8";
+  const CHAT_ID = "6617988297";
+
+  let detalleArticulos = carrito.map(p => {
+    let nombre = p.concepto;
+    if (nombre.length > 45) nombre = nombre.substring(0, 45) + "...";
+    return `• ${nombre} (x${p.cantidad})`;
+  }).join("\n");
+
+  if (carrito.length > 5)
+    detalleArticulos = detalleArticulos.split("\n").slice(0, 5).join("\n") + `\n…y ${carrito.length - 5} más`;
+
+  const mensaje = `
+📦 *Nueva salida registrada en Abarrote PDD*
+🔢 Folio: ${salida.folio}
+👨‍💼 Usuario: ${salida.usuario}
+🙋‍♂️ Recibe: ${salida.recibe.nombre}
+📍 Destino: ${salida.destino.nombre}
+🧾 *Detalle:*
+${detalleArticulos}
+🕒 ${new Date().toLocaleString("es-MX")}
+✅ Registro guardado y enviado a central
+`;
+
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: CHAT_ID,
+      text: mensaje,
+      parse_mode: "Markdown"
+    })
+  });
+
+  // BOT 2 (LOBA / STAR)
+  await ejecutarBotInventario(salida, carrito);
+  mostrarAvisoFlotante("📤 Salida enviada a central (ALIKA)");
+}
+
 // ==========================================================
 // 🧱 SECCIÓN 11: BOT SUPERVISOR DE INVENTARIOS (LOBA / STAR)
 // ==========================================================
