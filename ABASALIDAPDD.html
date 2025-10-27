@@ -1122,36 +1122,19 @@ async function imprimirTicketAndroid(salida) {
     ticket += "   © PROVSOFT - Sistema PDD\n";
     ticket += "     Seguridad y Control\n";
 
-// 🖨️ Nueva ventana de impresión
-const w = window.open('', '_blank');
-w.document.write(`
-  <html>
-  <head>
-    <title>Ticket ${salida.folio}</title>
-    <style>
-      body {
-        font-family: monospace;
-        font-size: 13px;
-        line-height: 1.2;
-        white-space: pre;
-        margin: 0;
-        padding: 10px;
-      }
-      @media print {
-        body { width: 58mm; margin: 0 auto; }
-      }
-    </style>
-  </head>
-  <body>
+// 🖨️ Imprimir directamente en la misma pestaña
+const ticketHTML = `
+  <pre style="font-family:monospace;font-size:13px;line-height:1.2;white-space:pre-wrap;">
 ${ticket}
-  </body>
-  </html>
-`);
-w.document.close();
-w.onload = () => {
-  w.print();
-  setTimeout(() => w.close(), 800);
-};
+  </pre>
+`;
+const originalHTML = document.body.innerHTML;
+document.body.innerHTML = ticketHTML;
+window.print();
+setTimeout(() => {
+  document.body.innerHTML = originalHTML;
+  mostrarPantalla('datosSalida');
+}, 500);
   } catch (err) {
     console.error("❌ Error al imprimir:", err);
     alert("❌ No se pudo imprimir el ticket.");
