@@ -797,7 +797,15 @@ for (const p of carrito) {
 
   // Mensaje a Telegram según caso
   const msg = alertaCritica
-    ? `🚨 *ALERTA CRÍTICA DE INVENTARIO*\n📦 ${nombreCorto}\n📉 Stock actual: ${inventarioNuevo} (mínimo ${inventarioMinimo})\n📤 Última salida: ${salidaCant} unidades\n👨‍💼 Usuario: ${salida.usuario}\n🕒 ${new Date().toLocaleString("es-MX")}`
+ ? `🔥🔥🔥 *¡ALERTA ALERTA!* 🔥🔥🔥  
+🚨 *ALERTA CRÍTICA DE INVENTARIO*  
+📦 ${nombreCorto}  
+📉 Stock actual: ${inventarioNuevo} (mínimo ${inventarioMinimo})  
+📤 Última salida: ${salidaCant} unidades  
+⚠️ URGENTE: revisar existencia y surtir antes de ruptura.  
+👨‍💼 Usuario: ${salida.usuario}  
+🕒 ${new Date().toLocaleString("es-MX")}
+`
     : `📦 *Movimiento detectado en inventario*\n🧾 Folio: ${salida.folio}\n📄 ${nombreCorto}\n📉 Salida: ${salidaCant} unidades\n📊 Antes: ${inventarioAntes} → Ahora: ${inventarioNuevo}\n📍 Destino: ${salida.destino.nombre}\n👨‍💼 Usuario: ${salida.usuario}\n🕒 ${new Date().toLocaleString("es-MX")}`;
 
   await fetch(`https://api.telegram.org/bot${BOT2_TOKEN}/sendMessage`, {
