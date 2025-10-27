@@ -782,8 +782,14 @@ async function generarFolioInterno() {
 }
 
 // ==========================================================
-// 🧱 SECCIÓN 10.1: GUARDAR SALIDA CON CONTROL DE ERRORES
+// 🧱 SECCIÓN 10.1: GUARDAR SALIDA CON FIRMAS EN STORAGE
 // ==========================================================
+import {
+  getStorage, ref, uploadString, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+const storage = getStorage(app);
+
 document.getElementById('btnGuardarSalida').onclick = async () => {
   if (!datosSalida.recibeId || !datosSalida.destinoId || carrito.length === 0)
     return alert("⚠️ Faltan datos o carrito vacío");
@@ -792,29 +798,34 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
   const folio = await generarFolioInterno();
   document.querySelector("#firmas h2").textContent = `FOLIO: ${folio}`;
 
-  // 🧩 Preparar objeto de salida
-  const salida = {
-    folio,
-    fecha: new Date().toISOString(),
-    usuario: datosSalida.usuario,
-    recibe: {
-      id: datosSalida.recibeId,
-      nombre: datosSalida.recibeNombre
-    },
-    destino: {
-      id: datosSalida.destinoId,
-      nombre: datosSalida.destinoNombre,
-      direccion: datosSalida.destinoDireccion,
-      ubicacion: datosSalida.destinoUbicacion
-    },
-    productos: carrito,
-    firmaRecibe: canvasRecibe.toDataURL(),
-    firmaEncargado: canvasEncargado.toDataURL()
-  };
-
+  // 🧩 Subir las firmas a Storage
   try {
-    const ref = collection(db, "almacenes", "almacenabarrotepdd", "salidas");
-    const docRef = await addDoc(ref, salida);
+    // Reducir tamaño del canvas antes de subir
+    const firmaRecibeURL = await subirFirmaStorage(canvasRecibe, `firmas/${folio}_recibe.jpg`);
+    const firmaEncargadoURL = await subirFirmaStorage(canvasEncargado, `firmas/${folio}_encargado.jpg`);
+
+    // 🧩 Preparar objeto de salida
+    const salida = {
+      folio,
+      fecha: new Date().toISOString(),
+      usuario: datosSalida.usuario,
+      recibe: {
+        id: datosSalida.recibeId,
+        nombre: datosSalida.recibeNombre
+      },
+      destino: {
+        id: datosSalida.destinoId,
+        nombre: datosSalida.destinoNombre,
+        direccion: datosSalida.destinoDireccion,
+        ubicacion: datosSalida.destinoUbicacion
+      },
+      productos: carrito,
+      firmaRecibeURL,
+      firmaEncargadoURL
+    };
+
+    const refSalidas = collection(db, "almacenes", "almacenabarrotepdd", "salidas");
+    const docRef = await addDoc(refSalidas, salida);
     console.log("✅ Documento guardado:", docRef.id);
 
     alert(`✅ Salida registrada correctamente\nFolio: ${folio}`);
@@ -838,11 +849,39 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
     selectRecibe.value = "";
     selectDestino.value = "";
     mostrarPantalla('datosSalida');
+
   } catch (err) {
     console.error("❌ Error REAL al guardar en Firestore:", err);
-    alert("❌ Error real al guardar en Firestore. Revisa conexión o permisos.");
+    alert("❌ Error al guardar. Revisa conexión o permisos en Storage.");
   }
 };
+
+// ==========================================================
+// 🔧 FUNCIÓN AUXILIAR PARA SUBIR UNA FIRMA
+// ==========================================================
+async function subirFirmaStorage(canvas, ruta) {
+  const reducido = reducirCanvas(canvas, 300);
+  const dataURL = reducido.toDataURL("image/jpeg", 0.6); // comprimido
+  const firmaRef = ref(storage, ruta);
+  await uploadString(firmaRef, dataURL, 'data_url');
+  const url = await getDownloadURL(firmaRef);
+  console.log("📤 Firma subida:", url);
+  return url;
+}
+
+// ==========================================================
+// 🔧 FUNCIÓN REDUCTORA DE CANVAS
+// ==========================================================
+function reducirCanvas(canvas, maxAncho = 300) {
+  const temp = document.createElement('canvas');
+  const ratio = maxAncho / canvas.width;
+  temp.width = maxAncho;
+  temp.height = canvas.height * ratio;
+  const ctx = temp.getContext('2d');
+  ctx.drawImage(canvas, 0, 0, temp.width, temp.height);
+  return temp;
+}
+
 
 // ==========================================================
 // 🧱 FUNCIÓN MODULAR PARA ENVIAR BOTS
