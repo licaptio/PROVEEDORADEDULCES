@@ -1107,8 +1107,11 @@ htmlTicket += `
 `;
 
 // Codificar y mandar correctamente
-const html64 = btoa(unescape(encodeURIComponent(htmlTicket)));
-window.location.href = `rawbt://print?data=${html64}`;
+// 🔥 Versión final RawBT HTML (renderiza imágenes y estilos)
+const blob = new Blob([htmlTicket], { type: "text/html" });
+const blobUrl = URL.createObjectURL(blob);
+const intentUrl = `intent://${blobUrl}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+window.location.href = intentUrl;
 
     // 🔊 Beep corto
     try {
