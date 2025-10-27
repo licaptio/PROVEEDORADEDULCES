@@ -1069,13 +1069,13 @@ async function imprimirTicketAndroid(salida) {
     ticket += "          Seguridad y Control\n\n\n";
 
     // 🔥 Enviar a RawBT (texto plano)
-    const base64Ticket = btoa(unescape(encodeURIComponent(ticket)));
-    const enlace = document.createElement("a");
-    enlace.href = `rawbt:text,${base64Ticket}`;
-    enlace.style.display = "none";
-    document.body.appendChild(enlace);
-    enlace.click();
-    setTimeout(() => enlace.remove(), 2000);
+// ✅ Enviar texto plano directamente a RawBT
+const enlace = document.createElement("a");
+enlace.href = `rawbt:text,${encodeURIComponent(ticket)}`;
+enlace.style.display = "none";
+document.body.appendChild(enlace);
+enlace.click();
+setTimeout(() => enlace.remove(), 2000);
 
     // 🔊 Beep de confirmación
     try {
