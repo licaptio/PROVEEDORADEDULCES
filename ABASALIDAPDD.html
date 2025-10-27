@@ -1065,9 +1065,48 @@ async function imprimirTicketAndroid(salida) {
     ticket += "  FIRMA QUIEN RECIBE\n\n\n";
 
     // ✨ Enviar a RawBT
-    const encoded = btoa(unescape(encodeURIComponent(ticket)));
-    const url = `rawbt:base64,${encoded}`;
-    window.location.href = url;
+// ✨ Enviar ticket con firmas a RawBT
+const firmaRecibe = canvasRecibe.toDataURL("image/png");
+const firmaEncargado = canvasEncargado.toDataURL("image/png");
+
+// 🔧 Armar HTML compatible con RawBT
+let htmlTicket = `
+<center>
+  <h3>REGISTRO DE SALIDA</h3>
+  <h4>ALMACÉN ABARROTES</h4>
+  <h4>PROVEEDORA DE DULCES</h4>
+  <hr>
+  <p>FOLIO: ${salida.folio}<br>
+  FECHA: ${new Date().toLocaleString("es-MX")}<br>
+  USUARIO: ${salida.usuario}<br>
+  RECIBE: ${salida.recibe.nombre}<br>
+  DESTINO: ${salida.destino.nombre}</p>
+  <hr>
+  <h4>ARTÍCULOS</h4>
+  <table style="font-size:13px;text-align:left;">
+`;
+
+salida.productos.forEach(p => {
+  const nombre = cortarTexto(p.concepto, 28);
+  htmlTicket += `<tr><td>${nombre}</td><td>x${p.cantidad}</td></tr>`;
+});
+
+htmlTicket += `
+  </table>
+  <hr>
+  <p>FIRMA USUARIO (Entrega)</p>
+  <img src="${firmaEncargado}" width="180"/><br>
+  <p>FIRMA QUIEN RECIBE</p>
+  <img src="${firmaRecibe}" width="180"/><br>
+  <hr>
+  <p>PROVSOFT – ${new Date().getFullYear()}</p>
+</center>
+`;
+
+// 🔗 Codificar y enviar a RawBT
+const encoded = btoa(unescape(encodeURIComponent(htmlTicket)));
+const url = `rawbt:html,${encoded}`;
+window.location.href = url;
 
     // 🔊 Beep corto
     try {
