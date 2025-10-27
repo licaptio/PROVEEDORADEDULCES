@@ -567,29 +567,105 @@ function detenerCamara() {
 // 🧱 BLOQUE 3.2: AGREGAR PRODUCTO AL CARRITO
 // ==========================================================
 function agregarAlCarrito(id, producto) {
-  const cantidad = prompt(`Cantidad para "${producto.concepto}"`, "1");
-  if (!cantidad || isNaN(cantidad) || cantidad <= 0) return;
+  // Crear modal rápido
+  const modal = document.createElement('div');
+  Object.assign(modal.style, {
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0,0,0,0.4)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9999
+  });
 
-  // Verificar si ya está en el carrito
-  const existente = carrito.find(p => p.id === id);
-  if (existente) {
-    existente.cantidad += parseInt(cantidad);
-  } else {
-    carrito.push({
-      id,
-      concepto: producto.concepto,
-      costo: producto.costoSinImpuesto || 0,
-      cantidad: parseInt(cantidad),
-      codigoBarra: producto.codigoBarra || ""
-    });
-  }
+  const caja = document.createElement('div');
+  Object.assign(caja.style, {
+    background: '#fff',
+    borderRadius: '14px',
+    padding: '20px',
+    width: '90%',
+    maxWidth: '320px',
+    textAlign: 'center',
+    fontFamily: 'Poppins, sans-serif',
+    boxShadow: '0 6px 20px rgba(0,0,0,0.25)'
+  });
 
-  // Mostrar confirmación visual
-  alert(`✅ ${producto.concepto} agregado (${cantidad})`);
-  buscarProd.value = "";
-  resultadosDiv.innerHTML = "";
-  actualizarContador();
+  caja.innerHTML = `
+    <h3 style="color:#00416A;margin-bottom:10px;font-size:16px;">${producto.concepto}</h3>
+    <label style="font-weight:600;color:#333;">Cantidad:</label><br>
+    <input type="number" id="inputCantidad" value="1" min="1" style="
+      width:100%;
+      padding:10px;
+      font-size:18px;
+      border-radius:10px;
+      border:1px solid #ccc;
+      text-align:center;
+      margin-top:8px;
+      margin-bottom:16px;
+    " inputmode="numeric" pattern="[0-9]*" />
+    <button id="btnAceptarCant" style="
+      background:#00416A;
+      color:white;
+      border:none;
+      border-radius:10px;
+      padding:10px 0;
+      width:100%;
+      font-weight:600;
+      cursor:pointer;
+    ">Agregar ✅</button>
+    <button id="btnCancelarCant" style="
+      background:#bbb;
+      color:#111;
+      border:none;
+      border-radius:10px;
+      padding:8px 0;
+      width:100%;
+      margin-top:8px;
+      font-weight:600;
+      cursor:pointer;
+    ">Cancelar</button>
+  `;
+
+  modal.appendChild(caja);
+  document.body.appendChild(modal);
+
+  const inputCantidad = caja.querySelector("#inputCantidad");
+  inputCantidad.focus();
+  inputCantidad.select(); // ✅ selecciona el "1" por defecto
+
+  // Acción al confirmar
+  caja.querySelector("#btnAceptarCant").onclick = () => {
+    const cantidad = parseInt(inputCantidad.value);
+    if (!cantidad || cantidad <= 0) {
+      alert("⚠️ Ingresa una cantidad válida");
+      return;
+    }
+
+    const existente = carrito.find(p => p.id === id);
+    if (existente) {
+      existente.cantidad += cantidad;
+    } else {
+      carrito.push({
+        id,
+        concepto: producto.concepto,
+        costo: producto.costoSinImpuesto || 0,
+        cantidad,
+        codigoBarra: producto.codigoBarra || ""
+      });
+    }
+
+    mostrarAvisoFlotante(`✅ ${producto.concepto} (${cantidad}) agregado`);
+    buscarProd.value = "";
+    resultadosDiv.innerHTML = "";
+    actualizarContador();
+    modal.remove();
+  };
+
+  // Acción al cancelar
+  caja.querySelector("#btnCancelarCant").onclick = () => modal.remove();
 }
+
 // ==========================================================
 // 🧱 BLOQUE 3.3: BOTÓN FLOTANTE DE CARRITO 🛒
 // ==========================================================
