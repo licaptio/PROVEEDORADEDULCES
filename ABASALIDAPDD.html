@@ -1011,13 +1011,13 @@ for (const p of carrito) {
 }
 
 // ==========================================================
-// 🧱 SECCIÓN 12: IMPRESIÓN DIRECTA ANDROID (58mm profesional)
+// 🧱 SECCIÓN 12: IMPRESIÓN DIRECTA ANDROID (58 mm – profesional sin firmas)
 // ==========================================================
 async function imprimirTicketAndroid(salida) {
   try {
-    // 🧠 Mostrar aviso flotante “Imprimiendo…”
+    // 🧠 Mostrar aviso “Imprimiendo…”
     const aviso = document.createElement('div');
-    aviso.textContent = "🖨️ Enviando a RawBT...";
+    aviso.textContent = "🖨️ Imprimiendo ticket...";
     Object.assign(aviso.style, {
       position: 'fixed',
       bottom: '30px',
@@ -1035,13 +1035,14 @@ async function imprimirTicketAndroid(salida) {
       transition: 'opacity 0.3s'
     });
     document.body.appendChild(aviso);
-    setTimeout(() => aviso.style.opacity = '1', 100);
+    setTimeout(() => (aviso.style.opacity = '1'), 100);
 
-    // 🎟️ Cabecera
-    const titulo = "REGISTRO DE SALIDA\nALMACÉN ABARROTES\nPROVEEDORA DE DULCES";
+    // 🎟️ Construcción del ticket (texto plano)
     const separador = "--------------------------------";
     let ticket = "";
-    ticket += centrarTexto(titulo.toUpperCase()) + "\n";
+    ticket += "       REGISTRO DE SALIDA\n";
+    ticket += "       ALMACÉN ABARROTES\n";
+    ticket += "       PROVEEDORA DE DULCES\n";
     ticket += separador + "\n";
     ticket += `FOLIO: ${salida.folio}\n`;
     ticket += `FECHA: ${new Date().toLocaleString("es-MX")}\n`;
@@ -1053,94 +1054,51 @@ async function imprimirTicketAndroid(salida) {
     ticket += "ARTÍCULOS:\n";
 
     salida.productos.forEach(p => {
-      let nombre = cortarTexto(p.concepto, 28);
-      ticket += `${nombre}\n   x${p.cantidad}\n`;
+      const nombre = cortarTexto(p.concepto, 28);
+      ticket += `${nombre}\n  x${p.cantidad}\n`;
     });
 
-    ticket += separador + "\n\n";
-    ticket += "_________________________\n";
-    ticket += "  FIRMA USUARIO (Entrega)\n";
-    ticket += "\n";
-    ticket += "_________________________\n";
-    ticket += "  FIRMA QUIEN RECIBE\n\n\n";
+    ticket += separador + "\n";
+    ticket += "AVISO DE CONFIRMACIÓN:\n";
+    ticket += "Los usuarios intervinientes han\n";
+    ticket += "firmado electrónicamente este registro.\n";
+    ticket += "Las firmas y evidencia digital están\n";
+    ticket += "almacenadas en la nube PROVSOFT.\n";
+    ticket += separador + "\n";
+    ticket += "     © PROVSOFT - Sistema PDD\n";
+    ticket += "          Seguridad y Control\n\n\n";
 
-// ==========================================================
-// ✅ ENVÍO CORRECTO A RAWBT CON FIRMAS (RedLemon 58 mm)
-// ==========================================================
-const firmaRecibe = canvasRecibe.toDataURL("image/png");
-const firmaEncargado = canvasEncargado.toDataURL("image/png");
+    // 🔥 Enviar a RawBT (texto plano)
+    const base64Ticket = btoa(unescape(encodeURIComponent(ticket)));
+    const enlace = document.createElement("a");
+    enlace.href = `rawbt:text,${base64Ticket}`;
+    enlace.style.display = "none";
+    document.body.appendChild(enlace);
+    enlace.click();
+    setTimeout(() => enlace.remove(), 2000);
 
-// Construir HTML minimalista
-let htmlTicket = `
-<center>
-  <h3>REGISTRO DE SALIDA</h3>
-  <h4>ALMACÉN ABARROTES</h4>
-  <h4>PROVEEDORA DE DULCES</h4>
-  <hr>
-  <p style="font-size:12px;text-align:left;">
-  FOLIO: ${salida.folio}<br>
-  FECHA: ${new Date().toLocaleString("es-MX")}<br>
-  USUARIO: ${salida.usuario}<br>
-  RECIBE: ${salida.recibe.nombre}<br>
-  DESTINO: ${salida.destino.nombre}
-  </p>
-  <hr>
-  <p><b>ARTÍCULOS</b></p>
-  <table style="font-size:12px;text-align:left;width:100%;">
-`;
-
-salida.productos.forEach(p => {
-  const nombre = cortarTexto(p.concepto, 28);
-  htmlTicket += `<tr><td>${nombre}</td><td>x${p.cantidad}</td></tr>`;
-});
-
-htmlTicket += `
-  </table>
-  <hr>
-  <p style="font-size:12px;">FIRMA USUARIO (Entrega)</p>
-  <img src="${firmaEncargado}" width="180"/><br><br>
-  <p style="font-size:12px;">FIRMA QUIEN RECIBE</p>
-  <img src="${firmaRecibe}" width="180"/><br>
-  <hr>
-  <p style="font-size:10px;">PROVSOFT ${new Date().getFullYear()}</p>
-</center>
-`;
-
-// Codificar y mandar correctamente
-// 🔥 Versión final RawBT HTML (renderiza imágenes y estilos)
-// 🔥 Solución estable – abre RawBT correctamente con HTML codificado
-const html64 = btoa(unescape(encodeURIComponent(htmlTicket)));
-const enlace = document.createElement("a");
-enlace.href = `rawbt:html,${html64}`;
-enlace.style.display = "none";
-document.body.appendChild(enlace);
-enlace.click();
-setTimeout(() => enlace.remove(), 2000);
-
-
-    // 🔊 Beep corto
+    // 🔊 Beep de confirmación
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.type = "square";
-      o.frequency.setValueAtTime(1000, ctx.currentTime);
-      g.gain.setValueAtTime(0.08, ctx.currentTime);
+      o.frequency.setValueAtTime(900, ctx.currentTime);
+      g.gain.setValueAtTime(0.1, ctx.currentTime);
       o.connect(g);
       g.connect(ctx.destination);
       o.start();
       o.stop(ctx.currentTime + 0.15);
     } catch {}
 
-    // 🕒 Ocultar aviso
+    // ⏳ Ocultar aviso
     setTimeout(() => {
       aviso.style.opacity = '0';
       setTimeout(() => aviso.remove(), 500);
     }, 3000);
-
-  } catch (e) {
-    console.error("⚠️ Error al imprimir:", e);
-    alert("⚠️ No se pudo enviar a RawBT.");
+  } catch (err) {
+    console.error("❌ Error al imprimir:", err);
+    alert("❌ No se pudo enviar a RawBT.");
   }
 }
 
