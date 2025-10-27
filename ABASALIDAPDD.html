@@ -1149,6 +1149,40 @@ document.getElementById("btnSiguienteFirma").onclick = ()=>{
   document.getElementById("firmaPaso1").style.display="none";
   document.getElementById("firmaPaso2").style.display="block";
 };
+
+// ==========================================================
+// 🧠 FUNCIÓN GLOBAL PARA MOSTRAR AVISOS FLOTANTES (redefinida)
+// ==========================================================
+function mostrarAvisoFlotante(texto, color = "#00416A") {
+  try {
+    const aviso = document.createElement("div");
+    aviso.textContent = texto;
+    Object.assign(aviso.style, {
+      position: "fixed",
+      bottom: "30px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      background: color,
+      color: "#fff",
+      padding: "10px 20px",
+      borderRadius: "10px",
+      fontSize: "14px",
+      fontWeight: "600",
+      boxShadow: "0 3px 10px rgba(0,0,0,0.3)",
+      zIndex: "9999",
+      opacity: "0",
+      transition: "opacity 0.3s"
+    });
+    document.body.appendChild(aviso);
+    setTimeout(() => aviso.style.opacity = "1", 50);
+    setTimeout(() => {
+      aviso.style.opacity = "0";
+      setTimeout(() => aviso.remove(), 500);
+    }, 3000);
+  } catch (err) {
+    console.warn("⚠️ No se pudo mostrar aviso:", err);
+  }
+}
 	
 </script>
 </body>
