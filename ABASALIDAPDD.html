@@ -220,23 +220,37 @@
   </div>
 </div>
 <!-- ==========================================================
-     🧱 SECCIÓN 6: FIRMAS EN DOS PASOS
+     🧱 SECCIÓN 6: FIRMAS – MODO MÓVIL CON PASOS
 =========================================================== -->
-<div id="firmaPaso1" class="pantalla">
-  <div class="card">
+<div id="firmas" class="pantalla">
+  <div class="card" id="firmaPaso1">
     <h2>Firma quien recibe</h2>
-    <canvas id="firmaRecibe" width="320" height="180"></canvas>
-    <button id="btnLimpiarRecibe" style="background:#888;">🧹 Limpiar firma</button>
+    <canvas id="canvasRecibe" width="320" height="200" style="
+      width: 100%;
+      height: 240px;
+      background: #fff;
+      border: 2px dashed #00416A;
+      border-radius: 10px;
+      display:block;
+      touch-action: none;
+    "></canvas>
+    <button id="limpiarRecibe" style="background:#666;">🧹 Limpiar firma</button>
     <button id="btnSiguienteFirma">➡️ Siguiente (Encargado)</button>
   </div>
-</div>
 
-<div id="firmaPaso2" class="pantalla">
-  <div class="card">
+  <div class="card" id="firmaPaso2" style="display:none;">
     <h2>Firma encargado</h2>
-    <canvas id="firmaEncargado" width="320" height="180"></canvas>
-    <button id="btnLimpiarEncargado" style="background:#888;">🧹 Limpiar firma</button>
-    <button id="btnGuardarSalida">✅ Guardar salida</button>
+    <canvas id="canvasEncargado" width="320" height="200" style="
+      width: 100%;
+      height: 240px;
+      background: #fff;
+      border: 2px dashed #00416A;
+      border-radius: 10px;
+      display:block;
+      touch-action: none;
+    "></canvas>
+    <button id="limpiarEncargado" style="background:#666;">🧹 Limpiar firma</button>
+    <button id="btnGuardarSalida" style="background:#00416A;">💾 Guardar salida</button>
   </div>
 </div>
 
@@ -680,14 +694,6 @@ document.getElementById('btnConfirmarSalida').onclick = () => {
 
 };
 
-// ==========================================================
-// 🧱 BLOQUE 5: FIRMAS (EN DOS PASOS PARA CELULAR)
-// ==========================================================
-const canvas1 = document.getElementById('firmaRecibe');
-const ctx1 = canvas1.getContext('2d');
-const canvas2 = document.getElementById('firmaEncargado');
-const ctx2 = canvas2.getContext('2d');
-
 function activarDibujo(canvas, ctx) {
   let dibujando = false;
 
@@ -742,18 +748,6 @@ function activarDibujo(canvas, ctx) {
   canvas.addEventListener("touchend", () => dibujando = false);
 }
 
-activarDibujo(canvas1, ctx1);
-activarDibujo(canvas2, ctx2);
-
-// Limpiar botones
-document.getElementById("btnLimpiarRecibe").onclick = () => ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
-document.getElementById("btnLimpiarEncargado").onclick = () => ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
-
-// Navegación entre pasos
-document.getElementById("btnSiguienteFirma").onclick = () => {
-  mostrarPantalla('firmaPaso2');
-};
-
 // ==========================================================
 // 🧱 SECCIÓN 5.1: FOLIADOR INTERNO (autonumérico)
 // ==========================================================
@@ -806,8 +800,8 @@ document.getElementById('btnGuardarSalida').onclick = async () => {
       ubicacion: datosSalida.destinoUbicacion
     },
     productos: carrito,
-    firmaRecibe: canvas1.toDataURL(),
-    firmaEncargado: canvas2.toDataURL()
+firmaRecibe: canvasRecibe.toDataURL(),
+firmaEncargado: canvasEncargado.toDataURL()
   };
 alert(`✅ Salida registrada correctamente\nFolio: ${folio}`);
 imprimirTicketAndroid(salida);
@@ -1099,6 +1093,42 @@ function centrarTexto(texto, ancho = 32) {
     return " ".repeat(espacios) + linea;
   }).join("\n");
 }
+// ==========================================================
+// 🧠 CONTROL DE FIRMAS EN DOS PASOS (recibe / encargado)
+// ==========================================================
+const canvasRecibe = document.getElementById('canvasRecibe');
+const ctxRecibe = canvasRecibe.getContext('2d');
+const canvasEncargado = document.getElementById('canvasEncargado');
+const ctxEncargado = canvasEncargado.getContext('2d');
+
+function activarFirma(canvas, ctx) {
+  let dibujando = false;
+  const getPos = e => {
+    const rect = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+  };
+  const start = e => { e.preventDefault(); dibujando = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const move = e => { if (!dibujando) return; e.preventDefault(); const p = getPos(e); ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#00416A"; ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  const stop = e => { e.preventDefault(); dibujando = false; };
+  ["mousedown","touchstart"].forEach(ev=>canvas.addEventListener(ev,start));
+  ["mousemove","touchmove"].forEach(ev=>canvas.addEventListener(ev,move));
+  ["mouseup","mouseleave","touchend"].forEach(ev=>canvas.addEventListener(ev,stop));
+}
+
+// Activar firma táctil en ambos lienzos
+activarFirma(canvasRecibe, ctxRecibe);
+activarFirma(canvasEncargado, ctxEncargado);
+
+// Botones
+document.getElementById("limpiarRecibe").onclick = ()=>ctxRecibe.clearRect(0,0,canvasRecibe.width,canvasRecibe.height);
+document.getElementById("limpiarEncargado").onclick = ()=>ctxEncargado.clearRect(0,0,canvasEncargado.width,canvasEncargado.height);
+
+// Flujo entre pantallas
+document.getElementById("btnSiguienteFirma").onclick = ()=>{
+  document.getElementById("firmaPaso1").style.display="none";
+  document.getElementById("firmaPaso2").style.display="block";
+};
 	
 </script>
 </body>
