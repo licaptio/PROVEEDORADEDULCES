@@ -1089,31 +1089,11 @@ for (const p of carrito) {
 // ==========================================================
 // 🧱 SECCIÓN 12: IMPRESIÓN DIRECTA ANDROID (58 mm – profesional sin firmas)
 // ==========================================================
+// ==========================================================
+// 🖨️ IMPRESIÓN DIRECTA POR window.print() (58 o 80 mm)
+// ==========================================================
 async function imprimirTicketAndroid(salida) {
   try {
-    // 🧠 Mostrar aviso “Imprimiendo…”
-    const aviso = document.createElement('div');
-    aviso.textContent = "🖨️ Imprimiendo ticket...";
-    Object.assign(aviso.style, {
-      position: 'fixed',
-      bottom: '30px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: '#00416A',
-      color: '#fff',
-      padding: '10px 20px',
-      borderRadius: '10px',
-      fontSize: '14px',
-      fontWeight: '600',
-      boxShadow: '0 3px 10px rgba(0,0,0,0.3)',
-      zIndex: '9999',
-      opacity: '0',
-      transition: 'opacity 0.3s'
-    });
-    document.body.appendChild(aviso);
-    setTimeout(() => (aviso.style.opacity = '1'), 100);
-
-    // 🎟️ Construcción del ticket (texto plano)
     const separador = "--------------------------------";
     let ticket = "";
     ticket += "       REGISTRO DE SALIDA\n";
@@ -1136,48 +1116,48 @@ async function imprimirTicketAndroid(salida) {
 
     ticket += separador + "\n";
     ticket += "AVISO DE CONFIRMACIÓN:\n";
-    ticket += "Los usuarios intervinientes han\n";
-    ticket += "firmado electrónicamente este registro.\n";
-    ticket += "Las firmas y evidencia digital están\n";
-    ticket += "almacenadas en la nube PROVSOFT.\n";
+    ticket += "Firmas electrónicas almacenadas\n";
+    ticket += "en la nube PROVSOFT.\n";
     ticket += separador + "\n";
-    ticket += "     © PROVSOFT - Sistema PDD\n";
-    ticket += "          Seguridad y Control\n\n\n";
+    ticket += "   © PROVSOFT - Sistema PDD\n";
+    ticket += "     Seguridad y Control\n";
 
-    // 🔥 Enviar a RawBT (texto plano)
-// ✅ Enviar texto plano directamente a RawBT
-const enlace = document.createElement("a");
-enlace.href = `rawbt:text,${encodeURIComponent(ticket)}`;
-enlace.style.display = "none";
-document.body.appendChild(enlace);
-enlace.click();
-setTimeout(() => enlace.remove(), 2000);
+    // 🖨️ Nueva ventana de impresión
+    const w = window.open('', '_blank');
+    w.document.write(`
+      <html>
+      <head>
+        <title>Ticket ${salida.folio}</title>
+        <style>
+          body {
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.2;
+            white-space: pre;
+            margin: 0;
+            padding: 10px;
+          }
+          @media print {
+            body { width: 58mm; margin: 0 auto; }
+          }
+        </style>
+      </head>
+      <body>
+${ticket}
+      </body>
+      </html>
+    `);
+    w.document.close();
+    w.onload = () => {
+      w.print();
+      setTimeout(() => w.close(), 800);
+    };
 
-    // 🔊 Beep de confirmación
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "square";
-      o.frequency.setValueAtTime(900, ctx.currentTime);
-      g.gain.setValueAtTime(0.1, ctx.currentTime);
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start();
-      o.stop(ctx.currentTime + 0.15);
-    } catch {}
-
-    // ⏳ Ocultar aviso
-    setTimeout(() => {
-      aviso.style.opacity = '0';
-      setTimeout(() => aviso.remove(), 500);
-    }, 3000);
   } catch (err) {
     console.error("❌ Error al imprimir:", err);
-    alert("❌ No se pudo enviar a RawBT.");
+    alert("❌ No se pudo imprimir el ticket.");
   }
 }
-
 
 /* ==========================================================
    🔧 Funciones auxiliares para formateo de ticket
