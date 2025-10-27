@@ -943,6 +943,53 @@ for (const p of carrito) {
   }
 }
 
+// ==========================================================
+// 🧱 SECCIÓN 12: IMPRESIÓN DIRECTA ANDROID (58 mm)
+// ==========================================================
+async function imprimirTicketAndroid(salida) {
+  try {
+    // 🎟️ Construcción del ticket en texto plano (monoespaciado)
+    let ticket = "";
+    ticket += "      PROVSOFT - Abarrote PDD\n";
+    ticket += "--------------------------------\n";
+    ticket += `FOLIO: ${salida.folio}\n`;
+    ticket += `USUARIO: ${salida.usuario}\n`;
+    ticket += `RECIBE: ${salida.recibe.nombre}\n`;
+    ticket += `DESTINO: ${salida.destino.nombre}\n`;
+    ticket += "--------------------------------\n";
+
+    salida.productos.forEach(p => {
+      let nombre = p.concepto;
+      if (nombre.length > 25) nombre = nombre.substring(0, 25) + "...";
+      ticket += `${nombre}\n   x${p.cantidad}\n`;
+    });
+
+    ticket += "--------------------------------\n";
+    ticket += `FECHA: ${new Date().toLocaleString("es-MX")}\n`;
+    ticket += "--------------------------------\n";
+    ticket += "Firma Recibe: ____________\n";
+    ticket += "Firma Encargado: _________\n";
+    ticket += "\n\n\n\n";
+
+    // 🧾 Modo 1: impresión directa si el navegador Android lo soporta
+    if (window.AndroidPrint) {
+      // 🔧 Si usas WebView con AndroidInterface.printText()
+      window.AndroidPrint.printText(ticket);
+      console.log("🖨️ Impresión enviada vía AndroidPrint");
+    } else {
+      // 🧾 Modo 2: fallback a print nativo de navegador
+      const win = window.open('', '', 'width=400,height=600');
+      win.document.write(`<pre style="font-family:monospace;font-size:11px;">${ticket}</pre>`);
+      win.document.close();
+      win.print();
+      win.close();
+    }
+  } catch (e) {
+    console.error("⚠️ Error al imprimir ticket:", e);
+    alert("⚠️ No se pudo imprimir el ticket automáticamente.");
+  }
+}
+	
 </script>
 </body>
 </html>
