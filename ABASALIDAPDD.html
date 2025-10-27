@@ -953,7 +953,7 @@ async function imprimirTicketAndroid(salida) {
   try {
     // 🧠 Mostrar aviso flotante “Imprimiendo…”
     const aviso = document.createElement('div');
-    aviso.textContent = "🖨️ Imprimiendo ticket...";
+    aviso.textContent = "🖨️ Enviando a RawBT...";
     Object.assign(aviso.style, {
       position: 'fixed',
       bottom: '30px',
@@ -973,11 +973,9 @@ async function imprimirTicketAndroid(salida) {
     document.body.appendChild(aviso);
     setTimeout(() => aviso.style.opacity = '1', 100);
 
-    // 🎟️ Cabecera centrada y formal
+    // 🎟️ Cabecera
     const titulo = "REGISTRO DE SALIDA\nALMACÉN ABARROTES\nPROVEEDORA DE DULCES";
     const separador = "--------------------------------";
-
-    // 🧾 Armado del cuerpo
     let ticket = "";
     ticket += centrarTexto(titulo.toUpperCase()) + "\n";
     ticket += separador + "\n";
@@ -990,33 +988,24 @@ async function imprimirTicketAndroid(salida) {
     ticket += separador + "\n";
     ticket += "ARTÍCULOS:\n";
 
-    // 🔹 Productos, ajustando nombres largos
     salida.productos.forEach(p => {
       let nombre = cortarTexto(p.concepto, 28);
       ticket += `${nombre}\n   x${p.cantidad}\n`;
     });
 
-    ticket += separador + "\n";
-    ticket += "\n";
+    ticket += separador + "\n\n";
     ticket += "_________________________\n";
     ticket += "  FIRMA USUARIO (Entrega)\n";
     ticket += "\n";
     ticket += "_________________________\n";
-    ticket += "  FIRMA QUIEN RECIBE\n";
-    ticket += "\n\n\n\n";
+    ticket += "  FIRMA QUIEN RECIBE\n\n\n";
 
-    // 🖨️ Enviar a impresión
-    if (window.AndroidPrint) {
-      window.AndroidPrint.printText(ticket);
-    } else {
-      const win = window.open('', '', 'width=400,height=600');
-      win.document.write(`<pre style="font-family:monospace;font-size:11px;">${ticket}</pre>`);
-      win.document.close();
-      win.print();
-      win.close();
-    }
+    // ✨ Enviar a RawBT
+    const encoded = btoa(unescape(encodeURIComponent(ticket)));
+    const url = `rawbt:base64,${encoded}`;
+    window.location.href = url;
 
-    // 🔊 Beep corto al finalizar
+    // 🔊 Beep corto
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const o = ctx.createOscillator();
@@ -1030,17 +1019,18 @@ async function imprimirTicketAndroid(salida) {
       o.stop(ctx.currentTime + 0.15);
     } catch {}
 
-    // 🕒 Ocultar aviso después de 3 segundos
+    // 🕒 Ocultar aviso
     setTimeout(() => {
       aviso.style.opacity = '0';
       setTimeout(() => aviso.remove(), 500);
     }, 3000);
 
   } catch (e) {
-    console.error("⚠️ Error al imprimir ticket:", e);
-    alert("⚠️ No se pudo imprimir el ticket automáticamente.");
+    console.error("⚠️ Error al imprimir:", e);
+    alert("⚠️ No se pudo enviar a RawBT.");
   }
 }
+
 
 /* ==========================================================
    🔧 Funciones auxiliares para formateo de ticket
