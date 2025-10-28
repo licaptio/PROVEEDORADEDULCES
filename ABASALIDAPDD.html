@@ -1082,7 +1082,6 @@ for (const p of carrito) {
 // ==========================================================
 // 🧱 SECCIÓN 12: IMPRESIÓN DIRECTA NATIVA (InnerPrinter H10 / Sunmi)
 // ==========================================================
-<script>
 async function imprimirTicketAndroid(salida) {
   try {
     const ticket = generarTextoTicketPlano(salida);
@@ -1118,8 +1117,7 @@ async function imprimirTicketAndroid(salida) {
   }
 }
 
-// ======== Generador del texto tipo ticket (como antes) ========
-<script>
+// ======== Generador del texto tipo ticket ========
 function generarTextoTicketPlano(salida) {
   const sep = "--------------------------------";
   let t = "";
@@ -1148,9 +1146,6 @@ function generarTextoTicketPlano(salida) {
   t += "Seguridad y Control\n\n\n";
   return t;
 }
-</script>
-
-
 /* ==========================================================
    🔧 Funciones auxiliares para formateo de ticket
 ========================================================== */
