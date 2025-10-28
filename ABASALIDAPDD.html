@@ -836,27 +836,20 @@ function activarDibujo(canvas, ctx) {
 
 // Generar folio único secuencial
 async function generarFolioInterno() {
-  const ref = collection(db, "almacenes", "almacenabarrotepdd", "contador");
-  const snap = await getDocs(ref);
+  const ref = doc(db, "almacenes", "almacenabarrotepdd", "contador", "folio_unico");
+  const snap = await getDoc(ref);
 
   let folioActual = 0;
-  if (!snap.empty) {
-    const docu = snap.docs[0];
-    folioActual = docu.data().ultimoFolio || 0;
-
-    // Actualizar contador
-    await addDoc(ref, { ultimoFolio: folioActual + 1, fecha: new Date().toISOString() });
-  } else {
-    // Si no existe contador, crear el primero
-    await addDoc(ref, { ultimoFolio: 1, fecha: new Date().toISOString() });
-    folioActual = 0;
+  if (snap.exists()) {
+    folioActual = snap.data().ultimoFolio || 0;
   }
 
   const nuevoFolio = folioActual + 1;
+  await setDoc(ref, { ultimoFolio: nuevoFolio, fecha: new Date().toISOString() });
+
   const folioFormateado = `SAL-${nuevoFolio.toString().padStart(6, "0")}`;
   return folioFormateado;
 }
-
 // ==========================================================
 // 🧱 SECCIÓN 10.1: GUARDAR SALIDA CON FIRMAS EN STORAGE
 // ==========================================================
@@ -1092,14 +1085,14 @@ for (const p of carrito) {
 async function imprimirTicketAndroid(salida) {
   try {
     const separador = "--------------------------------";
-    let ticket = `
-    <div style="text-align:center;margin-bottom:6px;">
-      <img src="https://lizandrolumbreras.github.io/logo_proveedora.webp" 
-           style="width:120px;margin-bottom:6px;">
-      <h3 style="margin:0;font-size:14px;">REGISTRO DE SALIDA</h3>
-      <div style="font-size:13px;">ALMACÉN ABARROTES<br>PROVEEDORA DE DULCES</div>
-    </div>
-    <pre style="font-family:monospace;font-size:13px;line-height:1.2;white-space:pre-wrap;">
+    let contenido = `
+      <div style="text-align:center;">
+        <img src="https://lizandrolumbreras.github.io/logo_proveedora.webp" 
+             style="width:120px;margin-bottom:6px;">
+        <h3 style="margin:0;font-size:14px;">REGISTRO DE SALIDA</h3>
+        <div style="font-size:13px;">ALMACÉN ABARROTES<br>PROVEEDORA DE DULCES</div>
+      </div>
+      <pre style="font-family:monospace;font-size:13px;line-height:1.2;">
 ${separador}
 FOLIO: ${salida.folio}
 FECHA: ${new Date().toLocaleString("es-MX")}
@@ -1113,35 +1106,42 @@ ARTÍCULOS:
 
     salida.productos.forEach(p => {
       const nombre = cortarTexto(p.concepto, 28);
-      ticket += `${nombre}\n  x${p.cantidad}\n`;
+      contenido += `${nombre}\n  x${p.cantidad}\n`;
     });
 
-    ticket += `${separador}
+    contenido += `${separador}
 AVISO DE CONFIRMACIÓN:
-Firmas electrónicas almacenadas
-en la nube PROVSOFT.
+Firmas electrónicas almacenadas en PROVSOFT.
 ${separador}
 © PROVSOFT - Sistema PDD
 Seguridad y Control
-    </pre>`;
+      </pre>`;
 
-    // 🖨️ Crear cuerpo de impresión
-    const original = document.body.innerHTML;
-    document.body.innerHTML = `
-      <div style="width:58mm;margin:auto;text-align:center;">
-        ${ticket}
-      </div>
-      <script>
-        window.onload = () => {
-          window.print();
-          setTimeout(() => location.reload(), 1000);
-        };
-      <\/script>
-    `;
+    // 🔹 Abrir ventana temporal visible para forzar print
+    const printWin = window.open('', '_blank', 'width=480,height=640');
+    printWin.document.write(`
+      <html>
+      <head>
+        <title>Ticket ${salida.folio}</title>
+        <style>
+          body { width:58mm;margin:0 auto;font-family:monospace;font-size:13px; }
+          @media print { body { width:58mm;margin:0 auto; } }
+        </style>
+      </head>
+      <body>${contenido}</body>
+      </html>
+    `);
+    printWin.document.close();
+    printWin.focus();
+
+    setTimeout(() => {
+      printWin.print();
+      setTimeout(() => printWin.close(), 1000);
+    }, 500);
 
   } catch (err) {
     console.error("❌ Error al imprimir:", err);
-    alert("❌ No se pudo imprimir el ticket.");
+    alert("❌ No se pudo iniciar la impresión. Revisa permisos del navegador.");
   }
 }
 
