@@ -1056,9 +1056,33 @@ async function ejecutarBotInventario(salida, carrito) {
 
       // 🧠 Notificación a Telegram (solo si es fijado)
       const nombreCorto = p.concepto.length > 45 ? p.concepto.substring(0, 45) + "..." : p.concepto;
-      const msg = alertaCritica
-        ? `🚨 *ALERTA CRÍTICA DE INVENTARIO*\n📦 ${nombreCorto}\n📉 Stock actual: ${inventarioNuevo} (mínimo ${inventarioMinimo})\n📤 Última salida: ${salidaCant} unidades\n👨‍💼 Usuario: ${salida.usuario}\n🕒 ${new Date().toLocaleString("es-MX")}`
-        : `📦 *Salida registrada en inventario fijado*\n🧾 Folio: ${salida.folio}\n📄 ${nombreCorto}\n📉 Salida: ${salidaCant}\n📊 Antes: ${inventarioAntes} → Ahora: ${inventarioNuevo}\n📍 Destino: ${salida.destino.nombre}\n👨‍💼 ${salida.usuario}\n🕒 ${new Date().toLocaleString("es-MX")}`;
+const msg = alertaCritica
+  ? `🔥🔥🔥 *¡¡ALERTA CRÍTICA DE INVENTARIO!!* 🔥🔥🔥
+
+💣💣💣💣💣💣💣💣💣💣
+💀 *PELIGRO DE RUPTURA DE STOCK* 💀
+💣💣💣💣💣💣💣💣💣💣
+
+📦 *${nombreCorto.toUpperCase()}*
+📉 *Stock actual:* ${inventarioNuevo}
+🧨 *Mínimo permitido:* ${inventarioMinimo}
+📤 *Última salida:* ${salidaCant} unidades
+📍 *Destino:* ${salida.destino.nombre}
+👨‍💼 *Usuario:* ${salida.usuario}
+
+⚠️ *Acción inmediata requerida:* REABASTECER INVENTARIO ⚠️
+🕒 ${new Date().toLocaleString("es-MX")}
+
+━━━━━━━━━━━━━━━
+🔴 *PROVSOFT ALERT SYSTEM – LOBA/STAR ONLINE*
+━━━━━━━━━━━━━━━`
+  : `✅ *Movimiento registrado correctamente*
+📦 ${nombreCorto}
+📉 Salida: ${salidaCant}
+📊 ${inventarioAntes} → ${inventarioNuevo}
+📍 ${salida.destino.nombre}
+👨‍💼 ${salida.usuario}
+🕒 ${new Date().toLocaleString("es-MX")}`;
 
       await fetch(`https://api.telegram.org/bot${BOT2_TOKEN}/sendMessage`, {
         method: "POST",
