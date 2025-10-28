@@ -1101,15 +1101,8 @@ async function imprimirTicketAndroid(salida) {
   }
 }
 
-// ==========================================================
-// 🧾 FUNCIÓN: Generar HTML del ticket (formato térmico simple)
-// ==========================================================
-// ==========================================================
-// 🧾 FUNCIÓN: Generar HTML del ticket (formato térmico optimizado)
-// ==========================================================
 function generarHTMLTicket(salida) {
-  let t = "";
-  t += `
+  return `
   <html>
   <head>
     <meta charset="UTF-8">
@@ -1121,25 +1114,27 @@ function generarHTMLTicket(salida) {
       }
       body {
         font-family: monospace;
-        font-size: 11px;
+        font-size: 13px; /* 🔹 Subimos tamaño para POS */
         margin: 0;
-        padding: 6px;
-        line-height: 1.2;
-        text-align: left;
+        padding: 10px;
+        line-height: 1.4;
+        transform: scale(1.2); /* 🔹 Zoom ligero */
+        transform-origin: top left;
+        width: 240px; /* ancho efectivo para 58mm */
       }
       .center { text-align: center; }
-      .sep { border-top: 1px dashed #000; margin: 4px 0; }
+      .sep { border-top: 1px dashed #000; margin: 6px 0; }
       h2 {
-        font-size: 13px;
+        font-size: 15px;
         text-align: center;
         margin: 0;
         padding: 0;
       }
-      p { margin: 2px 0; }
+      p { margin: 3px 0; }
       .footer {
-        margin-top: 6px;
+        margin-top: 8px;
         text-align: center;
-        font-size: 10px;
+        font-size: 12px;
       }
     </style>
   </head>
@@ -1161,7 +1156,7 @@ function generarHTMLTicket(salida) {
     <p>
       ${salida.productos.map(p => {
         const nombre = p.concepto.length > 28 ? p.concepto.substring(0, 25) + "..." : p.concepto;
-        return `${nombre}\n  x${p.cantidad}<br>`;
+        return `${nombre}<br>x${p.cantidad}<br>`;
       }).join("")}
     </p>
     <div class="sep"></div>
@@ -1173,8 +1168,8 @@ function generarHTMLTicket(salida) {
     </div>
   </body>
   </html>`;
-  return t;
 }
+
 
 
 /* ==========================================================
