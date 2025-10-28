@@ -1104,40 +1104,78 @@ async function imprimirTicketAndroid(salida) {
 // ==========================================================
 // 🧾 FUNCIÓN: Generar HTML del ticket (formato térmico simple)
 // ==========================================================
+// ==========================================================
+// 🧾 FUNCIÓN: Generar HTML del ticket (formato térmico optimizado)
+// ==========================================================
 function generarHTMLTicket(salida) {
-  const sep = "--------------------------------";
   let t = "";
-  t += `<html><head><meta charset="UTF-8"><style>
-    body { font-family: monospace; font-size: 13px; padding: 10px; }
-    h2 { text-align:center; margin:0; }
-    .sep { border-top:1px dashed #000; margin:6px 0; }
-    .centrado { text-align:center; }
-  </style></head><body>`;
-  
-  t += `<h2>REGISTRO DE SALIDA</h2>`;
-  t += `<div class="centrado">ALMACÉN ABARROTES PDD<br>PROVEEDORA DE DULCES</div>`;
-  t += `<div class="sep"></div>`;
-  t += `<p><b>FOLIO:</b> ${salida.folio}<br>`;
-  t += `<b>FECHA:</b> ${new Date().toLocaleString("es-MX")}</p>`;
-  t += `<div class="sep"></div>`;
-  t += `<p><b>USUARIO:</b> ${salida.usuario}<br>`;
-  t += `<b>RECIBE:</b> ${salida.recibe.nombre}<br>`;
-  t += `<b>DESTINO:</b> ${salida.destino.nombre}</p>`;
-  t += `<div class="sep"></div>`;
-  t += `<p><b>ARTÍCULOS:</b><br>`;
-
-  salida.productos.forEach(p => {
-    const nombre = p.concepto.length > 28 ? p.concepto.substring(0, 25) + "..." : p.concepto;
-    t += `${nombre} (x${p.cantidad})<br>`;
-  });
-
-  t += `</p><div class="sep"></div>`;
-  t += `<p><b>AVISO DE CONFIRMACIÓN:</b><br>Firmas electrónicas almacenadas en PROVSOFT.</p>`;
-  t += `<div class="sep"></div>`;
-  t += `<p class="centrado">© PROVSOFT – Sistema PDD<br>Seguridad y Control</p>`;
-  t += `</body></html>`;
+  t += `
+  <html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Ticket ${salida.folio}</title>
+    <style>
+      @page {
+        size: 58mm auto;
+        margin: 0;
+      }
+      body {
+        font-family: monospace;
+        font-size: 11px;
+        margin: 0;
+        padding: 6px;
+        line-height: 1.2;
+        text-align: left;
+      }
+      .center { text-align: center; }
+      .sep { border-top: 1px dashed #000; margin: 4px 0; }
+      h2 {
+        font-size: 13px;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+      }
+      p { margin: 2px 0; }
+      .footer {
+        margin-top: 6px;
+        text-align: center;
+        font-size: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="center">
+      <h2>REGISTRO DE SALIDA</h2>
+      <div>ALMACÉN ABARROTES PDD</div>
+      <div>PROVEEDORA DE DULCES</div>
+    </div>
+    <div class="sep"></div>
+    <p><b>FOLIO:</b> ${salida.folio}</p>
+    <p><b>FECHA:</b> ${new Date().toLocaleString("es-MX")}</p>
+    <div class="sep"></div>
+    <p><b>USUARIO:</b> ${salida.usuario}</p>
+    <p><b>RECIBE:</b> ${salida.recibe.nombre}</p>
+    <p><b>DESTINO:</b> ${salida.destino.nombre}</p>
+    <div class="sep"></div>
+    <p><b>ARTÍCULOS:</b></p>
+    <p>
+      ${salida.productos.map(p => {
+        const nombre = p.concepto.length > 28 ? p.concepto.substring(0, 25) + "..." : p.concepto;
+        return `${nombre}\n  x${p.cantidad}<br>`;
+      }).join("")}
+    </p>
+    <div class="sep"></div>
+    <p><b>AVISO DE CONFIRMACIÓN:</b><br>Firmas electrónicas almacenadas en PROVSOFT.</p>
+    <div class="sep"></div>
+    <div class="footer">
+      © PROVSOFT – Sistema PDD<br>
+      Seguridad y Control
+    </div>
+  </body>
+  </html>`;
   return t;
 }
+
 
 /* ==========================================================
    🔧 Funciones auxiliares para formateo de ticket
