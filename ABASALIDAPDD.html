@@ -1005,79 +1005,80 @@ const BOT2_TOKEN = "8241239653:AAH3-eS7XrRlO4G6LO5MydlYlOm2Um18SGE";
 const BOT2_CHAT_ID = "6617988297";
 
 /**
- * BOT 2: Verifica inventarios fijados, actualiza historial
- * y envía notificaciones a Telegram.
+ * BOT 2: Verifica y actualiza inventarios fijados reales (no productos)
+ * Colección: /seguimiento_inventario/{codigoBarra}
+ * Subcolección: /seguimiento_inventario/{codigoBarra}/historial_salidas
  */
 async function ejecutarBotInventario(salida, carrito) {
   try {
-for (const p of carrito) {
-  const productoRef = doc(db, "productos", p.id);
-  const snap = await getDoc(productoRef);
-  if (!snap.exists()) continue;
+    for (const p of carrito) {
+      const codigo = p.codigoBarra?.trim();
+      if (!codigo) continue; // ⚠️ sin código no procesar
 
-  const prod = snap.data();
-  const inventarioAntes = Number(prod.inventario_fijado || 0);
-  const inventarioMinimo = Number(prod.inventario_minimo || 0);
-  const salidaCant = Number(p.cantidad || 0);
+      // 🔍 Buscar el artículo fijado
+      const segRef = doc(db, "seguimiento_inventario", codigo);
+      const segSnap = await getDoc(segRef);
+      if (!segSnap.exists()) {
+        console.warn(`⚠️ El artículo ${codigo} no está fijado en seguimiento_inventario`);
+        continue;
+      }
 
-  // ✅ Calcular correctamente inventario nuevo
-  const inventarioNuevo = inventarioAntes - salidaCant;
+      const segData = segSnap.data();
+      const inventarioAntes = Number(segData.inventario_fijado || 0);
+      const inventarioMinimo = Number(segData.inventario_minimo || 0);
+      const salidaCant = Number(p.cantidad || 0);
+      const inventarioNuevo = inventarioAntes - salidaCant;
 
-  // Registrar en historial
-  await addDoc(collection(productoRef, "historial_salidas"), {
-    fecha: new Date().toISOString(),
-    usuario: salida.usuario,
-    cantidad: salidaCant,
-    inventario_antes: inventarioAntes,
-    inventario_despues: inventarioNuevo,
-    destino: salida.destino.nombre,
-    folio_salida: salida.folio
-  });
+      // 🧾 Registrar movimiento en subcolección del historial de salidas
+      const movRef = collection(db, `seguimiento_inventario/${codigo}/historial_salidas`);
+      await addDoc(movRef, {
+        fecha: new Date().toISOString(),
+        usuario: salida.usuario,
+        cantidad: salidaCant,
+        inventario_antes: inventarioAntes,
+        inventario_despues: inventarioNuevo,
+        destino: salida.destino.nombre,
+        folio_salida: salida.folio,
+        motivo: "salida registrada"
+      });
 
-  // Actualizar en Firestore
-  await updateDoc(productoRef, {
-    inventario_fijado: inventarioNuevo,
-    ultima_salida: new Date().toISOString(),
-    actualizadoEn: new Date().toISOString()
-  });
+      // 💾 Actualizar el documento principal
+      await setDoc(segRef, {
+        ...segData,
+        inventario_fijado: inventarioNuevo,
+        inventario_teorico: inventarioNuevo,
+        actualizadoEn: new Date().toISOString(),
+        ultima_salida: new Date().toISOString()
+      });
 
-  // 🔥 Evaluar después de actualizar
-  const alertaCritica = inventarioNuevo <= inventarioMinimo;
+      // ⚠️ Evaluar alerta por debajo del mínimo
+      const alertaCritica = inventarioNuevo <= inventarioMinimo;
 
-  // Formatear nombre corto si es muy largo
-  let nombreCorto = p.concepto;
-  if (nombreCorto.length > 45) nombreCorto = nombreCorto.substring(0, 45) + "...";
+      // 🧠 Notificación a Telegram (solo si es fijado)
+      const nombreCorto = p.concepto.length > 45 ? p.concepto.substring(0, 45) + "..." : p.concepto;
+      const msg = alertaCritica
+        ? `🚨 *ALERTA CRÍTICA DE INVENTARIO*\n📦 ${nombreCorto}\n📉 Stock actual: ${inventarioNuevo} (mínimo ${inventarioMinimo})\n📤 Última salida: ${salidaCant} unidades\n👨‍💼 Usuario: ${salida.usuario}\n🕒 ${new Date().toLocaleString("es-MX")}`
+        : `📦 *Salida registrada en inventario fijado*\n🧾 Folio: ${salida.folio}\n📄 ${nombreCorto}\n📉 Salida: ${salidaCant}\n📊 Antes: ${inventarioAntes} → Ahora: ${inventarioNuevo}\n📍 Destino: ${salida.destino.nombre}\n👨‍💼 ${salida.usuario}\n🕒 ${new Date().toLocaleString("es-MX")}`;
 
-  // Mensaje a Telegram según caso
-  const msg = alertaCritica
- ? `🔥🔥🔥 *¡ALERTA ALERTA!* 🔥🔥🔥  
-🚨 *ALERTA CRÍTICA DE INVENTARIO*  
-📦 ${nombreCorto}  
-📉 Stock actual: ${inventarioNuevo} (mínimo ${inventarioMinimo})  
-📤 Última salida: ${salidaCant} unidades  
-⚠️ URGENTE: revisar existencia y surtir antes de ruptura.  
-👨‍💼 Usuario: ${salida.usuario}  
-🕒 ${new Date().toLocaleString("es-MX")}
-`
-    : `📦 *Movimiento detectado en inventario*\n🧾 Folio: ${salida.folio}\n📄 ${nombreCorto}\n📉 Salida: ${salidaCant} unidades\n📊 Antes: ${inventarioAntes} → Ahora: ${inventarioNuevo}\n📍 Destino: ${salida.destino.nombre}\n👨‍💼 Usuario: ${salida.usuario}\n🕒 ${new Date().toLocaleString("es-MX")}`;
+      await fetch(`https://api.telegram.org/bot${BOT2_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: BOT2_CHAT_ID,
+          text: msg,
+          parse_mode: "Markdown"
+        })
+      });
 
-  await fetch(`https://api.telegram.org/bot${BOT2_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: BOT2_CHAT_ID,
-      text: msg,
-      parse_mode: "Markdown"
-    })
-  });
-}
+      console.log(`✅ ${codigo}: actualizado de ${inventarioAntes} → ${inventarioNuevo}`);
+    }
 
-
-    console.log("✅ BOT 2 ejecutado: inventarios y notificaciones actualizados.");
+    console.log("✅ BOT 2 finalizado: inventarios fijados actualizados correctamente.");
   } catch (err) {
     console.error("⚠️ Error en BOT 2:", err);
   }
 }
+
 
 // ==========================================================
 // 🧱 SECCIÓN 12: IMPRESIÓN PDF MANUAL (compatibilidad universal)
