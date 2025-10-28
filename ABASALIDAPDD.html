@@ -1096,6 +1096,20 @@ async function imprimirTicketAndroid(salida) {
       printWin.document.body.style.zoom = "170%"; // 🔥 aumenta densidad de texto
       printWin.focus();
       setTimeout(() => printWin.print(), 400);
+printWin.onload = () => {
+  printWin.document.body.style.zoom = "170%";
+  printWin.focus();
+  setTimeout(() => {
+    printWin.print();
+    // ✅ Regresar automáticamente al menú de captura después de imprimir
+    setTimeout(() => {
+      printWin.close(); // cierra la vista de impresión
+      mostrarPantalla("captura"); // vuelve al menú principal
+      mostrarAvisoFlotante("✅ Salida impresa y lista para nueva captura");
+    }, 1500); // espera 1.5 segundos antes de regresar
+  }, 400);
+};
+		
     };
   } catch (err) {
     console.error("❌ Error al imprimir PDF:", err);
