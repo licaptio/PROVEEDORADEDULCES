@@ -1080,72 +1080,65 @@ for (const p of carrito) {
 }
 
 // ==========================================================
-// 🧱 SECCIÓN 12: IMPRESIÓN DIRECTA NATIVA (InnerPrinter H10 / Sunmi)
+// 🧱 SECCIÓN 12: IMPRESIÓN PDF MANUAL (compatibilidad universal)
 // ==========================================================
 async function imprimirTicketAndroid(salida) {
   try {
-    const ticket = generarTextoTicketPlano(salida);
+    const contenido = generarHTMLTicket(salida);
 
-    // 🧩 Opción 1: API nativa de H10 (InnerPrinter)
-    if (typeof InnerPrinter !== "undefined" && InnerPrinter.printText) {
-      InnerPrinter.printText(ticket + "\n\n\n");
-      mostrarAvisoFlotante("🖨️ Impresora interna (InnerPrinter) detectada");
-      return;
-    }
+    // 🧾 Abrir nueva ventana con el contenido del ticket
+    const printWin = window.open("", "_blank");
+    printWin.document.write(contenido);
+    printWin.document.close();
 
-    // 🧩 Opción 2: AIDL expuesto como woyouService (POS genérico)
-    if (typeof woyouService !== "undefined" && woyouService.printText) {
-      woyouService.printText(ticket + "\n\n\n", null);
-      mostrarAvisoFlotante("🖨️ Impresora interna (woyouService) detectada");
-      return;
-    }
-
-    // 🧩 Opción 3: Interfaz expuesta por el navegador del POS
-    if (typeof window.JsPrinter !== "undefined" && window.JsPrinter.printText) {
-      window.JsPrinter.printText(ticket + "\n\n\n");
-      mostrarAvisoFlotante("🖨️ Impresora (JsPrinter) detectada");
-      return;
-    }
-
-    // 🧩 Si no hay API nativa detectada
-    alert("⚠️ Impresora interna no detectada. Este POS no expone el servicio a WebView.");
-    console.log("Ticket generado:\n" + ticket);
-
+    // Esperar un poco para que renderice y abrir diálogo de impresión
+    setTimeout(() => {
+      printWin.print();
+    }, 500);
   } catch (err) {
-    console.error("❌ Error al imprimir:", err);
-    alert("❌ No se pudo imprimir ticket.");
+    console.error("❌ Error al imprimir PDF:", err);
+    alert("❌ No se pudo generar vista previa de impresión.");
   }
 }
 
-// ======== Generador del texto tipo ticket ========
-function generarTextoTicketPlano(salida) {
+// ==========================================================
+// 🧾 FUNCIÓN: Generar HTML del ticket (formato térmico simple)
+// ==========================================================
+function generarHTMLTicket(salida) {
   const sep = "--------------------------------";
   let t = "";
-  t += "        REGISTRO DE SALIDA\n";
-  t += "     ALMACÉN ABARROTES PDD\n";
-  t += "     PROVEEDORA DE DULCES\n";
-  t += sep + "\n";
-  t += `FOLIO: ${salida.folio}\n`;
-  t += `FECHA: ${new Date().toLocaleString("es-MX")}\n`;
-  t += sep + "\n";
-  t += `USUARIO: ${salida.usuario}\n`;
-  t += `RECIBE: ${salida.recibe.nombre}\n`;
-  t += `DESTINO: ${salida.destino.nombre}\n`;
-  t += sep + "\n";
-  t += "ARTÍCULOS:\n";
+  t += `<html><head><meta charset="UTF-8"><style>
+    body { font-family: monospace; font-size: 13px; padding: 10px; }
+    h2 { text-align:center; margin:0; }
+    .sep { border-top:1px dashed #000; margin:6px 0; }
+    .centrado { text-align:center; }
+  </style></head><body>`;
+  
+  t += `<h2>REGISTRO DE SALIDA</h2>`;
+  t += `<div class="centrado">ALMACÉN ABARROTES PDD<br>PROVEEDORA DE DULCES</div>`;
+  t += `<div class="sep"></div>`;
+  t += `<p><b>FOLIO:</b> ${salida.folio}<br>`;
+  t += `<b>FECHA:</b> ${new Date().toLocaleString("es-MX")}</p>`;
+  t += `<div class="sep"></div>`;
+  t += `<p><b>USUARIO:</b> ${salida.usuario}<br>`;
+  t += `<b>RECIBE:</b> ${salida.recibe.nombre}<br>`;
+  t += `<b>DESTINO:</b> ${salida.destino.nombre}</p>`;
+  t += `<div class="sep"></div>`;
+  t += `<p><b>ARTÍCULOS:</b><br>`;
+
   salida.productos.forEach(p => {
     const nombre = p.concepto.length > 28 ? p.concepto.substring(0, 25) + "..." : p.concepto;
-    t += `${nombre}\n  x${p.cantidad}\n`;
+    t += `${nombre} (x${p.cantidad})<br>`;
   });
-  t += sep + "\n";
-  t += "AVISO DE CONFIRMACIÓN:\n";
-  t += "Firmas electrónicas almacenadas\n";
-  t += "en PROVSOFT.\n";
-  t += sep + "\n";
-  t += "© PROVSOFT – Sistema PDD\n";
-  t += "Seguridad y Control\n\n\n";
+
+  t += `</p><div class="sep"></div>`;
+  t += `<p><b>AVISO DE CONFIRMACIÓN:</b><br>Firmas electrónicas almacenadas en PROVSOFT.</p>`;
+  t += `<div class="sep"></div>`;
+  t += `<p class="centrado">© PROVSOFT – Sistema PDD<br>Seguridad y Control</p>`;
+  t += `</body></html>`;
   return t;
 }
+
 /* ==========================================================
    🔧 Funciones auxiliares para formateo de ticket
 ========================================================== */
