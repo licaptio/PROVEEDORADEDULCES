@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Traspaso entre Almacenes – PROVSOFT</title>
+
+<!-- 🔵 ESTILOS PROVSOFT -->
+<style>
+  body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(to bottom right, #00416A, #0c6cbd);
+    color: #fff;
+  }
+
+  h2 {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 26px;
+    font-weight: 600;
+  }
+
+  .contenedor {
+    background: #ffffffdd;
+    color: #111;
+    width: 92%;
+    margin: auto;
+    padding: 15px;
+    border-radius: 14px;
+    box-shadow: 0 5px 15px rgba(0,0,0,.2);
+  }
+
+  select, input, button {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+    margin: 5px;
+  }
+
+  button {
+    cursor: pointer;
+    background: #0c6cbd;
+    color: #fff;
+    border: none;
+    font-weight: bold;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  th {
+    background: #00416A;
+    color: white;
+    padding: 8px;
+  }
+
+  td {
+    background: #fff;
+    color: #111;
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  #modalResultados {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modalCaja {
+    background: #fff;
+    color: #111;
+    width: 90%;
+    max-width: 420px;
+    padding: 15px;
+    border-radius: 12px;
+  }
+
+  .item {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+  }
+</style>
+
+<script type="module">
+
+/* ==========================================================
+   🟦 FIREBASE
+========================================================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs, addDoc }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+/* ==========================================================
+   🟩 INDEXEDDB
+========================================================== */
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("provsoftDB", 1);
+    request.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains("productos")) {
+        db.createObjectStore("productos", { keyPath: "codigoBarra" });
+      }
+    };
+    request.onsuccess = e => resolve(e.target.result);
+    request.onerror = e => reject(e);
+  });
+}
+
+async function saveProductos(lista) {
+  const db = await openDB();
+  const tx = db.transaction("productos", "readwrite");
+  const store = tx.objectStore("productos");
+  lista.forEach(p => store.put(p));
+  return new Promise(resolve => tx.oncomplete = resolve);
+}
+
+async function getAllProductos() {
+  const db = await openDB();
+  return new Promise(resolve => {
+    const tx = db.transaction("productos", "readonly");
+    const store = tx.objectStore("productos");
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
+async function syncProductos() {
+  try {
+    const q = query(collection(db, "productos"), where("activo", "==", true));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      await saveProductos(lista);
+      console.log(`Catálogo actualizado: ${lista.length} productos`);
+    }
+  } catch (err) {
+    console.warn("Error al sincronizar:", err.message);
+  }
+}
+
+
+/* ==========================================================
+   🟨 EQUIVALENTES + BALANZA
+========================================================== */
+function decodificarBalanza(codigo) {
+  if (codigo.length === 13 && codigo.startsWith("20")) {
+    const codigoProducto = codigo.substring(0, 7);
+    const pesoBruto = codigo.substring(7, 12);
+    const pesoKg = parseFloat(pesoBruto) / 1000;
+    return { esBalanza: true, codigoProducto, pesoKg };
+  }
+  return { esBalanza: false };
+}
+
+function normalizarCodigo(producto, codigoEscaneado) {
+  const principal = String(producto.codigoBarra || "");
+  const equivalentes = Array.isArray(producto.codigosEquivalentes)
+    ? producto.codigosEquivalentes.map(String)
+    : [];
+
+  if (principal === codigoEscaneado) return principal;
+  if (equivalentes.includes(codigoEscaneado)) return principal;
+  return null;
+}
+
+/* ==========================================================
+   🟧 BÚSQUEDA CÓDIGO / NOMBRE
+========================================================== */
+async function buscarPorCodigo() {
+  let codigo = document.getElementById("buscador").value.trim();
+  if (!codigo) return;
+
+  let pesoDetectado = null;
+
+  const bal = decodificarBalanza(codigo);
+  if (bal.esBalanza) {
+    codigo = bal.codigoProducto;
+    pesoDetectado = bal.pesoKg;
+  }
+
+  const productos = await getAllProductos();
+  const encontrado = productos.find(p => normalizarCodigo(p, codigo));
+
+  if (!encontrado) return;
+
+  seleccionarProducto(encontrado);
+
+  // 🧡 SI ES BALANZA → cantidad = peso
+  if (pesoDetectado !== null) {
+    document.getElementById("cantidad").value = pesoDetectado.toFixed(3);
+    agregarItem();
+    renderTabla();
+    document.getElementById("buscador").value = "";
+    document.getElementById("buscador").focus();
+    return;
+  }
+
+  // 💚 SI ES CÓDIGO NORMAL → cantidad = 1 AUTOMÁTICO
+  document.getElementById("cantidad").value = 1;
+  agregarItem();
+  renderTabla();
+
+  // limpiar y enfocar para siguiente escaneo
+  document.getElementById("buscador").value = "";
+  document.getElementById("buscador").focus();
+}
+
+/* ==========================================================
+   🟥 CARRITO
+========================================================== */
+let carrito = [];
+
+function seleccionarProducto(data) {
+  document.getElementById("codigoSel").value = data.codigoBarra;
+  document.getElementById("conceptoSel").value = data.concepto;
+  document.getElementById("precioSel").value = data.precioPublico;
+  document.getElementById("preview").innerText =
+    `${data.concepto} — $${data.precioPublico}`;
+}
+
+function agregarItem() {
+  const codigo = document.getElementById("codigoSel").value;
+  const concepto = document.getElementById("conceptoSel").value;
+  const precio = parseFloat(document.getElementById("precioSel").value);
+  const cantidad = parseFloat(document.getElementById("cantidad").value);
+
+  if (!codigo || cantidad <= 0) return;
+
+  const existente = carrito.find(i => i.codigo === codigo);
+  if (existente) existente.cantidad += cantidad;
+  else carrito.push({ codigo, concepto, precio, cantidad });
+
+  renderTabla();
+}
+
+function renderTabla() {
+  const tabla = document.getElementById("tabla");
+  tabla.innerHTML = "";
+
+  carrito.forEach((it, i) => {
+    tabla.innerHTML += `
+      <tr>
+        <td>${it.codigo}</td>
+        <td>${it.concepto}</td>
+        <td>${it.cantidad}</td>
+        <td>$${it.precio.toFixed(2)}</td>
+        <td><button onclick="eliminarItem(${i})">❌</button></td>
+      </tr>`;
+  });
+}
+
+window.eliminarItem = i => {
+  carrito.splice(i, 1);
+  renderTabla();
+};
+
+
+/* ==========================================================
+   🟦 CARGAR LISTA DE VENDEDORES
+========================================================== */
+async function cargarListaVendedores() {
+  const q = query(
+    collection(db, "usuarios_ruta"),
+    where("rol", "==", "vendedor"),
+    where("activo", "==", true)
+  );
+
+  const snap = await getDocs(q);
+
+  const select = document.getElementById("vendedorSelect");
+  select.innerHTML = `<option value="">Seleccione vendedor</option>`;
+
+  snap.forEach(doc => {
+    const d = doc.data();
+    select.innerHTML += `
+      <option value="${doc.id}"
+        data-nombre="${d.nombre}"
+        data-ruta="${d.rutaId}">
+        ${d.nombre}
+      </option>`;
+  });
+}
+
+
+/* ==========================================================
+   🟫 INIT CORRECTO (TODO DENTRO)
+========================================================== */
+document.addEventListener("DOMContentLoaded", async () => {
+document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
+
+  await syncProductos();
+  await cargarListaVendedores();
+
+  // seleccionar vendedor
+  document.getElementById("vendedorSelect").addEventListener("change", e => {
+    const opt = e.target.selectedOptions[0];
+    if (!opt) return;
+    
+    document.getElementById("rutaId").value = opt.dataset.ruta;
+  });
+
+  document.getElementById("btnBuscarCodigo").addEventListener("click", buscarPorCodigo);
+  // escaneo con pistola (ENTER)
+document.getElementById("buscador").addEventListener("keypress", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    buscarPorCodigo();
+  }
+});
+
+  document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
+});
+document.getElementById("cerrarModal").addEventListener("click", () => {
+  document.getElementById("modalResultados").style.display = "none";
+});
+
+document.getElementById("busquedaNombre").addEventListener("input", async e => {
+  const term = e.target.value.toLowerCase();
+  const lista = document.getElementById("listaResultados");
+
+  const filtrados = resultadosBusqueda.filter(p =>
+    p.concepto.toLowerCase().includes(term)
+  );
+
+  lista.innerHTML = "";
+
+  filtrados.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.textContent = p.concepto + " (" + p.codigoBarra + ")";
+    div.onclick = () => {
+      seleccionarProducto(p);
+      document.getElementById("cantidad").value = 1;
+      agregarItem();
+      renderTabla();
+      document.getElementById("modalResultados").style.display = "none";
+    };
+    lista.appendChild(div);
+  });
+});
+
+
+/* ==========================================================
+   🟦 BUSCAR POR NOMBRE – ABRIR MODAL
+========================================================== */
+let resultadosBusqueda = [];
+
+async function buscarPorNombre() {
+  document.getElementById("modalResultados").style.display = "flex";
+
+  // limpiar
+  document.getElementById("busquedaNombre").value = "";
+  document.getElementById("listaResultados").innerHTML = "";
+
+  // cargar productos
+  const productos = await getAllProductos();
+  resultadosBusqueda = productos;
+}
+
+/* ==========================================================
+   🟪 GUARDAR TRASPASO EN: /almacenes/{rutaId}/entradas/
+========================================================== */
+async function guardarTraspaso() {
+
+  const vendedorId = document.getElementById("vendedorSelect").value;
+  const rutaId = document.getElementById("rutaId").value;
+
+  if (!vendedorId) {
+    alert("Seleccione un vendedor");
+    return;
+  }
+
+  if (!rutaId) {
+    alert("Este vendedor no tiene rutaId asignado");
+    return;
+  }
+
+  if (carrito.length === 0) {
+    alert("Agregue productos antes de finalizar el traspaso");
+    return;
+  }
+
+  const payload = {
+    vendedorId,
+    rutaId,
+    fecha: new Date().toISOString(),
+    items: carrito.map(i => ({
+      codigo: i.codigo,
+      concepto: i.concepto,
+      cantidad: i.cantidad,
+      precio: i.precio
+    }))
+  };
+
+  try {
+    // 🔥 GRABA AQUÍ: /almacenes/{rutaId}/entradas/
+    const rutaColeccion = collection(db, "almacenes", rutaId, "entradas");
+    
+    await addDoc(rutaColeccion, payload);
+
+    alert("✔ Traspaso enviado correctamente a /almacenes/" + rutaId + "/entradas/");
+
+    carrito = [];
+    renderTabla();
+
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error al guardar: " + err.message);
+  }
+}
+
+</script>
+
+</head>
+<body>
+
+<h2>Traspaso entre Almacenes</h2>
+
+<div class="contenedor">
+
+<!-- SELECCIÓN DE VENDEDOR -->
+<select id="vendedorSelect"></select>
+
+<!-- Ruta oculta -->
+<input id="rutaId" hidden>
+
+  <!-- BUSCADOR -->
+  <div>
+    <input id="buscador" placeholder="Escanear código">
+    <button id="btnBuscarCodigo">Buscar Código</button>
+    <button id="btnBuscarNombre">Buscar Nombre</button>
+  </div>
+
+  <!-- PREVIEW -->
+  <input id="codigoSel" hidden>
+  <input id="conceptoSel" hidden>
+  <input id="precioSel" hidden>
+
+  <div id="preview" style="font-weight:bold; margin:5px 0;"></div>
+
+  <!-- CANTIDAD -->
+  <input id="cantidad" type="number" value="1">
+
+  <!-- TABLA -->
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Producto</th>
+        <th>Cant.</th>
+        <th>Precio</th>
+        <th>Eliminar</th>
+      </tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+  </table>
+
+  <!-- BOTÓN -->
+  <button id="btnTraspaso" style="margin-top:12px; width:100%;">Finalizar Traspaso</button>
+
+</div>
+
+
+<!-- MODAL -->
+<div id="modalResultados">
+  <div class="modalCaja">
+    <button id="cerrarModal" style="float:right;">Cerrar</button>
+    <h3>Buscar Producto</h3>
+
+    <input id="busquedaNombre" placeholder="Escribe nombre...">
+    <div id="listaResultados" style="max-height:300px; overflow:auto;"></div>
+  </div>
+</div>
+
+</body>
+</html>

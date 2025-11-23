@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Entradas de Almacenes – PROVSOFT</title>
+
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: #eef4ff;
+    margin: 0;
+    padding: 15px;
+  }
+  h2 {
+    text-align: center;
+    color: #00416A;
+    margin-bottom: 20px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(0,0,0,.1);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  th {
+    background: #00416A;
+    color: white;
+    padding: 10px;
+  }
+  td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+  .btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #0c6cbd;
+    color: white;
+    text-decoration: none;
+    cursor: pointer;
+  }
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getFirestore, collection, getDocs 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ---------------------------------------------------
+   EXTRAER FECHA DESDE FOLIO (si no trae fecha)
+--------------------------------------------------- */
+function extraerFechaDesdeFolio(folio) {
+  try {
+    const partes = folio.split("-");
+    const f = partes[1]; // 290925
+    const d = f.substring(0,2);
+    const m = f.substring(2,4);
+    const a = "20" + f.substring(4,6);
+    return new Date(`${a}-${m}-${d}`).getTime();
+  } catch {
+    return 0;
+  }
+}
+
+/* ---------------------------------------------------
+   ORDENAR REGISTROS
+--------------------------------------------------- */
+function ordenarEntradas(lista) {
+  return lista.sort((a, b) => {
+    if (a.fecha && b.fecha) return new Date(b.fecha) - new Date(a.fecha);
+    if (a.fecha && !b.fecha) return -1;
+    if (!a.fecha && b.fecha) return 1;
+    return extraerFechaDesdeFolio(b.folio) - extraerFechaDesdeFolio(a.folio);
+  });
+}
+
+/* ---------------------------------------------------
+   CARGAR TODAS LAS ENTRADAS DE TODOS LOS ALMACENES
+--------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", async () => {
+  const contenedor = document.getElementById("tablaBody");
+
+  // leer almacenes
+  const snapAlmacenes = await getDocs(collection(db, "almacenes"));
+  let listaFinal = [];
+
+  for (const almacen of snapAlmacenes.docs) {
+    const nombreAlmacen = almacen.id;
+
+    // leer subcolección entradas
+    const snapEntradas = await getDocs(
+      collection(db, "almacenes", nombreAlmacen, "entradas")
+    );
+
+    snapEntradas.forEach(doc => {
+      listaFinal.push({
+        almacen: nombreAlmacen,
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+  }
+
+  // ordenar
+  listaFinal = ordenarEntradas(listaFinal);
+
+  // imprimir
+  listaFinal.forEach(e => {
+    const tr = document.createElement("tr");
+
+    const fechaMostrar = e.fecha 
+      ? new Date(e.fecha).toLocaleString()
+      : "Sin fecha";
+
+    tr.innerHTML = `
+      <td>${e.almacen}</td>
+      <td>${fechaMostrar}</td>
+      <td>${e.items.length} productos</td>
+      <td><button class="btn" onclick="ver('${e.almacen}','${e.id}')">Ver / Editar</button></td>
+    `;
+    contenedor.appendChild(tr);
+  });
+});
+
+window.ver = (almacen, id) => {
+  location.href = `editarEntrada.html?almacen=${almacen}&id=${id}`;
+};
+</script>
+
+</head>
+<body>
+
+<h2>Entradas de Todos los Almacenes</h2>
+
+<table>
+<thead>
+  <tr>
+    <th>Almacén</th>
+    <th>Fecha / Folio</th>
+    <th>Productos</th>
+    <th>Acción</th>
+  </tr>
+</thead>
+<tbody id="tablaBody"></tbody>
+</table>
+
+</body>
+</html>

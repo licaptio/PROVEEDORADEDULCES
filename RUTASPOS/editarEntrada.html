@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Editar Entrada – PROVSOFT</title>
+
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: #f0f4ff;
+    padding: 15px;
+  }
+  .card {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.1);
+    margin-bottom: 18px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+  th {
+    background: #00416A;
+    color: white;
+    padding: 8px;
+  }
+  td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    background: white;
+  }
+  .btn {
+    padding: 7px 12px;
+    border-radius: 6px;
+    background: #0c6cbd;
+    color: white;
+    cursor: pointer;
+    border: none;
+  }
+  .danger {
+    background: #b30000;
+  }
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getFirestore, doc, getDoc, updateDoc, deleteDoc 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let almacen = "";
+let id = "";
+let entrada = null;
+
+/* ---------------------------------------------------
+   CARGAR ENTRADA
+--------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", async () => {
+  const params = new URLSearchParams(location.search);
+  almacen = params.get("almacen");
+  id = params.get("id");
+
+  const ref = doc(db, "almacenes", almacen, "entradas", id);
+  const snap = await getDoc(ref);
+
+  entrada = snap.data();
+  document.getElementById("folio").innerText = snap.id;
+
+  document.getElementById("fecha").innerText = entrada.fecha 
+    ? new Date(entrada.fecha).toLocaleString()
+    : "Sin fecha";
+
+  renderTabla();
+});
+
+/* ---------------------------------------------------
+   RENDER TABLA
+--------------------------------------------------- */
+function renderTabla() {
+  const tabla = document.getElementById("tablaBody");
+  tabla.innerHTML = "";
+
+  entrada.items.forEach((it, i) => {
+    tabla.innerHTML += `
+      <tr>
+        <td>${it.codigo}</td>
+        <td>${it.concepto}</td>
+        <td><input type="number" value="${it.cantidad}" min="1" 
+                onchange="cambiarCantidad(${i}, this.value)"></td>
+        <td><button class="btn danger" onclick="eliminarLinea(${i})">Eliminar</button></td>
+      </tr>
+    `;
+  });
+}
+
+window.cambiarCantidad = (i, val) => {
+  entrada.items[i].cantidad = Number(val);
+};
+
+window.eliminarLinea = i => {
+  entrada.items.splice(i, 1);
+  renderTabla();
+};
+
+/* ---------------------------------------------------
+   GUARDAR CAMBIOS
+--------------------------------------------------- */
+window.guardar = async () => {
+  const ref = doc(db, "almacenes", almacen, "entradas", id);
+  await updateDoc(ref, entrada);
+  alert("Cambios guardados");
+};
+
+/* ---------------------------------------------------
+   ELIMINAR ENTRADA COMPLETA
+--------------------------------------------------- */
+window.eliminarTotal = async () => {
+  if (!confirm("¿Eliminar entrada completa?")) return;
+
+  const ref = doc(db, "almacenes", almacen, "entradas", id);
+  await deleteDoc(ref);
+
+  alert("Entrada eliminada");
+  location.href = "visorEntradas.html";
+};
+</script>
+
+</head>
+<body>
+
+<div class="card">
+  <h2>Editar Entrada</h2>
+  <p><b>Almacén:</b> <span id="alm">${almacen}</span></p>
+  <p><b>Folio:</b> <span id="folio"></span></p>
+  <p><b>Fecha:</b> <span id="fecha"></span></p>
+</div>
+
+<table>
+<thead>
+  <tr>
+    <th>Código</th>
+    <th>Producto</th>
+    <th>Cantidad</th>
+    <th>Acciones</th>
+  </tr>
+</thead>
+<tbody id="tablaBody"></tbody>
+</table>
+
+<br>
+
+<button class="btn" onclick="guardar()">Guardar Cambios</button>
+<button class="btn danger" onclick="eliminarTotal()">Eliminar Entrada</button>
+
+</body>
+</html>
