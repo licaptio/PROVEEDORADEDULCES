@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Inventario Teórico – PROVSOFT</title>
+
+<style>
+  body { font-family:'Poppins',sans-serif; background:#eef3ff; padding:20px; }
+  h2 { text-align:center; color:#00416A; }
+  table { width:100%; border-collapse:collapse; margin-top:20px;
+          background:#fff; border-radius:10px; overflow:hidden;
+          box-shadow:0 3px 12px rgba(0,0,0,.1); }
+  th { background:#00416A; color:white; padding:8px; }
+  td { padding:8px; border-bottom:1px solid #ddd; }
+  select { padding:10px; border-radius:6px; margin-bottom:10px; width:100%; }
+</style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getFirestore, collection, query, where, getDocs 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ============================================
+   OBTENER ENTRADAS DEL ALMACÉN
+============================================ */
+async function cargarEntradas(rutaId) {
+  let entradas = {};
+
+  const snapAlmacenes = await getDocs(collection(db, "almacenes", rutaId, "entradas"));
+
+  snapAlmacenes.forEach(doc => {
+    const data = doc.data();
+    (data.items || []).forEach(item => {
+      if (!entradas[item.codigo]) entradas[item.codigo] = 0;
+      entradas[item.codigo] += Number(item.cantidad);
+    });
+  });
+
+  return entradas;
+}
+
+/* ============================================
+   OBTENER VENTAS (SALIDAS) DE LA RUTA
+============================================ */
+async function cargarSalidas(rutaId) {
+  let salidas = {};
+
+  const q = query(collection(db, "ventas_rutav2"), where("rutaId", "==", rutaId));
+  const snap = await getDocs(q);
+
+  snap.forEach(doc => {
+    const data = doc.data();
+    (data.detalle || []).forEach(item => {
+      if (!salidas[item.codigo]) salidas[item.codigo] = 0;
+      salidas[item.codigo] += Number(item.cantidad);
+    });
+  });
+
+  return salidas;
+}
+
+/* ============================================
+   GENERAR INVENTARIO TEÓRICO
+============================================ */
+async function generarInventario() {
+  const rutaId = document.getElementById("almacenSelect").value;
+  if (!rutaId) return alert("Seleccione un almacén");
+
+  const tbody = document.getElementById("tablaBody");
+  tbody.innerHTML = "<tr><td colspan='4'>Cargando...</td></tr>";
+
+  const entradas = await cargarEntradas(rutaId);
+  const salidas = await cargarSalidas(rutaId);
+
+  const inventario = {};
+
+  // unir ambos
+  const codigos = new Set([
+    ...Object.keys(entradas),
+    ...Object.keys(salidas),
+  ]);
+
+  codigos.forEach(codigo => {
+    inventario[codigo] = {
+      codigo,
+      entradas: entradas[codigo] || 0,
+      salidas: salidas[codigo] || 0,
+      existencia: (entradas[codigo] || 0) - (salidas[codigo] || 0)
+    };
+  });
+
+  // render
+  tbody.innerHTML = "";
+  Object.values(inventario).forEach(item => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item.codigo}</td>
+      <td>${item.entradas}</td>
+      <td>${item.salidas}</td>
+      <td><b>${item.existencia}</b></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btnGenerar").onclick = generarInventario;
+});
+</script>
+
+</head>
+<body>
+
+<h2>Inventario Teórico por Almacén – PROVSOFT</h2>
+
+<select id="almacenSelect">
+  <option value="">Seleccione almacén…</option>
+  <option value="Almacen_Ruta_1">Almacen_Ruta_1</option>
+  <option value="Almacen_Ruta_2">Almacen_Ruta_2</option>
+  <option value="MERMA">MERMA</option>
+  <option value="ALMACENCENTRALPDD">ALMACENCENTRALPDD</option>
+</select>
+
+<button id="btnGenerar" style="width:100%;padding:12px;border:none;
+background:#0c6cbd;color:white;border-radius:8px;font-weight:bold;">
+  Generar Inventario
+</button>
+
+<table>
+<thead>
+  <tr>
+    <th>Código</th>
+    <th>Entradas</th>
+    <th>Salidas</th>
+    <th>Teórico</th>
+  </tr>
+</thead>
+<tbody id="tablaBody"></tbody>
+</table>
+
+</body>
+</html>
