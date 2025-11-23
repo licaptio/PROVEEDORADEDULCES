@@ -104,17 +104,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     const nombreAlmacen = almacen.id;
 
     // leer subcolección entradas
-    const snapEntradas = await getDocs(
-      collection(db, "almacenes", nombreAlmacen, "entradas")
-    );
+// -------------------------------
+// 1) LEER ENTRADAS
+// -------------------------------
+const snapEntradas = await getDocs(
+  collection(db, "almacenes", nombreAlmacen, "entradas")
+);
 
-    snapEntradas.forEach(doc => {
-      listaFinal.push({
-        almacen: nombreAlmacen,
-        id: doc.id,
-        ...doc.data()
-      });
-    });
+snapEntradas.forEach(doc => {
+  listaFinal.push({
+    tipo: "entrada",
+    almacen: nombreAlmacen,
+    id: doc.id,
+    ...doc.data()
+  });
+});
+
+// -------------------------------
+// 2) LEER MERMA (subcolección "registros")
+// -------------------------------
+const snapMerma = await getDocs(
+  collection(db, "almacenes", nombreAlmacen, "registros")
+);
+
+snapMerma.forEach(doc => {
+  listaFinal.push({
+    tipo: "merma",
+    almacen: nombreAlmacen,
+    id: doc.id,
+    ...doc.data()
+  });
+});
+
   }
 
   // ordenar
