@@ -31,14 +31,31 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 /* ============================================
+   CARGAR PRODUCTOS PARA OBTENER CONCEPTO
+============================================ */
+async function cargarProductos() {
+  const snap = await getDocs(collection(db, "productos"));
+  const mapa = {};
+
+  snap.forEach(doc => {
+    const data = doc.data();
+    if (data.activo) {
+      mapa[data.codigoBarra] = data.concepto || "(SIN NOMBRE)";
+    }
+  });
+
+  return mapa;
+}
+
+/* ============================================
    OBTENER ENTRADAS DEL ALMACÉN
 ============================================ */
 async function cargarEntradas(rutaId) {
   let entradas = {};
 
-  const snapAlmacenes = await getDocs(collection(db, "almacenes", rutaId, "entradas"));
+  const snap = await getDocs(collection(db, "almacenes", rutaId, "entradas"));
 
-  snapAlmacenes.forEach(doc => {
+  snap.forEach(doc => {
     const data = doc.data();
     (data.items || []).forEach(item => {
       if (!entradas[item.codigo]) entradas[item.codigo] = 0;
@@ -50,7 +67,7 @@ async function cargarEntradas(rutaId) {
 }
 
 /* ============================================
-   OBTENER VENTAS (SALIDAS) DE LA RUTA
+   OBTENER VENTAS (SALIDAS)
 ============================================ */
 async function cargarSalidas(rutaId) {
   let salidas = {};
@@ -70,21 +87,23 @@ async function cargarSalidas(rutaId) {
 }
 
 /* ============================================
-   GENERAR INVENTARIO TEÓRICO
+   INVENTARIO TEÓRICO FINAL
 ============================================ */
 async function generarInventario() {
   const rutaId = document.getElementById("almacenSelect").value;
   if (!rutaId) return alert("Seleccione un almacén");
 
   const tbody = document.getElementById("tablaBody");
-  tbody.innerHTML = "<tr><td colspan='4'>Cargando...</td></tr>";
+  tbody.innerHTML = "<tr><td colspan='5'>Cargando...</td></tr>";
+
+  // 🔥 Cargar productos y mapear concepto
+  const productos = await cargarProductos();
 
   const entradas = await cargarEntradas(rutaId);
   const salidas = await cargarSalidas(rutaId);
 
   const inventario = {};
 
-  // unir ambos
   const codigos = new Set([
     ...Object.keys(entradas),
     ...Object.keys(salidas),
@@ -93,18 +112,20 @@ async function generarInventario() {
   codigos.forEach(codigo => {
     inventario[codigo] = {
       codigo,
+      concepto: productos[codigo] || "(No encontrado en catálogo)",
       entradas: entradas[codigo] || 0,
       salidas: salidas[codigo] || 0,
       existencia: (entradas[codigo] || 0) - (salidas[codigo] || 0)
     };
   });
 
-  // render
+  // Renderización
   tbody.innerHTML = "";
   Object.values(inventario).forEach(item => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${item.codigo}</td>
+      <td>${item.concepto}</td>
       <td>${item.entradas}</td>
       <td>${item.salidas}</td>
       <td><b>${item.existencia}</b></td>
