@@ -2,76 +2,62 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Traspaso PROVSOFT – Impresión</title>
+<title>Impresión de Traspaso – PROVSOFT</title>
+
+<!-- LIBRERÍA QRCODE -->
+<script src="qr_lib.js"></script>
 
 <style>
-  @page { size: letter; margin: 20mm; }
   body {
     font-family: 'Poppins', sans-serif;
     margin: 0;
-    padding: 0;
-    background: #fff;
-    color: #111;
+    padding: 20px;
+    background: white;
+    color: #333;
   }
 
-  .encabezado {
+  .carta {
+    width: 21.59cm;
+    min-height: 27.94cm;
+    margin: auto;
+    padding: 25px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+  }
+
+  h1 {
     text-align: center;
-    padding: 10px 0;
-    border-bottom: 3px solid #00416A;
-    margin-bottom: 15px;
-  }
-
-  .encabezado h1 {
     margin: 0;
+    font-size: 26px;
     color: #00416A;
-    font-size: 28px;
     font-weight: 700;
   }
 
-  .sub {
-    font-size: 14px;
-    color: #333;
+  .encabezado {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
   }
 
-  .datos {
-    width: 100%;
-    font-size: 14px;
-    margin-bottom: 10px;
-  }
-
-  .datos td {
-    padding: 4px 0;
-  }
-
-  table.productos {
+  table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 10px;
-    font-size: 14px;
+    margin-top: 15px;
   }
 
-  table.productos th {
+  th {
     background: #00416A;
     color: #fff;
-    padding: 6px;
+    padding: 8px;
+    font-weight: 600;
+    border: 1px solid #ddd;
+  }
+
+  td {
+    padding: 8px;
+    border: 1px solid #ddd;
     font-size: 14px;
-  }
-
-  table.productos td {
-    border-bottom: 1px solid #ccc;
-    padding: 6px;
-  }
-
-  .qrArea {
-    margin-top: 20px;
-    text-align: right;
-  }
-
-  .qrArea small {
-    display: block;
-    margin-top: 5px;
-    font-size: 12px;
-    color: #333;
   }
 
   .firmas {
@@ -85,20 +71,82 @@
     text-align: center;
   }
 
-  .firmaBox .linea {
-    margin-top: 60px;
-    border-top: 1px solid #000;
-    padding-top: 3px;
-    font-size: 12px;
+  .firmaImg {
+    width: 100%;
+    max-height: 140px;
+    object-fit: contain;
+    margin-bottom: 8px;
+  }
+
+  #qr {
+    margin-top: 10px;
+    text-align: right;
+  }
+
+  @media print {
+    #btnImprimir { display: none; }
+  }
+
+  #btnImprimir {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    background: #00416A;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
   }
 </style>
+</head>
+<body>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<div class="carta">
+  <h1>TRASPASO ENTRE ALMACENES</h1>
+
+  <div class="encabezado">
+    <div>
+      <b>ID Traspaso:</b> <span id="idPrint"></span><br>
+      <b>Fecha:</b> <span id="fechaPrint"></span><br>
+      <b>Ruta:</b> <span id="rutaPrint"></span>
+    </div>
+
+    <div id="qr"></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Producto</th>
+        <th>Cantidad</th>
+      </tr>
+    </thead>
+    <tbody id="tablaPrint"></tbody>
+  </table>
+
+  <div class="firmas">
+    <div class="firmaBox">
+      <img id="firmaEntrega" class="firmaImg">
+      <hr>
+      <b>Entrega almacén</b>
+    </div>
+
+    <div class="firmaBox">
+      <img id="firmaRecibe" class="firmaImg">
+      <hr>
+      <b>Recibe vendedor</b>
+    </div>
+  </div>
+</div>
+
+<button id="btnImprimir" onclick="window.print()">Imprimir</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc } 
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -109,90 +157,55 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-async function cargarTraspaso() {
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("id");
-  if (!id) return alert("ID faltante");
+// LEER ID DE URL
+const params = new URLSearchParams(window.location.search);
+const id = params.get("id");
 
-  const ref = doc(db, "traspasos", id);
-  const snap = await getDoc(ref);
+// MOSTRAR ID
+document.getElementById("idPrint").innerText = id;
 
-  if (!snap.exists()) return alert("Traspaso no encontrado");
+// CARGAR DATOS
+async function cargar() {
+  const rutas = ["r1", "r2", "r3"]; // ej: si tienes dinámico me dices y lo ajusto
+  let data = null;
 
-  const d = snap.data();
+  // buscar en TODAS LAS RUTAS (si quieres optimizo esto)
+  for (let r of rutas) {
+    const ref = doc(db, "almacenes", r, "entradas", id);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      data = snap.data();
+      break;
+    }
+  }
 
-  document.getElementById("folio").textContent = id;
-  document.getElementById("fecha").textContent = new Date(d.fecha).toLocaleString();
-  document.getElementById("vendedor").textContent = d.vendedorNombre || d.vendedorId;
-  document.getElementById("ruta").textContent = d.rutaId;
+  if (!data) return alert("No encontrado");
 
-  let html = "";
-  d.items.forEach(it => {
-    html += `
+  document.getElementById("fechaPrint").innerText = data.fecha.substring(0, 10);
+  document.getElementById("rutaPrint").innerText = data.rutaId;
+
+  // tabla
+  const tabla = document.getElementById("tablaPrint");
+  data.items.forEach(it => {
+    tabla.innerHTML += `
       <tr>
         <td>${it.codigo}</td>
         <td>${it.concepto}</td>
         <td>${it.cantidad}</td>
-        <td>$${it.precio.toFixed(2)}</td>
-        <td>$${(it.cantidad * it.precio).toFixed(2)}</td>
-      </tr>`;
+      </tr>
+    `;
   });
-  document.getElementById("tbody").innerHTML = html;
 
-  // QR CON URL PARA FIRMAR
-  const urlFirmar = `https://provsoft.app/firmar?id=${id}`;
-  QRCode.toCanvas(document.getElementById("qrCanvas"), urlFirmar);
+  // firmas si existen
+  if (data.firmaEntregaURL) document.getElementById("firmaEntrega").src = data.firmaEntregaURL;
+  if (data.firmaRecibeURL) document.getElementById("firmaRecibe").src = data.firmaRecibeURL;
+
+  // generar QR
+  new QRCode(document.getElementById("qr"), "https://tuservidor.com/firmar.html?id=" + id);
 }
 
-window.onload = cargarTraspaso;
+cargar();
 </script>
-
-</head>
-<body>
-
-<div class="encabezado">
-  <h1>PROVSOFT – TRASPASO ENTRE ALMACENES</h1>
-  <div class="sub">Documento de traslado interno · Remisión</div>
-</div>
-
-<table class="datos">
-  <tr>
-    <td><strong>Folio:</strong> <span id="folio"></span></td>
-    <td><strong>Fecha:</strong> <span id="fecha"></span></td>
-  </tr>
-  <tr>
-    <td><strong>Vendedor:</strong> <span id="vendedor"></span></td>
-    <td><strong>Ruta:</strong> <span id="ruta"></span></td>
-  </tr>
-</table>
-
-<table class="productos">
-  <thead>
-    <tr>
-      <th>Código</th>
-      <th>Producto</th>
-      <th>Cant.</th>
-      <th>Precio</th>
-      <th>Importe</th>
-    </tr>
-  </thead>
-  <tbody id="tbody"></tbody>
-</table>
-
-<div class="qrArea">
-  <canvas id="qrCanvas"></canvas>
-  <small>Escanear para firmar digitalmente el traspaso</small>
-</div>
-
-<div class="firmas">
-  <div class="firmaBox">
-    <div class="linea">Firma Entregador</div>
-  </div>
-
-  <div class="firmaBox">
-    <div class="linea">Firma Vendedor</div>
-  </div>
-</div>
 
 </body>
 </html>
