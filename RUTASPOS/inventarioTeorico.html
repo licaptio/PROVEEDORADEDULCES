@@ -244,6 +244,7 @@ codigos.forEach(codigo => {
   const listaOrdenada = Object.values(inventario).sort((a, b) =>
     a.concepto.localeCompare(b.concepto)
   );
+let totalGeneral = 0;
 
 tbody.innerHTML = "";
 listaOrdenada.forEach(item => {
@@ -258,8 +259,12 @@ listaOrdenada.forEach(item => {
     <td><b>$${item.costoTotal.toFixed(2)}</b></td>
   `;
   tbody.appendChild(tr);
+  totalGeneral += item.costoTotal;
+
 });
 
+document.getElementById("totalGeneralBox").innerHTML =
+  "TOTAL MERCANCÍA: $" + totalGeneral.toFixed(2);
 
   // Barra al 100%
   document.getElementById("loadingInner").style.width = "100%";
@@ -315,6 +320,13 @@ background:#0c6cbd;color:white;border-radius:8px;font-weight:bold;">
 
 <tbody id="tablaBody"></tbody>
 </table>
+  <div id="totalGeneralBox" 
+     style="margin-top:20px; background:#00416A; color:white; 
+            padding:15px; font-size:20px; text-align:center; 
+            border-radius:10px; font-weight:bold;">
+  TOTAL MERCANCÍA: $0.00
+</div>
+
 
 </body>
 </html>
