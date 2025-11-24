@@ -198,11 +198,14 @@ async function buscarPorCodigo() {
 
   let pesoDetectado = null;
 
-  const bal = decodificarBalanza(codigo);
-  if (bal.esBalanza) {
-    codigo = bal.codigoProducto;
-    pesoDetectado = bal.pesoKg;
-  }
+const bal = decodificarBalanza(codigo);
+if (bal.esBalanza) {
+  codigo = bal.codigoProducto;
+  window.pesoDetectado = bal.pesoKg;
+} else {
+  window.pesoDetectado = null;
+}
+
 
   const productos = await getAllProductos();
   const encontrado = productos.find(p => normalizarCodigo(p, codigo));
@@ -248,7 +251,9 @@ function agregarItem() {
   const codigo = document.getElementById("codigoSel").value;
   const concepto = document.getElementById("conceptoSel").value;
   const precio = parseFloat(document.getElementById("precioSel").value);
-  const cantidad = parseFloat(document.getElementById("cantidad").value);
+
+  // ✔ Siempre 1 pieza (excepto balanza)
+  const cantidad = window.pesoDetectado ? window.pesoDetectado : 1;
 
   if (!codigo || cantidad <= 0) return;
 
@@ -256,8 +261,12 @@ function agregarItem() {
   if (existente) existente.cantidad += cantidad;
   else carrito.push({ codigo, concepto, precio, cantidad });
 
+  // limpiar peso detectado
+  window.pesoDetectado = null;
+
   renderTabla();
 }
+
 
 function renderTabla() {
   const tabla = document.getElementById("tabla");
@@ -463,10 +472,6 @@ async function guardarTraspaso() {
   <input id="precioSel" hidden>
 
   <div id="preview" style="font-weight:bold; margin:5px 0;"></div>
-
-  <!-- CANTIDAD -->
-  <input id="cantidad" type="number" value="1">
-
   <!-- TABLA -->
   <table>
     <thead>
