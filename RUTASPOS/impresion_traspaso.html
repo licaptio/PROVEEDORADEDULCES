@@ -105,6 +105,7 @@
 
 <div class="carta">
   <h1>TRASPASO ENTRE ALMACENES</h1>
+<h2 id="nombreVendedorTitulo" style="text-align:center; margin:0; font-size:18px; color:#444;"></h2>
 
   <div class="encabezado">
     <div>
@@ -139,7 +140,7 @@
     <div class="firmaBox">
       <img id="firmaRecibe" class="firmaImg">
       <hr>
-      <b>Recibe vendedor</b>
+      <b id="nombreVendedorFirma"></b>
     </div>
   </div>
 </div>
@@ -199,7 +200,24 @@ tabla.innerHTML += `
   </tr>
 `;
   });
+// =============================
+// CARGAR NOMBRE DEL VENDEDOR
+// =============================
+const vendedorRef = doc(db, "usuarios_ruta", data.vendedorId);
+const vendedorSnap = await getDoc(vendedorRef);
 
+let nombreVendedor = "Vendedor";
+
+if (vendedorSnap.exists()) {
+  nombreVendedor = vendedorSnap.data().nombre || "Vendedor";
+}
+
+// poner nombre en título y firma
+document.getElementById("nombreVendedorTitulo").innerText =
+  "Vendedor: " + nombreVendedor;
+
+document.getElementById("nombreVendedorFirma").innerText =
+  nombreVendedor;
   // firmas si existen
   if (data.firmaEntregaURL) document.getElementById("firmaEntrega").src = data.firmaEntregaURL;
   if (data.firmaRecibeURL) document.getElementById("firmaRecibe").src = data.firmaRecibeURL;
@@ -209,6 +227,7 @@ tabla.innerHTML += `
 }
 
 cargar();
+
 </script>
 
 </body>
