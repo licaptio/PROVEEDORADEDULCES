@@ -22,42 +22,39 @@ const storage = getStorage(app);
 
 
 /* ==========================================================
-   🔵 OBTENER ID DEL URL
+   🔵 LEER ID DEL QR
 ========================================================== */
 const params = new URLSearchParams(window.location.search);
-const idTraspaso = params.get("id");
-
-if (!idTraspaso) {
-  alert("❌ Falta ID de traspaso en el QR");
-}
+const id = params.get("id");
 
 let dataTraspaso = null;
-
+let tipoFirma = null;
 
 /* ==========================================================
-   🔵 CARGAR TRASPASO
+   🔵 CARGAR DATOS DEL TRASPASO
 ========================================================== */
 async function cargarTraspaso() {
-  const refDoc = doc(db, "traspasos", idTraspaso);
+  const refDoc = doc(db, "traspasos", id);
   const snap = await getDoc(refDoc);
 
   if (!snap.exists()) {
-    alert("❌ Traspaso no encontrado");
+    document.getElementById("subInfo").innerText = "Traspaso no encontrado";
     return;
   }
 
   dataTraspaso = snap.data();
 
+  document.getElementById("subInfo").innerText = `Traspaso #${id.slice(-6)}`;
+
   document.getElementById("info").innerHTML = `
-    <b>ID:</b> ${idTraspaso}<br>
-    <b>Fecha:</b> ${dataTraspaso.fecha}<br>
     <b>Ruta:</b> ${dataTraspaso.rutaId}<br>
     <b>Vendedor:</b> ${dataTraspaso.vendedorId}<br>
+    <b>Fecha:</b> ${dataTraspaso.fecha}<br>
   `;
 
-  const tbl = document.getElementById("tabla");
+  const tabla = document.getElementById("tabla");
   dataTraspaso.items.forEach(it => {
-    tbl.innerHTML += `
+    tabla.innerHTML += `
       <tr>
         <td>${it.codigo}</td>
         <td>${it.concepto}</td>
@@ -65,107 +62,165 @@ async function cargarTraspaso() {
       </tr>`;
   });
 
-  if (dataTraspaso.firmaEntregaURL) {
-    btnEntrega.disabled = true;
-    btnEntrega.innerText = "Ya firmado";
+  // bloquear si ya existe firma
+  if (dataTraspaso.firmas?.entregaURL) {
+    let b = document.getElementById("btnEntrega");
+    b.innerText = "ENTREGA ✔";
+    b.disabled = true;
   }
-  if (dataTraspaso.firmaRecibeURL) {
-    btnRecibe.disabled = true;
-    btnRecibe.innerText = "Ya firmado";
+  if (dataTraspaso.firmas?.recibeURL) {
+    let b = document.getElementById("btnRecibe");
+    b.innerText = "RECIBE ✔";
+    b.disabled = true;
   }
 }
 
 cargarTraspaso();
 
 
+
 /* ==========================================================
-   🔵 SVG – Firma ligera PRO
+   🔵 SISTEMA DE TRAZOS SVG SUPER LIGERO
 ========================================================== */
-const svg = document.getElementById("svgFirma");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
 let dibujando = false;
+let trazos = [];    // lista de strokes
+let actual = [];    // trazo actual
 
-svg.addEventListener("mousedown", (e) => {
+function iniciar(e) {
   dibujando = true;
-  dibujar(e);
-});
-svg.addEventListener("mousemove", dibujar);
-svg.addEventListener("mouseup", () => dibujando = false);
-svg.addEventListener("mouseleave", () => dibujando = false);
-
-function dibujar(e) {
+  actual = [];
+  agregarPunto(e);
+}
+function terminar() {
+  dibujando = false;
+  if (actual.length > 0) trazos.push(actual);
+}
+function mover(e) {
   if (!dibujando) return;
+  agregarPunto(e);
+  redibujar();
+}
 
-  const rect = svg.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+function agregarPunto(e) {
+  const rect = canvas.getBoundingClientRect();
+  actual.push({
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  });
+}
 
-  const punto = document.createElementNS("http://www.w3.org/2000/svg","circle");
-  punto.setAttribute("cx", x);
-  punto.setAttribute("cy", y);
-  punto.setAttribute("r", 1.6);
-  punto.setAttribute("fill", "#000");
+function redibujar() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#000";
 
-  svg.appendChild(punto);
+  trazos.forEach(t => {
+    ctx.beginPath();
+    for (let i=0;i<t.length;i++){
+      const p = t[i];
+      if (i===0) ctx.moveTo(p.x,p.y);
+      else ctx.lineTo(p.x,p.y);
+    }
+    ctx.stroke();
+  });
+
+  if (actual.length){
+    ctx.beginPath();
+    for (let i=0;i<actual.length;i++){
+      const p = actual[i];
+      if (i===0) ctx.moveTo(p.x,p.y);
+      else ctx.lineTo(p.x,p.y);
+    }
+    ctx.stroke();
+  }
+}
+
+canvas.addEventListener("pointerdown", iniciar);
+canvas.addEventListener("pointerup", terminar);
+canvas.addEventListener("pointerleave", terminar);
+canvas.addEventListener("pointermove", mover);
+
+
+/* ==========================================================
+   🔵 CONVERTIR A SVG ULTRA LIGERO
+========================================================== */
+function generarSVG() {
+  let paths = "";
+
+  trazos.forEach(t => {
+    if (t.length < 2) return;
+
+    const d = t.map((p,i) =>
+      i === 0 ? `M${p.x},${p.y}` : `L${p.x},${p.y}`
+    ).join(" ");
+
+    paths += `<path d="${d}" stroke="black" stroke-width="2" fill="none"/>`;
+  });
+
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="500" height="180">
+      ${paths}
+    </svg>
+  `;
 }
 
 
 /* ==========================================================
-   🔵 BOTONES
+   🔵 EVENTOS DE FIRMA
 ========================================================== */
-let tipoFirma = null;
+document.getElementById("btnEntrega").onclick = () => iniciarFirma("entrega");
+document.getElementById("btnRecibe").onclick = () => iniciarFirma("recibe");
 
-const btnEntrega = document.getElementById("btnEntrega");
-const btnRecibe = document.getElementById("btnRecibe");
-const canvasBox = document.getElementById("canvasBox");
-
-btnEntrega.onclick = () => abrir("entrega");
-btnRecibe.onclick = () => abrir("recibe");
-
-function abrir(tipo){
+function iniciarFirma(tipo){
   tipoFirma = tipo;
-  canvasBox.style.display = "block";
+  trazos = [];
+  actual = [];
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  document.getElementById("canvasBox").style.display = "block";
 }
 
 document.getElementById("btnLimpiar").onclick = () => {
-  while(svg.lastChild) svg.removeChild(svg.lastChild);
+  trazos = [];
+  actual = [];
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 };
 
 
 /* ==========================================================
-   🔵 GUARDAR FIRMA
+   🔵 GUARDAR EN STORAGE + FIRESTORE
 ========================================================== */
-document.getElementById("btnGuardarFirma").onclick = guardarFirma;
+document.getElementById("btnGuardar").onclick = async () => {
+  const svg = generarSVG();
+  const b64 = "data:image/svg+xml;base64," + btoa(svg);
 
-async function guardarFirma() {
+  const path = `traspasos/${id}/firmas/${tipoFirma}.svg`;
+  const fileRef = ref(storage, path);
 
-  const svgData = new XMLSerializer().serializeToString(svg);
+  await uploadString(fileRef, b64, "data_url");
+  const url = await getDownloadURL(fileRef);
 
-  const path = `firmas/${idTraspaso}_${tipoFirma}.svg`;
-  const storageRef = ref(storage, path);
+  const refDoc = doc(db, "traspasos", id);
 
-  await uploadString(storageRef, svgData, "raw");
-  const url = await getDownloadURL(storageRef);
+  let update = {};
+  update[`firmas.${tipoFirma}URL`] = url;
+  update[`firmas.${tipoFirma}Fecha`] = new Date().toISOString();
+  update[`firmas.${tipoFirma}Dispositivo`] = navigator.userAgent;
 
-  const refDoc = doc(db, "traspasos", idTraspaso);
+  await updateDoc(refDoc, update);
 
-  const payload = {
-    [`firma${tipoFirma === "entrega" ? "Entrega" : "Recibe"}URL`]: url,
-    [`firma${tipoFirma === "entrega" ? "Entrega" : "Recibe"}Fecha`]: new Date().toISOString(),
-    [`firma${tipoFirma === "entrega" ? "Entrega" : "Recibe"}Device`]: navigator.userAgent
-  };
-
-  await updateDoc(refDoc, payload);
-
-  alert("✔ Firma guardada correctamente");
-
-  while(svg.lastChild) svg.removeChild(svg.lastChild);
-  canvasBox.style.display = "none";
+  alert("Firma guardada ✔");
+  document.getElementById("canvasBox").style.display="none";
 
   if (tipoFirma === "entrega") {
-    btnEntrega.disabled = true;
-    btnEntrega.innerText = "Ya firmado";
+    let b = document.getElementById("btnEntrega");
+    b.innerText = "ENTREGA ✔";
+    b.disabled = true;
   } else {
-    btnRecibe.disabled = true;
-    btnRecibe.innerText = "Ya firmado";
+    let b = document.getElementById("btnRecibe");
+    b.innerText = "RECIBE ✔";
+    b.disabled = true;
   }
-}
+};
