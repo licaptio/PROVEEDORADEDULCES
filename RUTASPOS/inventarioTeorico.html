@@ -5,14 +5,28 @@
 <title>Inventario Teórico – PROVSOFT</title>
 
 <style>
-  body { font-family:'Poppins',sans-serif; background:#eef3ff; padding:20px; }
-  h2 { text-align:center; color:#00416A; }
-  table { width:100%; border-collapse:collapse; margin-top:20px;
-          background:#fff; border-radius:10px; overflow:hidden;
-          box-shadow:0 3px 12px rgba(0,0,0,.1); }
-  th { background:#00416A; color:white; padding:8px; }
-  td { padding:8px; border-bottom:1px solid #ddd; }
-  select { padding:10px; border-radius:6px; margin-bottom:10px; width:100%; }
+  #loadingBar {
+    width: 100%;
+    background: #c7dbff;
+    height: 20px;
+    border-radius: 8px;
+    margin-top: 10px;
+    overflow: hidden;
+    display: none;
+  }
+  #loadingInner {
+    width: 0%;
+    height: 100%;
+    background: #00416A;
+    transition: width .4s;
+  }
+  th {
+    background:#00416A;
+    color:white;
+    padding:10px;
+    font-size:15px;
+    text-transform:uppercase;
+  }
 </style>
 
 <script type="module">
@@ -94,38 +108,59 @@ async function generarInventario() {
   if (!rutaId) return alert("Seleccione un almacén");
 
   const tbody = document.getElementById("tablaBody");
-  tbody.innerHTML = "<tr><td colspan='5'>Cargando...</td></tr>";
+  tbody.innerHTML = "";
 
-  // 🔥 Cargar productos y mapear concepto
-  const productos = await cargarProductos();
+  // Mostrar barra
+  document.getElementById("loadingBar").style.display = "block";
+  document.getElementById("loadingInner").style.width = "0%";
+
+  let progreso = 0;
+  const actualizarBarra = () => {
+    progreso += 10;
+    if (progreso > 100) progreso = 100;
+    document.getElementById("loadingInner").style.width = progreso + "%";
+  };
+
+  actualizarBarra();
 
   const entradas = await cargarEntradas(rutaId);
+  actualizarBarra();
+
   const salidas = await cargarSalidas(rutaId);
+  actualizarBarra();
+
+  const snapProductos = await getDocs(collection(db, "productos"));
+  actualizarBarra();
+
+  const productos = {};
+  snapProductos.forEach(doc => productos[doc.id] = doc.data());
 
   const inventario = {};
-
   const codigos = new Set([
     ...Object.keys(entradas),
-    ...Object.keys(salidas),
+    ...Object.keys(salidas)
   ]);
+
+  actualizarBarra();
 
   codigos.forEach(codigo => {
     inventario[codigo] = {
       codigo,
-      concepto: productos[codigo] || "(No encontrado en catálogo)",
+      concepto: productos[codigo]?.concepto || "SIN CONCEPTO",
       entradas: entradas[codigo] || 0,
       salidas: salidas[codigo] || 0,
       existencia: (entradas[codigo] || 0) - (salidas[codigo] || 0)
     };
   });
 
-  // Renderización
-  
-  const listaOrdenada = Object.values(inventario).sort((a, b) => {
-  return a.concepto.localeCompare(b.concepto, "es", { sensitivity: "base" });
-});
-tbody.innerHTML = "";
-listaOrdenada.forEach(item => {
+  actualizarBarra();
+
+  const listaOrdenada = Object.values(inventario).sort((a, b) =>
+    a.concepto.localeCompare(b.concepto)
+  );
+
+  tbody.innerHTML = "";
+  listaOrdenada.forEach(item => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${item.codigo}</td>
@@ -136,7 +171,16 @@ listaOrdenada.forEach(item => {
     `;
     tbody.appendChild(tr);
   });
+
+  // Barra al 100%
+  document.getElementById("loadingInner").style.width = "100%";
+
+  // Ocultar barra después de 1.2 segundos
+  setTimeout(() => {
+    document.getElementById("loadingBar").style.display = "none";
+  }, 1200);
 }
+
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnGenerar").onclick = generarInventario;
@@ -160,6 +204,12 @@ document.addEventListener("DOMContentLoaded", () => {
 background:#0c6cbd;color:white;border-radius:8px;font-weight:bold;">
   Generar Inventario
 </button>
+
+<!-- 🔵 BARRA DE CARGA AQUÍ -->
+<div id="loadingBar">
+  <div id="loadingInner"></div>
+</div>
+
 
 <table>
 <thead>
