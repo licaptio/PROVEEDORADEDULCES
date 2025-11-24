@@ -320,8 +320,6 @@ document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso
     
     document.getElementById("rutaId").value = opt.dataset.ruta;
   });
-
-  document.getElementById("btnBuscarCodigo").addEventListener("click", buscarPorCodigo);
   // escaneo con pistola (ENTER)
 document.getElementById("buscador").addEventListener("keypress", e => {
   if (e.key === "Enter") {
@@ -448,7 +446,6 @@ async function guardarTraspaso() {
   <!-- BUSCADOR -->
   <div>
     <input id="buscador" placeholder="Escanear código">
-    <button id="btnBuscarCodigo">Buscar Código</button>
     <button id="btnBuscarNombre">Buscar Nombre</button>
   </div>
 
