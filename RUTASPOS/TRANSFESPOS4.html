@@ -196,16 +196,14 @@ async function buscarPorCodigo() {
   let codigo = document.getElementById("buscador").value.trim();
   if (!codigo) return;
 
-  let pesoDetectado = null;
+  const bal = decodificarBalanza(codigo);
 
-const bal = decodificarBalanza(codigo);
-if (bal.esBalanza) {
-  codigo = bal.codigoProducto;
-  window.pesoDetectado = bal.pesoKg;
-} else {
-  window.pesoDetectado = null;
-}
-
+  if (bal.esBalanza) {
+    codigo = bal.codigoProducto;
+    window.pesoDetectado = bal.pesoKg;
+  } else {
+    window.pesoDetectado = null;
+  }
 
   const productos = await getAllProductos();
   const encontrado = productos.find(p => normalizarCodigo(p, codigo));
@@ -214,22 +212,11 @@ if (bal.esBalanza) {
 
   seleccionarProducto(encontrado);
 
-  // 🧡 SI ES BALANZA → cantidad = peso
-  if (pesoDetectado !== null) {
-    document.getElementById("cantidad").value = pesoDetectado.toFixed(3);
-    agregarItem();
-    renderTabla();
-    document.getElementById("buscador").value = "";
-    document.getElementById("buscador").focus();
-    return;
-  }
-
-  // 💚 SI ES CÓDIGO NORMAL → cantidad = 1 AUTOMÁTICO
-  document.getElementById("cantidad").value = 1;
+  // 🧡 AGREGAR DIRECTO (balanza o normal)
   agregarItem();
   renderTabla();
 
-  // limpiar y enfocar para siguiente escaneo
+  // limpiar buscador
   document.getElementById("buscador").value = "";
   document.getElementById("buscador").focus();
 }
@@ -365,7 +352,6 @@ document.getElementById("busquedaNombre").addEventListener("input", async e => {
     div.textContent = p.concepto + " (" + p.codigoBarra + ")";
     div.onclick = () => {
       seleccionarProducto(p);
-      document.getElementById("cantidad").value = 1;
       agregarItem();
       renderTabla();
       document.getElementById("modalResultados").style.display = "none";
