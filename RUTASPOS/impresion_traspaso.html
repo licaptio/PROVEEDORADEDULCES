@@ -166,18 +166,15 @@ document.getElementById("idPrint").innerText = id;
 
 // CARGAR DATOS
 async function cargar() {
-  const rutas = ["r1", "r2", "r3"]; // ej: si tienes dinámico me dices y lo ajusto
-  let data = null;
+const ref = doc(db, "almacenes", ruta, "entradas", id);
+const snap = await getDoc(ref);
 
-  // buscar en TODAS LAS RUTAS (si quieres optimizo esto)
-  for (let r of rutas) {
-    const ref = doc(db, "almacenes", r, "entradas", id);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      data = snap.data();
-      break;
-    }
-  }
+if (!snap.exists()) {
+  alert("No se encontró el traspaso en la ruta: " + ruta);
+  return;
+}
+
+const data = snap.data();
 
   if (!data) return alert("No encontrado");
 
