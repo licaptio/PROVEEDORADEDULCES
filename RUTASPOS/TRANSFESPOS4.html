@@ -67,30 +67,86 @@
     border-bottom: 1px solid #ddd;
   }
 
-  #modalResultados {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,.4);
-    display: none;
-    align-items: center;
-    justify-content: center;
-  }
+#modalResultados {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(3px);
+  z-index: 999;
+}
 
-  .modalCaja {
-    background: #fff;
-    color: #111;
-    width: 90%;
-    max-width: 420px;
-    padding: 15px;
-    border-radius: 12px;
-  }
+.modalCaja {
+  background: #ffffff;
+  color: #111;
+  width: 95%;
+  max-width: 520px;
+  padding: 25px 30px;
+  border-radius: 18px;
+  box-shadow: 0 8px 26px rgba(0,0,0,0.25);
+  animation: fadeIn 0.2s ease-out;
+}
 
-  .item {
-    padding: 8px;
-    border-bottom: 1px solid #ddd;
-    cursor: pointer;
-  }
+.modalCaja h3 {
+  margin: 0 0 15px 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #00416A;
+}
+
+#cerrarModal {
+  background: #0c6cbd;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  float: right;
+}
+
+#busquedaNombre {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #cfd4dc;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-bottom: 18px;
+  outline: none;
+}
+#busquedaNombre:focus {
+  border-color: #0c6cbd;
+  box-shadow: 0 0 4px rgba(12,108,189,0.25);
+}
+
+#listaResultados {
+  max-height: 360px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+}
+
+#listaResultados .item {
+  padding: 12px;
+  background: white;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#listaResultados .item:hover {
+  background: #eef6ff;
+}
+
+@keyframes fadeIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 </style>
 
 <script type="module">
