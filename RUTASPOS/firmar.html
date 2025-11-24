@@ -1,220 +1,226 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Firmar Traspaso – PROVSOFT</title>
+  <meta charset="UTF-8" />
+  <title>Firma de Traspaso – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- 🔵 ESTILOS -->
-<style>
-  body {
-    margin:0;
-    font-family:'Poppins',sans-serif;
-    background:#f5f7fa;
-    color:#111;
-  }
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { 
+      getFirestore, doc, updateDoc 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  .contenedor {
-    max-width: 600px;
-    margin: auto;
-    background: white;
-    padding: 20px;
-    margin-top: 25px;
-    border-radius: 12px;
-    box-shadow: 0 4px 14px rgba(0,0,0,.17);
-  }
+    import {
+      getStorage, ref, uploadBytes, getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-  h2{
-    text-align:center;
-    color:#00416A;
-  }
+    // =============================
+    //  CONFIGURA TUS DATOS FIREBASE
+    // =============================
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_PROJECT.firebaseapp.com",
+      projectId: "TU_PROJECT",
+      storageBucket: "TU_PROJECT.appspot.com",
+      messagingSenderId: "xxxx",
+      appId: "xxxx"
+    };
 
-  table{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:15px;
-  }
-  th{
-    background:#00416A;
-    color:white;
-    padding:6px;
-  }
-  td{
-    padding:6px;
-    border-bottom:1px solid #ddd;
-  }
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
-  .btn{
-    width:100%;
-    padding:12px;
-    border:none;
-    border-radius:10px;
-    margin-top:10px;
-    cursor:pointer;
-    font-weight:bold;
-    font-size:16px;
-  }
+    // ==========================================
+    //  CANVAS – DIBUJAR FIRMA
+    // ==========================================
+    let canvas, ctx, drawing = false;
 
-  .btnEntrega{ background:#0c6cbd; color:white; }
-  .btnRecibe{ background:#00416A; color:white; }
-  .btnCancelar{
-    background:#ccc;
-    color:#333;
-  }
+    window.onload = () => {
+      canvas = document.getElementById("canvas");
+      ctx = canvas.getContext("2d");
 
-  #canvasBox {
-    display:none;
-    text-align:center;
-    margin-top:10px;
-  }
+      // Ajuste automático móvil
+      resizeCanvas();
 
-  canvas{
-    border:2px solid #0c6cbd;
-    border-radius:12px;
-    background:white;
-  }
+      canvas.addEventListener("mousedown", start);
+      canvas.addEventListener("mouseup", stop);
+      canvas.addEventListener("mousemove", draw);
 
-  #btnLimpiar{
-    margin-top:8px;
-    padding:6px 18px;
-    background:#d33;
-    color:white;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-  }
-</style>
+      canvas.addEventListener("touchstart", start);
+      canvas.addEventListener("touchend", stop);
+      canvas.addEventListener("touchmove", draw);
+    };
 
-<script type="module">
+    function resizeCanvas() {
+      const container = document.getElementById("pad");
+      canvas.width = container.offsetWidth;
+      canvas.height = 260;
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+    }
 
-/* ============================================================
-   🔵 FIREBASE 
-============================================================ */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc, updateDoc } 
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadString, getDownloadURL }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+      const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+      return { x, y };
+    }
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-  authDomain: "inventariopv-643f1.firebaseapp.com",
-  projectId: "inventariopv-643f1",
-  storageBucket: "inventariopv-643f1.appspot.com",
-  messagingSenderId: "96242533231",
-  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-};
+    function start(e) {
+      e.preventDefault();
+      drawing = true;
+      const { x, y } = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
+    function stop(e) {
+      e.preventDefault();
+      drawing = false;
+    }
 
+    function draw(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const { x, y } = getPos(e);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
 
-/* ============================================================
-   🔵 OBTENER ID DEL URL
-============================================================ */
-const params = new URLSearchParams(window.location.search);
-const idTraspaso = params.get("id");
-let dataTraspaso = null;
+    // ======================================
+    //  CONVERTIR BASE64 → BLOB (archivo real)
+    // ======================================
+    function base64ToBlob(base64) {
+      const parts = base64.split(';base64,');
+      const contentType = parts[0].split(':')[1];
+      const raw = window.atob(parts[1]);
+      const rawLength = raw.length;
 
-async function cargarTraspaso() {
-  if (!idTraspaso) {
-    alert("No hay ID de traspaso");
-    return;
-  }
+      const uInt8Array = new Uint8Array(rawLength);
+      for (let i = 0; i < rawLength; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+      }
 
-  const refDoc = doc(db, "traspasos", idTraspaso);
-  const snap = await getDoc(refDoc);
+      return new Blob([uInt8Array], { type: contentType });
+    }
 
-  if (!snap.exists()) {
-    alert("Traspaso no encontrado");
-    return;
-  }
+    // ======================================
+    //  SUBIR FIRMA Y GUARDAR EN FIRESTORE
+    // ======================================
+    window.guardarFirma = async () => {
+      const traspasoId = document.getElementById("traspaso").value.trim();
+      const ruta = document.getElementById("ruta").value.trim();
 
-  dataTraspaso = snap.data();
-  document.getElementById("info").innerHTML = `
-    <b>ID:</b> ${idTraspaso}<br>
-    <b>Fecha:</b> ${dataTraspaso.fecha}<br>
-    <b>Ruta:</b> ${dataTraspaso.rutaId}<br>
-    <b>Vendedor:</b> ${dataTraspaso.vendedorId}<br>
-  `;
+      if (!traspasoId || !ruta) {
+        alert("Falta ID o ruta del traspaso");
+        return;
+      }
 
-  // tabla resumida
-  const tbl = document.getElementById("tabla");
-  dataTraspaso.items.forEach(it => {
-    tbl.innerHTML += `
-      <tr>
-        <td>${it.codigo}</td>
-        <td>${it.concepto}</td>
-        <td>${it.cantidad}</td>
-      </tr>`;
-  });
+      // 1) Obtener Base64
+      const base64 = canvas.toDataURL("image/png");
 
-  // deshabilitar si ya firmaron
-  if (dataTraspaso.firmaEntregaURL) {
-    document.getElementById("btnEntrega").disabled = true;
-    document.getElementById("btnEntrega").innerText = "Ya firmado";
-  }
-  if (dataTraspaso.firmaRecibeURL) {
-    document.getElementById("btnRecibe").disabled = true;
-    document.getElementById("btnRecibe").innerText = "Ya firmado";
-  }
+      // 2) Convertir a archivo real
+      const archivo = base64ToBlob(base64);
 
-}
+      // 3) Subir a Storage
+      const firmaRef = ref(storage, `firmas/${traspasoId}_firma.png`);
+      await uploadBytes(firmaRef, archivo);
 
-cargarTraspaso();
+      // 4) Obtener URL
+      const url = await getDownloadURL(firmaRef);
 
+      // 5) Guardar en Firestore
+      await updateDoc(doc(db, "traspasos", ruta, "listado", traspasoId), {
+        firmaURL: url,
+        firmadoEn: new Date().toISOString()
+      });
 
-/* ============================================================
-   🔵 CANVAS - FIRMA
-============================================================ */
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-let dibujando = false;
+      document.getElementById("ok").style.display = "block";
+    };
 
-canvas.addEventListener("mousedown", () => dibujando = true);
-canvas.addEventListener("mouseup", () => dibujando = false);
-canvas.addEventListener("mouseleave", () => dibujando = false);
+    // ===============================
+    // LIMPIAR CANVAS
+    // ===============================
+    window.limpiar = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
 
-canvas.addEventListener("mousemove", e => {
-  if (!dibujando) return;
-  const rect = canvas.getBoundingClientRect();
-  ctx.fillStyle = "#000";
-  ctx.beginPath();
-  ctx.arc(e.clientX - rect.left, e.clientY - rect.top, 2, 0, Math.PI*2);
-  ctx.fill();
-});
+  </script>
 
-document.getElementById("btnLimpiar").onclick = () => {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-};
+  <!-- ===========================
+       ESTILOS PROVSOFT
+  ============================ -->
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #eef3ff;
+      margin: 0;
+      padding: 20px;
+      color: #00416A;
+      text-align: center;
+    }
 
+    h1 { margin-bottom: 10px; }
 
-/* ============================================================
-   🔵 PROCESO DE FIRMA
-============================================================ */
-let tipoFirma = null;
+    #pad {
+      border: 3px solid #00416A;
+      background: white;
+      border-radius: 10px;
+      margin: 20px auto;
+      padding: 10px;
+      width: 100%;
+      max-width: 480px;
+    }
 
-document.getElementById("btnEntrega").onclick = () => abrirCanvas("entrega");
-document.getElementById("btnRecibe").onclick = () => abrirCanvas("recibe");
+    button {
+      margin: 10px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+    }
 
-function abrirCanvas(tipo){
-  tipoFirma = tipo;
-  document.getElementById("canvasBox").style.display="block";
-}
+    .guardar { background: #0c6cbd; }
+    .limpiar { background: #6c6c6c; }
 
-document.getElementById("btnGuardarFirma").onclick = guardarFirma;
+    input {
+      width: 85%;
+      padding: 10px;
+      margin: 5px auto;
+      display: block;
+      border-radius: 8px;
+      border: 1px solid #bbb;
+    }
 
-async function guardarFirma(){
-  const pngData = canvas.toDataURL("image/png");
+    #ok {
+      margin-top: 20px;
+      font-size: 20px;
+      color: green;
+      display: none;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
 
-  const path = `firmas/${idTraspaso}_${tipoFirma}.png`;
-  const storageRef = ref(storage, path);
+  <h1>Firma del Traspaso</h1>
 
-  await uploadString(storageRef, pngData, "data_url");
-  const url = await getDownloadURL(storageRef);
+  <input id="ruta" placeholder="Ruta (ID almacén)" />
+  <input id="traspaso" placeholder="ID del traspaso" />
 
-  const refDoc = doc(db, "traspasos", idTraspaso);
+  <div id="pad">
+    <canvas id="canvas"></canvas>
+  </div>
 
-  if (tipoFirma === "entrega") {
-    await updateDoc(refDoc,{ firmaEntregaURL: url });
-    document.getElementById("btnEntrega").disabled =
+  <button class="limpiar" onclick="limpiar()">Limpiar</button>
+  <button class="guardar" onclick="guardarFirma()">Guardar Firma</button>
+
+  <div id="ok">✔ Firma guardada correctamente</div>
+
+</body>
+</html>
