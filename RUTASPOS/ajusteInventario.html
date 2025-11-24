@@ -313,16 +313,15 @@ Object.values(inventarioGlobal).forEach(i => {
   if (i.diferencia !== 0) {
 
     let tipoMovimiento = i.diferencia > 0 ? "ENTRADA_AJUSTE" : "SALIDA_AJUSTE";
-    let cantidad = Math.abs(i.diferencia);
+itemsAjuste.push({
+  codigo: i.codigo,
+  concepto: i.concepto,
+  cantidad: i.diferencia,   // ⬅️ AQUÍ EL CAMBIO
+  precio: i.costo,
+  diferencia: i.diferencia,
+  tipoMovimiento: tipoMovimiento
+});
 
-    itemsAjuste.push({
-      codigo: i.codigo,
-      concepto: i.concepto,
-      cantidad: cantidad,   // SIEMPRE positivo
-      precio: i.costo,
-      diferencia: i.diferencia,
-      tipoMovimiento: tipoMovimiento
-    });
   }
 });
 
