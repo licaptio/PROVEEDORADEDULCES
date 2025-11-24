@@ -117,13 +117,15 @@
   </div>
 
   <table>
-    <thead>
-      <tr>
-        <th>Código</th>
-        <th>Producto</th>
-        <th>Cantidad</th>
-      </tr>
-    </thead>
+<thead>
+  <tr>
+    <th>Código</th>
+    <th>Producto</th>
+    <th>Cantidad</th>
+    <th>Precio Público</th>   <!-- NUEVO -->
+  </tr>
+</thead>
+
     <tbody id="tablaPrint"></tbody>
   </table>
 
@@ -185,13 +187,15 @@ const data = snap.data();
   // tabla
   const tabla = document.getElementById("tablaPrint");
   data.items.forEach(it => {
-    tabla.innerHTML += `
-      <tr>
-        <td>${it.codigo}</td>
-        <td>${it.concepto}</td>
-        <td>${it.cantidad}</td>
-      </tr>
-    `;
+tabla.innerHTML += `
+  <tr>
+    <td>${it.codigo}</td>
+    <td>${it.concepto}</td>
+    <td>${it.cantidad}</td>
+    <td>$${(it.precio ?? 0).toFixed(2)}</td> <!-- NUEVO -->
+  </tr>
+`;
+
   });
 
   // firmas si existen
