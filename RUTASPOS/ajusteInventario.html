@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ajuste de Inventario – PROVSOFT</title>
+
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: #eef3ff;
+    margin: 0; padding: 20px;
+  }
+
+  h2 {
+    text-align: center;
+    color: #00416A;
+    margin-bottom: 20px;
+  }
+
+  select, button {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+    width: 100%;
+    margin-bottom: 15px;
+  }
+
+  button {
+    background: #0c6cbd;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    border: none;
+  }
+
+  #loadingBar {
+    width: 100%;
+    background: #c7dbff;
+    height: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: none;
+    margin-bottom: 18px;
+  }
+
+  #loadingInner {
+    width: 0%;
+    height: 100%;
+    background: #00416A;
+    transition: width .4s;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  }
+
+  th {
+    background: #00416A;
+    color: white;
+    padding: 10px;
+    text-transform: uppercase;
+    font-size: 14px;
+  }
+
+  td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+  }
+
+  .positivo { background: #c8ffd1; font-weight: bold; }
+  .negativo { background: #ffd4d4; font-weight: bold; }
+
+  .totalBox {
+    margin-top: 15px;
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 18px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.1);
+  }
+</style>
+
+<script type="module">
+/* ========================================================
+   FIREBASE
+======================================================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getFirestore, collection, query, where, getDocs, addDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ========================================================
+   CARGAR PRODUCTOS PARA TENER CONCEPTO + COSTO
+======================================================== */
+async function cargarProductos() {
+  const snap = await getDocs(collection(db, "productos"));
+  const mapa = {};
+
+  snap.forEach(doc => {
+    const data = doc.data();
+    if (data.activo) {
+      mapa[data.codigoBarra] = {
+        concepto: data.concepto || "(SIN NOMBRE)",
+        costo: Number(data.costoSinImpuesto || 0)
+      };
+    }
+  });
+
+  return mapa;
+}
+
+/* ========================================================
+   CARGAR ENTRADAS DEL ALMACÉN
+======================================================== */
+async function cargarEntradas(rutaId) {
+  let entradas = {};
+
+  const snap = await getDocs(collection(db, "almacenes", rutaId, "entradas"));
+
+  snap.forEach(doc => {
+    const data = doc.data();
+    if (!data.items) return;
+
+    data.items.forEach(item => {
+      if (!entradas[item.codigo]) entradas[item.codigo] = 0;
+      entradas[item.codigo] += Number(item.cantidad);
+    });
+  });
+
+  return entradas;
+}
+
+/* ========================================================
+   CARGAR SALIDAS (VENTAS)
+======================================================== */
+async function cargarSalidas(rutaId) {
+  let salidas = {};
+
+  const q = query(collection(db, "ventas_rutav2"), where("rutaId", "==", rutaId));
+  const snap = await getDocs(q);
+
+  snap.forEach(doc => {
+    const data = doc.data();
+    if (!data.detalle) return;
+
+    data.detalle.forEach(item => {
+      if (!salidas[item.codigo]) salidas[item.codigo] = 0;
+      salidas[item.codigo] += Number(item.cantidad);
+    });
+  });
+
+  return salidas;
+}
+
+/* ========================================================
+   GENERAR INVENTARIO + MOSTRAR TABLA
+======================================================== */
+let inventarioGlobal = {};
+
+async function generarInventario() {
+  const rutaId = document.getElementById("almacenSelect").value;
+  if (!rutaId) return alert("Seleccione un almacén");
+
+  // barra visible
+  document.getElementById("loadingBar").style.display = "block";
+  document.getElementById("loadingInner").style.width = "0%";
+
+  const avanzar = () => {
+    let barra = document.getElementById("loadingInner");
+    let pct = parseInt(barra.style.width);
+    barra.style.width = Math.min(pct + 20, 100) + "%";
+  };
+
+  avanzar();
+  const entradas = await cargarEntradas(rutaId);
+
+  avanzar();
+  const salidas = await cargarSalidas(rutaId);
+
+  avanzar();
+  const productos = await cargarProductos();
+
+  avanzar();
+
+  // unir claves
+  const codigos = new Set([
+    ...Object.keys(entradas),
+    ...Object.keys(salidas)
+  ]);
+
+  inventarioGlobal = {}; // reset
+
+  codigos.forEach(codigo => {
+    let teorico = (entradas[codigo] || 0) - (salidas[codigo] || 0);
+    let info = productos[codigo] || { concepto: "(SIN NOMBRE)", costo: 0 };
+
+    inventarioGlobal[codigo] = {
+      codigo,
+      concepto: info.concepto,
+      costo: info.costo,
+      teorico,
+      fisico: teorico, // inicia igual
+      diferencia: 0
+    };
+  });
+
+  pintarTabla();
+
+  // barra al 100
+  document.getElementById("loadingInner").style.width = "100%";
+
+  setTimeout(() => {
+    document.getElementById("loadingBar").style.display = "none";
+  }, 800);
+}
+
+/* ========================================================
+   MOSTRAR TABLA
+======================================================== */
+function pintarTabla() {
+  const tbody = document.getElementById("tablaBody");
+  tbody.innerHTML = "";
+
+  Object.values(inventarioGlobal)
+    .sort((a, b) => a.concepto.localeCompare(b.concepto))
+    .forEach(item => {
+      const clase =
+        item.diferencia > 0 ? "positivo" :
+        item.diferencia < 0 ? "negativo" : "";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${item.codigo}</td>
+        <td>${item.concepto}</td>
+        <td>${item.teorico}</td>
+        <td>
+          <input type="number" value="${item.fisico}" 
+                 style="width:70px;"
+                 onchange="actualizarFisico('${item.codigo}', this.value)">
+        </td>
+        <td class="${clase}">
+          ${item.diferencia}
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+
+  calcularTotales();
+}
+
+/* ========================================================
+   ACTUALIZAR CANTIDAD FÍSICA
+======================================================== */
+window.actualizarFisico = (codigo, valor) => {
+  let item = inventarioGlobal[codigo];
+  item.fisico = Number(valor);
+  item.diferencia = item.fisico - item.teorico;
+
+  pintarTabla();
+};
+
+/* ========================================================
+   MOSTRAR TOTALES
+======================================================== */
+function calcularTotales() {
+  let piezas = 0;
+  let dinero = 0;
+
+  Object.values(inventarioGlobal).forEach(i => {
+    if (i.diferencia !== 0) {
+      piezas += Math.abs(i.diferencia);
+      dinero += Math.abs(i.diferencia) * i.costo;
+    }
+  });
+
+  document.getElementById("totalBox").innerHTML =
+    `Ajuste Total: <b>${piezas}</b> piezas — $${dinero.toFixed(2)}`;
+}
+
+/* ========================================================
+   APLICAR AJUSTE (GUARDAR EN FIREBASE)
+======================================================== */
+async function aplicarAjuste() {
+  const rutaId = document.getElementById("almacenSelect").value;
+  if (!rutaId) return alert("Seleccione almacén");
+
+  let itemsAjuste = [];
+
+  Object.values(inventarioGlobal).forEach(i => {
+    if (i.diferencia !== 0) {
+      itemsAjuste.push({
+        codigo: i.codigo,
+        concepto: i.concepto,
+        cantidad: Math.abs(i.diferencia),
+        precio: i.costo,
+        diferencia: i.diferencia
+      });
+    }
+  });
+
+  if (itemsAjuste.length === 0)
+    return alert("No hay ajustes por aplicar.");
+
+  await addDoc(collection(db, "almacenes", rutaId, "entradas"), {
+    tipo: "AJUSTE",
+    motivo: "AJUSTE DE INVENTARIO",
+    ajuste: true,
+    fecha: new Date().toISOString(),
+    items: itemsAjuste
+  });
+
+  alert("✔ Ajuste registrado correctamente");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btnGenerar").onclick = generarInventario;
+  document.getElementById("btnAjustar").onclick = aplicarAjuste;
+});
+</script>
+
+</head>
+<body>
+
+<h2>Ajuste de Inventario – PROVSOFT</h2>
+
+<select id="almacenSelect">
+  <option value="">Seleccione almacén…</option>
+  <option value="Almacen_Ruta_1">Almacen_Ruta_1</option>
+  <option value="Almacen_Ruta_2">Almacen_Ruta_2</option>
+  <option value="MERMA">MERMA</option>
+  <option value="ALMACENCENTRALPDD">ALMACENCENTRALPDD</option>
+</select>
+
+<button id="btnGenerar">Generar Inventario</button>
+
+<div id="loadingBar"><div id="loadingInner"></div></div>
+
+<table>
+<thead>
+  <tr>
+    <th>Código</th>
+    <th>Concepto</th>
+    <th>Teórico</th>
+    <th>Físico</th>
+    <th>Diferencia</th>
+  </tr>
+</thead>
+<tbody id="tablaBody"></tbody>
+</table>
+
+<div id="totalBox" class="totalBox">Ajuste Total: 0 piezas — $0.00</div>
+
+<button id="btnAjustar">Aplicar Ajuste</button>
+
+</body>
+</html>
