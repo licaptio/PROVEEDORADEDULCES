@@ -2,41 +2,102 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Página MENU GIBRÁN</title>
+  <title>Página MENU GIBRÁN – PROVSOFT</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Fuente Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
   <style>
+    :root {
+      --azul: #00416A;
+      --azul2: #0c6cbd;
+      --fondo: #f0f4f9;
+      --card: #ffffff;
+      --shadow: 0 6px 16px rgba(0,0,0,.15);
+    }
     body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
-      background-color: #f9f9f9;
+      font-family: 'Poppins', sans-serif;
+      background: var(--fondo);
+      margin: 0;
+      padding: 40px 20px;
+      color: #222;
+      display: flex;
+      justify-content: center;
     }
+
+    .contenedor {
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+
     h1 {
-      color: #333;
+      font-size: 28px;
+      margin-bottom: 25px;
+      color: var(--azul);
+      font-weight: 600;
+      text-shadow: 1px 1px 2px #0002;
     }
-    ul {
-      list-style-type: none;
-      padding: 0;
+
+    .link-card {
+      background: var(--card);
+      margin: 15px 0;
+      padding: 18px 20px;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      transition: transform .2s ease, box-shadow .2s ease;
     }
-    li {
-      margin: 10px 0;
+
+    .link-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 20px rgba(0,0,0,.25);
     }
+
     a {
       text-decoration: none;
-      color: #0066cc;
-    }
-    a:hover {
-      text-decoration: underline;
+      color: var(--azul2);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: .5px;
     }
   </style>
 </head>
+
 <body>
-  <h1>Página MENU GIBRÁN</h1>
-  <ul>
-    <li><a href="https://lizandrolumbreras.github.io/MENU-PROVEEDORA/" target="_blank">MENU-PROVEEDORA</a></li>
-    <li><a href="https://lizandrolumbreras.github.io/MENU-LOGISTICA-GIBRAN/" target="_blank">MENU-LOGÍSTICA GIBRÁN</a></li>
-    <li><a href="https://licaptio.github.io/pwa-provsoft/POSVTA4/CORTEV4.html" target="_blank">CORTE V4</a></li>
-    <li><a href="https://lizandrolumbreras.github.io/CARGA-FACTURAS-ZAPATA/" target="_blank">CARGA-FACTURAS ZAPATA</a></li>
-    <li><a href="https://licaptio.github.io/pwa-provsoft/POSVTA4/REPORTE-CORTE-V1.2.html" target="_blank">REPORTE-CORTE V1.2</a></li>
-  </ul>
+  <div class="contenedor">
+    <h1>📘 PÁGINA MENU GIBRÁN</h1>
+
+    <div class="link-card">
+      <a href="https://lizandrolumbreras.github.io/MENU-PROVEEDORA/" target="_blank">
+        MENU – PROVEEDORA
+      </a>
+    </div>
+
+    <div class="link-card">
+      <a href="https://lizandrolumbreras.github.io/MENU-LOGISTICA-GIBRAN/" target="_blank">
+        MENU – LOGÍSTICA GIBRÁN
+      </a>
+    </div>
+
+    <div class="link-card">
+      <a href="https://licaptio.github.io/pwa-provsoft/POSVTA4/CORTEV4.html" target="_blank">
+        CORTE V4
+      </a>
+    </div>
+
+    <div class="link-card">
+      <a href="https://lizandrolumbreras.github.io/CARGA-FACTURAS-ZAPATA/" target="_blank">
+        CARGA DE FACTURAS – ZAPATA
+      </a>
+    </div>
+
+    <div class="link-card">
+      <a href="https://licaptio.github.io/pwa-provsoft/POSVTA4/REPORTE-CORTE-V1.2.html" target="_blank">
+        REPORTE DE CORTE – V1.2
+      </a>
+    </div>
+
+  </div>
 </body>
 </html>
