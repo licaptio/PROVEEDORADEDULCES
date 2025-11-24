@@ -192,10 +192,12 @@ tabla.innerHTML += `
     <td>${it.codigo}</td>
     <td>${it.concepto}</td>
     <td>${it.cantidad}</td>
-    <td>$${(it.precio ?? 0).toFixed(2)}</td> <!-- NUEVO -->
+    <td>$${Number(it.precio || 0).toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}</td>
   </tr>
 `;
-
   });
 
   // firmas si existen
