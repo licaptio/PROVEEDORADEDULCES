@@ -309,28 +309,36 @@ async function aplicarAjuste() {
 
   let itemsAjuste = [];
 
-  Object.values(inventarioGlobal).forEach(i => {
-    if (i.diferencia !== 0) {
-      itemsAjuste.push({
-        codigo: i.codigo,
-        concepto: i.concepto,
-        cantidad: Math.abs(i.diferencia),
-        precio: i.costo,
-        diferencia: i.diferencia
-      });
-    }
-  });
+Object.values(inventarioGlobal).forEach(i => {
+  if (i.diferencia !== 0) {
+
+    let tipoMovimiento = i.diferencia > 0 ? "ENTRADA_AJUSTE" : "SALIDA_AJUSTE";
+    let cantidad = Math.abs(i.diferencia);
+
+    itemsAjuste.push({
+      codigo: i.codigo,
+      concepto: i.concepto,
+      cantidad: cantidad,   // SIEMPRE positivo
+      precio: i.costo,
+      diferencia: i.diferencia,
+      tipoMovimiento: tipoMovimiento
+    });
+  }
+});
+
 
   if (itemsAjuste.length === 0)
     return alert("No hay ajustes por aplicar.");
 
-  await addDoc(collection(db, "almacenes", rutaId, "entradas"), {
-    tipo: "AJUSTE",
-    motivo: "AJUSTE DE INVENTARIO",
-    ajuste: true,
-    fecha: new Date().toISOString(),
-    items: itemsAjuste
-  });
+await addDoc(collection(db, "almacenes", rutaId, "entradas"), {
+  tipo: "AJUSTE",
+  subTipo: itemsAjuste.some(x => x.tipoMovimiento === "SALIDA_AJUSTE")
+            ? "MIXTO"
+            : "ENTRADA_AJUSTE",
+  fecha: new Date().toISOString(),
+  items: itemsAjuste
+});
+
 
   alert("✔ Ajuste registrado correctamente");
 }
