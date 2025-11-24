@@ -120,11 +120,11 @@ async function generarInventario() {
   });
 
   // Renderización
-  tbody.innerHTML = "";
+  
   const listaOrdenada = Object.values(inventario).sort((a, b) => {
   return a.concepto.localeCompare(b.concepto, "es", { sensitivity: "base" });
 });
-
+tbody.innerHTML = "";
 listaOrdenada.forEach(item => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
