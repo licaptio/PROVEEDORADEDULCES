@@ -248,15 +248,20 @@ function pintarTabla() {
       tr.innerHTML = `
         <td>${item.codigo}</td>
         <td>${item.concepto}</td>
-        <td>${item.teorico}</td>
-        <td>
-          <input type="number" value="${item.fisico}" 
-                 style="width:70px;"
-                 onchange="actualizarFisico('${item.codigo}', this.value)">
-        </td>
-        <td class="${clase}">
-          ${item.diferencia}
-        </td>
+<td>${item.teorico.toFixed(3)}</td>
+
+<td>
+  <input type="number" 
+         step="0.001"
+         value="${item.fisico.toFixed(3)}" 
+         style="width:80px;"
+         onchange="actualizarFisico('${item.codigo}', parseFloat(this.value))">
+</td>
+
+<td class="${clase}">
+  ${item.diferencia.toFixed(3)}
+</td>
+
       `;
 
       tbody.appendChild(tr);
