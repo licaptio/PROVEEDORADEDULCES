@@ -214,23 +214,30 @@ async function generarInventario() {
   const productos = {};
   snapProductos.forEach(doc => productos[doc.id] = doc.data());
 
-  const inventario = {};
-  const codigos = new Set([
-    ...Object.keys(entradas),
-    ...Object.keys(salidas)
-  ]);
+const inventario = {};
+const codigos = new Set([
+  ...Object.keys(entradas),
+  ...Object.keys(salidas)
+]);
 
-  actualizarBarra();
+codigos.forEach(codigo => {
+  const prod = productos[codigo];
 
-  codigos.forEach(codigo => {
-    inventario[codigo] = {
-      codigo,
-      concepto: productos[codigo]?.concepto || "SIN CONCEPTO",
-      entradas: entradas[codigo] || 0,
-      salidas: salidas[codigo] || 0,
-      existencia: (entradas[codigo] || 0) - (salidas[codigo] || 0)
-    };
-  });
+  const existencia = (entradas[codigo] || 0) - (salidas[codigo] || 0);
+  const costo = prod?.costoSinImpuesto || 0;
+  const costoTotal = existencia * costo;
+
+  inventario[codigo] = {
+    codigo,
+    concepto: prod?.concepto || "SIN CONCEPTO",
+    entradas: entradas[codigo] || 0,
+    salidas: salidas[codigo] || 0,
+    existencia,
+    costoUnit: costo,
+    costoTotal
+  };
+});
+
 
   actualizarBarra();
 
@@ -238,18 +245,21 @@ async function generarInventario() {
     a.concepto.localeCompare(b.concepto)
   );
 
-  tbody.innerHTML = "";
-  listaOrdenada.forEach(item => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${item.codigo}</td>
-      <td>${item.concepto}</td>
-      <td>${item.entradas}</td>
-      <td>${item.salidas}</td>
-      <td><b>${item.existencia}</b></td>
-    `;
-    tbody.appendChild(tr);
-  });
+tbody.innerHTML = "";
+listaOrdenada.forEach(item => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${item.codigo}</td>
+    <td>${item.concepto}</td>
+    <td>${item.entradas}</td>
+    <td>${item.salidas}</td>
+    <td><b>${item.existencia}</b></td>
+    <td>$${item.costoUnit.toFixed(2)}</td>
+    <td><b>$${item.costoTotal.toFixed(2)}</b></td>
+  `;
+  tbody.appendChild(tr);
+});
+
 
   // Barra al 100%
   document.getElementById("loadingInner").style.width = "100%";
@@ -298,6 +308,8 @@ background:#0c6cbd;color:white;border-radius:8px;font-weight:bold;">
     <th>Entradas</th>
     <th>Salidas</th>
     <th>Teórico</th>
+    <th>Costo Unit</th>
+    <th>Total $</th>
   </tr>
 </thead>
 
