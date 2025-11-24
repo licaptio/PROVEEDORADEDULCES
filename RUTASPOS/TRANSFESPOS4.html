@@ -509,12 +509,18 @@ document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
     // 🔥 GRABA AQUÍ: /almacenes/{rutaId}/entradas/
     const rutaColeccion = collection(db, "almacenes", rutaId, "entradas");
     
-    await addDoc(rutaColeccion, payload);
+const docRef = await addDoc(rutaColeccion, payload);
+const idTraspaso = docRef.id;
 
-    alert("✔ Traspaso enviado correctamente a /almacenes/" + rutaId + "/entradas/");
+alert("✔ Traspaso enviado correctamente");
 
-    carrito = [];
-    renderTabla();
+// abrir hoja de impresión
+window.open(`impresion_traspaso.html?id=${idTraspaso}`, "_blank");
+
+// limpiar pantalla
+carrito = [];
+renderTabla();
+
 
   } catch (err) {
     console.error(err);
