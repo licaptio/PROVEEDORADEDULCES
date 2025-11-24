@@ -121,7 +121,11 @@ async function generarInventario() {
 
   // Renderización
   tbody.innerHTML = "";
-  Object.values(inventario).forEach(item => {
+  const listaOrdenada = Object.values(inventario).sort((a, b) => {
+  return a.concepto.localeCompare(b.concepto, "es", { sensitivity: "base" });
+});
+
+listaOrdenada.forEach(item => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${item.codigo}</td>
