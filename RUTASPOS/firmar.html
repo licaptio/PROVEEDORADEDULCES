@@ -1,226 +1,117 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Firma de Traspaso – PROVSOFT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Firmar Traspaso – PROVSOFT</title>
 
-  <!-- Firebase -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { 
-      getFirestore, doc, updateDoc 
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<style>
+  body {
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background:#f5f7fa;
+    color:#111;
+  }
 
-    import {
-      getStorage, ref, uploadBytes, getDownloadURL
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+  .contenedor {
+    max-width:600px;
+    margin:30px auto;
+    background:white;
+    padding:20px;
+    border-radius:14px;
+    box-shadow:0 4px 14px rgba(0,0,0,.12);
+  }
 
-    // =============================
-    //  CONFIGURA TUS DATOS FIREBASE
-    // =============================
-    const firebaseConfig = {
-      apiKey: "TU_API_KEY",
-      authDomain: "TU_PROJECT.firebaseapp.com",
-      projectId: "TU_PROJECT",
-      storageBucket: "TU_PROJECT.appspot.com",
-      messagingSenderId: "xxxx",
-      appId: "xxxx"
-    };
+  h2 { text-align:center; color:#00416A; margin-bottom:5px; }
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
+  .sub {
+    text-align:center;
+    color:#555;
+    font-size:14px;
+    margin-bottom:15px;
+  }
 
-    // ==========================================
-    //  CANVAS – DIBUJAR FIRMA
-    // ==========================================
-    let canvas, ctx, drawing = false;
+  table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+    font-size:14px;
+  }
+  th {
+    background:#00416A;
+    color:white;
+    padding:6px;
+  }
+  td {
+    padding:6px;
+    border-bottom:1px solid #ddd;
+  }
 
-    window.onload = () => {
-      canvas = document.getElementById("canvas");
-      ctx = canvas.getContext("2d");
+  .btn {
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+    font-size:16px;
+    margin-top:10px;
+  }
 
-      // Ajuste automático móvil
-      resizeCanvas();
+  .btnPrimary { background:#0c6cbd; color:white; }
+  .btnDark { background:#00416A; color:white; }
+  .btnCancel { background:#ccc; color:#333; }
 
-      canvas.addEventListener("mousedown", start);
-      canvas.addEventListener("mouseup", stop);
-      canvas.addEventListener("mousemove", draw);
+  #canvasBox { display:none; margin-top:15px; text-align:center; }
+  #canvas {
+    background:white;
+    border:2px solid #0c6cbd;
+    border-radius:12px;
+    touch-action:none;
+  }
+</style>
 
-      canvas.addEventListener("touchstart", start);
-      canvas.addEventListener("touchend", stop);
-      canvas.addEventListener("touchmove", draw);
-    };
-
-    function resizeCanvas() {
-      const container = document.getElementById("pad");
-      canvas.width = container.offsetWidth;
-      canvas.height = 260;
-      ctx.lineWidth = 3;
-      ctx.lineCap = "round";
-    }
-
-    function getPos(e) {
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-      const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-      return { x, y };
-    }
-
-    function start(e) {
-      e.preventDefault();
-      drawing = true;
-      const { x, y } = getPos(e);
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-    }
-
-    function stop(e) {
-      e.preventDefault();
-      drawing = false;
-    }
-
-    function draw(e) {
-      if (!drawing) return;
-      e.preventDefault();
-      const { x, y } = getPos(e);
-      ctx.lineTo(x, y);
-      ctx.stroke();
-    }
-
-    // ======================================
-    //  CONVERTIR BASE64 → BLOB (archivo real)
-    // ======================================
-    function base64ToBlob(base64) {
-      const parts = base64.split(';base64,');
-      const contentType = parts[0].split(':')[1];
-      const raw = window.atob(parts[1]);
-      const rawLength = raw.length;
-
-      const uInt8Array = new Uint8Array(rawLength);
-      for (let i = 0; i < rawLength; ++i) {
-        uInt8Array[i] = raw.charCodeAt(i);
-      }
-
-      return new Blob([uInt8Array], { type: contentType });
-    }
-
-    // ======================================
-    //  SUBIR FIRMA Y GUARDAR EN FIRESTORE
-    // ======================================
-    window.guardarFirma = async () => {
-      const traspasoId = document.getElementById("traspaso").value.trim();
-      const ruta = document.getElementById("ruta").value.trim();
-
-      if (!traspasoId || !ruta) {
-        alert("Falta ID o ruta del traspaso");
-        return;
-      }
-
-      // 1) Obtener Base64
-      const base64 = canvas.toDataURL("image/png");
-
-      // 2) Convertir a archivo real
-      const archivo = base64ToBlob(base64);
-
-      // 3) Subir a Storage
-      const firmaRef = ref(storage, `firmas/${traspasoId}_firma.png`);
-      await uploadBytes(firmaRef, archivo);
-
-      // 4) Obtener URL
-      const url = await getDownloadURL(firmaRef);
-
-      // 5) Guardar en Firestore
-      await updateDoc(doc(db, "traspasos", ruta, "listado", traspasoId), {
-        firmaURL: url,
-        firmadoEn: new Date().toISOString()
-      });
-
-      document.getElementById("ok").style.display = "block";
-    };
-
-    // ===============================
-    // LIMPIAR CANVAS
-    // ===============================
-    window.limpiar = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    };
-
-  </script>
-
-  <!-- ===========================
-       ESTILOS PROVSOFT
-  ============================ -->
-  <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: #eef3ff;
-      margin: 0;
-      padding: 20px;
-      color: #00416A;
-      text-align: center;
-    }
-
-    h1 { margin-bottom: 10px; }
-
-    #pad {
-      border: 3px solid #00416A;
-      background: white;
-      border-radius: 10px;
-      margin: 20px auto;
-      padding: 10px;
-      width: 100%;
-      max-width: 480px;
-    }
-
-    button {
-      margin: 10px;
-      padding: 12px 20px;
-      border-radius: 10px;
-      border: none;
-      font-size: 15px;
-      color: white;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .guardar { background: #0c6cbd; }
-    .limpiar { background: #6c6c6c; }
-
-    input {
-      width: 85%;
-      padding: 10px;
-      margin: 5px auto;
-      display: block;
-      border-radius: 8px;
-      border: 1px solid #bbb;
-    }
-
-    #ok {
-      margin-top: 20px;
-      font-size: 20px;
-      color: green;
-      display: none;
-      font-weight: bold;
-    }
-  </style>
 </head>
 <body>
 
-  <h1>Firma del Traspaso</h1>
+<div class="contenedor">
+  <h2>Firma de Traspaso</h2>
+  <div class="sub" id="subInfo">Cargando datos…</div>
 
-  <input id="ruta" placeholder="Ruta (ID almacén)" />
-  <input id="traspaso" placeholder="ID del traspaso" />
+  <!-- INFO -->
+  <div id="info" style="font-size:15px; line-height:20px;"></div>
 
-  <div id="pad">
-    <canvas id="canvas"></canvas>
+  <!-- TABLA -->
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Producto</th>
+        <th>Cant.</th>
+      </tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+  </table>
+
+  <!-- BOTONES -->
+  <button id="btnEntrega" class="btn btnPrimary">Firmar ENTREGA</button>
+  <button id="btnRecibe" class="btn btnDark">Firmar RECIBE</button>
+
+  <!-- CANVAS -->
+  <div id="canvasBox">
+    <h3 style="margin-bottom:6px;color:#00416A;">Firme dentro del área</h3>
+
+    <canvas id="canvas" width="500" height="180"></canvas><br>
+
+    <button id="btnLimpiar" class="btn btnCancel" style="width:50%;margin-top:10px;">
+      Limpiar
+    </button>
+
+    <button id="btnGuardar" class="btn btnPrimary">
+      Guardar Firma
+    </button>
   </div>
+</div>
 
-  <button class="limpiar" onclick="limpiar()">Limpiar</button>
-  <button class="guardar" onclick="guardarFirma()">Guardar Firma</button>
-
-  <div id="ok">✔ Firma guardada correctamente</div>
-
+<script type="module" src="firmar.js"></script>
 </body>
 </html>
