@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Firmar Traspaso – PROVSOFT</title>
+
+<!-- 🔵 ESTILOS -->
+<style>
+  body {
+    margin:0;
+    font-family:'Poppins',sans-serif;
+    background:#f5f7fa;
+    color:#111;
+  }
+
+  .contenedor {
+    max-width: 600px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    margin-top: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.17);
+  }
+
+  h2{
+    text-align:center;
+    color:#00416A;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:15px;
+  }
+  th{
+    background:#00416A;
+    color:white;
+    padding:6px;
+  }
+  td{
+    padding:6px;
+    border-bottom:1px solid #ddd;
+  }
+
+  .btn{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    margin-top:10px;
+    cursor:pointer;
+    font-weight:bold;
+    font-size:16px;
+  }
+
+  .btnEntrega{ background:#0c6cbd; color:white; }
+  .btnRecibe{ background:#00416A; color:white; }
+  .btnCancelar{
+    background:#ccc;
+    color:#333;
+  }
+
+  #canvasBox {
+    display:none;
+    text-align:center;
+    margin-top:10px;
+  }
+
+  canvas{
+    border:2px solid #0c6cbd;
+    border-radius:12px;
+    background:white;
+  }
+
+  #btnLimpiar{
+    margin-top:8px;
+    padding:6px 18px;
+    background:#d33;
+    color:white;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+  }
+</style>
+
+<script type="module">
+
+/* ============================================================
+   🔵 FIREBASE 
+============================================================ */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, updateDoc } 
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadString, getDownloadURL }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+
+/* ============================================================
+   🔵 OBTENER ID DEL URL
+============================================================ */
+const params = new URLSearchParams(window.location.search);
+const idTraspaso = params.get("id");
+let dataTraspaso = null;
+
+async function cargarTraspaso() {
+  if (!idTraspaso) {
+    alert("No hay ID de traspaso");
+    return;
+  }
+
+  const refDoc = doc(db, "traspasos", idTraspaso);
+  const snap = await getDoc(refDoc);
+
+  if (!snap.exists()) {
+    alert("Traspaso no encontrado");
+    return;
+  }
+
+  dataTraspaso = snap.data();
+  document.getElementById("info").innerHTML = `
+    <b>ID:</b> ${idTraspaso}<br>
+    <b>Fecha:</b> ${dataTraspaso.fecha}<br>
+    <b>Ruta:</b> ${dataTraspaso.rutaId}<br>
+    <b>Vendedor:</b> ${dataTraspaso.vendedorId}<br>
+  `;
+
+  // tabla resumida
+  const tbl = document.getElementById("tabla");
+  dataTraspaso.items.forEach(it => {
+    tbl.innerHTML += `
+      <tr>
+        <td>${it.codigo}</td>
+        <td>${it.concepto}</td>
+        <td>${it.cantidad}</td>
+      </tr>`;
+  });
+
+  // deshabilitar si ya firmaron
+  if (dataTraspaso.firmaEntregaURL) {
+    document.getElementById("btnEntrega").disabled = true;
+    document.getElementById("btnEntrega").innerText = "Ya firmado";
+  }
+  if (dataTraspaso.firmaRecibeURL) {
+    document.getElementById("btnRecibe").disabled = true;
+    document.getElementById("btnRecibe").innerText = "Ya firmado";
+  }
+
+}
+
+cargarTraspaso();
+
+
+/* ============================================================
+   🔵 CANVAS - FIRMA
+============================================================ */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+let dibujando = false;
+
+canvas.addEventListener("mousedown", () => dibujando = true);
+canvas.addEventListener("mouseup", () => dibujando = false);
+canvas.addEventListener("mouseleave", () => dibujando = false);
+
+canvas.addEventListener("mousemove", e => {
+  if (!dibujando) return;
+  const rect = canvas.getBoundingClientRect();
+  ctx.fillStyle = "#000";
+  ctx.beginPath();
+  ctx.arc(e.clientX - rect.left, e.clientY - rect.top, 2, 0, Math.PI*2);
+  ctx.fill();
+});
+
+document.getElementById("btnLimpiar").onclick = () => {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+};
+
+
+/* ============================================================
+   🔵 PROCESO DE FIRMA
+============================================================ */
+let tipoFirma = null;
+
+document.getElementById("btnEntrega").onclick = () => abrirCanvas("entrega");
+document.getElementById("btnRecibe").onclick = () => abrirCanvas("recibe");
+
+function abrirCanvas(tipo){
+  tipoFirma = tipo;
+  document.getElementById("canvasBox").style.display="block";
+}
+
+document.getElementById("btnGuardarFirma").onclick = guardarFirma;
+
+async function guardarFirma(){
+  const pngData = canvas.toDataURL("image/png");
+
+  const path = `firmas/${idTraspaso}_${tipoFirma}.png`;
+  const storageRef = ref(storage, path);
+
+  await uploadString(storageRef, pngData, "data_url");
+  const url = await getDownloadURL(storageRef);
+
+  const refDoc = doc(db, "traspasos", idTraspaso);
+
+  if (tipoFirma === "entrega") {
+    await updateDoc(refDoc,{ firmaEntregaURL: url });
+    document.getElementById("btnEntrega").disabled =
