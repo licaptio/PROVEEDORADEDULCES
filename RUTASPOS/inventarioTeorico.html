@@ -102,17 +102,18 @@ const db = getFirestore(app);
 
 
 /* ============================================================
-   FECHA MÍNIMA (RUTA 1 y RUTA 2 = MISMA FECHA)
+   FECHA MÍNIMA POR ALMACÉN
 ============================================================ */
 function fechaMinimaPorAlmacen(almacen) {
 
+  // MISMA FECHA PARA RUTA 1 Y RUTA 2
   if (almacen === "Almacen_Ruta_1") 
     return new Date("2025-11-28T00:00:00");
 
   if (almacen === "Almacen_Ruta_2") 
     return new Date("2025-11-28T00:00:00");
 
-  return new Date("2000-01-01"); // sin filtro para otros almacenes
+  return new Date("2000-01-01"); // sin filtro para otros
 }
 
 
@@ -133,7 +134,7 @@ async function cargarProductos() {
 
 
 /* ============================================================
-   ENTRADAS FILTRADAS
+   ENTRADAS FILTRADAS POR FECHA
 ============================================================ */
 async function cargarEntradas(rutaId) {
   let entradas = {};
@@ -145,7 +146,8 @@ async function cargarEntradas(rutaId) {
     const data = doc.data();
     if (!data.items || !data.fecha) return;
 
-    const fechaEntrada = new Date(data.fecha);
+    const fechaEntrada = data.fecha.toDate ? data.fecha.toDate() : new Date(data.fecha);
+
     if (fechaEntrada < limite) return;
 
     data.items.forEach(item => {
@@ -159,7 +161,7 @@ async function cargarEntradas(rutaId) {
 
 
 /* ============================================================
-   SALIDAS FILTRADAS
+   SALIDAS FILTRADAS POR FECHA (VENTAS)
 ============================================================ */
 async function cargarSalidas(rutaId) {
   let salidas = {};
@@ -172,7 +174,8 @@ async function cargarSalidas(rutaId) {
     const data = doc.data();
     if (!data.detalle || !data.fecha) return;
 
-    const fechaVenta = new Date(data.fecha);
+    const fechaVenta = data.fecha.toDate ? data.fecha.toDate() : new Date(data.fecha);
+
     if (fechaVenta < limite) return;
 
     data.detalle.forEach(item => {
@@ -186,7 +189,7 @@ async function cargarSalidas(rutaId) {
 
 
 /* ============================================================
-   INVENTARIO
+   INVENTARIO TEÓRICO
 ============================================================ */
 async function generarInventario() {
   const rutaId = document.getElementById("almacenSelect").value;
