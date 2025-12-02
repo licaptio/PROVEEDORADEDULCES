@@ -152,6 +152,16 @@
   margin-top: 10px;
   border-radius: 10px;
 }
+.contenedor {
+  position: relative;
+}
+  #buscador {
+  position: sticky;
+  top: 0; 
+  z-index: 50;
+  background: white;
+}
+
 </style>
 
 <script type="module">
@@ -276,6 +286,7 @@ async function buscarPorCodigo() {
   // 🧡 AGREGAR DIRECTO (balanza o normal)
   agregarItem();
   renderTabla();
+document.getElementById("preview").innerText = "";
 
   // limpiar buscador
   document.getElementById("buscador").value = "";
@@ -317,8 +328,18 @@ window.cantidadManual = null; // limpiar
   if (!codigo || cantidad <= 0) return;
 
   const existente = carrito.find(i => i.codigo === codigo);
-  if (existente) existente.cantidad += cantidad;
-  else carrito.push({ codigo, concepto, precio, cantidad });
+if (existente) {
+  existente.cantidad += cantidad;
+
+  // 🔥 mover el existente al inicio
+  carrito = carrito.filter(i => i.codigo !== codigo);
+  carrito.unshift(existente);
+
+} else {
+
+  // 🔥 nuevo producto va primero
+  carrito.unshift({ codigo, concepto, precio, cantidad });
+}
 
   // limpiar peso detectado
   window.pesoDetectado = null;
@@ -341,7 +362,12 @@ function renderTabla() {
         <td><button onclick="eliminarItem(${i})">❌</button></td>
       </tr>`;
   });
+
+  // 🔥 mantener vista en el primer artículo
+  const cont = document.getElementById("carritoScroll");
+  cont.scrollTop = 0;
 }
+
 
 window.eliminarItem = i => {
   carrito.splice(i, 1);
@@ -473,8 +499,10 @@ document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
   // agregar al carrito
   agregarItem();
   renderTabla();
+document.getElementById("preview").innerText = "";
+// 🔥 Enfocar escáner después de agregar manualmente
+  document.getElementById("buscador").focus();
 });
-
 /* ==========================================================
    🟪 GUARDAR TRASPASO EN: /almacenes/{rutaId}/entradas/
 ========================================================== */
@@ -561,7 +589,9 @@ renderTabla();
 
   <div id="preview" style="font-weight:bold; margin:5px 0;"></div>
   <!-- TABLA -->
+  <div id="carritoScroll">
   <table>
+
     <thead>
       <tr>
         <th>Código</th>
@@ -573,7 +603,7 @@ renderTabla();
     </thead>
     <tbody id="tabla"></tbody>
   </table>
-
+</div>
   <!-- BOTÓN -->
   <button id="btnTraspaso" style="margin-top:12px; width:100%;">Finalizar Traspaso</button>
 
