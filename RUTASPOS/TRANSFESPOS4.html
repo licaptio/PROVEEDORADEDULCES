@@ -147,11 +147,12 @@
   to { transform: scale(1); opacity: 1; }
 }
 #carritoScroll {
-  max-height: 320px;   /* tú defines el alto */
+  max-height: calc(100vh - 280px); /* Altura dinámica PRO */
   overflow-y: auto;
   margin-top: 10px;
   border-radius: 10px;
 }
+
 .contenedor {
   position: relative;
 }
