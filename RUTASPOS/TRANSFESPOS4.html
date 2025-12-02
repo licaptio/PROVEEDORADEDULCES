@@ -286,7 +286,9 @@ async function buscarPorCodigo() {
   // 🧡 AGREGAR DIRECTO (balanza o normal)
   agregarItem();
   renderTabla();
-document.getElementById("preview").innerText = "";
+localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
+
+  document.getElementById("preview").innerText = "";
 
   // limpiar buscador
   document.getElementById("buscador").value = "";
@@ -372,6 +374,8 @@ function renderTabla() {
 window.eliminarItem = i => {
   carrito.splice(i, 1);
   renderTabla();
+  localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
+
 };
 
 
@@ -410,6 +414,11 @@ document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso
 
   await syncProductos();
   await cargarListaVendedores();
+const guardado = localStorage.getItem("carrito_traspaso");
+if (guardado) {
+  carrito = JSON.parse(guardado);
+  renderTabla();
+}
 
   // seleccionar vendedor
   document.getElementById("vendedorSelect").addEventListener("change", e => {
@@ -553,6 +562,7 @@ window.open(`impresion_traspaso.html?id=${idTraspaso}&ruta=${rutaId}`, "_blank")
 // limpiar pantalla
 carrito = [];
 renderTabla();
+localStorage.removeItem("carrito_traspaso");
 
 
   } catch (err) {
