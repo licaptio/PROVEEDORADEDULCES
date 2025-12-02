@@ -417,8 +417,31 @@ document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso
   await cargarListaVendedores();
 const guardado = localStorage.getItem("carrito_traspaso");
 if (guardado) {
+
+  // Mostrar barra PRO
+  const barra = document.getElementById("barraSesion");
+  barra.style.display = "block";
+  barra.style.opacity = "1";
+  barra.textContent = "Recuperando sesión anterior…";
+
+  // Restaurar datos
   carrito = JSON.parse(guardado);
   renderTabla();
+
+  // Cambiar mensaje después de un momento
+  setTimeout(() => {
+    barra.textContent = "Sesión restaurada ✓";
+  }, 600);
+
+  // Desaparecer suavemente
+  setTimeout(() => {
+    barra.style.opacity = "0";
+  }, 1400);
+
+  // Ocultar completamente
+  setTimeout(() => {
+    barra.style.display = "none";
+  }, 2000);
 }
 
   // seleccionar vendedor
@@ -600,6 +623,20 @@ localStorage.removeItem("carrito_traspaso");
 
   <div id="preview" style="font-weight:bold; margin:5px 0;"></div>
   <!-- TABLA -->
+  <div id="barraSesion" 
+     style="display:none;
+            background:#0c6cbd;
+            color:white;
+            padding:10px;
+            margin-top:10px;
+            border-radius:8px;
+            text-align:center;
+            font-weight:bold;
+            opacity:0;
+            transition:opacity .4s ease;">
+    Recuperando sesión anterior…
+</div>
+
   <div id="carritoScroll">
   <table>
 
