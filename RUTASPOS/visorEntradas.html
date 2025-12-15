@@ -142,21 +142,27 @@ snapMerma.forEach(doc => {
   listaFinal = ordenarEntradas(listaFinal);
 
   // imprimir
-  listaFinal.forEach(e => {
-    const tr = document.createElement("tr");
+listaFinal.forEach(e => {
+  const tr = document.createElement("tr");
 
-    const fechaMostrar = e.fecha 
-      ? new Date(e.fecha).toLocaleString()
-      : "Sin fecha";
+  const fechaMostrar = e.fecha 
+    ? new Date(e.fecha).toLocaleString()
+    : "Sin fecha";
 
-    tr.innerHTML = `
-      <td>${e.almacen}</td>
-      <td>${fechaMostrar}</td>
-      <td>${e.items.length} productos</td>
-      <td><button class="btn" onclick="ver('${e.almacen}','${e.id}')">Ver / Editar</button></td>
-    `;
-    contenedor.appendChild(tr);
-  });
+  const items = Array.isArray(e.items) ? e.items : [];
+
+  tr.innerHTML = `
+    <td>${e.almacen}</td>
+    <td>${fechaMostrar}</td>
+    <td>${items.length} productos</td>
+    <td>
+      <button class="btn" onclick="ver('${e.almacen}','${e.id}')">
+        Ver / Editar
+      </button>
+    </td>
+  `;
+  contenedor.appendChild(tr);
+});
 });
 
 window.ver = (almacen, id) => {
