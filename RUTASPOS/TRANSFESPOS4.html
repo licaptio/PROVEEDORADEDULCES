@@ -162,6 +162,25 @@
   z-index: 50;
   background: white;
 }
+/* ==============================
+   MODO PC VIEJA – OPTIMIZACIÓN
+============================== */
+@media (prefers-reduced-motion: reduce) {
+
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  #modalResultados,
+  #modalCantidad {
+    backdrop-filter: none !important;
+  }
+
+  .modalCaja {
+    box-shadow: none !important;
+  }
+}
 
 </style>
 
@@ -208,7 +227,11 @@ async function saveProductos(lista) {
   const db = await openDB();
   const tx = db.transaction("productos", "readwrite");
   const store = tx.objectStore("productos");
-  lista.forEach(p => store.put(p));
+  for (let i = 0; i < lista.length; i += 50) {
+  const bloque = lista.slice(i, i + 50);
+  bloque.forEach(p => store.put(p));
+}
+
   return new Promise(resolve => tx.oncomplete = resolve);
 }
 
@@ -350,21 +373,27 @@ if (existente) {
   renderTabla();
 }
 
-
 function renderTabla() {
   const tabla = document.getElementById("tabla");
-  tabla.innerHTML = "";
+  const fragment = document.createDocumentFragment();
 
   carrito.forEach((it, i) => {
-    tabla.innerHTML += `
-      <tr>
-        <td>${it.codigo}</td>
-        <td>${it.concepto}</td>
-        <td>${it.cantidad}</td>
-        <td>$${it.precio.toFixed(2)}</td>
-        <td><button onclick="eliminarItem(${i})">❌</button></td>
-      </tr>`;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${it.codigo}</td>
+      <td>${it.concepto}</td>
+      <td>${it.cantidad}</td>
+      <td>$${it.precio.toFixed(2)}</td>
+      <td><button onclick="eliminarItem(${i})">❌</button></td>
+    `;
+    fragment.appendChild(tr);
   });
+
+  tabla.innerHTML = "";
+  tabla.appendChild(fragment);
+
+  document.getElementById("carritoScroll").scrollTop = 0;
+}
 
   // 🔥 mantener vista en el primer artículo
   const cont = document.getElementById("carritoScroll");
@@ -413,7 +442,13 @@ async function cargarListaVendedores() {
 document.addEventListener("DOMContentLoaded", async () => {
 document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
 
+  const ultimaSync = localStorage.getItem("ultima_sync_productos");
+
+if (!ultimaSync || Date.now() - ultimaSync > 1000 * 60 * 60 * 12) {
   await syncProductos();
+  localStorage.setItem("ultima_sync_productos", Date.now());
+}
+
   await cargarListaVendedores();
 const guardado = localStorage.getItem("carrito_traspaso");
 if (guardado) {
@@ -465,34 +500,40 @@ document.getElementById("cerrarModal").addEventListener("click", () => {
   document.getElementById("modalResultados").style.display = "none";
 });
 
-document.getElementById("busquedaNombre").addEventListener("input", async e => {
-  const term = e.target.value.toLowerCase();
-  const lista = document.getElementById("listaResultados");
+document.getElementById("busquedaNombre").addEventListener("input", e => {
+  clearTimeout(debounceTimer);
 
-  const filtrados = resultadosBusqueda.filter(p =>
-    p.concepto.toLowerCase().includes(term)
-  );
+  debounceTimer = setTimeout(() => {
+    const term = e.target.value.toLowerCase().trim();
+    const lista = document.getElementById("listaResultados");
 
-  lista.innerHTML = "";
+    if (term.length < 2) {
+      lista.innerHTML = "";
+      return;
+    }
 
-  filtrados.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.textContent = p.concepto + " (" + p.codigoBarra + ")";
-div.onclick = () => {
-  productoSeleccionadoPorNombre = p;
+    const filtrados = resultadosBusqueda
+      .filter(p => p.concepto?.toLowerCase().includes(term))
+      .slice(0, 30); // 🔥 LIMITE PRO
 
-  // cerrar modal de búsqueda
-  document.getElementById("modalResultados").style.display = "none";
+    lista.innerHTML = "";
 
-  // abrir modal de cantidad
-  document.getElementById("modalCantidad").style.display = "flex";
-  document.getElementById("inputCantidadNombre").value = "";
-  document.getElementById("inputCantidadNombre").focus();
-};
+    filtrados.forEach(p => {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.textContent = `${p.concepto} (${p.codigoBarra})`;
 
-    lista.appendChild(div);
-  });
+      div.onclick = () => {
+        productoSeleccionadoPorNombre = p;
+        document.getElementById("modalResultados").style.display = "none";
+        document.getElementById("modalCantidad").style.display = "flex";
+        document.getElementById("inputCantidadNombre").value = "";
+        document.getElementById("inputCantidadNombre").focus();
+      };
+
+      lista.appendChild(div);
+    });
+  }, 200); // ⏱ debounce real
 });
 
 
@@ -500,6 +541,7 @@ div.onclick = () => {
    🟦 BUSCAR POR NOMBRE – ABRIR MODAL
 ========================================================== */
 let resultadosBusqueda = [];
+let debounceTimer = null;
 
 async function buscarPorNombre() {
   document.getElementById("modalResultados").style.display = "flex";
