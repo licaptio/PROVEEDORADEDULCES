@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Traspaso entre Almacenes – PROVSOFT</title>
+
+<!-- 🔵 ESTILOS PROVSOFT -->
+<style>
+  body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(to bottom right, #00416A, #0c6cbd);
+    color: #fff;
+  }
+
+  h2 {
+    text-align: center;
+    margin: 20px 0;
+    font-size: 26px;
+    font-weight: 600;
+  }
+
+  .contenedor {
+    background: #ffffffdd;
+    color: #111;
+    width: 92%;
+    margin: auto;
+    padding: 15px;
+    border-radius: 14px;
+    box-shadow: 0 5px 15px rgba(0,0,0,.2);
+  }
+
+  select, input, button {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+    margin: 5px;
+  }
+
+  button {
+    cursor: pointer;
+    background: #0c6cbd;
+    color: #fff;
+    border: none;
+    font-weight: bold;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  th {
+    background: #00416A;
+    color: white;
+    padding: 8px;
+  }
+
+  td {
+    background: #fff;
+    color: #111;
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+  }
+
+#modalResultados {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(3px);
+  z-index: 999;
+}
+
+.modalCaja {
+  background: #ffffff;
+  color: #111;
+  width: 95%;
+  max-width: 520px;
+  padding: 25px 30px;
+  border-radius: 18px;
+  box-shadow: 0 8px 26px rgba(0,0,0,0.25);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modalCaja h3 {
+  margin: 0 0 15px 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #00416A;
+}
+
+#cerrarModal {
+  background: #0c6cbd;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  float: right;
+}
+
+#busquedaNombre {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #cfd4dc;
+  border-radius: 12px;
+  font-size: 15px;
+  margin-bottom: 18px;
+  outline: none;
+}
+#busquedaNombre:focus {
+  border-color: #0c6cbd;
+  box-shadow: 0 0 4px rgba(12,108,189,0.25);
+}
+
+#listaResultados {
+  max-height: 360px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+}
+
+#listaResultados .item {
+  padding: 12px;
+  background: white;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#listaResultados .item:hover {
+  background: #eef6ff;
+}
+
+@keyframes fadeIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+#carritoScroll {
+  max-height: calc(100vh - 280px); /* Altura dinámica PRO */
+  overflow-y: auto;
+  margin-top: 10px;
+  border-radius: 10px;
+}
+
+.contenedor {
+  position: relative;
+}
+  #buscador {
+  position: sticky;
+  top: 0; 
+  z-index: 50;
+  background: white;
+}
+/* ==============================
+   MODO PC VIEJA – OPTIMIZACIÓN
+============================== */
+@media (prefers-reduced-motion: reduce) {
+
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  #modalResultados,
+  #modalCantidad {
+    backdrop-filter: none !important;
+  }
+
+  .modalCaja {
+    box-shadow: none !important;
+  }
+}
+
+</style>
+
+<script type="module">
+
+/* ==========================================================
+   🟦 FIREBASE
+========================================================== */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs, addDoc }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+/* ==========================================================
+   🟩 INDEXEDDB
+========================================================== */
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("provsoftDB", 1);
+    request.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains("productos")) {
+        db.createObjectStore("productos", { keyPath: "codigoBarra" });
+      }
+    };
+    request.onsuccess = e => resolve(e.target.result);
+    request.onerror = e => reject(e);
+  });
+}
+
+async function saveProductos(lista) {
+  const db = await openDB();
+  const tx = db.transaction("productos", "readwrite");
+  const store = tx.objectStore("productos");
+  for (let i = 0; i < lista.length; i += 50) {
+  const bloque = lista.slice(i, i + 50);
+  bloque.forEach(p => store.put(p));
+}
+
+  return new Promise(resolve => tx.oncomplete = resolve);
+}
+
+async function getAllProductos() {
+  const db = await openDB();
+  return new Promise(resolve => {
+    const tx = db.transaction("productos", "readonly");
+    const store = tx.objectStore("productos");
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+
+async function syncProductos() {
+  try {
+    const q = query(collection(db, "productos"), where("activo", "==", true));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      await saveProductos(lista);
+      console.log(`Catálogo actualizado: ${lista.length} productos`);
+    }
+  } catch (err) {
+    console.warn("Error al sincronizar:", err.message);
+  }
+}
+
+
+/* ==========================================================
+   🟨 EQUIVALENTES + BALANZA
+========================================================== */
+function decodificarBalanza(codigo) {
+  if (codigo.length === 13 && codigo.startsWith("20")) {
+    const codigoProducto = codigo.substring(0, 7);
+    const pesoBruto = codigo.substring(7, 12);
+    const pesoKg = parseFloat(pesoBruto) / 1000;
+    return { esBalanza: true, codigoProducto, pesoKg };
+  }
+  return { esBalanza: false };
+}
+
+function normalizarCodigo(producto, codigoEscaneado) {
+  const principal = String(producto.codigoBarra || "");
+  const equivalentes = Array.isArray(producto.codigosEquivalentes)
+    ? producto.codigosEquivalentes.map(String)
+    : [];
+
+  if (principal === codigoEscaneado) return principal;
+  if (equivalentes.includes(codigoEscaneado)) return principal;
+  return null;
+}
+
+/* ==========================================================
+   🟧 BÚSQUEDA CÓDIGO / NOMBRE
+========================================================== */
+async function buscarPorCodigo() {
+  let codigo = document.getElementById("buscador").value.trim();
+  if (!codigo) return;
+
+  const bal = decodificarBalanza(codigo);
+
+  if (bal.esBalanza) {
+    codigo = bal.codigoProducto;
+    window.pesoDetectado = bal.pesoKg;
+  } else {
+    window.pesoDetectado = null;
+  }
+
+  const productos = await getAllProductos();
+  const encontrado = productos.find(p => normalizarCodigo(p, codigo));
+
+  if (!encontrado) return;
+
+  seleccionarProducto(encontrado);
+
+  // 🧡 AGREGAR DIRECTO (balanza o normal)
+  agregarItem();
+  renderTabla();
+localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
+
+  document.getElementById("preview").innerText = "";
+
+  // limpiar buscador
+  document.getElementById("buscador").value = "";
+  document.getElementById("buscador").focus();
+}
+
+/* ==========================================================
+   🟥 CARRITO
+========================================================== */
+let carrito = [];
+let productoSeleccionadoPorNombre = null;
+window.cantidadManual = null;
+
+function seleccionarProducto(data) {
+  document.getElementById("codigoSel").value = data.codigoBarra;
+  document.getElementById("conceptoSel").value = data.concepto;
+  document.getElementById("precioSel").value = data.precioPublico;
+  document.getElementById("preview").innerText =
+    `${data.concepto} — $${data.precioPublico}`;
+}
+
+function agregarItem() {
+  const codigo = document.getElementById("codigoSel").value;
+  const concepto = document.getElementById("conceptoSel").value;
+  const precio = parseFloat(document.getElementById("precioSel").value);
+
+  // ✔ Siempre 1 pieza (excepto balanza)
+  let cantidad = 1;
+
+// si vino de balanza
+if (window.pesoDetectado) cantidad = window.pesoDetectado;
+
+// si vino del modal de nombre
+if (window.cantidadManual) cantidad = window.cantidadManual;
+
+window.cantidadManual = null; // limpiar
+
+
+  if (!codigo || cantidad <= 0) return;
+
+  const existente = carrito.find(i => i.codigo === codigo);
+if (existente) {
+  existente.cantidad += cantidad;
+
+  // 🔥 mover el existente al inicio
+  carrito = carrito.filter(i => i.codigo !== codigo);
+  carrito.unshift(existente);
+
+} else {
+
+  // 🔥 nuevo producto va primero
+  carrito.unshift({ codigo, concepto, precio, cantidad });
+}
+
+  // limpiar peso detectado
+  window.pesoDetectado = null;
+
+  renderTabla();
+}
+
+function renderTabla() {
+  const tabla = document.getElementById("tabla");
+  const fragment = document.createDocumentFragment();
+
+  carrito.forEach((it, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${it.codigo}</td>
+      <td>${it.concepto}</td>
+      <td>${it.cantidad}</td>
+      <td>$${it.precio.toFixed(2)}</td>
+      <td><button onclick="eliminarItem(${i})">❌</button></td>
+    `;
+    fragment.appendChild(tr);
+  });
+
+  tabla.innerHTML = "";
+  tabla.appendChild(fragment);
+
+  document.getElementById("carritoScroll").scrollTop = 0;
+}
+
+
+window.eliminarItem = i => {
+  carrito.splice(i, 1);
+  renderTabla();
+  localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
+
+};
+
+
+/* ==========================================================
+   🟦 CARGAR LISTA DE VENDEDORES
+========================================================== */
+async function cargarListaVendedores() {
+  const q = query(
+    collection(db, "usuarios_ruta"),
+    where("rol", "==", "vendedor"),
+    where("activo", "==", true)
+  );
+
+  const snap = await getDocs(q);
+
+  const select = document.getElementById("vendedorSelect");
+  select.innerHTML = `<option value="">Seleccione vendedor</option>`;
+
+  snap.forEach(doc => {
+    const d = doc.data();
+    select.innerHTML += `
+      <option value="${doc.id}"
+        data-nombre="${d.nombre}"
+        data-ruta="${d.rutaId}">
+        ${d.nombre}
+      </option>`;
+  });
+}
+
+
+/* ==========================================================
+   🟫 INIT CORRECTO (TODO DENTRO)
+========================================================== */
+document.addEventListener("DOMContentLoaded", async () => {
+document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
+
+  const ultimaSync = localStorage.getItem("ultima_sync_productos");
+
+if (!ultimaSync || Date.now() - ultimaSync > 1000 * 60 * 60 * 12) {
+  await syncProductos();
+  localStorage.setItem("ultima_sync_productos", Date.now());
+}
+
+  await cargarListaVendedores();
+const guardado = localStorage.getItem("carrito_traspaso");
+if (guardado) {
+
+  // Mostrar barra PRO
+  const barra = document.getElementById("barraSesion");
+  barra.style.display = "block";
+  barra.style.opacity = "1";
+  barra.textContent = "Recuperando sesión anterior…";
+
+  // Restaurar datos
+  carrito = JSON.parse(guardado);
+  renderTabla();
+
+  // Cambiar mensaje después de un momento
+  setTimeout(() => {
+    barra.textContent = "Sesión restaurada ✓";
+  }, 600);
+
+  // Desaparecer suavemente
+  setTimeout(() => {
+    barra.style.opacity = "0";
+  }, 1400);
+
+  // Ocultar completamente
+  setTimeout(() => {
+    barra.style.display = "none";
+  }, 2000);
+}
+
+  // seleccionar vendedor
+  document.getElementById("vendedorSelect").addEventListener("change", e => {
+    const opt = e.target.selectedOptions[0];
+    if (!opt) return;
+    
+    document.getElementById("rutaId").value = opt.dataset.ruta;
+  });
+  // escaneo con pistola (ENTER)
+document.getElementById("buscador").addEventListener("keypress", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    buscarPorCodigo();
+  }
+});
+
+  document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
+});
+document.getElementById("cerrarModal").addEventListener("click", () => {
+  document.getElementById("modalResultados").style.display = "none";
+});
+
+document.getElementById("busquedaNombre").addEventListener("input", e => {
+  clearTimeout(debounceTimer);
+
+  debounceTimer = setTimeout(() => {
+    const term = e.target.value.toLowerCase().trim();
+    const lista = document.getElementById("listaResultados");
+
+    if (term.length < 2) {
+      lista.innerHTML = "";
+      return;
+    }
+
+    const filtrados = resultadosBusqueda
+      .filter(p => p.concepto?.toLowerCase().includes(term))
+      .slice(0, 30); // 🔥 LIMITE PRO
+
+    lista.innerHTML = "";
+
+    filtrados.forEach(p => {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.textContent = `${p.concepto} (${p.codigoBarra})`;
+
+      div.onclick = () => {
+        productoSeleccionadoPorNombre = p;
+        document.getElementById("modalResultados").style.display = "none";
+        document.getElementById("modalCantidad").style.display = "flex";
+        document.getElementById("inputCantidadNombre").value = "";
+        document.getElementById("inputCantidadNombre").focus();
+      };
+
+      lista.appendChild(div);
+    });
+  }, 200); // ⏱ debounce real
+});
+
+
+/* ==========================================================
+   🟦 BUSCAR POR NOMBRE – ABRIR MODAL
+========================================================== */
+let resultadosBusqueda = [];
+let debounceTimer = null;
+
+async function buscarPorNombre() {
+  document.getElementById("modalResultados").style.display = "flex";
+
+  // limpiar
+  document.getElementById("busquedaNombre").value = "";
+  document.getElementById("listaResultados").innerHTML = "";
+
+  // cargar productos
+  const productos = await getAllProductos();
+  resultadosBusqueda = productos;
+}
+document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
+  const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
+
+  if (!cant || cant <= 0) {
+    alert("Escriba una cantidad válida");
+    return;
+  }
+
+  // cerrar modal de cantidad
+  document.getElementById("modalCantidad").style.display = "none";
+
+  // poner producto seleccionado
+  seleccionarProducto(productoSeleccionadoPorNombre);
+
+  // guardar cantidad manual
+  window.cantidadManual = cant;
+
+  // agregar al carrito
+  agregarItem();
+  renderTabla();
+document.getElementById("preview").innerText = "";
+// 🔥 Enfocar escáner después de agregar manualmente
+  document.getElementById("buscador").focus();
+});
+/* ==========================================================
+   🟪 GUARDAR TRASPASO EN: /almacenes/{rutaId}/entradas/
+========================================================== */
+  async function guardarTraspaso() {
+
+  const vendedorId = document.getElementById("vendedorSelect").value;
+  const rutaId = document.getElementById("rutaId").value;
+
+  if (!vendedorId) {
+    alert("Seleccione un vendedor");
+    return;
+  }
+
+  if (!rutaId) {
+    alert("Este vendedor no tiene rutaId asignado");
+    return;
+  }
+
+  if (carrito.length === 0) {
+    alert("Agregue productos antes de finalizar el traspaso");
+    return;
+  }
+
+  const payload = {
+    vendedorId,
+    rutaId,
+    fecha: new Date().toISOString(),
+    items: carrito.map(i => ({
+      codigo: i.codigo,
+      concepto: i.concepto,
+      cantidad: i.cantidad,
+      precio: i.precio
+    }))
+  };
+
+  try {
+    // 🔥 GRABA AQUÍ: /almacenes/{rutaId}/entradas/
+    const rutaColeccion = collection(db, "almacenes", rutaId, "entradas");
+    
+const docRef = await addDoc(rutaColeccion, payload);
+const idTraspaso = docRef.id;
+
+alert("✔ Traspaso enviado correctamente");
+
+// abrir hoja de impresión
+window.open(`impresion_traspaso.html?id=${idTraspaso}&ruta=${rutaId}`, "_blank");
+
+// limpiar pantalla
+carrito = [];
+renderTabla();
+localStorage.removeItem("carrito_traspaso");
+
+
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error al guardar: " + err.message);
+  }
+}
+
+</script>
+
+</head>
+<body>
+
+<h2>Traspaso entre Almacenes</h2>
+
+<div class="contenedor">
+
+<!-- SELECCIÓN DE VENDEDOR -->
+<select id="vendedorSelect"></select>
+
+<!-- Ruta oculta -->
+<input id="rutaId" hidden>
+
+  <!-- BUSCADOR -->
+  <div>
+    <input id="buscador" placeholder="Escanear código">
+    <button id="btnBuscarNombre">Buscar Nombre</button>
+  </div>
+
+  <!-- PREVIEW -->
+  <input id="codigoSel" hidden>
+  <input id="conceptoSel" hidden>
+  <input id="precioSel" hidden>
+
+  <div id="preview" style="font-weight:bold; margin:5px 0;"></div>
+  <!-- TABLA -->
+  <div id="barraSesion" 
+     style="display:none;
+            background:#0c6cbd;
+            color:white;
+            padding:10px;
+            margin-top:10px;
+            border-radius:8px;
+            text-align:center;
+            font-weight:bold;
+            opacity:0;
+            transition:opacity .4s ease;">
+    Recuperando sesión anterior…
+</div>
+
+  <div id="carritoScroll">
+  <table>
+
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Producto</th>
+        <th>Cant.</th>
+        <th>Precio</th>
+        <th>Eliminar</th>
+      </tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+  </table>
+</div>
+  <!-- BOTÓN -->
+  <button id="btnTraspaso" style="margin-top:12px; width:100%;">Finalizar Traspaso</button>
+
+</div>
+
+
+<!-- MODAL -->
+<div id="modalResultados">
+  <div class="modalCaja">
+    <button id="cerrarModal" style="float:right;">Cerrar</button>
+    <h3>Buscar Producto</h3>
+
+    <input id="busquedaNombre" placeholder="Escribe nombre...">
+    <div id="listaResultados" style="max-height:300px; overflow:auto;"></div>
+  </div>
+</div>
+<!-- MODAL CANTIDAD -->
+<div id="modalCantidad" style="
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.55); display:none;
+  align-items:center; justify-content:center;
+  backdrop-filter: blur(3px);
+  z-index:999;">
+  
+  <div style="
+    background:#fff;
+    padding:25px 30px;
+    border-radius:18px;
+    width:95%;
+    max-width:420px;
+    color:#111;
+    box-shadow:0 8px 26px rgba(0,0,0,0.25);
+    animation: fadeIn 0.2s ease-out;">
+    
+    <h3 style="
+      margin:0 0 15px 0;
+      font-size:22px;
+      font-weight:600;
+      color:#00416A;">
+      Cantidad
+    </h3>
+
+    <input id="inputCantidadNombre" 
+      type="number" 
+      placeholder="Ingrese cantidad..."
+      style="
+        width:100%;
+        padding:12px;
+        border:2px solid #cfd4dc;
+        border-radius:12px;
+        font-size:15px;
+        outline:none;">
+    
+    <button id="btnAceptarCantidad" style="
+      margin-top:15px; 
+      width:100%;
+      padding:12px;
+      background:#0c6cbd;
+      color:white;
+      border:none;
+      border-radius:10px;
+      font-weight:bold;
+      cursor:pointer;
+      font-size:16px;">
+      Agregar
+    </button>
+
+    <button onclick="document.getElementById('modalCantidad').style.display='none'" 
+      style="
+        margin-top:10px; 
+        width:100%;
+        padding:10px;
+        background:#ddd;
+        color:#333;
+        border:none;
+        border-radius:10px;
+        cursor:pointer;">
+      Cancelar
+    </button>
+
+  </div>
+</div>
+
+</body>
+</html>
