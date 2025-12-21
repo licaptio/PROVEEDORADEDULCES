@@ -201,6 +201,8 @@ const firebaseConfig = {
   messagingSenderId: "96242533231",
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
+let resultadosBusqueda = [];
+let debounceTimer = null;
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -299,8 +301,9 @@ async function buscarPorCodigo() {
   } else {
     window.pesoDetectado = null;
   }
+  let cacheProductos = [];
 
-  const productos = await getAllProductos();
+  const productos = cacheProductos;
   const encontrado = productos.find(p => normalizarCodigo(p, codigo));
 
   if (!encontrado) return;
@@ -437,12 +440,13 @@ async function cargarListaVendedores() {
 document.addEventListener("DOMContentLoaded", async () => {
 document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
 
-  const ultimaSync = localStorage.getItem("ultima_sync_productos");
+const ultimaSync = localStorage.getItem("ultima_sync_productos");
 
 if (!ultimaSync || Date.now() - ultimaSync > 1000 * 60 * 60 * 12) {
   await syncProductos();
   localStorage.setItem("ultima_sync_productos", Date.now());
 }
+cacheProductos = await getAllProductos();
 
   await cargarListaVendedores();
 const guardado = localStorage.getItem("carrito_traspaso");
@@ -535,8 +539,6 @@ document.getElementById("busquedaNombre").addEventListener("input", e => {
 /* ==========================================================
    🟦 BUSCAR POR NOMBRE – ABRIR MODAL
 ========================================================== */
-let resultadosBusqueda = [];
-let debounceTimer = null;
 
 async function buscarPorNombre() {
   document.getElementById("modalResultados").style.display = "flex";
@@ -545,10 +547,13 @@ async function buscarPorNombre() {
   document.getElementById("busquedaNombre").value = "";
   document.getElementById("listaResultados").innerHTML = "";
 
-  // cargar productos
-  const productos = await getAllProductos();
-  resultadosBusqueda = productos;
+resultadosBusqueda = cacheProductos;
+ // 🔥 AQUÍ MERO – enfoque automático
+  setTimeout(() => {
+    document.getElementById("busquedaNombre").focus();
+  }, 50);
 }
+
 document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
   const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
 
