@@ -316,7 +316,7 @@ async function buscarPorCodigo() {
 
   // 🧡 AGREGAR DIRECTO (balanza o normal)
   agregarItem();
-  renderTabla();
+  
 localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
 
   document.getElementById("preview").innerText = "";
@@ -577,7 +577,7 @@ document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
 
   // agregar al carrito
   agregarItem();
-  renderTabla();
+  
 document.getElementById("preview").innerText = "";
 // 🔥 Enfocar escáner después de agregar manualmente
   document.getElementById("buscador").focus();
