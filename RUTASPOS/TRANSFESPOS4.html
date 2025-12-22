@@ -261,6 +261,60 @@ async function syncProductos() {
     console.warn("Error al sincronizar:", err.message);
   }
 }
+async function login() {
+  const usuario = document.getElementById("loginUsuario").value.trim().toUpperCase();
+  const password = document.getElementById("loginPassword").value.trim();
+
+  if (!usuario || !password) return;
+
+  const q = query(
+    collection(db, "usuarios_ruta"),
+    where("usuario", "==", usuario),
+    where("activo", "==", true)
+  );
+
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    mostrarError();
+    return;
+  }
+
+  const doc = snap.docs[0];
+  const data = doc.data();
+
+  if (data.password !== password) {
+    mostrarError();
+    return;
+  }
+
+  // ✅ LOGIN CORRECTO
+  const sesion = {
+    id: doc.id,
+    usuario: data.usuario,
+    nombre: data.nombre,
+    rol: data.rol,
+    rutaId: data.rutaId
+  };
+
+  localStorage.setItem("provsoft_usuario", JSON.stringify(sesion));
+
+  iniciarSistema();
+}
+function mostrarError() {
+  const div = document.getElementById("loginError");
+  div.style.display = "block";
+  setTimeout(() => div.style.display = "none", 2000);
+}
+
+function iniciarSistema() {
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("app").style.display = "block";
+
+  const sesion = JSON.parse(localStorage.getItem("provsoft_usuario"));
+
+  console.log("👤 Capturista:", sesion.nombre, sesion.rol);
+}
 
 
 /* ==========================================================
@@ -414,7 +468,7 @@ window.eliminarItem = i => {
 /* ==========================================================
    🟦 CARGAR LISTA DE VENDEDORES
 ========================================================== */
-async function cargarListaVendedores() {
+async function cargarRutasDestino() {
   const q = query(
     collection(db, "usuarios_ruta"),
     where("rol", "==", "vendedor"),
@@ -424,15 +478,13 @@ async function cargarListaVendedores() {
   const snap = await getDocs(q);
 
   const select = document.getElementById("vendedorSelect");
-  select.innerHTML = `<option value="">Seleccione vendedor</option>`;
+  select.innerHTML = `<option value="">Seleccione ruta destino</option>`;
 
   snap.forEach(doc => {
     const d = doc.data();
     select.innerHTML += `
-      <option value="${doc.id}"
-        data-nombre="${d.nombre}"
-        data-ruta="${d.rutaId}">
-        ${d.nombre}
+      <option value="${doc.id}" data-ruta="${d.rutaId}">
+        ${d.nombre} (${d.rutaId})
       </option>`;
   });
 }
@@ -441,8 +493,22 @@ async function cargarListaVendedores() {
 /* ==========================================================
    🟫 INIT CORRECTO (TODO DENTRO)
 ========================================================== */
+const sesionGuardada = localStorage.getItem("provsoft_usuario");
+
+if (sesionGuardada) {
+  iniciarSistema();
+} else {
+  document.getElementById("loginBox").style.display = "block";
+  return; // ⛔ no cargar nada más
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
 document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
+document.getElementById("btnLogin").addEventListener("click", login);
+
+document.getElementById("loginPassword").addEventListener("keypress", e => {
+  if (e.key === "Enter") login();
+});
 
 const ultimaSync = localStorage.getItem("ultima_sync_productos");
 
@@ -585,30 +651,48 @@ document.getElementById("preview").innerText = "";
 /* ==========================================================
    🟪 GUARDAR TRASPASO EN: /almacenes/{rutaId}/entradas/
 ========================================================== */
-  async function guardarTraspaso() {
+async function guardarTraspaso() {
 
-  const vendedorId = document.getElementById("vendedorSelect").value;
-  const rutaId = document.getElementById("rutaId").value;
-
-  if (!vendedorId) {
-    alert("Seleccione un vendedor");
+  // 👤 USUARIO LOGUEADO (CAPTURISTA)
+  const sesion = JSON.parse(localStorage.getItem("provsoft_usuario"));
+  if (!sesion) {
+    alert("Sesión no válida, vuelva a iniciar");
+    location.reload();
     return;
   }
 
-  if (!rutaId) {
-    alert("Este vendedor no tiene rutaId asignado");
+  // 🚚 VENDEDOR / RUTA DESTINO
+  const select = document.getElementById("vendedorSelect");
+  const vendedorId = select.value;
+  const rutaId = select.selectedOptions[0]?.dataset.ruta;
+
+  if (!vendedorId || !rutaId) {
+    alert("Seleccione correctamente la ruta destino");
     return;
   }
 
+  // 📦 VALIDAR CARRITO
   if (carrito.length === 0) {
     alert("Agregue productos antes de finalizar el traspaso");
     return;
   }
 
+  // 🧾 PAYLOAD FINAL (INTEGRADO)
   const payload = {
+    // quién captura
+    capturistaId: sesion.id,
+    capturistaUsuario: sesion.usuario,
+    capturistaNombre: sesion.nombre,
+    capturistaRol: sesion.rol,
+
+    // destino
     vendedorId,
     rutaId,
+
+    // metadata
     fecha: new Date().toISOString(),
+
+    // items (NO TOCAR)
     items: carrito.map(i => ({
       codigo: i.codigo,
       concepto: i.concepto,
@@ -618,34 +702,52 @@ document.getElementById("preview").innerText = "";
   };
 
   try {
-    // 🔥 GRABA AQUÍ: /almacenes/{rutaId}/entradas/
+    // 🔥 /almacenes/{rutaId}/entradas/
     const rutaColeccion = collection(db, "almacenes", rutaId, "entradas");
-    
-const docRef = await addDoc(rutaColeccion, payload);
-const idTraspaso = docRef.id;
+    const docRef = await addDoc(rutaColeccion, payload);
 
-alert("✔ Traspaso enviado correctamente");
+    alert("✔ Traspaso enviado correctamente");
 
-// abrir hoja de impresión
-window.open(`impresion_traspaso.html?id=${idTraspaso}&ruta=${rutaId}`, "_blank");
+    // 🖨️ impresión
+    window.open(
+      `impresion_traspaso.html?id=${docRef.id}&ruta=${rutaId}`,
+      "_blank"
+    );
 
-// limpiar pantalla
-carrito = [];
-renderTabla();
-localStorage.removeItem("carrito_traspaso");
-
+    // 🧹 limpiar
+    carrito = [];
+    renderTabla();
+    localStorage.removeItem("carrito_traspaso");
 
   } catch (err) {
     console.error(err);
     alert("❌ Error al guardar: " + err.message);
   }
 }
-
 </script>
 
 </head>
 <body>
+<div id="loginBox" class="contenedor" style="max-width:420px; margin-top:60px;">
+  <h2>Acceso PROVSOFT</h2>
 
+  <input id="loginUsuario" placeholder="Usuario">
+  <input id="loginPassword" type="password" placeholder="Contraseña">
+
+  <button id="btnLogin" style="width:100%;">Entrar</button>
+
+  <div id="loginError" style="
+    display:none;
+    margin-top:10px;
+    background:#f44336;
+    color:white;
+    padding:8px;
+    border-radius:6px;
+    text-align:center;">
+    Usuario o contraseña incorrectos
+  </div>
+</div>
+<div id="app" style="display:none;">
 <h2>Traspaso entre Almacenes</h2>
 
 <div class="contenedor">
@@ -780,6 +882,6 @@ localStorage.removeItem("carrito_traspaso");
 
   </div>
 </div>
-
+</div>
 </body>
 </html>
