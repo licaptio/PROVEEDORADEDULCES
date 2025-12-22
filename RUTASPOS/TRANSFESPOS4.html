@@ -185,13 +185,12 @@
 </style>
 
 <script type="module">
-
 /* ==========================================================
-   🟦 FIREBASE
+   🔵 FIREBASE
 ========================================================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, query, where, getDocs, addDoc }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -201,28 +200,35 @@ const firebaseConfig = {
   messagingSenderId: "96242533231",
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
-let resultadosBusqueda = [];
-let debounceTimer = null;
-let cacheProductos = [];
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+/* ==========================================================
+   🔵 ESTADO GLOBAL
+========================================================== */
+let cacheProductos = [];
+let carrito = [];
+let resultadosBusqueda = [];
+let debounceTimer = null;
+let productoSeleccionadoPorNombre = null;
+window.cantidadManual = null;
+window.pesoDetectado = null;
 
 /* ==========================================================
-   🟩 INDEXEDDB
+   🟢 INDEXEDDB
 ========================================================== */
 function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("provsoftDB", 1);
-    request.onupgradeneeded = e => {
+    const req = indexedDB.open("provsoftDB", 1);
+    req.onupgradeneeded = e => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains("productos")) {
         db.createObjectStore("productos", { keyPath: "codigoBarra" });
       }
     };
-    request.onsuccess = e => resolve(e.target.result);
-    request.onerror = e => reject(e);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e);
   });
 }
 
@@ -230,41 +236,35 @@ async function saveProductos(lista) {
   const db = await openDB();
   const tx = db.transaction("productos", "readwrite");
   const store = tx.objectStore("productos");
-  for (let i = 0; i < lista.length; i += 50) {
-  const bloque = lista.slice(i, i + 50);
-  bloque.forEach(p => store.put(p));
-}
-
-  return new Promise(resolve => tx.oncomplete = resolve);
+  lista.forEach(p => store.put(p));
+  return new Promise(r => tx.oncomplete = r);
 }
 
 async function getAllProductos() {
   const db = await openDB();
-  return new Promise(resolve => {
+  return new Promise(r => {
     const tx = db.transaction("productos", "readonly");
     const store = tx.objectStore("productos");
     const req = store.getAll();
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => r(req.result);
   });
 }
 
 async function syncProductos() {
-  try {
-    const q = query(collection(db, "productos"), where("activo", "==", true));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      await saveProductos(lista);
-      console.log(`Catálogo actualizado: ${lista.length} productos`);
-    }
-  } catch (err) {
-    console.warn("Error al sincronizar:", err.message);
+  const q = query(collection(db, "productos"), where("activo", "==", true));
+  const snap = await getDocs(q);
+  if (!snap.empty) {
+    const lista = snap.docs.map(d => d.data());
+    await saveProductos(lista);
   }
 }
-async function login() {
-  const usuario = document.getElementById("loginUsuario").value.trim().toUpperCase();
-  const password = document.getElementById("loginPassword").value.trim();
 
+/* ==========================================================
+   🟡 LOGIN
+========================================================== */
+async function login() {
+  const usuario = loginUsuario.value.trim().toUpperCase();
+  const password = loginPassword.value.trim();
   if (!usuario || !password) return;
 
   const q = query(
@@ -274,478 +274,201 @@ async function login() {
   );
 
   const snap = await getDocs(q);
-
-  if (snap.empty) {
-    mostrarError();
+  if (snap.empty || snap.docs[0].data().password !== password) {
+    loginError.style.display = "block";
+    setTimeout(() => loginError.style.display = "none", 2000);
     return;
   }
 
-  const doc = snap.docs[0];
-  const data = doc.data();
-
-  if (data.password !== password) {
-    mostrarError();
-    return;
-  }
-
-  // ✅ LOGIN CORRECTO
-  const sesion = {
-    id: doc.id,
-    usuario: data.usuario,
-    nombre: data.nombre,
-    rol: data.rol,
-    rutaId: data.rutaId
-  };
-
-  localStorage.setItem("provsoft_usuario", JSON.stringify(sesion));
+  localStorage.setItem("provsoft_usuario", JSON.stringify({
+    id: snap.docs[0].id,
+    ...snap.docs[0].data()
+  }));
 
   iniciarSistema();
 }
-function mostrarError() {
-  const div = document.getElementById("loginError");
-  div.style.display = "block";
-  setTimeout(() => div.style.display = "none", 2000);
-}
 
 function iniciarSistema() {
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  const sesion = JSON.parse(localStorage.getItem("provsoft_usuario"));
-
-  console.log("👤 Capturista:", sesion.nombre, sesion.rol);
+  loginBox.style.display = "none";
+  app.style.display = "block";
 }
 
-
 /* ==========================================================
-   🟨 EQUIVALENTES + BALANZA
+   🟠 BALANZA + CÓDIGO
 ========================================================== */
 function decodificarBalanza(codigo) {
   if (codigo.length === 13 && codigo.startsWith("20")) {
-    const codigoProducto = codigo.substring(0, 7);
-    const pesoBruto = codigo.substring(7, 12);
-    const pesoKg = parseFloat(pesoBruto) / 1000;
-    return { esBalanza: true, codigoProducto, pesoKg };
+    return {
+      esBalanza: true,
+      codigoProducto: codigo.substring(0, 7),
+      pesoKg: parseFloat(codigo.substring(7, 12)) / 1000
+    };
   }
   return { esBalanza: false };
 }
 
-function normalizarCodigo(producto, codigoEscaneado) {
-  const principal = String(producto.codigoBarra || "");
-  const equivalentes = Array.isArray(producto.codigosEquivalentes)
-    ? producto.codigosEquivalentes.map(String)
-    : [];
-
-  if (principal === codigoEscaneado) return principal;
-  if (equivalentes.includes(codigoEscaneado)) return principal;
-  return null;
+function normalizarCodigo(p, c) {
+  if (String(p.codigoBarra) === c) return true;
+  return Array.isArray(p.codigosEquivalentes) &&
+         p.codigosEquivalentes.map(String).includes(c);
 }
 
 /* ==========================================================
-   🟧 BÚSQUEDA CÓDIGO / NOMBRE
+   🟣 CARRITO
 ========================================================== */
-async function buscarPorCodigo() {
-  let codigo = document.getElementById("buscador").value.trim();
-  if (!codigo) return;
-
-  const bal = decodificarBalanza(codigo);
-
-  if (bal.esBalanza) {
-    codigo = bal.codigoProducto;
-    window.pesoDetectado = bal.pesoKg;
-  } else {
-    window.pesoDetectado = null;
-  }
-  if (!cacheProductos.length) {
-  console.warn("Catálogo aún no cargado");
-  return;
-}
-
-  const productos = cacheProductos;
-  const encontrado = productos.find(p => normalizarCodigo(p, codigo));
-
-  if (!encontrado) return;
-
-  seleccionarProducto(encontrado);
-
-  // 🧡 AGREGAR DIRECTO (balanza o normal)
-  agregarItem();
-  
-localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
-
-  document.getElementById("preview").innerText = "";
-
-  // limpiar buscador
-  document.getElementById("buscador").value = "";
-  document.getElementById("buscador").focus();
-}
-
-/* ==========================================================
-   🟥 CARRITO
-========================================================== */
-let carrito = [];
-let productoSeleccionadoPorNombre = null;
-window.cantidadManual = null;
-
-function seleccionarProducto(data) {
-  document.getElementById("codigoSel").value = data.codigoBarra;
-  document.getElementById("conceptoSel").value = data.concepto;
-  document.getElementById("precioSel").value = data.precioPublico;
-  document.getElementById("preview").innerText =
-    `${data.concepto} — $${data.precioPublico}`;
+function seleccionarProducto(p) {
+  codigoSel.value = p.codigoBarra;
+  conceptoSel.value = p.concepto;
+  precioSel.value = p.precioPublico;
+  preview.innerText = `${p.concepto} — $${p.precioPublico}`;
 }
 
 function agregarItem() {
-  const codigo = document.getElementById("codigoSel").value;
-  const concepto = document.getElementById("conceptoSel").value;
-  const precio = parseFloat(document.getElementById("precioSel").value);
+  let cantidad = window.pesoDetectado || window.cantidadManual || 1;
+  window.pesoDetectado = null;
+  window.cantidadManual = null;
 
-  // ✔ Siempre 1 pieza (excepto balanza)
-  let cantidad = 1;
-
-// si vino de balanza
-if (window.pesoDetectado) cantidad = window.pesoDetectado;
-
-// si vino del modal de nombre
-if (window.cantidadManual) cantidad = window.cantidadManual;
-
-window.cantidadManual = null; // limpiar
-
-
+  const codigo = codigoSel.value;
   if (!codigo || cantidad <= 0) return;
 
   const existente = carrito.find(i => i.codigo === codigo);
-if (existente) {
-  existente.cantidad += cantidad;
-
-  // 🔥 mover el existente al inicio
-  carrito = carrito.filter(i => i.codigo !== codigo);
-  carrito.unshift(existente);
-
-} else {
-
-  // 🔥 nuevo producto va primero
-  carrito.unshift({ codigo, concepto, precio, cantidad });
-}
-
-  // limpiar peso detectado
-  window.pesoDetectado = null;
+  if (existente) existente.cantidad += cantidad;
+  else carrito.unshift({
+    codigo,
+    concepto: conceptoSel.value,
+    precio: parseFloat(precioSel.value),
+    cantidad
+  });
 
   renderTabla();
+  localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
 }
 
 function renderTabla() {
-  const tabla = document.getElementById("tabla");
-  const fragment = document.createDocumentFragment();
-
-  carrito.forEach((it, i) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${it.codigo}</td>
-      <td>${it.concepto}</td>
-      <td>${it.cantidad}</td>
-      <td>$${it.precio.toFixed(2)}</td>
-      <td><button onclick="eliminarItem(${i})">❌</button></td>
-    `;
-    fragment.appendChild(tr);
-  });
-
   tabla.innerHTML = "";
-  tabla.appendChild(fragment);
-
-  document.getElementById("carritoScroll").scrollTop = 0;
+  carrito.forEach((i, idx) => {
+    tabla.innerHTML += `
+      <tr>
+        <td>${i.codigo}</td>
+        <td>${i.concepto}</td>
+        <td>${i.cantidad}</td>
+        <td>$${i.precio.toFixed(2)}</td>
+        <td><button onclick="eliminarItem(${idx})">❌</button></td>
+      </tr>`;
+  });
 }
-
 
 window.eliminarItem = i => {
   carrito.splice(i, 1);
   renderTabla();
-  localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
-
 };
 
-
 /* ==========================================================
-   🟦 CARGAR LISTA DE VENDEDORES
+   🔴 BÚSQUEDAS
 ========================================================== */
-async function cargarRutasDestino() {
-  const q = query(
-    collection(db, "usuarios_ruta"),
-    where("rol", "==", "vendedor"),
-    where("activo", "==", true)
-  );
+function buscarPorCodigo() {
+  const raw = buscador.value.trim();
+  if (!raw) return;
 
-  const snap = await getDocs(q);
+  const bal = decodificarBalanza(raw);
+  const codigo = bal.esBalanza ? bal.codigoProducto : raw;
+  if (bal.esBalanza) window.pesoDetectado = bal.pesoKg;
 
-  const select = document.getElementById("vendedorSelect");
-  select.innerHTML = `<option value="">Seleccione ruta destino</option>`;
+  const prod = cacheProductos.find(p => normalizarCodigo(p, codigo));
+  if (!prod) return;
 
-  snap.forEach(doc => {
-    const d = doc.data();
-    select.innerHTML += `
-      <option value="${doc.id}" data-ruta="${d.rutaId}">
-        ${d.nombre} (${d.rutaId})
-      </option>`;
-  });
+  seleccionarProducto(prod);
+  agregarItem();
+  buscador.value = "";
+  buscador.focus();
 }
 
+function buscarPorNombre() {
+  modalResultados.style.display = "flex";
+  busquedaNombre.value = "";
+  listaResultados.innerHTML = "";
+  resultadosBusqueda = cacheProductos;
+  setTimeout(() => busquedaNombre.focus(), 50);
+}
+
+function manejarBusquedaNombre(e) {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    const term = e.target.value.toLowerCase();
+    listaResultados.innerHTML = "";
+    if (term.length < 2) return;
+
+    resultadosBusqueda
+      .filter(p => p.concepto.toLowerCase().includes(term))
+      .slice(0, 30)
+      .forEach(p => {
+        const d = document.createElement("div");
+        d.className = "item";
+        d.textContent = `${p.concepto} (${p.codigoBarra})`;
+        d.onclick = () => {
+          productoSeleccionadoPorNombre = p;
+          modalResultados.style.display = "none";
+          modalCantidad.style.display = "flex";
+          inputCantidadNombre.value = "";
+          inputCantidadNombre.focus();
+        };
+        listaResultados.appendChild(d);
+      });
+  }, 200);
+}
+
+function aceptarCantidad() {
+  const c = parseFloat(inputCantidadNombre.value);
+  if (!c || c <= 0) return alert("Cantidad inválida");
+  modalCantidad.style.display = "none";
+  seleccionarProducto(productoSeleccionadoPorNombre);
+  window.cantidadManual = c;
+  agregarItem();
+  buscador.focus();
+}
 
 /* ==========================================================
-   🟫 INIT CORRECTO (TODO DENTRO)
+   🔵 GUARDAR TRASPASO
 ========================================================== */
+async function guardarTraspaso() {
+  const sesion = JSON.parse(localStorage.getItem("provsoft_usuario"));
+  if (!sesion || carrito.length === 0) return;
 
+  const opt = vendedorSelect.selectedOptions[0];
+  if (!opt) return alert("Seleccione ruta");
+
+  await addDoc(
+    collection(db, "almacenes", opt.dataset.ruta, "entradas"),
+    { fecha: new Date().toISOString(), items: carrito }
+  );
+
+  alert("✔ Traspaso enviado");
+  carrito = [];
+  renderTabla();
+  localStorage.removeItem("carrito_traspaso");
+}
+
+/* ==========================================================
+   🟢 INIT
+========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
+  btnLogin.onclick = login;
+  btnBuscarNombre.onclick = buscarPorNombre;
+  btnAceptarCantidad.onclick = aceptarCantidad;
+  cerrarModal.onclick = () => modalResultados.style.display = "none";
+  buscador.onkeypress = e => e.key === "Enter" && buscarPorCodigo();
+  busquedaNombre.oninput = manejarBusquedaNombre;
+  btnTraspaso.onclick = guardarTraspaso;
 
-  const sesionGuardada = localStorage.getItem("provsoft_usuario");
-
-  if (sesionGuardada) {
-    iniciarSistema();
-  } else {
-    document.getElementById("loginBox").style.display = "block";
-    return;
-  }
-
-  document.getElementById("btnLogin").addEventListener("click", login);
-  document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
-  document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
-
-  document.getElementById("loginPassword").addEventListener("keypress", e => {
-    if (e.key === "Enter") login();
-  });
-
-  document.getElementById("vendedorSelect").addEventListener("change", () => {});
-  
-  document.getElementById("buscador").addEventListener("keypress", e => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      buscarPorCodigo();
-    }
-  });
-
-  document.getElementById("cerrarModal").addEventListener("click", () => {
-    document.getElementById("modalResultados").style.display = "none";
-  });
-
-  document.getElementById("busquedaNombre").addEventListener("input", manejarBusquedaNombre);
-
-  document.getElementById("btnAceptarCantidad").addEventListener("click", aceptarCantidad);
-
-  // sync
-  const ultimaSync = localStorage.getItem("ultima_sync_productos");
-  if (!ultimaSync || Date.now() - ultimaSync > 1000 * 60 * 60 * 12) {
+  if (!localStorage.getItem("ultima_sync_productos")) {
     await syncProductos();
     localStorage.setItem("ultima_sync_productos", Date.now());
   }
 
   cacheProductos = await getAllProductos();
-  await cargarRutasDestino();
-
-  const guardado = localStorage.getItem("carrito_traspaso");
-  if (guardado) {
-    carrito = JSON.parse(guardado);
-    renderTabla();
-  }
-  // ================= EVENT LISTENERS =================
-
-  // cambio de ruta destino
-  document.getElementById("vendedorSelect").addEventListener("change", e => {
-    const opt = e.target.selectedOptions[0];
-    if (!opt) return;
-    console.log("Ruta destino:", opt.dataset.ruta);
-  });
-
-  // escáner con ENTER
-  document.getElementById("buscador").addEventListener("keypress", e => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      buscarPorCodigo();
-    }
-  });
-
-  // abrir búsqueda por nombre
-  document.getElementById("btnBuscarNombre")
-    .addEventListener("click", buscarPorNombre);
-
-  // cerrar modal resultados
-  document.getElementById("cerrarModal").addEventListener("click", () => {
-    document.getElementById("modalResultados").style.display = "none";
-  });
-
-  // escribir en búsqueda por nombre (debounce)
-  document.getElementById("busquedaNombre").addEventListener("input", e => {
-    clearTimeout(debounceTimer);
-
-    debounceTimer = setTimeout(() => {
-      const term = e.target.value.toLowerCase().trim();
-      const lista = document.getElementById("listaResultados");
-
-      if (term.length < 2) {
-        lista.innerHTML = "";
-        return;
-      }
-
-      const filtrados = resultadosBusqueda
-        .filter(p => p.concepto?.toLowerCase().includes(term))
-        .slice(0, 30);
-
-      lista.innerHTML = "";
-
-      filtrados.forEach(p => {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.textContent = `${p.concepto} (${p.codigoBarra})`;
-
-        div.onclick = () => {
-          productoSeleccionadoPorNombre = p;
-          document.getElementById("modalResultados").style.display = "none";
-          document.getElementById("modalCantidad").style.display = "flex";
-          document.getElementById("inputCantidadNombre").value = "";
-          document.getElementById("inputCantidadNombre").focus();
-        };
-
-        lista.appendChild(div);
-      });
-    }, 200);
-  });
-
-  // aceptar cantidad manual
-  document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
-    const cant = parseFloat(
-      document.getElementById("inputCantidadNombre").value
-    );
-
-    if (!cant || cant <= 0) {
-      alert("Escriba una cantidad válida");
-      return;
-    }
-
-    document.getElementById("modalCantidad").style.display = "none";
-    seleccionarProducto(productoSeleccionadoPorNombre);
-    window.cantidadManual = cant;
-    agregarItem();
-    document.getElementById("preview").innerText = "";
-    document.getElementById("buscador").focus();
-  });
-
-/* ==========================================================
-   🟦 BUSCAR POR NOMBRE – ABRIR MODAL
-========================================================== */
-
-async function buscarPorNombre() {
-  document.getElementById("modalResultados").style.display = "flex";
-
-  // limpiar
-  document.getElementById("busquedaNombre").value = "";
-  document.getElementById("listaResultados").innerHTML = "";
-
-resultadosBusqueda = cacheProductos;
- // 🔥 AQUÍ MERO – enfoque automático
-  setTimeout(() => {
-    document.getElementById("busquedaNombre").focus();
-  }, 50);
-}
-
-document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
-  const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
-
-  if (!cant || cant <= 0) {
-    alert("Escriba una cantidad válida");
-    return;
-  }
-
-  // cerrar modal de cantidad
-  document.getElementById("modalCantidad").style.display = "none";
-
-  // poner producto seleccionado
-  seleccionarProducto(productoSeleccionadoPorNombre);
-
-  // guardar cantidad manual
-  window.cantidadManual = cant;
-
-  // agregar al carrito
-  agregarItem();
-  
-document.getElementById("preview").innerText = "";
-// 🔥 Enfocar escáner después de agregar manualmente
-  document.getElementById("buscador").focus();
 });
-/* ==========================================================
-   🟪 GUARDAR TRASPASO EN: /almacenes/{rutaId}/entradas/
-========================================================== */
-async function guardarTraspaso() {
-
-  // 👤 USUARIO LOGUEADO (CAPTURISTA)
-  const sesion = JSON.parse(localStorage.getItem("provsoft_usuario"));
-  if (!sesion) {
-    alert("Sesión no válida, vuelva a iniciar");
-    location.reload();
-    return;
-  }
-
-  // 🚚 VENDEDOR / RUTA DESTINO
-  const select = document.getElementById("vendedorSelect");
-  const vendedorId = select.value;
-  const rutaId = select.selectedOptions[0]?.dataset.ruta;
-
-  if (!vendedorId || !rutaId) {
-    alert("Seleccione correctamente la ruta destino");
-    return;
-  }
-
-  // 📦 VALIDAR CARRITO
-  if (carrito.length === 0) {
-    alert("Agregue productos antes de finalizar el traspaso");
-    return;
-  }
-
-  // 🧾 PAYLOAD FINAL (INTEGRADO)
-  const payload = {
-    // quién captura
-    capturistaId: sesion.id,
-    capturistaUsuario: sesion.usuario,
-    capturistaNombre: sesion.nombre,
-    capturistaRol: sesion.rol,
-
-    // destino
-    vendedorId,
-    rutaId,
-
-    // metadata
-    fecha: new Date().toISOString(),
-
-    // items (NO TOCAR)
-    items: carrito.map(i => ({
-      codigo: i.codigo,
-      concepto: i.concepto,
-      cantidad: i.cantidad,
-      precio: i.precio
-    }))
-  };
-
-  try {
-    // 🔥 /almacenes/{rutaId}/entradas/
-    const rutaColeccion = collection(db, "almacenes", rutaId, "entradas");
-    const docRef = await addDoc(rutaColeccion, payload);
-
-    alert("✔ Traspaso enviado correctamente");
-
-    // 🖨️ impresión
-    window.open(
-      `impresion_traspaso.html?id=${docRef.id}&ruta=${rutaId}`,
-      "_blank"
-    );
-
-    // 🧹 limpiar
-    carrito = [];
-    renderTabla();
-    localStorage.removeItem("carrito_traspaso");
-
-  } catch (err) {
-    console.error(err);
-    alert("❌ Error al guardar: " + err.message);
-  }
-}
 </script>
+
 
 </head>
 <body>
