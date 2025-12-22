@@ -493,118 +493,139 @@ async function cargarRutasDestino() {
 /* ==========================================================
    🟫 INIT CORRECTO (TODO DENTRO)
 ========================================================== */
-const sesionGuardada = localStorage.getItem("provsoft_usuario");
-
-if (sesionGuardada) {
-  iniciarSistema();
-} else {
-  document.getElementById("loginBox").style.display = "block";
-  return; // ⛔ no cargar nada más
-}
 
 document.addEventListener("DOMContentLoaded", async () => {
-document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
-document.getElementById("btnLogin").addEventListener("click", login);
 
-document.getElementById("loginPassword").addEventListener("keypress", e => {
-  if (e.key === "Enter") login();
-});
+  const sesionGuardada = localStorage.getItem("provsoft_usuario");
 
-const ultimaSync = localStorage.getItem("ultima_sync_productos");
+  if (sesionGuardada) {
+    iniciarSistema();
+  } else {
+    document.getElementById("loginBox").style.display = "block";
+    return;
+  }
 
-if (!ultimaSync || Date.now() - ultimaSync > 1000 * 60 * 60 * 12) {
-  await syncProductos();
-  localStorage.setItem("ultima_sync_productos", Date.now());
-}
-cacheProductos = await getAllProductos();
+  document.getElementById("btnLogin").addEventListener("click", login);
+  document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
+  document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
 
-  await cargarListaVendedores();
-const guardado = localStorage.getItem("carrito_traspaso");
-if (guardado) {
+  document.getElementById("loginPassword").addEventListener("keypress", e => {
+    if (e.key === "Enter") login();
+  });
 
-  // Mostrar barra PRO
-  const barra = document.getElementById("barraSesion");
-  barra.style.display = "block";
-  barra.style.opacity = "1";
-  barra.textContent = "Recuperando sesión anterior…";
+  document.getElementById("vendedorSelect").addEventListener("change", () => {});
+  
+  document.getElementById("buscador").addEventListener("keypress", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      buscarPorCodigo();
+    }
+  });
 
-  // Restaurar datos
-  carrito = JSON.parse(guardado);
-  renderTabla();
+  document.getElementById("cerrarModal").addEventListener("click", () => {
+    document.getElementById("modalResultados").style.display = "none";
+  });
 
-  // Cambiar mensaje después de un momento
-  setTimeout(() => {
-    barra.textContent = "Sesión restaurada ✓";
-  }, 600);
+  document.getElementById("busquedaNombre").addEventListener("input", manejarBusquedaNombre);
 
-  // Desaparecer suavemente
-  setTimeout(() => {
-    barra.style.opacity = "0";
-  }, 1400);
+  document.getElementById("btnAceptarCantidad").addEventListener("click", aceptarCantidad);
 
-  // Ocultar completamente
-  setTimeout(() => {
-    barra.style.display = "none";
-  }, 2000);
-}
+  // sync
+  const ultimaSync = localStorage.getItem("ultima_sync_productos");
+  if (!ultimaSync || Date.now() - ultimaSync > 1000 * 60 * 60 * 12) {
+    await syncProductos();
+    localStorage.setItem("ultima_sync_productos", Date.now());
+  }
 
-  // seleccionar vendedor
+  cacheProductos = await getAllProductos();
+  await cargarRutasDestino();
+
+  const guardado = localStorage.getItem("carrito_traspaso");
+  if (guardado) {
+    carrito = JSON.parse(guardado);
+    renderTabla();
+  }
+  // ================= EVENT LISTENERS =================
+
+  // cambio de ruta destino
   document.getElementById("vendedorSelect").addEventListener("change", e => {
     const opt = e.target.selectedOptions[0];
     if (!opt) return;
-    
-    document.getElementById("rutaId").value = opt.dataset.ruta;
+    console.log("Ruta destino:", opt.dataset.ruta);
   });
-  // escaneo con pistola (ENTER)
-document.getElementById("buscador").addEventListener("keypress", e => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    buscarPorCodigo();
-  }
-});
 
-  document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
-});
-document.getElementById("cerrarModal").addEventListener("click", () => {
-  document.getElementById("modalResultados").style.display = "none";
-});
+  // escáner con ENTER
+  document.getElementById("buscador").addEventListener("keypress", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      buscarPorCodigo();
+    }
+  });
 
-document.getElementById("busquedaNombre").addEventListener("input", e => {
-  clearTimeout(debounceTimer);
+  // abrir búsqueda por nombre
+  document.getElementById("btnBuscarNombre")
+    .addEventListener("click", buscarPorNombre);
 
-  debounceTimer = setTimeout(() => {
-    const term = e.target.value.toLowerCase().trim();
-    const lista = document.getElementById("listaResultados");
+  // cerrar modal resultados
+  document.getElementById("cerrarModal").addEventListener("click", () => {
+    document.getElementById("modalResultados").style.display = "none";
+  });
 
-    if (term.length < 2) {
+  // escribir en búsqueda por nombre (debounce)
+  document.getElementById("busquedaNombre").addEventListener("input", e => {
+    clearTimeout(debounceTimer);
+
+    debounceTimer = setTimeout(() => {
+      const term = e.target.value.toLowerCase().trim();
+      const lista = document.getElementById("listaResultados");
+
+      if (term.length < 2) {
+        lista.innerHTML = "";
+        return;
+      }
+
+      const filtrados = resultadosBusqueda
+        .filter(p => p.concepto?.toLowerCase().includes(term))
+        .slice(0, 30);
+
       lista.innerHTML = "";
+
+      filtrados.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.textContent = `${p.concepto} (${p.codigoBarra})`;
+
+        div.onclick = () => {
+          productoSeleccionadoPorNombre = p;
+          document.getElementById("modalResultados").style.display = "none";
+          document.getElementById("modalCantidad").style.display = "flex";
+          document.getElementById("inputCantidadNombre").value = "";
+          document.getElementById("inputCantidadNombre").focus();
+        };
+
+        lista.appendChild(div);
+      });
+    }, 200);
+  });
+
+  // aceptar cantidad manual
+  document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
+    const cant = parseFloat(
+      document.getElementById("inputCantidadNombre").value
+    );
+
+    if (!cant || cant <= 0) {
+      alert("Escriba una cantidad válida");
       return;
     }
 
-    const filtrados = resultadosBusqueda
-      .filter(p => p.concepto?.toLowerCase().includes(term))
-      .slice(0, 30); // 🔥 LIMITE PRO
-
-    lista.innerHTML = "";
-
-    filtrados.forEach(p => {
-      const div = document.createElement("div");
-      div.className = "item";
-      div.textContent = `${p.concepto} (${p.codigoBarra})`;
-
-      div.onclick = () => {
-        productoSeleccionadoPorNombre = p;
-        document.getElementById("modalResultados").style.display = "none";
-        document.getElementById("modalCantidad").style.display = "flex";
-        document.getElementById("inputCantidadNombre").value = "";
-        document.getElementById("inputCantidadNombre").focus();
-      };
-
-      lista.appendChild(div);
-    });
-  }, 200); // ⏱ debounce real
-});
-
+    document.getElementById("modalCantidad").style.display = "none";
+    seleccionarProducto(productoSeleccionadoPorNombre);
+    window.cantidadManual = cant;
+    agregarItem();
+    document.getElementById("preview").innerText = "";
+    document.getElementById("buscador").focus();
+  });
 
 /* ==========================================================
    🟦 BUSCAR POR NOMBRE – ABRIR MODAL
@@ -754,9 +775,6 @@ async function guardarTraspaso() {
 
 <!-- SELECCIÓN DE VENDEDOR -->
 <select id="vendedorSelect"></select>
-
-<!-- Ruta oculta -->
-<input id="rutaId" hidden>
 
   <!-- BUSCADOR -->
   <div>
