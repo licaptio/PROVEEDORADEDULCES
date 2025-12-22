@@ -289,8 +289,8 @@ async function login() {
 }
 
 function iniciarSistema() {
-  loginBox.style.display = "none";
-  app.style.display = "block";
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("app").style.display = "block";
 }
 
 /* ==========================================================
@@ -452,6 +452,15 @@ async function guardarTraspaso() {
    🟢 INIT
 ========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
+
+  // 🔹 REFERENCIAS CORRECTAS AL DOM (AQUÍ VA)
+  const loginUsuario = document.getElementById("loginUsuario");
+  const loginPassword = document.getElementById("loginPassword");
+  const loginBox = document.getElementById("loginBox");
+  const appDiv = document.getElementById("app");
+  const btnLogin = document.getElementById("btnLogin");
+
+  // 🔹 EVENTOS
   btnLogin.onclick = login;
   btnBuscarNombre.onclick = buscarPorNombre;
   btnAceptarCantidad.onclick = aceptarCantidad;
@@ -467,6 +476,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   cacheProductos = await getAllProductos();
 });
+
 </script>
 
 
