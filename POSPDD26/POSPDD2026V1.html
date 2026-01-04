@@ -1741,56 +1741,6 @@ async function guardarVentaEnFirestore(v) {
   }
 }
 
-/* ===========================================================
-   📦 SECCIÓN 13.1: MODO OFFLINE – COLA DE ENVÍO TELEGRAM
-   =========================================================== */
-
-/**
- * Guarda una venta pendiente de enviar a Telegram.
- */
-function guardarVentaPendiente(v) {
-  try {
-    const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes_telegram") || "[]");
-    pendientes.push(v);
-    localStorage.setItem("ventas_pendientes_telegram", JSON.stringify(pendientes));
-    console.warn("📦 Venta guardada en cola offline:", v.folio);
-  } catch (err) {
-    console.error("❌ Error guardando venta pendiente:", err);
-  }
-}
-
-/**
- * Intenta reenviar todas las ventas pendientes cuando hay conexión.
- */
-async function reenviarVentasPendientes() {
-  const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes_telegram") || "[]");
-  if (pendientes.length === 0) return;
-
-  console.log(`📨 Intentando reenviar ${pendientes.length} ventas pendientes...`);
-
-  for (const v of pendientes) {
-    try {
-      await enviarTelegram(v);
-      console.log("✅ Venta reenviada:", v.folio);
-    } catch (err) {
-      console.error("⚠️ Fallo al reenviar:", v.folio, err);
-      // Si vuelve a fallar, no la eliminamos aún
-      return;
-    }
-  }
-
-  // Si todo salió bien, limpiamos la cola
-  localStorage.removeItem("ventas_pendientes_telegram");
-  console.log("🧹 Cola de ventas pendiente vaciada.");
-}
-
-/**
- * Detecta cuando vuelve la conexión y reintenta los envíos.
- */
-window.addEventListener("online", () => {
-  toast("✅ Conexión restaurada. Reenviando ventas pendientes...", "#1e8e3e");
-  setTimeout(reenviarVentasPendientes, 1000);
-});
 
 /* ===========================================================
    🧾 SECCIÓN 14: TICKET VISUAL E IMPRESIÓN
@@ -2167,41 +2117,8 @@ window.location.href = "ticketsresumen.html";
 // =====================================================
 
 // Cuando el navegador recupere conexión
-window.addEventListener('online', async () => {
-  try {
-    // Verifica que existan SW y Background Sync
-    if ('serviceWorker' in navigator && 'SyncManager' in window) {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.sync.register('sync-ventas-pendientes');
-      console.log('📡 Evento de sincronización registrado');
-    } else {
-      // Si el navegador no soporta SyncManager, fuerza reenvío inmediato
-      console.warn('⚠️ Background Sync no soportado, reenviando manualmente');
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ action: 'sincronizar' });
-      }
-    }
-  } catch (err) {
-    console.error('❌ Error al registrar sincronización:', err);
-  }
-});
 </script>
 <script>
-// =====================================================
-// 📬 Receptor de mensajes del Service Worker
-// =====================================================
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('message', (event) => {
-    if (event.data && event.data.action === 'sincronizar') {
-      console.log('📦 Orden recibida: sincronizar ventas pendientes');
-      if (typeof reenviarVentasPendientes === 'function') {
-        reenviarVentasPendientes(); // Llama tu función de reenvío
-      } else {
-        console.warn('⚠️ Función reenviarVentasPendientes() no encontrada');
-      }
-    }
-  });
-}
 </script>
 
 <script>
@@ -2517,5 +2434,6 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
 
