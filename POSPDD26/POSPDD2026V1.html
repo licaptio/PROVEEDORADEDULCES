@@ -348,19 +348,6 @@ const {
   runTransaction, doc, getDoc, getDocs, getDocFromServer, query, where, limit 
 } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
   const { enableIndexedDbPersistence } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-  const { obtenerUbicacionRobusta } = await import("./geoHelper.js");
-// 🔧 FLAG GLOBAL: apagar/encender geolocalización sin tocar el resto del POS
-const GEO_ACTIVO = false; // false = NO pedir ubicación
-async function obtenerUbicacionSegura() {
-  if (!GEO_ACTIVO) return null;
-  try {
-    return await obtenerUbicacionRobusta();
-  } catch (e) {
-    console.warn("⚠️ Geolocalización desactivada por error:", e);
-    return null;
-  }
-}
-
 // ⚙️ BLOQUE 5: SCRIPT PRINCIPAL (FIREBASE + LÓGICA POS)
 
 const firebaseConfig = {
@@ -1601,10 +1588,12 @@ $("#btnConfirmarCobro").onclick = async () => {
       tx.set(folioRef, { ultimo: consecutivo, fecha: fechaTag });
       folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
     });
-// 💸 ACUMULADOR DE COMISIONES (ANTES DE ARMAR VENTA)
+
+// ===============================
+// 🧾 ARMAR VENTA (ÚNICA VEZ)
+// ===============================
 let comision_total = 0;
 
-// 🧾 ARMAR VENTA COMPLETA (ESTE BLOQUE NO EXISTÍA BIEN)
 const venta = {
   folio,
   rutaId,
@@ -1643,66 +1632,50 @@ const venta = {
   usuarioNombre: USUARIO_LOGUEADO.nombre,
 
   notas: $("#notasCobro").value || "",
-  autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
-  ubicacion: await obtenerUbicacionSegura(),
-
-  // 👇 AQUÍ SÍ VA EL MAP
-  detalle: carrito.map(it => {
-
-    let comision_monto = 0;
-
-    // 🟫 CIGARROS → proporcional por 10
-    if (it.comision_tipo === "por_10" && it.comision_valor) {
-      comision_monto = +((it.cantidad / 10) * it.comision_valor).toFixed(2);
-    }
-
-    // 🟦 PORCENTAJE
-    if (it.comision_tipo === "porcentaje" && it.comision_valor) {
-      comision_monto = +((it.importe * it.comision_valor) / 100).toFixed(2);
-    }
-
-    // 🔼 acumular
-    comision_total += comision_monto;
-
-    return {
-      id: it.id,
-      nombre: it.nombre,
-      codigo: it.codigo,
-
-      cantidad: it.cantidad,
-      precio_unit: it.precioUnit,
-      importe: it.importe,
-
-      costo_unit: +(it.costoUnit || 0).toFixed(2),
-      costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
-
-      claveSat: it.claveSat,
-      unidadSat: it.unidadSat,
-
-      ivaTasa: it.ivaTasa,
-      iepsTasa: it.iepsTasa,
-      iva_calculado: it.iva_calculado,
-      ieps_calculado: it.ieps_calculado,
-
-      departamento_id: it.departamento_id,
-      departamento_info: {
-        id: it.departamento_id,
-        nombre:
-          it.departamento ||
-          catalogoById.get(it.id)?.departamento ||
-          "DESCONOCIDO",
-        iva: Math.round(it.ivaTasa * 100),
-        ieps: Math.round(it.iepsTasa * 100)
-      },
-
-      // 💸 comisión por línea
-      comision_tipo: it.comision_tipo || null,
-      comision_valor: it.comision_valor || 0,
-      comision_monto
-    };
-  })
+  autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null
 };
-// 👈 AQUÍ VA (NO DENTRO DEL MAP, NO ANTES)
+
+// ===============================
+// 📦 DETALLE + COMISIONES
+// ===============================
+venta.detalle = carrito.map(it => {
+  let comision = 0;
+
+  if (it.comision_tipo === "PORCENTAJE") {
+    comision = it.importe * (it.comision_valor / 100);
+  } else if (it.comision_tipo === "FIJO") {
+    comision = it.comision_valor * it.cantidad;
+  }
+
+  comision_total += comision;
+
+  return {
+    id: it.id,
+    nombre: it.nombre,
+    codigo: it.codigo,
+
+    cantidad: it.cantidad,
+    precio_unit: it.precioUnit,
+    importe: it.importe,
+
+    costo_unit: +(it.costoUnit || 0).toFixed(2),
+    costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
+
+    claveSat: it.claveSat || null,
+    unidadSat: it.unidadSat || null,
+
+    ivaTasa: it.ivaTasa ?? 0,
+    iepsTasa: it.iepsTasa ?? 0,
+    iva_calculado: it.iva_calculado ?? 0,
+    ieps_calculado: it.ieps_calculado ?? 0,
+
+    departamento_id: it.departamento_id || null,
+    departamento: it.departamento || "DESCONOCIDO",
+
+    comision
+  };
+});
+
 venta.comision_total = +comision_total.toFixed(2);
 
     // 💾 GUARDAR VENTA UNA SOLA VEZ
@@ -1771,7 +1744,7 @@ async function guardarVentaEnFirestore(v) {
   }
 }
 /* ===========================================================
-   📲 SECCIÓN 13: ENVÍO A TELEGRAM (CON UBICACIÓN)
+   + 📲 SECCIÓN 13: ENVÍO A TELEGRAM (TICKET TEXTO)
    =========================================================== */
 async function enviarTelegram(v) {
   try {
@@ -1793,28 +1766,7 @@ async function enviarTelegram(v) {
     const cajero = v.usuarioNombre || "—";
     const cliente = v.cliente || "PÚBLICO EN GENERAL";
     const descPorc = v.descuento_porcentaje || 0;
-
-    // 📍 Información de ubicación
-    let ubicacionInfo = "📍 Ubicación no disponible";
-    let mapsUrl = null;
-    
-    if (v.ubicacion) {
-      if (v.ubicacion.direccion) {
-        ubicacionInfo = `📍 ${v.ubicacion.direccion}`;
-        if (v.ubicacion.metodo) {
-          ubicacionInfo += ` (${v.ubicacion.metodo})`;
-        }
-      } else if (v.ubicacion.lat && v.ubicacion.lng) {
-        ubicacionInfo = `📍 Coordenadas: ${v.ubicacion.lat.toFixed(6)}, ${v.ubicacion.lng.toFixed(6)}`;
-        if (v.ubicacion.metodo) {
-          ubicacionInfo += ` (${v.ubicacion.metodo})`;
-        }
-        // Crear URL de Google Maps
-        mapsUrl = `https://www.google.com/maps?q=${v.ubicacion.lat},${v.ubicacion.lng}`;
-      }
-    }
-
-    // 🧾 Construir texto térmico para Telegram (incluyendo ubicación)
+    + // 🧾 Construir texto térmico para Telegram
     let ticket = `
 PROVEEDORA MATRIZ
 MADERO 690 SUR, CENTRO
@@ -1851,8 +1803,6 @@ Artículos vendidos: ${articulos}
 Incluye ${imp} de Impuestos
 Cajero: ${cajero}
 --------------------------------
-${ubicacionInfo}
---------------------------------
 ¡Gracias por su compra!
 `;
 
@@ -1872,31 +1822,6 @@ ${ubicacionInfo}
     }
 
     console.log("✅ Ticket enviado a Telegram");
-
-    // 📍 Enviar ubicación en Google Maps como mensaje SEPARADO si hay coordenadas
-    if (mapsUrl) {
-      console.log("📍 Enviando enlace de Google Maps:", mapsUrl);
-      
-      // Pequeña pausa para evitar rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const mapsResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: `🗺️ *Ubicación de la venta:*\n[Ver en Google Maps](${mapsUrl})`,
-          parse_mode: "Markdown",
-          disable_web_page_preview: false
-        })
-      });
-
-      if (!mapsResponse.ok) {
-        console.warn("⚠️ No se pudo enviar el enlace de Google Maps, pero el ticket se envió correctamente");
-      } else {
-        console.log("✅ Enlace de Google Maps enviado");
-      }
-    }
 
     // 🧾 Generar PDF opcional (para respaldo)
     try {
@@ -2721,3 +2646,4 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
