@@ -1681,11 +1681,8 @@ venta.comision_total = +comision_total.toFixed(2);
     // 💾 GUARDAR VENTA UNA SOLA VEZ
     console.log("💾 Guardando venta en Firestore...");
     await guardarVentaEnFirestore(venta);
-    
-    // 📲 Enviar a Telegram
-    console.log("📲 Enviando a Telegram...");
-    await enviarTelegram(venta);
-    
+ 
+ 
     // 🧾 Generar e imprimir ticket
     console.log("🧾 Generando ticket...");
     rellenarTicket(venta);
@@ -1741,132 +1738,6 @@ async function guardarVentaEnFirestore(v) {
   } catch (e) {
     console.error("❌ Error guardando venta:", e);
     throw e; // Propagar el error para manejarlo arriba
-  }
-}
-/* ===========================================================
-   + 📲 SECCIÓN 13: ENVÍO A TELEGRAM (TICKET TEXTO)
-   =========================================================== */
-async function enviarTelegram(v) {
-  try {
-    const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-    const CHAT_ID = "6617988297";
-    const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", {
-      minimumFractionDigits: 2, maximumFractionDigits: 2
-    });
-
-    // 📦 Datos base
-    const folio = v.folio;
-    const total = formatoNum(v.resumen_financiero?.total);
-    const subtotal = formatoNum(v.resumen_financiero?.subtotal);
-    const desc = formatoNum(v.descuento_monto || 0);
-    const imp = formatoNum(v.resumen_financiero?.impuestos || 0);
-    const pago = formatoNum(v.recibido || v.resumen_financiero?.total || 0);
-    const cambio = formatoNum(v.cambio || 0);
-    const articulos = (v.detalle || []).reduce((a, b) => a + Number(b.cantidad || 0), 0);
-    const cajero = v.usuarioNombre || "—";
-    const cliente = v.cliente || "PÚBLICO EN GENERAL";
-    const descPorc = v.descuento_porcentaje || 0;
-    + // 🧾 Construir texto térmico para Telegram
-    let ticket = `
-PROVEEDORA MATRIZ
-MADERO 690 SUR, CENTRO
-LINARES, NUEVO LEÓN, 67700
-RFC: PDD-031204-KL5
-TEL: (821) 212-1805
-RÉGIMEN GENERAL DE LEY
-PERSONAS MORALES
---------------------------------
-# Venta : ${folio}
-Fecha   : ${v.fecha_txt}
-Cliente : ${cliente}
---------------------------------
-`;
-
-    (v.detalle || []).forEach(it => {
-      const nombre = (it.nombre || "").substring(0, 32);
-      const cant = it.cantidad.toFixed(3).padStart(5, " ");
-      const prec = it.precio_unit.toFixed(2).padStart(8, " ");
-      const imp = it.importe.toFixed(2).padStart(9, " ");
-      ticket += `${nombre}\n`;
-      ticket += `Cant:${cant}  ${prec}  ${imp}\n`;
-    });
-
-    ticket += `--------------------------------
-Subtotal : $${subtotal}
-Desc. ${descPorc}% : $${desc}
-Impuestos: $${imp}
-Total    : $${total}
-Su Pago  : $${pago}
-Cambio   : $${cambio}
---------------------------------
-Artículos vendidos: ${articulos}
-Incluye ${imp} de Impuestos
-Cajero: ${cajero}
---------------------------------
-¡Gracias por su compra!
-`;
-
-    // ✉️ Enviar texto del ticket
-    const ticketResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: CHAT_ID,
-        text: "```" + ticket + "```",
-        parse_mode: "Markdown"
-      })
-    });
-
-    if (!ticketResponse.ok) {
-      throw new Error(`Error enviando ticket: ${ticketResponse.status}`);
-    }
-
-    console.log("✅ Ticket enviado a Telegram");
-
-    // 🧾 Generar PDF opcional (para respaldo)
-    try {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-      pdf.setFont("courier", "bold");
-      pdf.setFontSize(11);
-      let y = 10;
-      ticket.split("\n").forEach(linea => {
-        pdf.text(linea, 10, y);
-        y += 5;
-        if (y > 280) { pdf.addPage(); y = 10; }
-      });
-      const pdfBlob = pdf.output("blob");
-
-      // Pequeña pausa para evitar rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 📎 Enviar PDF como respaldo (opcional)
-      const formData = new FormData();
-      formData.append("chat_id", CHAT_ID);
-      formData.append("document", pdfBlob, `Ticket_${folio}.pdf`);
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
-        method: "POST",
-        body: formData
-      });
-
-      console.log("✅ PDF enviado a Telegram");
-    } catch (pdfErr) {
-      console.warn("⚠️ Error generando/enviando PDF:", pdfErr);
-    }
-
-    console.log("✅ Todo enviado correctamente a Telegram:", folio);
-    
-  } catch (err) {
-    console.error("❌ Error enviando a Telegram:", err);
-
-    // 🚨 NUEVO BLOQUE: si hay error, guardamos la venta pendiente
-    if (!navigator.onLine || err.message.includes("Failed to fetch")) {
-      guardarVentaPendiente(v);
-      console.warn("📦 Venta guardada para reintento al reconectarse:", v.folio);
-      toast("📦 Venta guardada localmente (sin conexión)", "#f59e0b");
-    } else {
-      console.warn("⚠️ Error no relacionado con conexión:", err.message);
-    }
   }
 }
 
@@ -2646,4 +2517,5 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
