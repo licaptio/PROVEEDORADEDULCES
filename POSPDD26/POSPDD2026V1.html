@@ -366,8 +366,6 @@ let catalogo = [];
 let rutaId = null;
 let USUARIO_LOGUEADO = null;
 let clienteSeleccionado = null;
-let ultimoProductoAgregado = null;
-let tiempoUltimoAgregado = 0;
 // 🔒 Bloqueo duro para evitar reprocesar input
 let procesandoAddProducto = false;
 
@@ -1047,8 +1045,8 @@ function actualizarCantidad(id, nuevaCant) {
   }
 
   // 🧮 Mantener descuento activo automáticamente
-  const desc = Number(localStorage.getItem("desc_porcentaje") || 0);
-  render(desc);
+render(getDescuentoActivo());
+
 }
   
 /* ===========================================================
@@ -1059,11 +1057,7 @@ let renderTimer;
 function renderDebounced() {
   clearTimeout(renderTimer);
 
-  const desc = Number(
-  localStorage.getItem("desc_porcentaje") ??
-  descuentoAutorizado ??
-  0
-);
+  const desc = getDescuentoActivo();
 
   renderTimer = setTimeout(() => {
     render(desc);
@@ -1075,7 +1069,7 @@ function renderDebounced() {
    =========================================================== */
 window.addProduct = addProduct;
 window.render = render;
-let productoTemporal = null;
+
 
 // 🔁 Escaneo continuo: cada código se agrega directo al carrito
 function seleccionarProducto(prod, pedirCantidad = false) {
@@ -1304,7 +1298,6 @@ function procesarCodigoEscaneado(codigo) {
 buscador.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && scanBuffer.length > 0) {
     e.preventDefault();
-    origenEscaneo = "hid";
     procesarCodigoEscaneado(scanBuffer);
     return;
   }
@@ -1429,6 +1422,14 @@ const descuentoInfo = $("#descuentoInfo");
 
 
 let descuentoAutorizado = 0;
+// 🎯 Fuente única de verdad para descuento activo (FIX ERROR 4)
+function getDescuentoActivo() {
+  return Number(
+    localStorage.getItem("desc_porcentaje") ||
+    descuentoAutorizado ||
+    0
+  );
+}
 
 function abrirCobro() {
   if (carrito.length === 0) {
@@ -2086,65 +2087,6 @@ window.location.href = "ticketsresumen.html";
 
   });
 }
-
-
-</script>
-<script>
-// =====================================================
-// 🔄 Reintento automático de sincronización de ventas
-// =====================================================
-
-// Cuando el navegador recupere conexión
-</script>
-<script>
-</script>
-
-</script>
-<style>
-/* 🎨 ESTILOS MEJORADOS PARA EL ESCÁNER */
-#qrReaderContainer {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.95);
-  z-index: 3000;
-  backdrop-filter: blur(5px);
-}
-
-#reader {
-  width: 90%;
-  max-width: 400px;
-  margin: auto;
-  background: #fff;
-  border-radius: 16px;
-  padding: 15px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-}
-
-#cerrarCam {
-  margin-top: 20px;
-  background: #c0392b;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 10px;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  font-size: 16px;
-  transition: all 0.2s ease;
-}
-
-#cerrarCam:hover {
-  background: #a93226;
-  transform: scale(1.05);
-}
-</style>
-
-
 <!-- 🛡️ BLOQUE 10: BLOQUEO DE SALIDA Y REFRESCO ACCIDENTAL -->
 <script>
 let bloqueoSalida=true;
@@ -2183,7 +2125,10 @@ function bloquearSiCobroActivo() {
   return false;
 }
 
-  
+// ✅ Estado real de sesión activa (FIX ERROR 1)
+function haySesionActiva() {
+  return document.body.classList.contains("sesion-activa");
+}
 
 </script>
 <!-- 🔢 MODAL CANTIDAD PERSONALIZADO -->
@@ -2203,7 +2148,6 @@ function bloquearSiCobroActivo() {
 </div>
 
 <style>
-  /* 🎯 Barra inferior fija profesional */
 /* 🚫 Barra inferior OCULTA por defecto */
 #bottomBar {
   position: fixed;
@@ -2260,6 +2204,7 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
 
 
