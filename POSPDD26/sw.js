@@ -9,7 +9,7 @@ const CACHE_NAME = "provsoft-pos-v10";
 /* 🔹 Archivos estáticos críticos */
 const STATIC_ASSETS = [
   "./",
-  "./POSVTA4.html",            // ⚠️ ajusta si el nombre es otro
+  "./POSPDD2026V1.html",            // ⚠️ ajusta si el nombre es otro
   "./offline.html",
   "./manifest.json",
   "./logo_proveedora.webp",
