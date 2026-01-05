@@ -870,7 +870,7 @@ existente.importe = cantidadNueva * precioCorrecto;
       ...prod,
       codigo: prod.codigo || prod.codigoBarra || "",
       cantidad: cant,
-      precioUnit: precioCorrecto,
+      precio_unit: precioCorrecto,
       importe: cant * precioCorrecto,
       departamento: prod.departamento || null,
       departamento_id: prod.departamento_id || null,
@@ -1605,6 +1605,20 @@ const venta = {
   cortado: false,
   descuento_porcentaje: descuentoAutorizado,
   descuento_monto: tot.descuento,
+venta.detalle = carrito.map(...);
+
+const costo_total = venta.detalle.reduce((s,x)=>s+x.costo_total,0);
+const utilidad_total = venta.detalle.reduce((s,x)=>s+(x.importe-x.costo_total),0);
+
+venta.resumen_financiero = {
+  subtotal,
+  descuento,
+  impuestos,
+  total,
+  costo_total,
+  utilidad_total,
+  margen_porcentaje
+};
 
 resumen_financiero: {
   // 💲 Venta
@@ -1649,7 +1663,12 @@ resumen_financiero: {
 // ===============================
 venta.detalle = carrito.map(it => {
 
-  // 🤝 COMISIÓN SNAPSHOT
+  // 💰 UTILIDAD REAL POR LÍNEA (SNAPSHOT)
+  const utilidad = +(
+    it.importe - (it.costo_unit * it.cantidad)
+  ).toFixed(2);
+
+  // 🤝 COMISIÓN
   let comision_calculada = 0;
   if (it.comision_tipo === "porcentaje") {
     comision_calculada = +(it.importe * (it.comision_valor / 100)).toFixed(2);
@@ -1668,26 +1687,28 @@ venta.detalle = carrito.map(it => {
     // 📦 Cantidad
     cantidad: it.cantidad,
 
-    // 💲 Precios SNAPSHOT
+    // 💲 Precios
     precio_unit: +it.precio_unit.toFixed(2),
     importe: +it.importe.toFixed(2),
 
-    // 💰 Costos SNAPSHOT
+    // 💰 Costos
     costo_unit: +it.costo_unit.toFixed(2),
     costo_total: +(it.costo_unit * it.cantidad).toFixed(2),
 
-    // 🧮 Impuestos SNAPSHOT
+    // 📈 UTILIDAD (🔥 YA EXISTE)
+    utilidad,
+
+    // 🧮 Impuestos
     ivaTasa: it.ivaTasa,
     iva_calculado: +it.iva_calculado.toFixed(2),
-
     iepsTasa: it.iepsTasa,
     ieps_calculado: +it.ieps_calculado.toFixed(2),
 
-    // 🧾 SAT SNAPSHOT (CFDI 4.0)
+    // 🧾 SAT
     claveSat: it.claveSat,
     unidadMedidaSat: it.unidadMedidaSat,
 
-    // 🤝 Comisión SNAPSHOT
+    // 🤝 Comisión
     comision_tipo: it.comision_tipo,
     comision_valor: it.comision_valor,
     comision_calculada,
@@ -2226,5 +2247,6 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
 
