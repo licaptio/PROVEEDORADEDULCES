@@ -810,8 +810,6 @@ function addProduct(prod, cant = 1) {
   }
 
   const existente = carrito.find(x => x.id === prod.id);
-
-  // -------------------------------
 // 🚨 PRODUCTO DE BALANZA
 if (String(prod.codigo || "").startsWith("2")) {
 
@@ -854,7 +852,6 @@ if (String(prod.codigo || "").startsWith("2")) {
   liberarAddProducto();
   return;
 }
-
   // -------------------------------
   // 🧮 PRODUCTO NORMAL (PZ)
   // -------------------------------
@@ -2220,4 +2217,5 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
