@@ -128,7 +128,6 @@ body *{visibility:hidden!important}
 width:72mm!important;margin:0 auto!important;padding:0 2mm!important;
 font-size:14px!important;line-height:1.45;
 }
-header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 }
 @page{size:72mm auto;margin:0}
 
@@ -266,9 +265,6 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
   <button id="btnLogout" class="bar-btn rojo">🚪 Salir</button>
 </div>
 </div> <!-- 👈 cierre de #posApp --> 
-<!-- 📸 LIBRERÍAS EXTERNAS -->
-
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <!-- 💳 MODAL DE COBRO CON AUTORIZACIÓN DE DESCUENTO -->
 <div id="modalCobro"
@@ -370,8 +366,6 @@ let catalogo = [];
 let rutaId = null;
 let USUARIO_LOGUEADO = null;
 let clienteSeleccionado = null;
-let origenEscaneo = null; // "camara" | "hid" 👈 AQUÍ
-// 🔒 Anti-doble-disparo de escáner
 let ultimoProductoAgregado = null;
 let tiempoUltimoAgregado = 0;
 // 🔒 Bloqueo duro para evitar reprocesar input
@@ -579,9 +573,6 @@ async function leerCache(ruta) {
    =========================================================== */
 
 async function cargarCatalogo() {
-  const cacheKey = "catalogo_cache";
-  const cache = JSON.parse(localStorage.getItem(cacheKey) || "{}");
-  const unDia = 24 * 60 * 60 * 1000;
   const statusBox = document.createElement("div");
 
   // 🟦 Muestra un mensaje flotante mientras carga
@@ -1929,7 +1920,7 @@ async function fijarClientePublico(){
    =========================================================== */
 window.addEventListener("offline", () => {
   const aviso = document.createElement("div");
-  aviso.textContent = "⚠️ Estás sin conexión. Las ventas se guardarán localmente.";
+  aviso.textContent = "⚠️ Estás sin conexión. El sistema intentará sincronizar al reconectar.";
 aviso.style.cssText = `
   position:fixed;top:0;left:0;right:0;
   background:#c0392b;color:#fff;padding:8px;text-align:center;
@@ -2269,6 +2260,7 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
 
 
