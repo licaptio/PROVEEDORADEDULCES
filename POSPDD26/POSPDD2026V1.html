@@ -1053,7 +1053,7 @@ function actualizarCantidad(id, nuevaCant) {
 item.precio_unit = obtenerPrecioSegunCantidad(item, cant);
 item.importe = item.cantidad * item.precio_unit;
   if (productosMayoreo.includes(String(item.codigo))) {
-    if (cant >= 5 && item.precioUnit !== precioAnterior) {
+    if (cant >= 5 && item.precio_unit !== precioAnterior) {
       beep(600, 0.15);
       toast(`💸 Mayoreo aplicado a ${item.nombre}`, "#1e8e3e");
     } else if (cant < 5 && item.precioUnit !== precioAnterior) {
@@ -1592,6 +1592,7 @@ $("#btnConfirmarCobro").onclick = async () => {
 // 🧾 ARMAR VENTA (ÚNICA VEZ)
 // ===============================
 let comision_total = 0;
+
 const venta = {
   folio,
   rutaId,
@@ -1614,9 +1615,6 @@ const venta = {
   autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null
 };
 
-const costo_total = venta.detalle.reduce((s,x)=>s+x.costo_total,0);
-const utilidad_total = venta.detalle.reduce((s,x)=>s+(x.importe-x.costo_total),0);
-
 venta.resumen_financiero = {
   subtotal: +tot.subtotal.toFixed(2),
   descuento: +tot.descuento.toFixed(2),
@@ -1631,16 +1629,6 @@ venta.resumen_financiero = {
   margen_porcentaje: tot.subtotal > 0
     ? +((venta.detalle.reduce((s, x) => s + x.utilidad, 0) / tot.subtotal) * 100).toFixed(2)
     : 0
-};
-
-  fecha: serverTimestamp(),
-  fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
-
-  usuarioId: USUARIO_LOGUEADO.id,
-  usuarioNombre: USUARIO_LOGUEADO.nombre,
-
-  notas: $("#notasCobro").value || "",
-  autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null
 };
 
 // ===============================
@@ -2232,7 +2220,3 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
-
-
-
-
