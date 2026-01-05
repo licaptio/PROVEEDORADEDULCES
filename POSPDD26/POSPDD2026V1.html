@@ -810,10 +810,13 @@ function addProduct(prod, cant = 1) {
   }
 
   const existente = carrito.find(x => x.id === prod.id);
+
+// -------------------------------
 // 🚨 PRODUCTO DE BALANZA
+// -------------------------------
 if (String(prod.codigo || "").startsWith("2")) {
 
-  const precioUnit = Number(prod.precioPublico || 0);
+  const precioCorrecto = Number(prod.precioPublico || 0);
 
   carrito.push({
     id: prod.id,
@@ -823,8 +826,8 @@ if (String(prod.codigo || "").startsWith("2")) {
     cantidad: cant,
 
     // 💲 PRECIOS
-    precio_unit: precioUnit,
-    importe: +(cant * precioUnit).toFixed(2),
+    precio_unit: precioCorrecto,
+    importe: +(cant * precioCorrecto).toFixed(2),
 
     // 💰 COSTOS
     costo_unit: Number(prod.costoUnit || prod.costoSinImpuesto || 0),
@@ -1691,7 +1694,7 @@ venta.resumen_financiero = {
 
 venta.comision_total = +comision_total.toFixed(2);
 
-    // 💾 GUARDAR VENTA UNA SOLA VEZ
+// 💾 GUARDAR VENTA UNA SOLA VEZ
     console.log("💾 Guardando venta en Firestore...");
     await guardarVentaEnFirestore(venta);
  window.__VENTA_ACTUAL = venta;
@@ -2217,5 +2220,6 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
 
