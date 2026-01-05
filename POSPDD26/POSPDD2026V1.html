@@ -1606,24 +1606,33 @@ const venta = {
   descuento_porcentaje: descuentoAutorizado,
   descuento_monto: tot.descuento,
 
-  resumen_financiero: {
-    subtotal: tot.subtotal,
-    descuento: tot.descuento,
-    impuestos: tot.impuestos,
-    total: tot.total,
-    costo_total: carrito.reduce(
-      (s, x) => s + (x.costoUnit || 0) * x.cantidad, 0
-    ).toFixed(2),
-    utilidad_total: carrito.reduce(
-      (s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0
-    ).toFixed(2),
-    margen_porcentaje: (() => {
-      const utilidad = carrito.reduce(
-        (s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0
-      );
-      return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
-    })()
-  },
+resumen_financiero: {
+  // 💲 Venta
+  subtotal: +tot.subtotal.toFixed(2),
+  descuento: +tot.descuento.toFixed(2),
+  impuestos: +tot.impuestos.toFixed(2),
+  total: +tot.total.toFixed(2),
+
+  // 💰 Costos / Utilidad (SNAPSHOT REAL)
+  costo_total: +venta.detalle
+    .reduce((s, x) => s + x.costo_total, 0)
+    .toFixed(2),
+
+  utilidad_total: +venta.detalle
+    .reduce((s, x) => s + x.utilidad, 0)
+    .toFixed(2),
+
+  // 🤝 Comisión
+  comision_total: +comision_total.toFixed(2),
+
+  // 📊 Margen sobre SUBTOTAL
+  margen_porcentaje: tot.subtotal > 0
+    ? +(
+        (venta.detalle.reduce((s, x) => s + x.utilidad, 0) / tot.subtotal) * 100
+      ).toFixed(2)
+    : 0
+},
+
 
   fecha: serverTimestamp(),
   fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
@@ -1636,43 +1645,56 @@ const venta = {
 };
 
 // ===============================
-// 📦 DETALLE + COMISIONES
+// 📦 DETALLE SNAPSHOT (CFDI READY)
 // ===============================
 venta.detalle = carrito.map(it => {
-  let comision = 0;
 
-  if (it.comision_tipo === "PORCENTAJE") {
-    comision = it.importe * (it.comision_valor / 100);
-  } else if (it.comision_tipo === "FIJO") {
-    comision = it.comision_valor * it.cantidad;
+  // 🤝 COMISIÓN SNAPSHOT
+  let comision_calculada = 0;
+  if (it.comision_tipo === "porcentaje") {
+    comision_calculada = +(it.importe * (it.comision_valor / 100)).toFixed(2);
+  } else if (it.comision_tipo === "fijo") {
+    comision_calculada = +(it.comision_valor * it.cantidad).toFixed(2);
   }
 
-  comision_total += comision;
+  comision_total += comision_calculada;
 
   return {
+    // 🔑 Identidad
     id: it.id,
-    nombre: it.nombre,
     codigo: it.codigo,
+    nombre: it.nombre,
 
+    // 📦 Cantidad
     cantidad: it.cantidad,
-    precio_unit: it.precioUnit,
-    importe: it.importe,
 
-    costo_unit: +(it.costoUnit || 0).toFixed(2),
-    costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
+    // 💲 Precios SNAPSHOT
+    precio_unit: +it.precio_unit.toFixed(2),
+    importe: +it.importe.toFixed(2),
 
-    claveSat: it.claveSat || null,
-    unidadSat: it.unidadSat || null,
+    // 💰 Costos SNAPSHOT
+    costo_unit: +it.costo_unit.toFixed(2),
+    costo_total: +(it.costo_unit * it.cantidad).toFixed(2),
 
-    ivaTasa: it.ivaTasa ?? 0,
-    iepsTasa: it.iepsTasa ?? 0,
-    iva_calculado: it.iva_calculado ?? 0,
-    ieps_calculado: it.ieps_calculado ?? 0,
+    // 🧮 Impuestos SNAPSHOT
+    ivaTasa: it.ivaTasa,
+    iva_calculado: +it.iva_calculado.toFixed(2),
 
-    departamento_id: it.departamento_id || null,
-    departamento: it.departamento || "DESCONOCIDO",
+    iepsTasa: it.iepsTasa,
+    ieps_calculado: +it.ieps_calculado.toFixed(2),
 
-    comision
+    // 🧾 SAT SNAPSHOT (CFDI 4.0)
+    claveSat: it.claveSat,
+    unidadMedidaSat: it.unidadMedidaSat,
+
+    // 🤝 Comisión SNAPSHOT
+    comision_tipo: it.comision_tipo,
+    comision_valor: it.comision_valor,
+    comision_calculada,
+
+    // 📂 Clasificación
+    departamento: it.departamento,
+    departamento_id: it.departamento_id
   };
 });
 
@@ -2204,4 +2226,5 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
