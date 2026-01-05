@@ -1048,8 +1048,7 @@ function actualizarCantidad(id, nuevaCant) {
   const cant = parseFloat(nuevaCant);
   if (isNaN(cant) || cant < 0) return;
 
-  const precioAnterior = item.precioUnit;
-
+  const precioAnterior = item.precio_unit;
   item.cantidad = cant;
 item.precio_unit = obtenerPrecioSegunCantidad(item, cant);
 item.importe = item.cantidad * item.precio_unit;
@@ -1593,7 +1592,6 @@ $("#btnConfirmarCobro").onclick = async () => {
 // 🧾 ARMAR VENTA (ÚNICA VEZ)
 // ===============================
 let comision_total = 0;
-
 const venta = {
   folio,
   rutaId,
@@ -1605,48 +1603,35 @@ const venta = {
   cortado: false,
   descuento_porcentaje: descuentoAutorizado,
   descuento_monto: tot.descuento,
-venta.detalle = carrito.map(...);
+
+  fecha: serverTimestamp(),
+  fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
+
+  usuarioId: USUARIO_LOGUEADO.id,
+  usuarioNombre: USUARIO_LOGUEADO.nombre,
+
+  notas: $("#notasCobro").value || "",
+  autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null
+};
 
 const costo_total = venta.detalle.reduce((s,x)=>s+x.costo_total,0);
 const utilidad_total = venta.detalle.reduce((s,x)=>s+(x.importe-x.costo_total),0);
 
 venta.resumen_financiero = {
-  subtotal,
-  descuento,
-  impuestos,
-  total,
-  costo_total,
-  utilidad_total,
-  margen_porcentaje
-};
-
-resumen_financiero: {
-  // 💲 Venta
   subtotal: +tot.subtotal.toFixed(2),
   descuento: +tot.descuento.toFixed(2),
   impuestos: +tot.impuestos.toFixed(2),
   total: +tot.total.toFixed(2),
 
-  // 💰 Costos / Utilidad (SNAPSHOT REAL)
-  costo_total: +venta.detalle
-    .reduce((s, x) => s + x.costo_total, 0)
-    .toFixed(2),
+  costo_total: +venta.detalle.reduce((s, x) => s + x.costo_total, 0).toFixed(2),
+  utilidad_total: +venta.detalle.reduce((s, x) => s + x.utilidad, 0).toFixed(2),
 
-  utilidad_total: +venta.detalle
-    .reduce((s, x) => s + x.utilidad, 0)
-    .toFixed(2),
-
-  // 🤝 Comisión
   comision_total: +comision_total.toFixed(2),
 
-  // 📊 Margen sobre SUBTOTAL
   margen_porcentaje: tot.subtotal > 0
-    ? +(
-        (venta.detalle.reduce((s, x) => s + x.utilidad, 0) / tot.subtotal) * 100
-      ).toFixed(2)
+    ? +((venta.detalle.reduce((s, x) => s + x.utilidad, 0) / tot.subtotal) * 100).toFixed(2)
     : 0
-},
-
+};
 
   fecha: serverTimestamp(),
   fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
@@ -2247,6 +2232,7 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
 
 
