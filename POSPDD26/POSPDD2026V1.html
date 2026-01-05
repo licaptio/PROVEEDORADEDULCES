@@ -815,20 +815,39 @@ function addProduct(prod, cant = 1) {
   // 🚨 PRODUCTO DE BALANZA
   // -------------------------------
   if (String(prod.codigo || "").startsWith("2")) {
-    carrito.push({
-      ...prod,
-      codigo: prod.codigo || prod.codigoBarra || "",
-      cantidad: cant,
-      precioUnit: Number(prod.precioPublico || 0),
-      importe: cant * Number(prod.precioPublico || 0),
-      departamento: prod.departamento || null,
-      departamento_id: prod.departamento_id || null,
-      claveSat: prod.claveSat || null,
-      unidadSat: prod.unidadMedidaSat || null,
-      ivaTasa: prod.ivaTasa ?? 0,
-      iepsTasa: prod.iepsTasa ?? 0,
-      permite_descuento: permiteDescuentoPorCodigo(prod),
-    });
+carrito.push({
+  id: prod.id,
+  nombre: prod.nombre,
+  codigo: prod.codigo || prod.codigoBarra || "",
+
+  cantidad: cant,
+
+  // 💲 PRECIOS
+  precio_unit: precioCorrecto,
+  importe: cant * precioCorrecto,
+
+  // 💰 COSTOS
+  costo_unit: Number(prod.costoUnit || prod.costoSinImpuesto || 0),
+
+  // 🧾 SAT
+  claveSat: prod.claveSat || null,
+  unidadMedidaSat: prod.unidadMedidaSat || null,
+
+  // 🤝 COMISIÓN (NORMALIZADA)
+  comision_tipo: prod.comision_tipo || null, // "porcentaje" | "fijo"
+  comision_valor: Number(prod.comision_valor || 0),
+
+  // 🧮 IMPUESTOS
+  ivaTasa: Number(prod.ivaTasa || 0),
+  iepsTasa: Number(prod.iepsTasa || 0),
+
+  // 📦 CLASIFICACIÓN
+  departamento: prod.departamento || null,
+  departamento_id: prod.departamento_id || null,
+
+  permite_descuento: permiteDescuentoPorCodigo(prod)
+});
+
 
     renderDebounced();
     liberarAddProducto();
@@ -842,9 +861,10 @@ function addProduct(prod, cant = 1) {
   const precioCorrecto = obtenerPrecioSegunCantidad(prod, cantidadNueva);
 
   if (existente) {
-    existente.cantidad = cantidadNueva;
-    existente.precioUnit = precioCorrecto;
-    existente.importe = cantidadNueva * precioCorrecto;
+existente.cantidad = cantidadNueva;
+existente.precio_unit = precioCorrecto;
+existente.importe = cantidadNueva * precioCorrecto;
+
   } else {
     carrito.push({
       ...prod,
@@ -925,8 +945,7 @@ function calcularTotales(descPorc = 0) {
 
   // 🔢 Recorre todos los productos del carrito
 carrito.forEach(it => {
-  const imp = it.cantidad * it.precioUnit;
-
+  const imp = it.cantidad * it.precio_unit;
   const ivaT  = Number(it.ivaTasa || 0);
   const iepsT = Number(it.iepsTasa || 0);
 
@@ -1032,9 +1051,8 @@ function actualizarCantidad(id, nuevaCant) {
   const precioAnterior = item.precioUnit;
 
   item.cantidad = cant;
-  item.precioUnit = obtenerPrecioSegunCantidad(item, cant);
-  item.importe = item.cantidad * item.precioUnit;
-
+item.precio_unit = obtenerPrecioSegunCantidad(item, cant);
+item.importe = item.cantidad * item.precio_unit;
   if (productosMayoreo.includes(String(item.codigo))) {
     if (cant >= 5 && item.precioUnit !== precioAnterior) {
       beep(600, 0.15);
@@ -2186,3 +2204,4 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
