@@ -812,47 +812,48 @@ function addProduct(prod, cant = 1) {
   const existente = carrito.find(x => x.id === prod.id);
 
   // -------------------------------
-  // 🚨 PRODUCTO DE BALANZA
-  // -------------------------------
-  if (String(prod.codigo || "").startsWith("2")) {
-carrito.push({
-  id: prod.id,
-  nombre: prod.nombre,
-  codigo: prod.codigo || prod.codigoBarra || "",
+// 🚨 PRODUCTO DE BALANZA
+if (String(prod.codigo || "").startsWith("2")) {
 
-  cantidad: cant,
+  const precioUnit = Number(prod.precioPublico || 0);
 
-  // 💲 PRECIOS
-  precio_unit: precioCorrecto,
-  importe: cant * precioCorrecto,
+  carrito.push({
+    id: prod.id,
+    nombre: prod.nombre,
+    codigo: prod.codigo || prod.codigoBarra || "",
 
-  // 💰 COSTOS
-  costo_unit: Number(prod.costoUnit || prod.costoSinImpuesto || 0),
+    cantidad: cant,
 
-  // 🧾 SAT
-  claveSat: prod.claveSat || null,
-  unidadMedidaSat: prod.unidadMedidaSat || null,
+    // 💲 PRECIOS
+    precio_unit: precioUnit,
+    importe: +(cant * precioUnit).toFixed(2),
 
-  // 🤝 COMISIÓN (NORMALIZADA)
-  comision_tipo: prod.comision_tipo || null, // "porcentaje" | "fijo"
-  comision_valor: Number(prod.comision_valor || 0),
+    // 💰 COSTOS
+    costo_unit: Number(prod.costoUnit || prod.costoSinImpuesto || 0),
 
-  // 🧮 IMPUESTOS
-  ivaTasa: Number(prod.ivaTasa || 0),
-  iepsTasa: Number(prod.iepsTasa || 0),
+    // 🧾 SAT
+    claveSat: prod.claveSat || null,
+    unidadMedidaSat: prod.unidadMedidaSat || null,
 
-  // 📦 CLASIFICACIÓN
-  departamento: prod.departamento || null,
-  departamento_id: prod.departamento_id || null,
+    // 🤝 COMISIÓN
+    comision_tipo: prod.comision_tipo || null,
+    comision_valor: Number(prod.comision_valor || 0),
 
-  permite_descuento: permiteDescuentoPorCodigo(prod)
-});
+    // 🧮 IMPUESTOS
+    ivaTasa: Number(prod.ivaTasa || 0),
+    iepsTasa: Number(prod.iepsTasa || 0),
 
+    // 📦 CLASIFICACIÓN
+    departamento: prod.departamento || null,
+    departamento_id: prod.departamento_id || null,
 
-    renderDebounced();
-    liberarAddProducto();
-    return;
-  }
+    permite_descuento: permiteDescuentoPorCodigo(prod)
+  });
+
+  renderDebounced();
+  liberarAddProducto();
+  return;
+}
 
   // -------------------------------
   // 🧮 PRODUCTO NORMAL (PZ)
@@ -1056,7 +1057,7 @@ item.importe = item.cantidad * item.precio_unit;
     if (cant >= 5 && item.precio_unit !== precioAnterior) {
       beep(600, 0.15);
       toast(`💸 Mayoreo aplicado a ${item.nombre}`, "#1e8e3e");
-    } else if (cant < 5 && item.precioUnit !== precioAnterior) {
+    } else if (cant < 5 && item.precio_unit !== precioAnterior) {
       beep(400, 0.15);
       toast(`🔁 Precio público restaurado (${item.nombre})`, "#c0392b");
     }
@@ -1615,22 +1616,6 @@ const venta = {
   autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null
 };
 
-venta.resumen_financiero = {
-  subtotal: +tot.subtotal.toFixed(2),
-  descuento: +tot.descuento.toFixed(2),
-  impuestos: +tot.impuestos.toFixed(2),
-  total: +tot.total.toFixed(2),
-
-  costo_total: +venta.detalle.reduce((s, x) => s + x.costo_total, 0).toFixed(2),
-  utilidad_total: +venta.detalle.reduce((s, x) => s + x.utilidad, 0).toFixed(2),
-
-  comision_total: +comision_total.toFixed(2),
-
-  margen_porcentaje: tot.subtotal > 0
-    ? +((venta.detalle.reduce((s, x) => s + x.utilidad, 0) / tot.subtotal) * 100).toFixed(2)
-    : 0
-};
-
 // ===============================
 // 📦 DETALLE SNAPSHOT (CFDI READY)
 // ===============================
@@ -1691,6 +1676,21 @@ venta.detalle = carrito.map(it => {
     departamento_id: it.departamento_id
   };
 });
+venta.resumen_financiero = {
+  subtotal: +tot.subtotal.toFixed(2),
+  descuento: +tot.descuento.toFixed(2),
+  impuestos: +tot.impuestos.toFixed(2),
+  total: +tot.total.toFixed(2),
+
+  costo_total: +venta.detalle.reduce((s, x) => s + x.costo_total, 0).toFixed(2),
+  utilidad_total: +venta.detalle.reduce((s, x) => s + x.utilidad, 0).toFixed(2),
+
+  comision_total: +comision_total.toFixed(2),
+
+  margen_porcentaje: tot.subtotal > 0
+    ? +((venta.detalle.reduce((s, x) => s + x.utilidad, 0) / tot.subtotal) * 100).toFixed(2)
+    : 0
+};
 
 venta.comision_total = +comision_total.toFixed(2);
 
@@ -1782,7 +1782,7 @@ function rellenarTicket(v){
 v.detalle.forEach(p => {
   const tr = document.createElement("tr");
 const cantidad = p.cantidad ?? 0;
-const precioUnit = p.precioUnit ?? p.precio_unit ?? 0;
+const precioUnit = Number(p.precio_unit || p.precioUnit || 0);
 
 // 💸 Calcular precio unitario con descuento prorrateado
 let precioConDesc = precioUnit;
@@ -2220,3 +2220,4 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
