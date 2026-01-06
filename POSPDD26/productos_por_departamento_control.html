@@ -260,14 +260,15 @@ function renderFila(p){
       <small>${p.codigoBarra || p.id}</small>
     </div>
 
-    <select class="selDepto">
-      ${departamentos.map(d=>`
-        <option value="${d.id}"
-          ${String(d.id)===String(p.departamento_id)?"selected":""}>
-          ${d.nombre}
-        </option>
-      `).join("")}
-    </select>
+<select class="selDepto">
+  <option value="">-- Selecciona el depto --</option>
+  ${departamentos.map(d=>`
+    <option value="${d.id}">
+      ${d.nombre}
+    </option>
+  `).join("")}
+</select>
+
 
     <select class="selActivo">
       <option value="true" ${p.activo===true?"selected":""}>Activo</option>
@@ -281,36 +282,48 @@ function renderFila(p){
   const selActivo = div.querySelector(".selActivo");
   const btn = div.querySelector("button");
 
-  btn.onclick = async ()=>{
-    const depto = departamentos.find(
-      d=>String(d.id)===String(selDepto.value)
-    );
+btn.onclick = async ()=>{
+  const activoNuevo = selActivo.value === "true";
 
-    await updateDoc(doc(db,"productos",p.id),{
-      departamento: depto.nombre,
-      departamento_id: depto.id,
-      activo: selActivo.value === "true"
-    });
-
-    mostrar(
-      selActivo.value === "false"
-        ? "Producto desactivado"
-        : "Producto actualizado"
-    );
-
-    // actualizar memoria
-    p.departamento = depto.nombre;
-    p.departamento_id = depto.id;
-    p.activo = selActivo.value === "true";
-
-    // quitar de la vista si ya no pertenece al filtro
-    if(
-      deptoOrigen.value === "__SIN_DEPTO__" ||
-      p.departamento !== deptoOrigen.value
-    ){
-      div.remove();
-    }
+  const cambios = {
+    activo: activoNuevo
   };
+
+  // ✅ Solo reclasifica si el usuario eligió un depto explícitamente
+  if(selDepto.value){
+    const depto = departamentos.find(
+      d => String(d.id) === String(selDepto.value)
+    );
+
+    cambios.departamento = depto.nombre;
+    cambios.departamento_id = depto.id;
+  }
+
+  await updateDoc(doc(db,"productos",p.id), cambios);
+
+  mostrar(
+    activoNuevo === false
+      ? "Producto desactivado"
+      : "Producto actualizado"
+  );
+
+  // actualizar memoria
+  p.activo = activoNuevo;
+
+  if(cambios.departamento){
+    p.departamento = cambios.departamento;
+    p.departamento_id = cambios.departamento_id;
+  }
+
+  // quitar de la vista si ya no pertenece al filtro
+  if(
+    deptoOrigen.value === "__SIN_DEPTO__" ||
+    (p.departamento && p.departamento !== deptoOrigen.value)
+  ){
+    div.remove();
+  }
+};
+
 
   lista.appendChild(div);
 }
