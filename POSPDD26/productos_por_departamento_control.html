@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Control de Productos por Departamento – PROVSOFT</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#00416A">
 
 <style>
 body{
@@ -16,15 +15,13 @@ body{
 }
 
 h1{
-  margin:0 0 10px;
+  margin-bottom:12px;
   color:#00416A;
 }
 
 .barra{
-  display:flex;
-  gap:10px;
   background:#fff;
-  padding:12px;
+  padding:14px;
   border-radius:12px;
   box-shadow:0 4px 10px rgba(0,0,0,.12);
   position:sticky;
@@ -32,18 +29,12 @@ h1{
   z-index:10;
 }
 
-.barra select,
-.barra button{
+.barra select{
   padding:10px;
   border-radius:8px;
   border:1px solid #ccc;
   font-size:14px;
-}
-
-.barra button{
-  background:#00416A;
-  color:#fff;
-  cursor:pointer;
+  width:320px;
 }
 
 #lista{
@@ -52,11 +43,11 @@ h1{
 
 .fila{
   display:grid;
-  grid-template-columns: 40px 1fr 220px 140px;
+  grid-template-columns: 1fr 220px 140px 120px;
   gap:10px;
   align-items:center;
   background:#fff;
-  padding:10px;
+  padding:12px;
   margin-bottom:6px;
   border-radius:8px;
   box-shadow:0 2px 6px rgba(0,0,0,.08);
@@ -69,14 +60,30 @@ h1{
   font-size:13px;
 }
 
+.fila button{
+  padding:8px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  background:#00416A;
+  color:white;
+}
+
 small{color:#666}
 
-footer{
-  text-align:center;
-  margin-top:30px;
-  font-size:12px;
-  color:#777;
+.toast{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#333;
+  color:#fff;
+  padding:12px 16px;
+  border-radius:8px;
+  opacity:0;
+  transition:.3s;
 }
+
+.toast.show{opacity:1}
 </style>
 </head>
 
@@ -84,23 +91,17 @@ footer{
 
 <h1>📦 Control de Productos por Departamento</h1>
 
-<!-- BARRA SUPERIOR -->
+<!-- BARRA -->
 <div class="barra">
   <select id="deptoOrigen">
-    <option value="">-- Departamento origen --</option>
+    <option value="">-- Selecciona departamento --</option>
   </select>
-
-  <select id="deptoDestino">
-    <option value="">-- Cambiar a --</option>
-  </select>
-
-  <button onclick="procesar()">Procesar</button>
 </div>
 
 <!-- LISTA -->
 <div id="lista"></div>
 
-<footer>PROVSOFT · Herramienta operativa</footer>
+<div id="toast" class="toast"></div>
 
 <script type="module">
 /* =============================
@@ -111,8 +112,6 @@ import {
   getFirestore,
   collection,
   getDocs,
-  query,
-  where,
   updateDoc,
   doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -136,80 +135,79 @@ const db = getFirestore(app);
    VARIABLES
 ============================= */
 const deptoOrigen = document.getElementById("deptoOrigen");
-const deptoDestino = document.getElementById("deptoDestino");
 const lista = document.getElementById("lista");
+const toast = document.getElementById("toast");
 
 let productos = [];
 let departamentos = [];
-
 let listaActual = [];
 let pagina = 0;
-const porPagina = 50;
+const porPagina = 40;
+
+/* =============================
+   TOAST
+============================= */
+function mostrar(msg){
+  toast.textContent = msg;
+  toast.classList.add("show");
+  setTimeout(()=>toast.classList.remove("show"),2000);
+}
 
 /* =============================
    CARGA DATOS
 ============================= */
 const deptSnap = await getDocs(collection(db,"departamentos_venta"));
 departamentos = deptSnap.docs
-  .map(d=>({ id: d.id, ...d.data() }))
-  .sort((a,b)=> a.nombre.localeCompare(b.nombre, 'es'));
+  .map(d=>({id:d.id,...d.data()}))
+  .sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
 
-const prodSnap = await getDocs(
-  query(collection(db,"productos"), where("activo","==",true))
-);
+const prodSnap = await getDocs(collection(db,"productos"));
 productos = prodSnap.docs.map(d=>({id:d.id,...d.data()}));
 
-/* =============================
-   LLENAR SELECTORES
-============================= */
 departamentos.forEach(d=>{
   deptoOrigen.innerHTML += `<option value="${d.nombre}">${d.nombre}</option>`;
-  deptoDestino.innerHTML += `<option value="${d.id}">${d.nombre}</option>`;
 });
 
 /* =============================
-   CAMBIO DE DEPARTAMENTO ORIGEN
+   CAMBIO DE DEPTO
 ============================= */
 deptoOrigen.onchange = ()=>{
   lista.innerHTML="";
-  pagina = 0;
-
-  listaActual = productos.filter(p=>p.departamento===deptoOrigen.value);
+  pagina=0;
+  listaActual = productos.filter(p=>(p.departamento||"")===deptoOrigen.value);
   cargarMas();
 };
 
 /* =============================
-   SCROLL INFINITO
+   SCROLL
 ============================= */
-window.addEventListener("scroll", ()=>{
-  if(window.innerHeight + window.scrollY >= document.body.offsetHeight - 120){
+window.addEventListener("scroll",()=>{
+  if(window.innerHeight+window.scrollY>=document.body.offsetHeight-120){
     cargarMas();
   }
 });
 
 /* =============================
-   CARGAR MAS PRODUCTOS
+   CARGAR
 ============================= */
 function cargarMas(){
-  const slice = listaActual.slice(pagina*porPagina, (pagina+1)*porPagina);
+  const slice = listaActual.slice(pagina*porPagina,(pagina+1)*porPagina);
   if(slice.length===0) return;
-
   slice.forEach(p=>renderFila(p));
   pagina++;
 }
 
 /* =============================
-   RENDER FILA
+   FILA
 ============================= */
 function renderFila(p){
-  const div = document.createElement("div");
-  div.className = "fila";
+  const div=document.createElement("div");
+  div.className="fila";
 
-  div.innerHTML = `
-    <input type="checkbox" data-id="${p.id}">
+  div.innerHTML=`
     <div>
-      <b>${p.concepto || "SIN CONCEPTO"}</b><br>
-      <small>${p.codigoBarra || p.id}</small>
+      <b>${p.concepto||"SIN CONCEPTO"}</b><br>
+      <small>${p.codigoBarra||p.id}</small>
     </div>
 
     <select class="selDepto">
@@ -225,60 +223,35 @@ function renderFila(p){
       <option value="true" ${p.activo===true?"selected":""}>Activo</option>
       <option value="false" ${p.activo===false?"selected":""}>Inactivo</option>
     </select>
+
+    <button>Guardar</button>
   `;
 
   const selDepto = div.querySelector(".selDepto");
   const selActivo = div.querySelector(".selActivo");
+  const btn = div.querySelector("button");
 
-  selDepto.onchange = ()=>guardarIndividual(p, selDepto.value, selActivo.value);
-  selActivo.onchange = ()=>guardarIndividual(p, selDepto.value, selActivo.value);
+  btn.onclick = async ()=>{
+    const depto = departamentos.find(d=>String(d.id)===String(selDepto.value));
+
+    await updateDoc(doc(db,"productos",p.id),{
+      departamento: depto.nombre,
+      departamento_id: depto.id,
+      activo: selActivo.value==="true"
+    });
+
+    mostrar(
+      selActivo.value==="false"
+        ? "Producto desactivado"
+        : "Producto actualizado"
+    );
+
+    p.departamento = depto.nombre;
+    p.departamento_id = depto.id;
+    p.activo = selActivo.value==="true";
+  };
 
   lista.appendChild(div);
-}
-
-/* =============================
-   GUARDADO INDIVIDUAL
-============================= */
-async function guardarIndividual(prod, deptoId, activoVal){
-  const depto = departamentos.find(d=>String(d.id)===String(deptoId));
-  await updateDoc(doc(db,"productos",prod.id),{
-    departamento: depto.nombre,
-    departamento_id: depto.id,
-    activo: activoVal==="true"
-  });
-
-  prod.departamento = depto.nombre;
-  prod.departamento_id = depto.id;
-  prod.activo = activoVal==="true";
-}
-
-/* =============================
-   PROCESAR SELECCIONADOS
-============================= */
-async function procesar(){
-  const nuevo = deptoDestino.value;
-  if(!nuevo){
-    alert("Selecciona departamento destino");
-    return;
-  }
-
-  const depto = departamentos.find(d=>String(d.id)===String(nuevo));
-  const checks = document.querySelectorAll("input[type=checkbox]:checked");
-
-  if(checks.length===0){
-    alert("No hay productos seleccionados");
-    return;
-  }
-
-  for(const c of checks){
-    const id = c.dataset.id;
-    await updateDoc(doc(db,"productos",id),{
-      departamento: depto.nombre,
-      departamento_id: depto.id
-    });
-  }
-
-  alert(`Procesados ${checks.length} productos`);
 }
 </script>
 
