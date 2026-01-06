@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Control de Productos por Departamento – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#00416A">
+
+<style>
+body{
+  font-family:'Poppins',Arial,sans-serif;
+  background:#f4f6f9;
+  padding:20px;
+  color:#222;
+}
+h1{text-align:center;color:#00416A}
+h2{text-align:center;color:#666;font-weight:normal}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:16px;
+  margin-top:25px;
+}
+
+.card{
+  background:white;
+  border-radius:14px;
+  padding:18px;
+  box-shadow:0 6px 18px rgba(0,0,0,.12);
+  cursor:pointer;
+  transition:.2s;
+}
+.card:hover{transform:scale(1.03)}
+.card b{font-size:16px}
+.card small{color:#666}
+
+#productosBox{display:none;margin-top:25px}
+
+.producto{
+  background:white;
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,.1);
+}
+
+.producto select{
+  width:100%;
+  padding:8px;
+  margin-top:6px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+.btnBack{
+  background:#00416A;
+  color:white;
+  border:none;
+  padding:10px 16px;
+  border-radius:8px;
+  cursor:pointer;
+  margin-bottom:15px;
+}
+
+.paginador{
+  text-align:center;
+  margin-top:15px;
+}
+
+.paginador button{
+  padding:6px 12px;
+  margin:0 8px;
+  border-radius:6px;
+  border:none;
+  cursor:pointer;
+  background:#00416A;
+  color:white;
+}
+
+.paginador button:disabled{
+  background:#aaa;
+  cursor:not-allowed;
+}
+
+footer{
+  margin-top:40px;
+  text-align:center;
+  font-size:13px;
+  color:#777;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📦 Control de Productos por Departamento</h1>
+<h2>Corrección fina artículo por artículo</h2>
+
+<div id="departamentos" class="grid"></div>
+
+<div id="productosBox">
+  <button class="btnBack" onclick="volver()">⬅ Regresar</button>
+  <h2 id="tituloDepto"></h2>
+  <div id="listaProductos"></div>
+</div>
+
+<footer>Powered by <b>PROVSOFT</b></footer>
+
+<script type="module">
+/* =============================
+   FIREBASE
+============================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* =============================
+   CONFIG
+============================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* =============================
+   VARIABLES
+============================= */
+const contDeptos = document.getElementById("departamentos");
+const boxProductos = document.getElementById("productosBox");
+const listaProductos = document.getElementById("listaProductos");
+const tituloDepto = document.getElementById("tituloDepto");
+
+let productos = [];
+let departamentos = [];
+let mapDeptos = {};
+let paginaActual = 1;
+const porPagina = 20;
+
+/* =============================
+   CARGA DATOS
+============================= */
+const deptSnap = await getDocs(collection(db,"departamentos_venta"));
+departamentos = deptSnap.docs.map(d=>({id:d.id,...d.data()}));
+
+const prodSnap = await getDocs(
+  query(collection(db,"productos"), where("activo","==",true))
+);
+productos = prodSnap.docs.map(d=>({id:d.id,...d.data()}));
+
+/* =============================
+   AGRUPAR
+============================= */
+mapDeptos = {};
+productos.forEach(p=>{
+  const d = p.departamento || "SIN DEPARTAMENTO";
+  if(!mapDeptos[d]) mapDeptos[d]=[];
+  mapDeptos[d].push(p);
+});
+
+renderDeptos();
+
+/* =============================
+   RENDER DEPARTAMENTOS
+============================= */
+function renderDeptos(){
+  contDeptos.innerHTML="";
+  Object.keys(mapDeptos).sort().forEach(dep=>{
+    const c = document.createElement("div");
+    c.className="card";
+    c.innerHTML=`
+      <b>${dep}</b><br>
+      <small>${mapDeptos[dep].length} productos</small>
+    `;
+    c.onclick=()=>verDepto(dep);
+    contDeptos.appendChild(c);
+  });
+}
+
+/* =============================
+   VER DEPARTAMENTO
+============================= */
+window.verDepto = dep =>{
+  contDeptos.style.display="none";
+  boxProductos.style.display="block";
+  tituloDepto.textContent = dep;
+  paginaActual = 1;
+  renderProductos(dep);
+};
+
+window.volver = ()=>{
+  boxProductos.style.display="none";
+  contDeptos.style.display="grid";
+};
+
+/* =============================
+   RENDER PRODUCTOS PAGINADOS
+============================= */
+function renderProductos(dep){
+  listaProductos.innerHTML="";
+  const lista = mapDeptos[dep] || [];
+  const inicio = (paginaActual-1)*porPagina;
+  const fin = inicio+porPagina;
+
+  lista.slice(inicio,fin).forEach(p=>{
+    const div=document.createElement("div");
+    div.className="producto";
+
+    div.innerHTML=`
+      <b>${p.concepto || "SIN CONCEPTO"}</b>
+      Código: ${p.codigoBarra || p.id}<br><br>
+
+      <label>Departamento</label>
+      <select class="selDepto">
+        ${departamentos.map(d=>`
+          <option value="${d.id}"
+            ${String(d.id)===String(p.departamento_id)?"selected":""}>
+            ${d.nombre}
+          </option>
+        `).join("")}
+      </select>
+
+      <label>Estado</label>
+      <select class="selActivo">
+        <option value="true" ${p.activo===true?"selected":""}>Activo</option>
+        <option value="false" ${p.activo===false?"selected":""}>Inactivo</option>
+      </select>
+    `;
+
+    const sd = div.querySelector(".selDepto");
+    const sa = div.querySelector(".selActivo");
+
+    sd.onchange = ()=>guardar(p, sd.value, sa.value);
+    sa.onchange = ()=>guardar(p, sd.value, sa.value);
+
+    listaProductos.appendChild(div);
+  });
+
+  renderPaginador(dep, lista.length);
+}
+
+/* =============================
+   PAGINADOR
+============================= */
+function renderPaginador(dep,total){
+  const totalPaginas = Math.ceil(total/porPagina);
+  if(totalPaginas<=1) return;
+
+  const nav=document.createElement("div");
+  nav.className="paginador";
+
+  nav.innerHTML=`
+    <button ${paginaActual===1?"disabled":""}>⬅</button>
+    Página ${paginaActual} de ${totalPaginas}
+    <button ${paginaActual===totalPaginas?"disabled":""}>➡</button>
+  `;
+
+  const [prev,next]=nav.querySelectorAll("button");
+
+  prev.onclick=()=>{paginaActual--;renderProductos(dep);}
+  next.onclick=()=>{paginaActual++;renderProductos(dep);}
+
+  listaProductos.appendChild(nav);
+}
+
+/* =============================
+   GUARDAR CAMBIOS
+============================= */
+async function guardar(prod,deptoId,activoVal){
+  const depto = departamentos.find(d=>String(d.id)===String(deptoId));
+
+  await updateDoc(doc(db,"productos",prod.id),{
+    departamento: depto.nombre,
+    departamento_id: depto.id,
+    activo: activoVal==="true"
+  });
+
+  prod.departamento = depto.nombre;
+  prod.departamento_id = depto.id;
+  prod.activo = activoVal==="true";
+}
+</script>
+
+</body>
+</html>
