@@ -150,7 +150,9 @@ const porPagina = 50;
    CARGA DATOS
 ============================= */
 const deptSnap = await getDocs(collection(db,"departamentos_venta"));
-departamentos = deptSnap.docs.map(d=>({id:d.id,...d.data()}));
+departamentos = deptSnap.docs
+  .map(d=>({ id: d.id, ...d.data() }))
+  .sort((a,b)=> a.nombre.localeCompare(b.nombre, 'es'));
 
 const prodSnap = await getDocs(
   query(collection(db,"productos"), where("activo","==",true))
