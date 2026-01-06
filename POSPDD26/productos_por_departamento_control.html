@@ -169,7 +169,9 @@ deptosValidos = departamentos.map(d=>d.nombre);
 const deptoIdsValidos = departamentos.map(d=>String(d.id));
 
 const prodSnap = await getDocs(collection(db,"productos"));
-productos = prodSnap.docs.map(d=>({id:d.id,...d.data()}));
+productos = prodSnap.docs
+  .map(d=>({id:d.id,...d.data()}))
+  .filter(p => p.activo === true);
 
 /* =============================
    LLENAR SELECT
@@ -198,14 +200,17 @@ listaActual = productos.filter(p=>{
     ? String(p.departamento_id)
     : null;
 
-  if(deptoOrigen.value === "__SIN_DEPTO__"){
-    return (
-      !nombre ||                                   // sin texto válido
-      !deptosValidos.includes(nombre) ||           // texto inexistente
-      !id ||                                       // sin id
+if(deptoOrigen.value === "__SIN_DEPTO__"){
+  return (
+    p.activo === true && (                       // 👈 SOLO ACTIVOS
+      !nombre ||                                 // sin texto válido
+      !deptosValidos.includes(nombre) ||         // texto inexistente
+      !id ||                                     // sin id
       !departamentos.some(d => String(d.id) === id) // id inválido
-    );
-  }
+    )
+  );
+}
+
 
   return nombre === deptoOrigen.value;
 });
