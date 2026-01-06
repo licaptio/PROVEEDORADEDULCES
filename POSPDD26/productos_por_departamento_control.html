@@ -34,7 +34,7 @@ h1{
   border-radius:8px;
   border:1px solid #ccc;
   font-size:14px;
-  width:320px;
+  width:340px;
 }
 
 #lista{
@@ -81,6 +81,7 @@ small{color:#666}
   border-radius:8px;
   opacity:0;
   transition:.3s;
+  pointer-events:none;
 }
 
 .toast.show{opacity:1}
@@ -140,9 +141,12 @@ const toast = document.getElementById("toast");
 
 let productos = [];
 let departamentos = [];
+let deptosValidos = [];
+
 let listaActual = [];
 let pagina = 0;
 const porPagina = 40;
+let cargando = false;
 
 /* =============================
    TOAST
@@ -161,53 +165,90 @@ departamentos = deptSnap.docs
   .map(d=>({id:d.id,...d.data()}))
   .sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
 
+deptosValidos = departamentos.map(d=>d.nombre);
+
 const prodSnap = await getDocs(collection(db,"productos"));
 productos = prodSnap.docs.map(d=>({id:d.id,...d.data()}));
 
+/* =============================
+   LLENAR SELECT
+============================= */
 departamentos.forEach(d=>{
   deptoOrigen.innerHTML += `<option value="${d.nombre}">${d.nombre}</option>`;
 });
 
+deptoOrigen.innerHTML += `
+  <option value="__SIN_DEPTO__">⚠ SIN DEPARTAMENTO / ERROR</option>
+`;
+
 /* =============================
-   CAMBIO DE DEPTO
+   CAMBIO DE DEPARTAMENTO
 ============================= */
 deptoOrigen.onchange = ()=>{
   lista.innerHTML="";
-  pagina=0;
-  listaActual = productos.filter(p=>(p.departamento||"")===deptoOrigen.value);
+  pagina = 0;
+
+  listaActual = productos.filter(p=>{
+    // SIN DEPARTAMENTO / ERROR
+    if(deptoOrigen.value === "__SIN_DEPTO__"){
+      return (
+        !p.departamento ||
+        p.departamento.trim() === "" ||
+        !deptosValidos.includes(p.departamento)
+      );
+    }
+
+    // NORMAL
+    return (p.departamento || "") === deptoOrigen.value;
+  });
+
   cargarMas();
 };
 
 /* =============================
-   SCROLL
+   SCROLL INFINITO (PROTEGIDO)
 ============================= */
 window.addEventListener("scroll",()=>{
-  if(window.innerHeight+window.scrollY>=document.body.offsetHeight-120){
+  if(
+    window.innerHeight + window.scrollY >= document.body.offsetHeight - 120
+  ){
     cargarMas();
   }
 });
 
 /* =============================
-   CARGAR
+   CARGAR MÁS
 ============================= */
 function cargarMas(){
-  const slice = listaActual.slice(pagina*porPagina,(pagina+1)*porPagina);
-  if(slice.length===0) return;
+  if(cargando) return;
+  cargando = true;
+
+  const slice = listaActual.slice(
+    pagina * porPagina,
+    (pagina + 1) * porPagina
+  );
+
+  if(slice.length === 0){
+    cargando = false;
+    return;
+  }
+
   slice.forEach(p=>renderFila(p));
   pagina++;
+  cargando = false;
 }
 
 /* =============================
-   FILA
+   RENDER FILA
 ============================= */
 function renderFila(p){
-  const div=document.createElement("div");
-  div.className="fila";
+  const div = document.createElement("div");
+  div.className = "fila";
 
-  div.innerHTML=`
+  div.innerHTML = `
     <div>
-      <b>${p.concepto||"SIN CONCEPTO"}</b><br>
-      <small>${p.codigoBarra||p.id}</small>
+      <b>${p.concepto || "SIN CONCEPTO"}</b><br>
+      <small>${p.codigoBarra || p.id}</small>
     </div>
 
     <select class="selDepto">
@@ -232,23 +273,34 @@ function renderFila(p){
   const btn = div.querySelector("button");
 
   btn.onclick = async ()=>{
-    const depto = departamentos.find(d=>String(d.id)===String(selDepto.value));
+    const depto = departamentos.find(
+      d=>String(d.id)===String(selDepto.value)
+    );
 
     await updateDoc(doc(db,"productos",p.id),{
       departamento: depto.nombre,
       departamento_id: depto.id,
-      activo: selActivo.value==="true"
+      activo: selActivo.value === "true"
     });
 
     mostrar(
-      selActivo.value==="false"
+      selActivo.value === "false"
         ? "Producto desactivado"
         : "Producto actualizado"
     );
 
+    // actualizar memoria
     p.departamento = depto.nombre;
     p.departamento_id = depto.id;
-    p.activo = selActivo.value==="true";
+    p.activo = selActivo.value === "true";
+
+    // quitar de la vista si ya no pertenece al filtro
+    if(
+      deptoOrigen.value === "__SIN_DEPTO__" ||
+      p.departamento !== deptoOrigen.value
+    ){
+      div.remove();
+    }
   };
 
   lista.appendChild(div);
