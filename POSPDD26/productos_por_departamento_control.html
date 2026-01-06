@@ -166,6 +166,7 @@ departamentos = deptSnap.docs
   .sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
 
 deptosValidos = departamentos.map(d=>d.nombre);
+const deptoIdsValidos = departamentos.map(d=>String(d.id));
 
 const prodSnap = await getDocs(collection(db,"productos"));
 productos = prodSnap.docs.map(d=>({id:d.id,...d.data()}));
@@ -188,19 +189,24 @@ deptoOrigen.onchange = ()=>{
   lista.innerHTML="";
   pagina = 0;
 
-  listaActual = productos.filter(p=>{
-    // SIN DEPARTAMENTO / ERROR
-    if(deptoOrigen.value === "__SIN_DEPTO__"){
-      return (
-        !p.departamento ||
-        p.departamento.trim() === "" ||
-        !deptosValidos.includes(p.departamento)
-      );
-    }
+listaActual = productos.filter(p=>{
+  const nombre = (p.departamento || "").trim();
+  const id = p.departamento_id ? String(p.departamento_id) : null;
 
-    // NORMAL
-    return (p.departamento || "") === deptoOrigen.value;
-  });
+  // ⚠ SIN DEPARTAMENTO / ERROR REAL
+  if(deptoOrigen.value === "__SIN_DEPTO__"){
+    return (
+      !nombre ||                                   // sin texto
+      !deptosValidos.includes(nombre) ||           // texto inválido
+      !id ||                                       // sin id
+      !deptoIdsValidos.includes(id)                // id inválido
+    );
+  }
+
+  // NORMAL (solo los bien formados)
+  return nombre === deptoOrigen.value;
+});
+
 
   cargarMas();
 };
