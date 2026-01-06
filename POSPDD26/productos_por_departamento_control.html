@@ -190,20 +190,23 @@ deptoOrigen.onchange = ()=>{
   pagina = 0;
 
 listaActual = productos.filter(p=>{
-  const nombre = (p.departamento || "").trim();
-  const id = p.departamento_id ? String(p.departamento_id) : null;
+  const nombre = typeof p.departamento === "string"
+    ? p.departamento.trim()
+    : "";
 
-  // ⚠ SIN DEPARTAMENTO / ERROR REAL
+  const id = p.departamento_id !== undefined && p.departamento_id !== null
+    ? String(p.departamento_id)
+    : null;
+
   if(deptoOrigen.value === "__SIN_DEPTO__"){
     return (
-      !nombre ||                                   // sin texto
-      !deptosValidos.includes(nombre) ||           // texto inválido
+      !nombre ||                                   // sin texto válido
+      !deptosValidos.includes(nombre) ||           // texto inexistente
       !id ||                                       // sin id
-      !deptoIdsValidos.includes(id)                // id inválido
+      !departamentos.some(d => String(d.id) === id) // id inválido
     );
   }
 
-  // NORMAL (solo los bien formados)
   return nombre === deptoOrigen.value;
 });
 
