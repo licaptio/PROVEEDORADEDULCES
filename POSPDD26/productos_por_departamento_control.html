@@ -333,13 +333,30 @@ function renderFila(p){
   const switchActivo = div.querySelector(".switch");
 let estadoActivo = p.activo === true;
 
-switchActivo.onclick = ()=>{
+switchActivo.onclick = async ()=>{
   estadoActivo = !estadoActivo;
+
+  // UI inmediata
   switchActivo.classList.toggle("activo", estadoActivo);
   switchActivo.classList.toggle("inactivo", !estadoActivo);
   switchActivo.querySelector("span").textContent =
     estadoActivo ? "ACTIVO" : "INACTIVO";
+
+  // 🔥 SI SE DESACTIVA → GUARDAR Y QUITAR
+  if(!estadoActivo){
+    await updateDoc(doc(db,"productos",p.id),{
+      activo:false
+    });
+
+    p.activo = false;
+
+    mostrar("Producto desactivado");
+
+    // quitar de la vista inmediatamente
+    div.remove();
+  }
 };
+
   const btn = div.querySelector("button");
 
 btn.onclick = async ()=>{
