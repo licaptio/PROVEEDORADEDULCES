@@ -85,6 +85,52 @@ small{color:#666}
 }
 
 .toast.show{opacity:1}
+
+  /* ===== SWITCH ACTIVO ===== */
+.switch{
+  position: relative;
+  width: 70px;
+  height: 34px;
+  background: #ccc;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: .25s;
+  display:flex;
+  align-items:center;
+  padding:4px;
+  box-sizing:border-box;
+  font-size:12px;
+  font-weight:600;
+}
+
+.switch.activo{
+  background:#1e8e3e;
+}
+
+.switch.inactivo{
+  background:#c62828;
+}
+
+.switch span{
+  color:#fff;
+  position:absolute;
+  width:100%;
+  text-align:center;
+  pointer-events:none;
+}
+
+.switch::after{
+  content:"";
+  width:26px;
+  height:26px;
+  background:white;
+  border-radius:50%;
+  transition:.25s;
+}
+
+.switch.activo::after{
+  transform: translateX(36px);
+}
 </style>
 </head>
 
@@ -275,20 +321,29 @@ function renderFila(p){
 </select>
 
 
-    <select class="selActivo">
-      <option value="true" ${p.activo===true?"selected":""}>Activo</option>
-      <option value="false" ${p.activo===false?"selected":""}>Inactivo</option>
-    </select>
+<div class="switch ${p.activo ? "activo" : "inactivo"}">
+  <span>${p.activo ? "ACTIVO" : "INACTIVO"}</span>
+</div>
+
 
     <button>Guardar</button>
   `;
 
   const selDepto = div.querySelector(".selDepto");
-  const selActivo = div.querySelector(".selActivo");
+  const switchActivo = div.querySelector(".switch");
+let estadoActivo = p.activo === true;
+
+switchActivo.onclick = ()=>{
+  estadoActivo = !estadoActivo;
+  switchActivo.classList.toggle("activo", estadoActivo);
+  switchActivo.classList.toggle("inactivo", !estadoActivo);
+  switchActivo.querySelector("span").textContent =
+    estadoActivo ? "ACTIVO" : "INACTIVO";
+};
   const btn = div.querySelector("button");
 
 btn.onclick = async ()=>{
-  const activoNuevo = selActivo.value === "true";
+ const activoNuevo = estadoActivo;
 
   const cambios = {
     activo: activoNuevo
