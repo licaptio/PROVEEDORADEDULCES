@@ -139,9 +139,11 @@ font-size:14px!important;line-height:1.45;
   z-index: 99999 !important;
   position: absolute !important;
 }
-#carrito-container {
-  bottom: -65px !important;     /* 🔥 baja más el carrito */
-  margin-top: 25px !important;  /* espacio visual extra */
+@media (max-width: 600px) {
+  #carrito-container {
+    bottom: -65px !important;
+    margin-top: 25px !important;
+  }
 }
 .snow{
   pointer-events: none;
@@ -170,8 +172,169 @@ font-size:14px!important;line-height:1.45;
     background-position: 0 600px;
   }
 }
+/* ===========================================================
+   🖥️ MODO PC / DESKTOP (NO AFECTA MÓVIL)
+   =========================================================== */
+@media (min-width: 1024px) {
 
+  header {
+    font-size: 22px;
+    height: 64px;
+  }
 
+  header img {
+    height: 80px;
+  }
+
+  /* 🧱 Layout principal */
+  .main-content {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 16px;
+    padding: 16px 24px;
+    max-width: 1600px;
+    margin: auto;
+  }
+
+  /* 🔍 Buscador más ancho */
+  #buscador {
+    font-size: 20px;
+    padding: 16px;
+  }
+
+  .field label {
+    font-size: 14px;
+    min-width: 90px;
+  }
+
+  /* 🧾 Carrito fijo a la derecha */
+  #carrito-container {
+    position: relative;
+    bottom: auto !important;
+    max-height: none;
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  table thead th {
+    font-size: 14px;
+  }
+
+  table td {
+    font-size: 15px;
+    padding: 10px;
+  }
+
+  /* 💰 Totales GRANDES */
+  .totals {
+    margin-top: 12px;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .totals .row {
+    font-size: 20px;
+  }
+
+  .totals .row.big {
+    font-size: 28px;
+    color: #00416A;
+  }
+
+  /* 💳 Botón cobrar PRO */
+  #btnCobrar {
+    font-size: 22px;
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  /* 🔘 Botones inferiores tipo POS */
+  #bottomBar {
+    position: sticky;
+    max-width: 1600px;
+    margin: auto;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .bar-btn {
+    font-size: 18px;
+    padding: 14px;
+  }
+
+  /* 🧮 Inputs cantidad más grandes */
+  #tbody input[type="number"] {
+    font-size: 16px;
+    padding: 6px;
+  }
+
+  /* 🧾 Modal cobro estilo escritorio */
+  #modalCobro .modal-card {
+    max-width: 520px;
+  }
+
+  #modalCobro input,
+  #modalCobro textarea {
+    font-size: 18px;
+  }
+  /* 🔥 FIX POS PANTALLA COMPLETA REAL */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #posApp {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .main-content {
+    flex: 1;
+   overflow: auto;
+  }
+
+  #carrito-container {
+    height: 100%;
+    overflow-y: auto;
+  }
+ }
+/* ===========================================================
+   🌙 TEMA OSCURO POS — SOLO PC
+   =========================================================== */
+@media (min-width: 1024px) {
+
+  body {
+    background: #0f172a;
+  }
+
+  header,
+  #usuarioBar {
+    background: #020617 !important;
+  }
+
+  .card,
+  #carrito-container,
+  .totals,
+  table,
+  thead th {
+    background: #020617;
+    color: #e5e7eb;
+  }
+
+  table td {
+    border-color: #1e293b;
+  }
+
+  input, textarea {
+    background: #020617;
+    color: #e5e7eb;
+    border-color: #334155;
+  }
+
+  .row.big {
+    color: #38bdf8;
+  }
+}
 </style>
 </head>
 <body>
@@ -221,7 +384,7 @@ font-size:14px!important;line-height:1.45;
 
     <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
     <div class="field searchbox">
-      <label>Buscar</label>
+     <label>🔍 Buscar producto</label>
       <input id="buscador" type="text" placeholder="Escribe o escanea código…">
       <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
       <div id="resultados" class="search-results"></div>
@@ -249,11 +412,29 @@ font-size:14px!important;line-height:1.45;
 
 
   <div class="totals">
-    <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
-    <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
-    <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
+<div class="row muted">
+  <span>🧾 Subtotal</span>
+  <span id="lblSubtotal">$0.00</span>
+</div>
+<div class="row muted">
+  <span>🧮 Impuestos</span>
+  <span id="lblImpuestos">$0.00</span>
+</div>
+<div class="row big">
+  <span>💰 TOTAL</span>
+  <span id="lblTotal">$0.00</span>
+</div>
       <div class="actions">
-    <button class="btn" id="btnCobrar">Cobrar</button>
+    <button class="btn" id="btnCobrar">
+  <svg width="22" height="22" viewBox="0 0 24 24"
+       fill="none" stroke="white" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round"
+       style="vertical-align:middle;margin-right:8px;">
+    <rect x="2" y="5" width="20" height="14" rx="2"/>
+    <line x1="2" y1="10" x2="22" y2="10"/>
+  </svg>
+  Cobrar
+</button>
   </div>
 
   </div>
@@ -1980,6 +2161,36 @@ function toast(msg, color = "#0c6cbd") {
   setTimeout(()=>aviso.style.opacity=1,50);
   setTimeout(()=>{aviso.style.opacity=0;setTimeout(()=>aviso.remove(),400)},2500);
 }
+  /* ===========================================================
+   ⌨️ ATAJOS POS PC (SEGUROS)
+   =========================================================== */
+window.addEventListener("keydown", e => {
+
+  if (window.innerWidth < 1024) return;
+  if (!document.body.classList.contains("sesion-activa")) return;
+
+  // 🚫 No atajos si hay un modal abierto
+  const modalCobro = document.getElementById("modalCobro");
+  if (modalCobro && modalCobro.style.display === "flex") return;
+
+  const tag = document.activeElement?.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+  if (e.key === "F2") {
+    e.preventDefault();
+    abrirCobro?.();
+  }
+
+  if (e.key === "F4") {
+    e.preventDefault();
+    const b = document.getElementById("buscador");
+    if (b) {
+      b.focus();
+      b.select();
+    }
+  }
+});
+
 // ✅ cierre del async
 })(); 
 
