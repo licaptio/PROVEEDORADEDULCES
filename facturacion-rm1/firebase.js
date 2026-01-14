@@ -11,7 +11,8 @@ import {
   getDoc,
   updateDoc,
   runTransaction,
-  serverTimestamp
+  serverTimestamp,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -46,9 +47,6 @@ export async function tomarFolio(serie) {
   });
 }
 
-import { Timestamp } from 
-  "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
 export async function obtenerVentasRuta(rutaId, fechaInicio, fechaFin) {
 
   const inicio = Timestamp.fromDate(fechaInicio);
@@ -68,5 +66,6 @@ export async function obtenerVentasRuta(rutaId, fechaInicio, fechaFin) {
     .map(d => ({ id: d.id, ...d.data() }))
     .filter(v => !v.estado || v.estado === "PENDIENTE");
 }
+
 
 
