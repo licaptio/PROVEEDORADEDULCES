@@ -50,43 +50,57 @@ export function generarTXTSifeiCompleto(venta, folio, fechaCFDI) {
   let totalIVA16 = 0;
   let totalIEPS = 0;
 
-  venta.detalle.forEach((item, idx) => {
-    const cantidad = Number(item.cantidad);
-    const valorUnitario = Number(item.precio_unitario);
-    const importe = +(cantidad * valorUnitario).toFixed(2);
-    subtotal += importe;
+venta.detalle.forEach(item => {
 
-    // IVA
-    let impuestoIVA = "";
-    if (item.iva === 16) {
-      const baseIVA = importe;
-      const ivaImporte = +(baseIVA * 0.16).toFixed(2);
-      totalIVA16 += ivaImporte;
-      impuestoIVA = `Impuesto=002,TipoFactor=Tasa,TasaOCuota=0.160000,Base=${baseIVA.toFixed(2)},Importe=${ivaImporte.toFixed(2)}`;
-    } else {
-      impuestoIVA = `Impuesto=002,TipoFactor=Exento`;
-    }
+  const cantidad = Number(item.cantidad);
+  const valorUnitario = Number(item.precio_unit);
+  const importe = Number(item.importe);
 
-    // IEPS (si aplica)
-    let impuestoIEPS = "";
-    if (item.ieps && Number(item.ieps) > 0) {
-      const baseIEPS = importe;
-      const tasaIEPS = Number(item.ieps) / 100;
-      const iepsImporte = +(baseIEPS * tasaIEPS).toFixed(2);
-      totalIEPS += iepsImporte;
-      impuestoIEPS = `;Impuesto=003,TipoFactor=Tasa,TasaOCuota=${tasaIEPS.toFixed(6)},Base=${baseIEPS.toFixed(2)},Importe=${iepsImporte.toFixed(2)}`;
-    }
+  subtotal += importe;
 
-    lines.push([
-      `ClaveProdServ=${item.clave_prod_serv || "01010101"}`,
-      `Cantidad=${cantidad}`,
-      `ClaveUnidad=${item.clave_unidad || "H87"}`,
-      `Descripcion=${item.descripcion}`,
-      `ValorUnitario=${valorUnitario.toFixed(2)}`,
-      `Importe=${importe.toFixed(2)}`,
-      impuestoIVA + impuestoIEPS
-    ].join(sep));
-  });
+  // ======================
+  // IVA
+  // ======================
+  let impuestoIVA = "";
+  if (Number(item.iva) === 16) {
+    const baseIVA = importe;
+    const ivaImporte = Number(item.iva_calculado);
+
+    totalIVA16 += ivaImporte;
+
+    impuestoIVA =
+      `Impuesto=002,TipoFactor=Tasa,TasaOCuota=0.160000,` +
+      `Base=${baseIVA.toFixed(2)},Importe=${ivaImporte.toFixed(2)}`;
+  } else {
+    impuestoIVA = `Impuesto=002,TipoFactor=Exento`;
+  }
+
+  // ======================
+  // IEPS
+  // ======================
+  let impuestoIEPS = "";
+  if (Number(item.iepsTasa) > 0) {
+    const baseIEPS = importe;
+    const tasaIEPS = Number(item.iepsTasa) / 100;
+    const iepsImporte = Number(item.ieps_calculado);
+
+    totalIEPS += iepsImporte;
+
+    impuestoIEPS =
+      `;Impuesto=003,TipoFactor=Tasa,TasaOCuota=${tasaIEPS.toFixed(6)},` +
+      `Base=${baseIEPS.toFixed(2)},Importe=${iepsImporte.toFixed(2)}`;
+  }
+
+  lines.push([
+    `ClaveProdServ=${item.claveSat || "01010101"}`,
+    `Cantidad=${cantidad}`,
+    `ClaveUnidad=${item.unidadSat || "H87"}`,
+    `Descripcion=${item.nombre}`,
+    `ValorUnitario=${valorUnitario.toFixed(2)}`,
+    `Importe=${importe.toFixed(2)}`,
+    impuestoIVA + impuestoIEPS
+  ].join(sep));
+});
 
   // ======================
   // [IMPUESTOS] — Globales
@@ -108,4 +122,5 @@ export function generarTXTSifeiCompleto(venta, folio, fechaCFDI) {
 
   return lines.join("\n");
 }
+
 
