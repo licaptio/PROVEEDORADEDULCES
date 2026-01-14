@@ -87,16 +87,7 @@ const txt = generarTXTSifeiCompleto(venta, folio, fechaCFDI);
     folio_fiscal: folio,
     facturada_at: serverTimestamp()
   });
-  
-  // ✅ MARCAR COMO FACTURADA
-  await updateDoc(ref, {
-    estado: "FACTURADA",
-    serie_fiscal: CONFIG.serieFiscal,
-    folio_fiscal: folio,
-    facturada_at: serverTimestamp()
-  });
-};
-
+ 
 function dateLocalFromInput(value, endOfDay = false) {
   const [year, month, day] = value.split("-").map(Number);
 
@@ -150,5 +141,6 @@ cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", () => {
   cargarVentas();
 });
+
 
 
