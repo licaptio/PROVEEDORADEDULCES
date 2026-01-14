@@ -632,7 +632,6 @@ async function loginUsuario() {
   const p = document.getElementById("loginPassword").value.trim();
   const msg = document.getElementById("loginMsg");
 
-  // 🔸 Validación básica
   if (!u || !p) {
     msg.textContent = "Por favor, introduce usuario y contraseña.";
     return;
@@ -644,23 +643,35 @@ async function loginUsuario() {
   msg.style.borderRadius = "6px";
 
   try {
-    const q = query(
+    // ✅ SOLO 2 FILTROS (NO REQUIERE ÍNDICE COMPUESTO)
+    const qx = query(
       collection(db, "usuarios_ruta"),
       where("usuario", "==", u),
-      where("password", "==", p),
-      where("activo", "==", true)
+      where("activo", "==", true),
+      limit(1)
     );
 
-    const snap = await getDocs(q);
+    const snap = await getDocs(qx);
 
     if (snap.empty) {
-      msg.textContent = "❌ Usuario o contraseña incorrectos";
+      msg.textContent = "❌ Usuario no existe o está inactivo";
       msg.style.background = "rgba(255,50,50,.3)";
       return;
     }
 
-    const data = snap.docs[0].data();
-    USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
+    const docu = snap.docs[0];
+    const data = docu.data();
+
+    // ✅ Acepta password o contrasena (por si tu campo se llama distinto)
+    const passDB = String(data.password ?? data.contrasena ?? "").trim();
+
+    if (passDB !== p) {
+      msg.textContent = "❌ Contraseña incorrecta";
+      msg.style.background = "rgba(255,50,50,.3)";
+      return;
+    }
+
+    USUARIO_LOGUEADO = { id: docu.id, ...data };
     rutaId = data.rutaId || null;
 
     document.getElementById("usuarioBar").textContent =
@@ -678,20 +689,15 @@ async function loginUsuario() {
     const bb = document.getElementById("bottomBar");
     if (bb) bb.style.display = "flex";
 
-    await Promise.all([
-      cargarCatalogo(),
-      fijarClientePublico()
-    ]);
-
+    await Promise.all([cargarCatalogo(), fijarClientePublico()]);
     msg.textContent = "";
 
   } catch (e) {
     console.error("❌ Error en login:", e);
-    msg.textContent = "⚠️ Error de conexión.";
+    msg.textContent = "⚠️ Error consultando usuarios. Revisa consola.";
     msg.style.background = "rgba(255,150,0,.3)";
   }
 }
-  // 👇 EXPONER FUNCIÓN GLOBAL
 window.loginUsuario = loginUsuario;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -2304,7 +2310,7 @@ window.addEventListener("keydown", e => {
 <!-- 🔹 BLOQUE 8: SERVICE WORKER Y LOGOUT -->
 <script>
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js?v=8")
+ navigator.serviceWorker.register("./sw.js?v=9")
   .then(r=>console.log("✅ Service Worker registrado:",r.scope))
   .catch(e=>console.error("❌ Error registrando SW:",e));
 }
