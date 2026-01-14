@@ -73,6 +73,29 @@ TOTAL=${venta.resumen_financiero.total}
   document.getElementById("txt").style.display = "block";
   document.getElementById("txt").textContent = txt;
 
+// 💾 DESCARGAR TXT AUTOMÁTICAMENTE
+  const nombreArchivo = `${CONFIG.serieFiscal}_${folio}.txt`;
+
+  const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nombreArchivo;
+  document.body.appendChild(link);
+  link.click();
+
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  // ✅ MARCAR COMO FACTURADA
+  await updateDoc(ref, {
+    estado: "FACTURADA",
+    serie_fiscal: CONFIG.serieFiscal,
+    folio_fiscal: folio,
+    facturada_at: serverTimestamp()
+  });
+  
   // ✅ MARCAR COMO FACTURADA
   await updateDoc(ref, {
     estado: "FACTURADA",
@@ -135,5 +158,6 @@ cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", () => {
   cargarVentas();
 });
+
 
 
