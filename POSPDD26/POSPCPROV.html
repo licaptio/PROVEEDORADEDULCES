@@ -338,6 +338,30 @@ font-size:14px!important;line-height:1.45;
 </style>
 </head>
 <body>
+<div id="loginOverlay">
+  <div class="login-apple">
+
+    <img src="logo_proveedora.webp" class="apple-logo" alt="Logo">
+
+    <h1>Acceso al sistema</h1>
+    <p class="apple-sub">Identifícate para continuar</p>
+
+    <div class="apple-field">
+      <input type="text" placeholder="Usuario">
+    </div>
+
+    <div class="apple-field">
+      <input type="password" placeholder="Contraseña">
+    </div>
+
+    <button class="apple-btn">Continuar</button>
+
+    <button class="apple-link">Salir</button>
+
+    <small class="apple-footer">© ProvSoft</small>
+
+  </div>
+</div>
   <!-- 🔑 BLOQUE 2: LOGIN DE USUARIO -->
   <div id="loginScreen">
     <img id="loginLogo" src="logo_proveedora.webp" alt="Logo La Proveedora">
@@ -2416,7 +2440,124 @@ body.sesion-activa #bottomBar {
     #bottomBar { padding: 8px 0; }
     .bar-btn { font-size: 14px; padding: 8px 4px; }
   }
+/* ===========================================================
+   🍎 LOGIN APPLE STYLE (macOS / iPadOS)
+   =========================================================== */
 
+#loginOverlay{
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(circle at top,#1e293b,#020617);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  font-family:-apple-system,BlinkMacSystemFont,
+               "SF Pro Text","SF Pro Display",
+               system-ui,sans-serif;
+}
+
+.login-apple{
+  width:360px;
+  padding:36px 28px 30px;
+  border-radius:20px;
+  background:rgba(255,255,255,.15);
+  backdrop-filter:blur(25px);
+  -webkit-backdrop-filter:blur(25px);
+  box-shadow:
+    0 40px 90px rgba(0,0,0,.45),
+    inset 0 1px rgba(255,255,255,.25);
+  text-align:center;
+  color:#fff;
+}
+
+/* 🍎 Logo */
+.apple-logo{
+  width:90px;
+  margin-bottom:18px;
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,.45));
+}
+
+/* 🍎 Títulos */
+.login-apple h1{
+  margin:0;
+  font-size:22px;
+  font-weight:600;
+  letter-spacing:.2px;
+}
+
+.apple-sub{
+  font-size:13px;
+  color:rgba(255,255,255,.65);
+  margin:6px 0 22px;
+}
+
+/* 🍎 Inputs */
+.apple-field{
+  margin-bottom:14px;
+}
+
+.apple-field input{
+  width:100%;
+  padding:14px;
+  border-radius:12px;
+  border:none;
+  outline:none;
+  font-size:15px;
+  background:rgba(255,255,255,.85);
+  color:#020617;
+  text-align:center;
+}
+
+.apple-field input::placeholder{
+  color:#64748b;
+}
+
+.apple-field input:focus{
+  box-shadow:0 0 0 3px rgba(255,255,255,.35);
+}
+
+/* 🍎 Botón principal */
+.apple-btn{
+  width:100%;
+  margin-top:18px;
+  padding:14px;
+  border:none;
+  border-radius:14px;
+  background:#007AFF;
+  color:white;
+  font-size:16px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.apple-btn:active{
+  transform:scale(.97);
+}
+
+/* 🍎 Botón tipo link */
+.apple-link{
+  margin-top:12px;
+  background:none;
+  border:none;
+  color:rgba(255,255,255,.7);
+  font-size:14px;
+  cursor:pointer;
+}
+
+.apple-link:hover{
+  text-decoration:underline;
+}
+
+/* 🍎 Footer */
+.apple-footer{
+  display:block;
+  margin-top:20px;
+  font-size:11px;
+  color:rgba(255,255,255,.45);
+}
+  
 </style>
 <script>
 document.getElementById("btnCorteRuta").addEventListener("click", () => {
