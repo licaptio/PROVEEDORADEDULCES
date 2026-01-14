@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>FACTURACIÓN RUTA RM1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body { font-family: Arial; background:#f4f6f8; padding:20px }
+    h1 { margin-bottom: 5px }
+    .ruta { color:#555; margin-bottom:20px }
+    table { width:100%; border-collapse:collapse; background:#fff }
+    th,td { padding:10px; border-bottom:1px solid #ddd }
+    th { background:#eee }
+    button { padding:6px 12px; cursor:pointer }
+    pre { background:#111; color:#0f0; padding:15px; margin-top:20px }
+  </style>
+</head>
+
+<body>
+
+<h1>FACTURACIÓN RUTA RM1</h1>
+<div class="ruta">Ruta fija: <b>Almacen_Ruta_1</b></div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Cliente</th>
+      <th>Total</th>
+      <th>Acción</th>
+    </tr>
+  </thead>
+  <tbody id="ventas"></tbody>
+</table>
+
+<pre id="txt" style="display:none"></pre>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
