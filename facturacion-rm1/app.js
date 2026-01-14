@@ -1,4 +1,5 @@
 // app.js
+import { generarTXTSifeiCompleto } from "./sifei/generarTxt.js";
 import { db, obtenerVentasRuta, tomarFolio } from "./firebase.js";
 import {
   doc,
@@ -159,5 +160,12 @@ document.getElementById("btnBuscar").addEventListener("click", () => {
   cargarVentas();
 });
 
+export function generarTXTSifeiCompleto(venta, folio, fechaCFDI) {
+  const sep = "|";
+  const lines = [];
 
+  // ... TODO TU CÓDIGO TAL CUAL ...
+
+  return lines.join("\n");
+}
 
