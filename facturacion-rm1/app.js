@@ -42,7 +42,7 @@ function pintarVentas(ventas) {
 
 window.generarTXTSifei = async function (idVenta) {
 
-  const ref = doc(db, "ventas", idVenta);
+  const ref = doc(db, "ventas_rutav2", idVenta);
   const snap = await getDoc(ref);
   if (!snap.exists()) return alert("Venta no existe");
 
@@ -78,3 +78,4 @@ TOTAL=${venta.resumen_financiero.total}
 
 // ARRANQUE
 cargarVentas();
+
