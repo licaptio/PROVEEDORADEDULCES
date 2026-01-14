@@ -223,9 +223,16 @@ td{
   cursor:pointer;
   box-shadow: var(--shadow);
 }
-
+header img{
+  height:32px;
+  margin-left:12px;
+  object-fit:contain;
+}
+header{
+  grid-column: 1 / -1;
+}
 .btn:active{transform:scale(.98)}
-
+ 
 </style>
 </head>
 <body>
@@ -287,6 +294,7 @@ td{
 
 <!-- 🧾 BLOQUE NUEVO — CARRITO FIJO -->
 <div id="carrito-container">
+
   <div class="table-wrap">
     <table>
       <thead>
@@ -300,17 +308,31 @@ td{
       <tbody id="tbody"></tbody>
     </table>
   </div>
-</div>
-
 
   <div class="totals">
-    <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
-    <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
-    <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
-      <div class="actions">
+    <div class="row muted">
+      <span>Subtotal</span><span id="lblSubtotal">$0.00</span>
+    </div>
+    <div class="row muted">
+      <span>Impuestos</span><span id="lblImpuestos">$0.00</span>
+    </div>
+    <div class="row big">
+      <span>Total</span><span id="lblTotal">$0.00</span>
+    </div>
     <button class="btn" id="btnCobrar">Cobrar</button>
   </div>
 
+</div>
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Cant.</th>
+          <th>Importe</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
   </div>
 </div>
 
@@ -524,22 +546,27 @@ const msg = document.getElementById("loginMsg");
   msg.style.transition = "all 0.3s ease";
 
   try {
-    const q = query(
-      collection(db, "usuarios_ruta"),
-      where("usuario", "==", u),
-      where("password", "==", p),
-      where("activo", "==", true)
-    );
+const q = query(
+  collection(db, "usuarios_ruta"),
+  where("usuario", "==", u),
+  where("activo", "==", true),
+  limit(1)
+);
 
-    const snap = await getDocs(q);
+const snap = await getDocs(q);
 
-    if (snap.empty) {
-      msg.textContent = "❌ Usuario o contraseña incorrectos";
-      msg.style.background = "rgba(255,50,50,.3)";
-      return;
-    }
+if (snap.empty) {
+  msg.textContent = "❌ Usuario no existe o inactivo";
+  return;
+}
 
-    const data = snap.docs[0].data();
+const data = snap.docs[0].data();
+
+if (String(data.password).trim() !== p) {
+  msg.textContent = "❌ Contraseña incorrecta";
+  return;
+}
+   const data = snap.docs[0].data();
     USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
     rutaId = data.rutaId || null;
     document.getElementById("usuarioBar").textContent =
@@ -2126,7 +2153,7 @@ function toast(msg, color = "#0c6cbd") {
 <!-- 🔹 BLOQUE 8: SERVICE WORKER Y LOGOUT -->
 <script>
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js?v=8")
+  navigator.serviceWorker.register("./sw.js?v=9")
   .then(r=>console.log("✅ Service Worker registrado:",r.scope))
   .catch(e=>console.error("❌ Error registrando SW:",e));
 }
@@ -2285,7 +2312,7 @@ body.sesion-activa #bottomBar {
 
 </style>
 <script>
-document.getElementById("btnCorteRuta").addEventListener("click", () => {
+document.getElementById("btnCorteRuta")?.addEventListener("click", () => {
   window.location.href = "corterutamovil.html";
 });
 
