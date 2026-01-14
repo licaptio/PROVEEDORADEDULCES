@@ -58,18 +58,9 @@ window.generarTXTSifei = async function (idVenta) {
     String(fechaLocal.getMinutes()).padStart(2, "0") + ":" +
     String(fechaLocal.getSeconds()).padStart(2, "0");
 
-  // 📄 TXT REAL SIFEI
-  const txt = `
-SERIE=${CONFIG.serieFiscal}
-FOLIO=${folio}
-RFC_EMISOR=${CONFIG.rfcEmisor}
-RFC_RECEPTOR=XAXX010101000
-USO_CFDI=S01
-FECHA=${fechaCFDI}
-SUBTOTAL=${venta.resumen_financiero.subtotal}
-IMPUESTOS=${venta.resumen_financiero.impuestos}
-TOTAL=${venta.resumen_financiero.total}
-`.trim();
+// 📄 TXT SIFEI COMPLETO (NUEVO)
+const txt = generarTXTSifeiCompleto(venta, folio, fechaCFDI);
+
 
   document.getElementById("txt").style.display = "block";
   document.getElementById("txt").textContent = txt;
@@ -160,12 +151,4 @@ document.getElementById("btnBuscar").addEventListener("click", () => {
   cargarVentas();
 });
 
-export function generarTXTSifeiCompleto(venta, folio, fechaCFDI) {
-  const sep = "|";
-  const lines = [];
-
-  // ... TODO TU CÓDIGO TAL CUAL ...
-
-  return lines.join("\n");
-}
 
