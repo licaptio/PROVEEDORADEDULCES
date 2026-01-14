@@ -566,7 +566,7 @@ if (String(data.password).trim() !== p) {
   msg.textContent = "❌ Contraseña incorrecta";
   return;
 }
-   const data = snap.docs[0].data();
+
     USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
     rutaId = data.rutaId || null;
     document.getElementById("usuarioBar").textContent =
