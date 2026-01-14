@@ -43,10 +43,14 @@ window.generarTXTSifei = async function (idVenta) {
 
   const venta = snap.data();
 
+  // 🛑 VALIDACIÓN CORRECTA
+  if (!venta.detalle || !venta.detalle.length) {
+    return alert("La venta no tiene conceptos");
+  }
+
   // 🔢 TOMAR FOLIO REAL
   const folioRaw = await tomarFolio(CONFIG.serieFiscal);
   const folio = String(folioRaw).padStart(6, "0");
-
 
   // 📅 FECHA LOCAL CFDI
   const fechaLocal = venta.fecha.toDate();
@@ -58,26 +62,24 @@ window.generarTXTSifei = async function (idVenta) {
     String(fechaLocal.getMinutes()).padStart(2, "0") + ":" +
     String(fechaLocal.getSeconds()).padStart(2, "0");
 
-// 📄 TXT SIFEI COMPLETO (NUEVO)
-const txt = generarTXTSifeiCompleto(venta, folio, fechaCFDI);
+  // 📄 TXT SIFEI COMPLETO
+  const txt = generarTXTSifeiCompleto(venta, folio, fechaCFDI);
 
+  console.log("TXT SIFEI GENERADO:\n", txt);
 
   document.getElementById("txt").style.display = "block";
   document.getElementById("txt").textContent = txt;
 
-// 💾 DESCARGAR TXT AUTOMÁTICAMENTE
+  // 💾 DESCARGAR
   const nombreArchivo = `${CONFIG.serieFiscal}_${folio}.txt`;
-
   const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement("a");
   link.href = url;
   link.download = nombreArchivo;
-  document.body.appendChild(link);
   link.click();
 
-  document.body.removeChild(link);
   URL.revokeObjectURL(url);
 
   // ✅ MARCAR COMO FACTURADA
@@ -87,7 +89,8 @@ const txt = generarTXTSifeiCompleto(venta, folio, fechaCFDI);
     folio_fiscal: folio,
     facturada_at: serverTimestamp()
   });
- 
+};
+
 function dateLocalFromInput(value, endOfDay = false) {
   const [year, month, day] = value.split("-").map(Number);
 
@@ -141,6 +144,4 @@ cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", () => {
   cargarVentas();
 });
-
-
 
