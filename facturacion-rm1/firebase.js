@@ -47,16 +47,12 @@ export async function tomarFolio(serie) {
   });
 }
 
-export async function obtenerVentasRuta(rutaId, fechaInicio, fechaFin) {
-
-  const inicio = Timestamp.fromDate(fechaInicio);
-  const fin = Timestamp.fromDate(fechaFin);
-
+export async function obtenerVentasRuta(rutaId, inicio, fin) {
   const q = query(
     collection(db, "ventas_rutav2"),
     where("rutaId", "==", rutaId),
-    where("fecha", ">=", inicio),
-    where("fecha", "<=", fin),
+    where("fecha", ">=", Timestamp.fromMillis(inicio.getTime())),
+    where("fecha", "<", Timestamp.fromMillis(fin.getTime() + 1)),
     orderBy("fecha")
   );
 
@@ -66,6 +62,3 @@ export async function obtenerVentasRuta(rutaId, fechaInicio, fechaFin) {
     .map(d => ({ id: d.id, ...d.data() }))
     .filter(v => !v.estado || v.estado === "PENDIENTE");
 }
-
-
-
