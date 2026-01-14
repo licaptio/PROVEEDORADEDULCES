@@ -338,41 +338,33 @@ font-size:14px!important;line-height:1.45;
 </style>
 </head>
 <body>
-<div id="loginOverlay">
+  <div id="loginOverlay">
   <div class="login-apple">
-
+    
     <img src="logo_proveedora.webp" class="apple-logo" alt="Logo">
 
     <h1>Acceso al sistema</h1>
     <p class="apple-sub">Identifícate para continuar</p>
 
     <div class="apple-field">
-      <input type="text" placeholder="Usuario">
+     <input id="loginUsuario" type="text" placeholder="Usuario">
     </div>
 
     <div class="apple-field">
-      <input type="password" placeholder="Contraseña">
+      <input id="loginPassword" type="password" placeholder="Contraseña">
     </div>
 
-    <button class="apple-btn">Continuar</button>
+   <button class="apple-btn" id="btnLoginApple">Continuar</button>
 
-    <button class="apple-link">Salir</button>
-
+   <button class="apple-link" onclick="window.close()">Salir</button>
     <small class="apple-footer">© ProvSoft</small>
 
+    <div id="loginMsg"
+     style="margin-top:10px;font-size:13px;color:#fca5a5;min-height:18px;">
+</div>
+    
   </div>
 </div>
-  <!-- 🔑 BLOQUE 2: LOGIN DE USUARIO -->
-  <div id="loginScreen">
-    <img id="loginLogo" src="logo_proveedora.webp" alt="Logo La Proveedora">
-    <h2>Acceso Ruta de Venta</h2>
-    <input id="loginUsuario" type="text" placeholder="Usuario"/>
-    <input id="loginPassword" type="password" placeholder="Contraseña"/>
-    <button id="btnLogin" class="btn">Entrar</button>
-    
-    <div id="loginMsg"></div>
-  </div>
-
 <!-- 📦 BLOQUE 3: INTERFAZ PRINCIPAL DEL POS -->
 <div id="posApp" style="display:none;">
 
@@ -634,9 +626,9 @@ function obtenerPrecioSegunCantidad(prod, cantidad) {
    🔑 SECCIÓN 4: LOGIN Y CARGA INICIAL (OPTIMIZADO)
    =========================================================== */
 async function loginUsuario() {
-const u = document.getElementById("loginUsuario").value.trim();
-const p = document.getElementById("loginPassword").value.trim();
-const msg = document.getElementById("loginMsg");
+  const u = document.getElementById("loginUsuario").value.trim();
+  const p = document.getElementById("loginPassword").value.trim();
+  const msg = document.getElementById("loginMsg");
 
   // 🔸 Validación básica
   if (!u || !p) {
@@ -644,12 +636,10 @@ const msg = document.getElementById("loginMsg");
     return;
   }
 
-  // 🎬 Animación visual de progreso
   msg.textContent = "🔄 Verificando usuario...";
   msg.style.background = "rgba(255,255,255,.15)";
   msg.style.padding = "6px 10px";
   msg.style.borderRadius = "6px";
-  msg.style.transition = "all 0.3s ease";
 
   try {
     const q = query(
@@ -670,42 +660,53 @@ const msg = document.getElementById("loginMsg");
     const data = snap.docs[0].data();
     USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
     rutaId = data.rutaId || null;
+
     document.getElementById("usuarioBar").textContent =
-  `Usuario: ${USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario}`;
+      `Usuario: ${USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario}`;
 
-
-    // 💾 Guarda sesión para acceso rápido
     localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
 
-    // 🟢 Mostrar transición visual
     msg.textContent = "✅ Bienvenido " + (data.nombre || u);
     msg.style.background = "rgba(0,150,80,.4)";
 
-    // 🌀 Cargar datos principales
-document.getElementById("loginScreen").style.display = "none";
-document.getElementById("posApp").style.display = "block";
-document.body.classList.add("sesion-activa");
+    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("posApp").style.display = "block";
+    document.body.classList.add("sesion-activa");
 
-const bb = document.getElementById("bottomBar");
-if (bb) bb.style.display = "flex";
+    const bb = document.getElementById("bottomBar");
+    if (bb) bb.style.display = "flex";
 
-    // Carga simultánea
     await Promise.all([
       cargarCatalogo(),
       fijarClientePublico()
     ]);
 
-    console.log("✅ Sesión iniciada:", USUARIO_LOGUEADO);
     msg.textContent = "";
 
   } catch (e) {
     console.error("❌ Error en login:", e);
-    msg.textContent = "⚠️ Error de conexión con el servidor.";
+    msg.textContent = "⚠️ Error de conexión.";
     msg.style.background = "rgba(255,150,0,.3)";
   }
 }
+  // 👇 EXPONER FUNCIÓN GLOBAL
+window.loginUsuario = loginUsuario;
 
-$("#btnLogin").onclick = loginUsuario;
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("btnLoginApple");
+  if (btn) btn.addEventListener("click", loginUsuario);
+});
+
+// 👇 LOGIN CON ENTER (UX Apple)
+["loginUsuario","loginPassword"].forEach(id=>{
+  document.getElementById(id).addEventListener("keydown", e=>{
+    if (e.key === "Enter") {
+      e.preventDefault();
+      loginUsuario();
+    }
+  });
+});
+
 /* ===========================================================
    🔁 SECCIÓN 4.1: RECUPERAR SESIÓN AUTOMÁTICA
    =========================================================== */
@@ -722,11 +723,12 @@ $("#btnLogin").onclick = loginUsuario;
 
     console.log("🔐 Sesión restaurada:", USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario);
 
-    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("loginOverlay").style.display = "none";
     document.getElementById("posApp").style.display = "block";
-document.body.classList.add("sesion-activa");
-
-    
+    document.getElementById("carrito-container").style.display = "";
+    document.body.classList.add("sesion-activa");
+    const bb = document.getElementById("bottomBar");
+if (bb) bb.style.display = "flex";
 
     await Promise.all([
       cargarCatalogo(),
@@ -736,7 +738,7 @@ document.body.classList.add("sesion-activa");
     console.warn("⚠️ No se pudo restaurar sesión previa:", err);
     localStorage.removeItem("usuario_ruta");
   }
-});
+})();
 /* ===========================================================
    📦 CACHE DINÁMICO–PROVSOFT (SW)
    =========================================================== */
@@ -779,6 +781,10 @@ async function leerCache(ruta) {
 async function cargarCatalogo() {
   const statusBox = document.createElement("div");
 
+   try {
+    statusBox.textContent = "🔄 Cargando catálogo...";
+    document.body.appendChild(statusBox);
+
   // 🟦 Muestra un mensaje flotante mientras carga
   statusBox.textContent = "🔄 Cargando catálogo de productos...";
   statusBox.style.cssText = `
@@ -787,7 +793,6 @@ async function cargarCatalogo() {
     border-radius:10px;z-index:5000;font-size:14px;
     box-shadow:0 2px 6px rgba(0,0,0,.2);
   `;
-  document.body.appendChild(statusBox);
 // =====================================================
 // 🟢 1) Intentar cargar desde cache del Service Worker
 // =====================================================
@@ -888,7 +893,13 @@ statusBox.textContent = `✅ Catálogo cargado (${catalogo.length} productos)`;
 setTimeout(() => statusBox.remove(), 2000);
 
 console.log("✅ Catálogo cargado desde Firestore:", catalogo.length);
-  }
+  
+} catch (err) {
+  console.error("❌ Error cargando catálogo:", err);
+  statusBox.textContent = "❌ Error cargando catálogo";
+  setTimeout(() => statusBox.remove(), 2500);
+}
+}
 /* ===========================================================
    🔍 SECCIÓN 6: BÚSQUEDA LOCAL DE PRODUCTOS
    =========================================================== */
@@ -914,7 +925,7 @@ function resolverProductoPorCodigo(codigo) {
     if (idMatch) {
       const p = catalogo.find(x => x.id === idMatch[1]);
       if (p) {
-        $("#cantidadInput").value = peso.toFixed(3);
+      // $("#cantidadInput").value = peso.toFixed(3);
         return [p];
       }
     }
@@ -1654,8 +1665,7 @@ function abrirCobro() {
     return;
   }
 
-  localStorage.removeItem("desc_porcentaje"); // 🔥 AÑADIR
-  descuentoAutorizado = 0;
+ descuentoAutorizado = Number(localStorage.getItem("desc_porcentaje") || 0);
 
   const tot = calcularTotales(0);
   cobroTotal.textContent = money(tot.total);
@@ -1852,7 +1862,15 @@ venta.detalle = carrito.map(it => {
 
     // 💲 Precios
     precio_unit: +it.precio_unit.toFixed(2),
-    importe: +it.importe.toFixed(2),
+   // ✅ prorrateo de descuento SOLO a elegibles
+const factorDesc = (it.permite_descuento && descuentoAutorizado > 0)
+  ? (100 - descuentoAutorizado) / 100
+  : 1;
+
+const importeConDesc = +(it.cantidad * it.precio_unit * factorDesc).toFixed(2);
+
+importe: importeConDesc,
+
 
     // 💰 Costos
     costo_unit: +it.costo_unit.toFixed(2),
@@ -2293,10 +2311,9 @@ document.addEventListener("DOMContentLoaded",()=> {
   const b = document.getElementById("btnLogout");
   if (b) {
 b.addEventListener("click", () => {
-
-  // 🛑 PROTECCIÓN: no permitir cerrar sesión durante cobro
-  if (bloquearSiCobroActivo()) return;
-
+  bloqueoSalida = false;
+if (bloquearSiCobroActivo()) return;
+document.getElementById("loginOverlay").style.display = "flex";
   // SOLO BORRAR LA SESIÓN
   localStorage.removeItem("usuario_ruta");
   document.body.classList.remove("sesion-activa");
@@ -2310,7 +2327,6 @@ b.addEventListener("click", () => {
   document.getElementById("carrito-container").style.display = "none";
 
   // MOSTRAR LOGIN
-  document.getElementById("loginScreen").style.display = "flex";
   document.getElementById("loginUsuario").value = "";
   document.getElementById("loginPassword").value = "";
   document.getElementById("loginMsg").textContent = "";
@@ -2341,7 +2357,7 @@ window.location.href = "ticketsresumen.html";
 }
 </script>
 <script>
-let bloqueoSalida = true;
+let bloqueoSalida = false;
 
 // 🚫 Bloquear F5 y Ctrl+R
 window.addEventListener("keydown", e => {
@@ -2360,11 +2376,6 @@ window.addEventListener("beforeunload", e => {
     e.returnValue = "¿Deseas salir del sistema?";
     return "¿Deseas salir del sistema?";
   }
-});
-
-// ✅ Al cerrar sesión, desbloquear salida
-document.getElementById("btnLogout")?.addEventListener("click", () => {
-  bloqueoSalida = false;
 });
 
 // 🚧 GUARDIÁN GLOBAL ANTI-BUG — Bloquea navegación durante cobro
@@ -2570,6 +2581,7 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
  · © ProvSoft
 </footer>
 <div class="snow"></div>
+
 </body>
 </html>
 
