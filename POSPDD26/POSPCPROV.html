@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <link rel="icon" href="logo_proveedora.webp" type="image/webp">
-  
   <!-- 🧱 BLOQUE 1: CABECERA Y CONFIGURACIÓN GLOBAL -->
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0c6cbd">
@@ -141,11 +139,9 @@ font-size:14px!important;line-height:1.45;
   z-index: 99999 !important;
   position: absolute !important;
 }
-@media (max-width: 600px) {
-  #carrito-container {
-    bottom: -65px !important;
-    margin-top: 25px !important;
-  }
+#carrito-container {
+  bottom: -65px !important;     /* 🔥 baja más el carrito */
+  margin-top: 25px !important;  /* espacio visual extra */
 }
 .snow{
   pointer-events: none;
@@ -174,199 +170,22 @@ font-size:14px!important;line-height:1.45;
     background-position: 0 600px;
   }
 }
-/* ===========================================================
-   🖥️ MODO PC / DESKTOP (NO AFECTA MÓVIL)
-   =========================================================== */
-@media (min-width: 1024px) {
 
-  header {
-    font-size: 22px;
-    height: 64px;
-  }
 
-  header img {
-    height: 80px;
-  }
-
-  /* 🧱 Layout principal */
-  .main-content {
-    display: grid;
-    grid-template-columns: 1.2fr 1fr;
-    gap: 16px;
-    padding: 16px 24px;
-    max-width: 1600px;
-    margin: auto;
-  }
-
-  /* 🔍 Buscador más ancho */
-  #buscador {
-    font-size: 20px;
-    padding: 16px;
-  }
-
-  .field label {
-    font-size: 14px;
-    min-width: 90px;
-  }
-
-  /* 🧾 Carrito fijo a la derecha */
-  #carrito-container {
-    position: relative;
-    bottom: auto !important;
-    max-height: none;
-    border-radius: 16px;
-    padding: 16px;
-  }
-
-  table thead th {
-    font-size: 14px;
-  }
-
-  table td {
-    font-size: 15px;
-    padding: 10px;
-  }
-
-  /* 💰 Totales GRANDES */
-  .totals {
-    margin-top: 12px;
-    border-radius: 16px;
-    box-shadow: var(--shadow);
-  }
-
-  .totals .row {
-    font-size: 20px;
-  }
-
-  .totals .row.big {
-    font-size: 28px;
-    color: #00416A;
-  }
-
-  /* 💳 Botón cobrar PRO */
-  #btnCobrar {
-    font-size: 22px;
-    padding: 18px;
-    border-radius: 16px;
-  }
-
-  /* 🔘 Botones inferiores tipo POS */
-  #bottomBar {
-    position: sticky;
-    max-width: 1600px;
-    margin: auto;
-    border-radius: 16px 16px 0 0;
-  }
-
-  .bar-btn {
-    font-size: 18px;
-    padding: 14px;
-  }
-
-  /* 🧮 Inputs cantidad más grandes */
-  #tbody input[type="number"] {
-    font-size: 16px;
-    padding: 6px;
-  }
-
-  /* 🧾 Modal cobro estilo escritorio */
-  #modalCobro .modal-card {
-    max-width: 520px;
-  }
-
-  #modalCobro input,
-  #modalCobro textarea {
-    font-size: 18px;
-  }
-  /* 🔥 FIX POS PANTALLA COMPLETA REAL */
-  html, body {
-    height: 100%;
-    overflow: hidden;
-  }
-
-  #posApp {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .main-content {
-    flex: 1;
-   overflow: auto;
-  }
-
-  #carrito-container {
-    height: 100%;
-    overflow-y: auto;
-  }
- }
-/* ===========================================================
-   🌙 TEMA OSCURO POS — SOLO PC
-   =========================================================== */
-@media (min-width: 1024px) {
-
-  body {
-    background: #0f172a;
-  }
-
-  header,
-  #usuarioBar {
-    background: #020617 !important;
-  }
-
-  .card,
-  #carrito-container,
-  .totals,
-  table,
-  thead th {
-    background: #020617;
-    color: #e5e7eb;
-  }
-
-  table td {
-    border-color: #1e293b;
-  }
-
-  input, textarea {
-    background: #020617;
-    color: #e5e7eb;
-    border-color: #334155;
-  }
-
-  .row.big {
-    color: #38bdf8;
-  }
-}
 </style>
 </head>
 <body>
-  <div id="loginOverlay">
-  <div class="login-apple">
+  <!-- 🔑 BLOQUE 2: LOGIN DE USUARIO -->
+  <div id="loginScreen">
+    <img id="loginLogo" src="logo_proveedora.webp" alt="Logo La Proveedora">
+    <h2>Acceso Ruta de Venta</h2>
+    <input id="loginUsuario" type="text" placeholder="Usuario"/>
+    <input id="loginPassword" type="password" placeholder="Contraseña"/>
+    <button id="btnLogin" class="btn">Entrar</button>
     
-    <img src="logo_proveedora.webp" class="apple-logo" alt="Logo">
-
-    <h1>Acceso al sistema</h1>
-    <p class="apple-sub">Identifícate para continuar</p>
-
-    <div class="apple-field">
-     <input id="loginUsuario" type="text" placeholder="Usuario">
-    </div>
-
-    <div class="apple-field">
-      <input id="loginPassword" type="password" placeholder="Contraseña">
-    </div>
-
-   <button class="apple-btn" id="btnLoginApple">Continuar</button>
-
-   <button class="apple-link" onclick="window.close()">Salir</button>
-    <small class="apple-footer">© ProvSoft</small>
-
-    <div id="loginMsg"
-     style="margin-top:10px;font-size:13px;color:#fca5a5;min-height:18px;">
-</div>
-    
+    <div id="loginMsg"></div>
   </div>
-</div>
+
 <!-- 📦 BLOQUE 3: INTERFAZ PRINCIPAL DEL POS -->
 <div id="posApp" style="display:none;">
 
@@ -402,7 +221,7 @@ font-size:14px!important;line-height:1.45;
 
     <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
     <div class="field searchbox">
-     <label>🔍 Buscar producto</label>
+      <label>Buscar</label>
       <input id="buscador" type="text" placeholder="Escribe o escanea código…">
       <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
       <div id="resultados" class="search-results"></div>
@@ -430,29 +249,11 @@ font-size:14px!important;line-height:1.45;
 
 
   <div class="totals">
-<div class="row muted">
-  <span>🧾 Subtotal</span>
-  <span id="lblSubtotal">$0.00</span>
-</div>
-<div class="row muted">
-  <span>🧮 Impuestos</span>
-  <span id="lblImpuestos">$0.00</span>
-</div>
-<div class="row big">
-  <span>💰 TOTAL</span>
-  <span id="lblTotal">$0.00</span>
-</div>
+    <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
+    <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
+    <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
       <div class="actions">
-    <button class="btn" id="btnCobrar">
-  <svg width="22" height="22" viewBox="0 0 24 24"
-       fill="none" stroke="white" stroke-width="2"
-       stroke-linecap="round" stroke-linejoin="round"
-       style="vertical-align:middle;margin-right:8px;">
-    <rect x="2" y="5" width="20" height="14" rx="2"/>
-    <line x1="2" y1="10" x2="22" y2="10"/>
-  </svg>
-  Cobrar
-</button>
+    <button class="btn" id="btnCobrar">Cobrar</button>
   </div>
 
   </div>
@@ -628,93 +429,78 @@ function obtenerPrecioSegunCantidad(prod, cantidad) {
    🔑 SECCIÓN 4: LOGIN Y CARGA INICIAL (OPTIMIZADO)
    =========================================================== */
 async function loginUsuario() {
-  const u = document.getElementById("loginUsuario").value.trim();
-  const p = document.getElementById("loginPassword").value.trim();
-  const msg = document.getElementById("loginMsg");
+const u = document.getElementById("loginUsuario").value.trim();
+const p = document.getElementById("loginPassword").value.trim();
+const msg = document.getElementById("loginMsg");
 
+  // 🔸 Validación básica
   if (!u || !p) {
     msg.textContent = "Por favor, introduce usuario y contraseña.";
     return;
   }
 
+  // 🎬 Animación visual de progreso
   msg.textContent = "🔄 Verificando usuario...";
   msg.style.background = "rgba(255,255,255,.15)";
   msg.style.padding = "6px 10px";
   msg.style.borderRadius = "6px";
+  msg.style.transition = "all 0.3s ease";
 
   try {
-    // ✅ SOLO 2 FILTROS (NO REQUIERE ÍNDICE COMPUESTO)
-    const qx = query(
+    const q = query(
       collection(db, "usuarios_ruta"),
       where("usuario", "==", u),
-      where("activo", "==", true),
-      limit(1)
+      where("password", "==", p),
+      where("activo", "==", true)
     );
 
-    const snap = await getDocs(qx);
+    const snap = await getDocs(q);
 
     if (snap.empty) {
-      msg.textContent = "❌ Usuario no existe o está inactivo";
+      msg.textContent = "❌ Usuario o contraseña incorrectos";
       msg.style.background = "rgba(255,50,50,.3)";
       return;
     }
 
-    const docu = snap.docs[0];
-    const data = docu.data();
-
-    // ✅ Acepta password o contrasena (por si tu campo se llama distinto)
-    const passDB = String(data.password ?? data.contrasena ?? "").trim();
-
-    if (passDB !== p) {
-      msg.textContent = "❌ Contraseña incorrecta";
-      msg.style.background = "rgba(255,50,50,.3)";
-      return;
-    }
-
-    USUARIO_LOGUEADO = { id: docu.id, ...data };
+    const data = snap.docs[0].data();
+    USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
     rutaId = data.rutaId || null;
-
     document.getElementById("usuarioBar").textContent =
-      `Usuario: ${USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario}`;
+  `Usuario: ${USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario}`;
 
+
+    // 💾 Guarda sesión para acceso rápido
     localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
 
+    // 🟢 Mostrar transición visual
     msg.textContent = "✅ Bienvenido " + (data.nombre || u);
     msg.style.background = "rgba(0,150,80,.4)";
 
-    document.getElementById("loginOverlay").style.display = "none";
-    document.getElementById("posApp").style.display = "block";
-    document.body.classList.add("sesion-activa");
+    // 🌀 Cargar datos principales
+document.getElementById("loginScreen").style.display = "none";
+document.getElementById("posApp").style.display = "block";
+document.body.classList.add("sesion-activa");
 
-    const bb = document.getElementById("bottomBar");
-    if (bb) bb.style.display = "flex";
+const bb = document.getElementById("bottomBar");
+if (bb) bb.style.display = "flex";
 
-    await Promise.all([cargarCatalogo(), fijarClientePublico()]);
+    // Carga simultánea
+    await Promise.all([
+      cargarCatalogo(),
+      fijarClientePublico()
+    ]);
+
+    console.log("✅ Sesión iniciada:", USUARIO_LOGUEADO);
     msg.textContent = "";
 
   } catch (e) {
     console.error("❌ Error en login:", e);
-    msg.textContent = "⚠️ Error consultando usuarios. Revisa consola.";
+    msg.textContent = "⚠️ Error de conexión con el servidor.";
     msg.style.background = "rgba(255,150,0,.3)";
   }
 }
-window.loginUsuario = loginUsuario;
 
-document.addEventListener("DOMContentLoaded", () => {
-  const btn = document.getElementById("btnLoginApple");
-  if (btn) btn.addEventListener("click", loginUsuario);
-});
-
-// 👇 LOGIN CON ENTER (UX Apple)
-["loginUsuario","loginPassword"].forEach(id=>{
-  document.getElementById(id).addEventListener("keydown", e=>{
-    if (e.key === "Enter") {
-      e.preventDefault();
-      loginUsuario();
-    }
-  });
-});
-
+$("#btnLogin").onclick = loginUsuario;
 /* ===========================================================
    🔁 SECCIÓN 4.1: RECUPERAR SESIÓN AUTOMÁTICA
    =========================================================== */
@@ -731,12 +517,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("🔐 Sesión restaurada:", USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario);
 
-    document.getElementById("loginOverlay").style.display = "none";
+    document.getElementById("loginScreen").style.display = "none";
     document.getElementById("posApp").style.display = "block";
-    document.getElementById("carrito-container").style.display = "";
-    document.body.classList.add("sesion-activa");
-    const bb = document.getElementById("bottomBar");
-if (bb) bb.style.display = "flex";
+document.body.classList.add("sesion-activa");
+
+    
 
     await Promise.all([
       cargarCatalogo(),
@@ -746,7 +531,7 @@ if (bb) bb.style.display = "flex";
     console.warn("⚠️ No se pudo restaurar sesión previa:", err);
     localStorage.removeItem("usuario_ruta");
   }
-})();
+});
 /* ===========================================================
    📦 CACHE DINÁMICO–PROVSOFT (SW)
    =========================================================== */
@@ -789,10 +574,6 @@ async function leerCache(ruta) {
 async function cargarCatalogo() {
   const statusBox = document.createElement("div");
 
-   try {
-    statusBox.textContent = "🔄 Cargando catálogo...";
-    document.body.appendChild(statusBox);
-
   // 🟦 Muestra un mensaje flotante mientras carga
   statusBox.textContent = "🔄 Cargando catálogo de productos...";
   statusBox.style.cssText = `
@@ -801,6 +582,7 @@ async function cargarCatalogo() {
     border-radius:10px;z-index:5000;font-size:14px;
     box-shadow:0 2px 6px rgba(0,0,0,.2);
   `;
+  document.body.appendChild(statusBox);
 // =====================================================
 // 🟢 1) Intentar cargar desde cache del Service Worker
 // =====================================================
@@ -901,13 +683,7 @@ statusBox.textContent = `✅ Catálogo cargado (${catalogo.length} productos)`;
 setTimeout(() => statusBox.remove(), 2000);
 
 console.log("✅ Catálogo cargado desde Firestore:", catalogo.length);
-  
-} catch (err) {
-  console.error("❌ Error cargando catálogo:", err);
-  statusBox.textContent = "❌ Error cargando catálogo";
-  setTimeout(() => statusBox.remove(), 2500);
-}
-}
+  }
 /* ===========================================================
    🔍 SECCIÓN 6: BÚSQUEDA LOCAL DE PRODUCTOS
    =========================================================== */
@@ -933,7 +709,7 @@ function resolverProductoPorCodigo(codigo) {
     if (idMatch) {
       const p = catalogo.find(x => x.id === idMatch[1]);
       if (p) {
-      // $("#cantidadInput").value = peso.toFixed(3);
+        $("#cantidadInput").value = peso.toFixed(3);
         return [p];
       }
     }
@@ -1673,7 +1449,8 @@ function abrirCobro() {
     return;
   }
 
- descuentoAutorizado = Number(localStorage.getItem("desc_porcentaje") || 0);
+  localStorage.removeItem("desc_porcentaje"); // 🔥 AÑADIR
+  descuentoAutorizado = 0;
 
   const tot = calcularTotales(0);
   cobroTotal.textContent = money(tot.total);
@@ -1858,16 +1635,7 @@ venta.detalle = carrito.map(it => {
   }
 
   comision_total += comision_calculada;
-  
-// ✅ prorrateo de descuento SOLO a elegibles
-const factorDesc = (it.permite_descuento && descuentoAutorizado > 0)
-  ? (100 - descuentoAutorizado) / 100
-  : 1;
 
-const importeConDesc = +(
-  it.cantidad * it.precio_unit * factorDesc
-).toFixed(2);
-  
   return {
     // 🔑 Identidad
     id: it.id,
@@ -1879,7 +1647,8 @@ const importeConDesc = +(
 
     // 💲 Precios
     precio_unit: +it.precio_unit.toFixed(2),
-  
+    importe: +it.importe.toFixed(2),
+
     // 💰 Costos
     costo_unit: +it.costo_unit.toFixed(2),
     costo_total: +(it.costo_unit * it.cantidad).toFixed(2),
@@ -2211,36 +1980,6 @@ function toast(msg, color = "#0c6cbd") {
   setTimeout(()=>aviso.style.opacity=1,50);
   setTimeout(()=>{aviso.style.opacity=0;setTimeout(()=>aviso.remove(),400)},2500);
 }
-  /* ===========================================================
-   ⌨️ ATAJOS POS PC (SEGUROS)
-   =========================================================== */
-window.addEventListener("keydown", e => {
-
-  if (window.innerWidth < 1024) return;
-  if (!document.body.classList.contains("sesion-activa")) return;
-
-  // 🚫 No atajos si hay un modal abierto
-  const modalCobro = document.getElementById("modalCobro");
-  if (modalCobro && modalCobro.style.display === "flex") return;
-
-  const tag = document.activeElement?.tagName;
-  if (tag === "INPUT" || tag === "TEXTAREA") return;
-
-  if (e.key === "F2") {
-    e.preventDefault();
-    abrirCobro?.();
-  }
-
-  if (e.key === "F4") {
-    e.preventDefault();
-    const b = document.getElementById("buscador");
-    if (b) {
-      b.focus();
-      b.select();
-    }
-  }
-});
-
 // ✅ cierre del async
 })(); 
 
@@ -2310,7 +2049,7 @@ window.addEventListener("keydown", e => {
 <!-- 🔹 BLOQUE 8: SERVICE WORKER Y LOGOUT -->
 <script>
 if("serviceWorker" in navigator){
- navigator.serviceWorker.register("./sw.js?v=9")
+  navigator.serviceWorker.register("./sw.js?v=8")
   .then(r=>console.log("✅ Service Worker registrado:",r.scope))
   .catch(e=>console.error("❌ Error registrando SW:",e));
 }
@@ -2319,9 +2058,10 @@ document.addEventListener("DOMContentLoaded",()=> {
   const b = document.getElementById("btnLogout");
   if (b) {
 b.addEventListener("click", () => {
-  bloqueoSalida = false;
-if (bloquearSiCobroActivo()) return;
-document.getElementById("loginOverlay").style.display = "flex";
+
+  // 🛑 PROTECCIÓN: no permitir cerrar sesión durante cobro
+  if (bloquearSiCobroActivo()) return;
+
   // SOLO BORRAR LA SESIÓN
   localStorage.removeItem("usuario_ruta");
   document.body.classList.remove("sesion-activa");
@@ -2335,6 +2075,7 @@ document.getElementById("loginOverlay").style.display = "flex";
   document.getElementById("carrito-container").style.display = "none";
 
   // MOSTRAR LOGIN
+  document.getElementById("loginScreen").style.display = "flex";
   document.getElementById("loginUsuario").value = "";
   document.getElementById("loginPassword").value = "";
   document.getElementById("loginMsg").textContent = "";
@@ -2365,7 +2106,7 @@ window.location.href = "ticketsresumen.html";
 }
 </script>
 <script>
-let bloqueoSalida = false;
+let bloqueoSalida = true;
 
 // 🚫 Bloquear F5 y Ctrl+R
 window.addEventListener("keydown", e => {
@@ -2384,6 +2125,11 @@ window.addEventListener("beforeunload", e => {
     e.returnValue = "¿Deseas salir del sistema?";
     return "¿Deseas salir del sistema?";
   }
+});
+
+// ✅ Al cerrar sesión, desbloquear salida
+document.getElementById("btnLogout")?.addEventListener("click", () => {
+  bloqueoSalida = false;
 });
 
 // 🚧 GUARDIÁN GLOBAL ANTI-BUG — Bloquea navegación durante cobro
@@ -2459,124 +2205,7 @@ body.sesion-activa #bottomBar {
     #bottomBar { padding: 8px 0; }
     .bar-btn { font-size: 14px; padding: 8px 4px; }
   }
-/* ===========================================================
-   🍎 LOGIN APPLE STYLE (macOS / iPadOS)
-   =========================================================== */
 
-#loginOverlay{
-  position:fixed;
-  inset:0;
-  background:
-    radial-gradient(circle at top,#1e293b,#020617);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
-  font-family:-apple-system,BlinkMacSystemFont,
-               "SF Pro Text","SF Pro Display",
-               system-ui,sans-serif;
-}
-
-.login-apple{
-  width:360px;
-  padding:36px 28px 30px;
-  border-radius:20px;
-  background:rgba(255,255,255,.15);
-  backdrop-filter:blur(25px);
-  -webkit-backdrop-filter:blur(25px);
-  box-shadow:
-    0 40px 90px rgba(0,0,0,.45),
-    inset 0 1px rgba(255,255,255,.25);
-  text-align:center;
-  color:#fff;
-}
-
-/* 🍎 Logo */
-.apple-logo{
-  width:90px;
-  margin-bottom:18px;
-  filter:drop-shadow(0 6px 18px rgba(0,0,0,.45));
-}
-
-/* 🍎 Títulos */
-.login-apple h1{
-  margin:0;
-  font-size:22px;
-  font-weight:600;
-  letter-spacing:.2px;
-}
-
-.apple-sub{
-  font-size:13px;
-  color:rgba(255,255,255,.65);
-  margin:6px 0 22px;
-}
-
-/* 🍎 Inputs */
-.apple-field{
-  margin-bottom:14px;
-}
-
-.apple-field input{
-  width:100%;
-  padding:14px;
-  border-radius:12px;
-  border:none;
-  outline:none;
-  font-size:15px;
-  background:rgba(255,255,255,.85);
-  color:#020617;
-  text-align:center;
-}
-
-.apple-field input::placeholder{
-  color:#64748b;
-}
-
-.apple-field input:focus{
-  box-shadow:0 0 0 3px rgba(255,255,255,.35);
-}
-
-/* 🍎 Botón principal */
-.apple-btn{
-  width:100%;
-  margin-top:18px;
-  padding:14px;
-  border:none;
-  border-radius:14px;
-  background:#007AFF;
-  color:white;
-  font-size:16px;
-  font-weight:600;
-  cursor:pointer;
-}
-
-.apple-btn:active{
-  transform:scale(.97);
-}
-
-/* 🍎 Botón tipo link */
-.apple-link{
-  margin-top:12px;
-  background:none;
-  border:none;
-  color:rgba(255,255,255,.7);
-  font-size:14px;
-  cursor:pointer;
-}
-
-.apple-link:hover{
-  text-decoration:underline;
-}
-
-/* 🍎 Footer */
-.apple-footer{
-  display:block;
-  margin-top:20px;
-  font-size:11px;
-  color:rgba(255,255,255,.45);
-}
-  
 </style>
 <script>
 document.getElementById("btnCorteRuta").addEventListener("click", () => {
@@ -2589,7 +2218,6 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
  · © ProvSoft
 </footer>
 <div class="snow"></div>
-
 </body>
 </html>
 
