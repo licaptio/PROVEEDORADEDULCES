@@ -70,12 +70,20 @@ TOTAL=${venta.resumen_financiero.total}
   });
 };
 
+function dateLocalFromInput(value, endOfDay = false) {
+  const [year, month, day] = value.split("-").map(Number);
 
+  if (!endOfDay) {
+    return new Date(year, month - 1, day, 0, 0, 0, 0);
+  } else {
+    return new Date(year, month - 1, day, 23, 59, 59, 999);
+  }
+}
 function rangoDesdeInputs() {
   const desdeInput = document.getElementById("fechaDesde").value;
   const hastaInput = document.getElementById("fechaHasta").value;
 
-  // 🟢 Si no hay selección → HOY
+  // Default HOY (local)
   if (!desdeInput || !hastaInput) {
     const inicio = new Date();
     inicio.setHours(0,0,0,0);
@@ -86,16 +94,11 @@ function rangoDesdeInputs() {
     return { inicio, fin };
   }
 
-  const inicio = new Date(desdeInput);
-  inicio.setHours(0,0,0,0);
-
-  const fin = new Date(hastaInput);
-  fin.setHours(23,59,59,999);
+  const inicio = dateLocalFromInput(desdeInput, false);
+  const fin = dateLocalFromInput(hastaInput, true);
 
   return { inicio, fin };
 }
-
-
 async function cargarVentas() {
   const { inicio, fin } = rangoDesdeInputs();
 
@@ -120,4 +123,5 @@ cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", () => {
   cargarVentas();
 });
+
 
