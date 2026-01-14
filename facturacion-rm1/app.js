@@ -71,18 +71,33 @@ TOTAL=${venta.resumen_financiero.total}
 };
 
 
-function hoyRango() {
-  const inicio = new Date();
+function rangoDesdeInputs() {
+  const desdeInput = document.getElementById("fechaDesde").value;
+  const hastaInput = document.getElementById("fechaHasta").value;
+
+  // 🟢 Si no hay selección → HOY
+  if (!desdeInput || !hastaInput) {
+    const inicio = new Date();
+    inicio.setHours(0,0,0,0);
+
+    const fin = new Date();
+    fin.setHours(23,59,59,999);
+
+    return { inicio, fin };
+  }
+
+  const inicio = new Date(desdeInput);
   inicio.setHours(0,0,0,0);
 
-  const fin = new Date();
+  const fin = new Date(hastaInput);
   fin.setHours(23,59,59,999);
 
   return { inicio, fin };
 }
 
+
 async function cargarVentas() {
-  const { inicio, fin } = hoyRango();
+  const { inicio, fin } = rangoDesdeInputs();
 
   const ventas = await obtenerVentasRuta(
     CONFIG.rutaId,
@@ -92,6 +107,17 @@ async function cargarVentas() {
 
   pintarVentas(ventas);
 }
+function setFechasHoy() {
+  const hoy = new Date().toISOString().split("T")[0];
+  document.getElementById("fechaDesde").value = hoy;
+  document.getElementById("fechaHasta").value = hoy;
+}
+
+setFechasHoy();
 
 // ARRANQUE
 cargarVentas();
+document.getElementById("btnBuscar").addEventListener("click", () => {
+  cargarVentas();
+});
+
