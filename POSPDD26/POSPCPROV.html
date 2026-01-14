@@ -114,13 +114,8 @@ header{
 #posApp{
   display:grid;
   grid-template-columns: 1fr 420px;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto 1fr auto;
   height:100vh;
-}
-
-.main-content{
-  padding:16px;
-  overflow:auto;
 }
 
 /* =========================
@@ -228,9 +223,31 @@ header img{
   margin-left:12px;
   object-fit:contain;
 }
-header{
-  grid-column: 1 / -1;
+  header{ grid-column: 1 / -1; }
+#usuarioBar{ grid-column: 1 / -1; }
+
+.main-content{
+  grid-column: 1 / 2;
+  grid-row: 3;
+  padding:16px;
+  overflow:auto;
 }
+
+#totales-fijos{
+  grid-column: 2 / 3;
+  grid-row: 3;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+}
+
+#carrito-container{
+  grid-column: 1 / -1;
+  grid-row: 4;
+  margin: 0 16px 90px;
+}
+
 .btn:active{transform:scale(.98)}
  
 </style>
@@ -269,8 +286,22 @@ header{
   Usuario: —
 </div>
 
-<!-- 🧩 CUERPO PRINCIPAL -->
-<div class="main-content">
+  <!-- 💰 TOTALES FIJOS A LA DERECHA -->
+<div id="totales-fijos">
+  <div class="totals">
+    <div class="row muted">
+      <span>Subtotal</span><span id="lblSubtotal">$0.00</span>
+    </div>
+    <div class="row muted">
+      <span>Impuestos</span><span id="lblImpuestos">$0.00</span>
+    </div>
+    <div class="row big">
+      <span>Total</span><span id="lblTotal">$0.00</span>
+    </div>
+    <button class="btn" id="btnCobrar">Cobrar</button>
+  </div>
+</div>
+
 
   <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
   <section id="pantallaVenta" class="controls">
@@ -294,35 +325,8 @@ header{
 
 <!-- 🧾 BLOQUE NUEVO — CARRITO FIJO -->
 <div id="carrito-container">
-
   <div class="table-wrap">
     <table>
-      <thead>
-        <tr>
-          <th>Producto</th>
-          <th>Cant.</th>
-          <th>Importe</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-
-  <div class="totals">
-    <div class="row muted">
-      <span>Subtotal</span><span id="lblSubtotal">$0.00</span>
-    </div>
-    <div class="row muted">
-      <span>Impuestos</span><span id="lblImpuestos">$0.00</span>
-    </div>
-    <div class="row big">
-      <span>Total</span><span id="lblTotal">$0.00</span>
-    </div>
-    <button class="btn" id="btnCobrar">Cobrar</button>
-  </div>
-
-</div>
       <thead>
         <tr>
           <th>Producto</th>
@@ -453,8 +457,8 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
-enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off:", err));
-
+enableIndexedDbPersistence(db, { synchronizeTabs: true })
+  .catch(err => console.warn("⚠️ Persistence off:", err));
 
 /* ===========================================================
    🔧 SECCIÓN 2: VARIABLES GLOBALES
@@ -467,6 +471,7 @@ let USUARIO_LOGUEADO = null;
 let clienteSeleccionado = null;
 // 🔒 Bloqueo duro para evitar reprocesar input
 let procesandoAddProducto = false;
+let bloqueoSalida = false;
 
 const money = n => '$' + (Number(n) || 0).toFixed(2);
 const codeIndex = new Map();
@@ -582,6 +587,7 @@ if (String(data.password).trim() !== p) {
 
     // 🌀 Cargar datos principales
 document.getElementById("loginScreen").style.display = "none";
+document.getElementById("carrito-container").style.display = "";
 document.getElementById("posApp").style.display = "block";
 document.body.classList.add("sesion-activa");
 
@@ -1562,7 +1568,7 @@ function abrirCobro() {
   montoRecibido.value = "";
   montoCambio.textContent = "$0.00";
   descuentoInfo.style.display = "none";
-
+  bloqueoSalida = true;
   modalCobro.style.display = "flex";
   $("#montoRecibido").focus();
 }
@@ -1570,6 +1576,7 @@ function abrirCobro() {
 function cerrarCobro() {
   modalCobro.style.display = "none";
   descuentoAutorizado = 0;
+  bloqueoSalida = false;
   localStorage.removeItem("desc_porcentaje"); // 🔥 AÑADIR
 }
 
@@ -2210,8 +2217,6 @@ window.location.href = "ticketsresumen.html";
 }
 </script>
 <script>
-let bloqueoSalida = false;
-
 // 🚫 Bloquear F5 y Ctrl+R
 window.addEventListener("keydown", e => {
   if (!haySesionActiva()) return;
