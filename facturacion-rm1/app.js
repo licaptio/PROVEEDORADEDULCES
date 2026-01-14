@@ -14,12 +14,6 @@ const CONFIG = {
   rfcEmisor: "PDD031204KL5"
 };
 
-// 🚀 CARGAR VENTAS
-async function cargarVentas() {
-  const ventas = await obtenerVentasRuta(CONFIG.rutaId);
-  pintarVentas(ventas);
-}
-
 function pintarVentas(ventas) {
   const tbody = document.getElementById("ventas");
   tbody.innerHTML = "";
@@ -76,6 +70,28 @@ TOTAL=${venta.resumen_financiero.total}
   });
 };
 
+
+function hoyRango() {
+  const inicio = new Date();
+  inicio.setHours(0,0,0,0);
+
+  const fin = new Date();
+  fin.setHours(23,59,59,999);
+
+  return { inicio, fin };
+}
+
+async function cargarVentas() {
+  const { inicio, fin } = hoyRango();
+
+  const ventas = await obtenerVentasRuta(
+    CONFIG.rutaId,
+    inicio,
+    fin
+  );
+
+  pintarVentas(ventas);
+}
+
 // ARRANQUE
 cargarVentas();
-
