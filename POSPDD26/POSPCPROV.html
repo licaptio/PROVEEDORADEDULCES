@@ -31,10 +31,6 @@ header img{height:65px;object-fit:contain}
 
 .main-content{flex:1;overflow-y:auto;padding:8px}
 
-#carrito-container{
-position:sticky;bottom:0;background:#fff;border-radius:14px 14px 0 0;
-box-shadow:0 -2px 8px rgba(0,0,0,.25);max-height:42vh;overflow-y:auto;padding:10px;
-}
 .carrito-item{
 display:flex;justify-content:space-between;border-bottom:1px solid #eee;
 padding:5px 0;font-size:.88rem;
@@ -131,18 +127,13 @@ font-size:14px!important;line-height:1.45;
 }
 @page{size:72mm auto;margin:0}
 
-#pantallaVenta,#pantallaCarrito{transition:.25s}
-#pantallaCarrito{margin-top:10px}
 #btnRegresar{background:linear-gradient(180deg,#888,#666);color:#fff}
 /* ⭐ Asegurar que los resultados SIEMPRE queden por encima del carrito */
 .search-results {
   z-index: 99999 !important;
   position: absolute !important;
 }
-#carrito-container {
-  bottom: -65px !important;     /* 🔥 baja más el carrito */
-  margin-top: 25px !important;  /* espacio visual extra */
-}
+
 .snow{
   pointer-events: none;
   position: fixed;
@@ -170,64 +161,95 @@ font-size:14px!important;line-height:1.45;
     background-position: 0 600px;
   }
 }
+
 /* ===============================
-   🖥️ POS DESKTOP LAYOUT (APPLE)
+   🧱 POS DESKTOP DEFINITIVO
    =============================== */
+@media (min-width: 900px){
 
-@media (min-width: 900px) {
+  .main-content{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    padding:14px 18px 110px;
+  }
 
-  .pos-layout{
+  .pos-body{
     display:grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    grid-template-rows: auto auto 1fr;
-    gap:18px;
-    padding:18px 24px 90px;
+    grid-template-columns: 2.4fr 1fr;
+    gap:20px;
+    align-items:stretch;
   }
 
-  #pantallaVenta{
-    grid-column:1;
-    grid-row:1;
+  /* 🟩 CARRITO FIJO */
+  .pos-carrito{
+    background: rgba(255,255,255,.95);
+    border-radius:20px;
+    padding:14px;
+    min-height:520px;
+    max-height:calc(100vh - 240px);
+    overflow:auto;
+    position:relative;
   }
 
-  .totals{
-    grid-column:2;
-    grid-row:1;
+  .pos-carrito::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:url("logo_proveedora.webp") center/260px no-repeat;
+    opacity:0.04;
+    pointer-events:none;
+  }
+
+  /* 🟦 COLUMNA DERECHA */
+  .pos-side{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  .pos-side-top{
+    display:flex;
+    gap:8px;
+  }
+
+  .pos-side-top .btn{
+    flex:1;
+    font-size:15px;
+    padding:12px;
+  }
+
+  .pos-side-middle{
+    background: rgba(255,255,255,.9);
+    backdrop-filter: blur(16px);
     border-radius:18px;
-    backdrop-filter: blur(14px);
-    background: rgba(255,255,255,0.85);
-    box-shadow: 0 20px 40px rgba(0,0,0,.15);
+    padding:14px;
   }
 
-  #carrito-container{
-    grid-column:1 / -1;
-    grid-row:2 / -1;
-    max-height:none;
-    border-radius:18px;
-    background: rgba(255,255,255,0.95);
+  .pos-side-bottom{
+    margin-top:auto;
   }
 
-  .field{
-    background: rgba(255,255,255,.25);
-    backdrop-filter: blur(10px);
-  }
-
-  header{
-    font-size:18px;
-    height:56px;
-  }
-
-  .btn{
-    border-radius:16px;
-    font-size:18px;
-  }
-
-  .row.big{
+  .pos-side-bottom .btn{
     font-size:22px;
+    padding:18px;
+    border-radius:18px;
   }
+}
+  #loginScreen{
+  background: linear-gradient(135deg,#0c3c60,#dfe7ef);
+}
 
-  body{
-    background: linear-gradient(135deg,#0c3c60,#dfe7ef);
-  }
+#loginScreen input{
+  width:260px;
+  font-size:16px;
+  padding:14px;
+  border-radius:14px;
+}
+
+#btnLogin{
+  width:260px;
+  border-radius:16px;
 }
 
 </style>
@@ -266,59 +288,66 @@ font-size:14px!important;line-height:1.45;
 </div>
 
 <!-- 🧩 CUERPO PRINCIPAL -->
-<div class="main-content pos-layout">
+<div class="main-content">
 
-  <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
-  <section id="pantallaVenta" class="controls">
-    <!-- 🧍‍♂️ CAMPO CLIENTE -->
-    <div class="field">
-      <label>Cliente</label>
-      <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
-      <datalist id="clientesList"></datalist>
-    </div>
+<!-- CONTROLES -->
+<section id="pantallaVenta" class="controls">
+  <div class="field" style="margin-bottom:10px;">
+  <label>Cliente</label>
+  <input id="cliente" type="text" value="PÚBLICO EN GENERAL" />
+</div>
 
-    <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
-    <div class="field searchbox">
-      <label>Buscar</label>
-      <input id="buscador" type="text" placeholder="Escribe o escanea código…">
-      <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
-      <div id="resultados" class="search-results"></div>
-    </div>
+<div class="field searchbox">
+  <label>Buscar</label>
+  <input id="buscador" type="text" placeholder="Código o nombre..." autocomplete="off" />
+  <button id="btnBuscarManual" type="button" class="cam-btn">🔍</button>
+
+  <div id="resultados" class="search-results"></div>
+</div>
+</section>
+
+<!-- CUERPO PRINCIPAL -->
+<div class="pos-body">
+
+  <!-- 🟩 CARRITO FIJO -->
+  <section id="carrito-container" class="pos-carrito">
+   <div class="card table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Producto</th>
+        <th>Cant</th>
+        <th>Importe</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
   </section>
-  <div class="totals">
-    <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
-    <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
-    <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
-      <div class="actions">
-    <button class="btn" id="btnCobrar">Cobrar</button>
-  </div>
-</div>
 
-<!-- 🧾 BLOQUE NUEVO — CARRITO FIJO -->
-<div id="carrito-container">
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Producto</th>
-          <th>Cant.</th>
-          <th>Importe</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-</div>
-  </div>
-</div>
+  <!-- 🟦 COLUMNA DERECHA -->
+  <aside class="pos-side">
 
-<div id="bottomBar">
-  <button id="btnCorteRuta" class="bar-btn azul">📊 Corte</button>
-  <button id="btnResumen" class="bar-btn azul">📊 Resumen</button>
-  <button id="btnLogout" class="bar-btn rojo">🚪 Salir</button>
+    <div class="pos-side-top">
+      <button id="btnCorteRuta" class="btn">Corte</button>
+      <button id="btnResumen" class="btn">Resumen</button>
+      <button id="btnLogout" class="btn">Salir</button>
+    </div>
+
+    <div class="pos-side-middle totals">
+   <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
+<div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
+<div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
+    </div>
+
+    <div class="pos-side-bottom">
+      <button id="btnCobrar" class="btn">Cobrar</button>
+    </div>
+
+  </aside>
+
 </div>
-</div> <!-- 👈 cierre de #posApp --> 
 
 <!-- 💳 MODAL DE COBRO CON AUTORIZACIÓN DE DESCUENTO -->
 <div id="modalCobro"
@@ -565,27 +594,23 @@ $("#btnLogin").onclick = loginUsuario;
   try {
     USUARIO_LOGUEADO = JSON.parse(guardado);
     rutaId = USUARIO_LOGUEADO?.rutaId || null;
+
     document.getElementById("usuarioBar").textContent =
-  `Usuario: ${USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario}`;
-
-
-    console.log("🔐 Sesión restaurada:", USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario);
+      `Usuario: ${USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario}`;
 
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("posApp").style.display = "block";
-document.body.classList.add("sesion-activa");
+    document.body.classList.add("sesion-activa");
 
-    
+    const bb = document.getElementById("bottomBar");
+    if (bb) bb.style.display = "flex";
 
-    await Promise.all([
-      cargarCatalogo(),
-      fijarClientePublico()
-    ]);
+    await Promise.all([cargarCatalogo(), fijarClientePublico()]);
   } catch (err) {
     console.warn("⚠️ No se pudo restaurar sesión previa:", err);
     localStorage.removeItem("usuario_ruta");
   }
-});
+})(); // ✅ ESTA LÍNEA ES LA CLAVE
 /* ===========================================================
    📦 CACHE DINÁMICO–PROVSOFT (SW)
    =========================================================== */
@@ -627,8 +652,6 @@ async function leerCache(ruta) {
 
 async function cargarCatalogo() {
   const statusBox = document.createElement("div");
-
-  // 🟦 Muestra un mensaje flotante mientras carga
   statusBox.textContent = "🔄 Cargando catálogo de productos...";
   statusBox.style.cssText = `
     position:fixed;top:10px;left:50%;transform:translateX(-50%);
@@ -637,107 +660,95 @@ async function cargarCatalogo() {
     box-shadow:0 2px 6px rgba(0,0,0,.2);
   `;
   document.body.appendChild(statusBox);
-// =====================================================
-// 🟢 1) Intentar cargar desde cache del Service Worker
-// =====================================================
-const catalogoSW = await leerCache("/catalogo");
 
-if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
+  try {
+    // 1) SW cache
+    const catalogoSW = await leerCache("/catalogo");
+    if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
+      catalogo = catalogoSW.map(x => ({
+        id: x.id,
+        nombre: x.nombre || x.concepto || "SIN NOMBRE",
+        codigo: String(x.codigo || x.codigoBarra || "").trim(),
+        precioPublico: Number(x.precioPublico || 0),
+        mayoreo: Number(x.mayoreo || 0),
+        medioMayoreo: Number(x.medioMayoreo || 0),
+        ivaTasa: Number(x.ivaTasa || 0),
+        iepsTasa: Number(x.iepsTasa || 0),
+        equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
+        claveSat: x.claveSat || null,
+        unidadMedidaSat: x.unidadSat || x.unidadMedidaSat || null,
+        departamento_id: x.departamento_id || null,
+        departamento: x.departamento || null,
+        costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
+        permite_descuento: x.permite_descuento === true,
+      }));
 
-  catalogo = catalogoSW.map(x => ({
-    id: x.id,
-    nombre: x.nombre || x.concepto || "SIN NOMBRE",
-    codigo: String(x.codigo || x.codigoBarra || ""),
-    precioPublico: Number(x.precioPublico || 0),
-    mayoreo: Number(x.mayoreo || 0),
-    medioMayoreo: Number(x.medioMayoreo || 0),
-    ivaTasa: Number(x.ivaTasa || 0),
-    iepsTasa: Number(x.iepsTasa || 0),
-    equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
-    claveSat: x.claveSat || null,
-    unidadMedidaSat: x.unidadSat || x.unidadMedidaSat || null,
-    departamento_id: x.departamento_id || null,
-    departamento: x.departamento || null, // 🔥 FIX
-    costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-    permite_descuento: x.permite_descuento === true,
-  }));
-
-  // 🔁 RECONSTRUIR ÍNDICES
-  codeIndex.clear();
-  catalogoById.clear();
-
-  catalogo.forEach(p => {
-   catalogoById.set(p.id, p);
-    if (p.codigo) codeIndex.set(p.codigo.trim(), p.id);
-    if (Array.isArray(p.equivalentes)) {
-      p.equivalentes.forEach(eq => {
-        if (eq) codeIndex.set(eq.trim(), p.id);
+      codeIndex.clear();
+      catalogoById.clear();
+      catalogo.forEach(p => {
+        catalogoById.set(p.id, p);
+        if (p.codigo) codeIndex.set(p.codigo.trim(), p.id);
+        (p.equivalentes || []).forEach(eq => {
+          if (eq) codeIndex.set(String(eq).trim(), p.id);
+        });
       });
+
+      statusBox.textContent = `⚡ Catálogo offline (${catalogo.length})`;
+      setTimeout(() => statusBox.remove(), 1500);
+      return;
     }
-  });
 
-  console.log("⚡ Catálogo cargado OFFLINE desde SW");
-  statusBox.textContent = `⚡ Catálogo cargado offline (${catalogo.length})`;
-  setTimeout(() => statusBox.remove(), 1500);
-  return;
-}
-// 🔴 3) CARGAR DESDE FIRESTORE (SOLO ACTIVOS)
-console.log("🌐 Cargando catálogo desde Firestore (solo activos)...");
+    // 2) Firestore (solo activos)
+    statusBox.textContent = "🌐 Cargando catálogo desde Firestore (activos)...";
+    const qCat = query(collection(db, "productos"), where("activo", "==", true));
+    const snap = await getDocs(qCat);
 
-const q = query(
-  collection(db, "productos"),
-  where("activo", "==", true)
-);
-
-const snap = await getDocs(q);
-
-catalogo = snap.docs.map(doc => {
-  const x = doc.data();
-  return {
-    id: doc.id,
-    nombre: x.nombre || x.concepto || "SIN NOMBRE",
-    codigo: String(x.codigo || x.codigoBarra || "").trim(),
-    precioPublico: Number(x.precioPublico || 0),
-    mayoreo: Number(x.mayoreo || 0),
-    medioMayoreo: Number(x.medioMayoreo || 0),
-    ivaTasa: Number(x.ivaTasa || 0),
-    iepsTasa: Number(x.iepsTasa || 0),
-    equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
-    departamento_id: x.departamento_id || null,
-    departamento: x.departamento || null,   // 🔥 ESTE FALTABA
-    costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-    permite_descuento: x.permite_descuento === true
-  };
-});
-
-// 🔁 RECONSTRUIR ÍNDICES
-codeIndex.clear();
-catalogoById.clear();
-
-catalogo.forEach(p => {
-  catalogoById.set(p.id, p);
-  if (p.codigo) codeIndex.set(p.codigo.trim(), p.id);
-  if (Array.isArray(p.equivalentes)) {
-    p.equivalentes.forEach(eq => {
-      if (eq) codeIndex.set(String(eq).trim(), p.id);
+    catalogo = snap.docs.map(d => {
+      const x = d.data();
+      return {
+        id: d.id,
+        nombre: x.nombre || x.concepto || "SIN NOMBRE",
+        codigo: String(x.codigo || x.codigoBarra || "").trim(),
+        precioPublico: Number(x.precioPublico || 0),
+        mayoreo: Number(x.mayoreo || 0),
+        medioMayoreo: Number(x.medioMayoreo || 0),
+        ivaTasa: Number(x.ivaTasa || 0),
+        iepsTasa: Number(x.iepsTasa || 0),
+        equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
+        departamento_id: x.departamento_id || null,
+        departamento: x.departamento || null,
+        costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
+        permite_descuento: x.permite_descuento === true
+      };
     });
+
+    codeIndex.clear();
+    catalogoById.clear();
+    catalogo.forEach(p => {
+      catalogoById.set(p.id, p);
+      if (p.codigo) codeIndex.set(p.codigo.trim(), p.id);
+      (p.equivalentes || []).forEach(eq => {
+        if (eq) codeIndex.set(String(eq).trim(), p.id);
+      });
+    });
+
+    localStorage.setItem("catalogo_cache_meta", JSON.stringify({
+      fecha: Date.now(),
+      total: catalogo.length
+    }));
+
+    await cachearDatos("/catalogo", catalogo);
+
+    statusBox.textContent = `✅ Catálogo cargado (${catalogo.length})`;
+    setTimeout(() => statusBox.remove(), 1800);
+
+  } catch (err) {
+    console.error("❌ Error cargando catálogo:", err);
+    statusBox.textContent = "❌ Error cargando catálogo";
+    setTimeout(() => statusBox.remove(), 2000);
+    throw err;
   }
-});
-
-// 💾 Guardar SOLO metadata en localStorage (ligero)
-localStorage.setItem("catalogo_cache_meta", JSON.stringify({
-  fecha: Date.now(),
-  total: catalogo.length
-}));
-
-// 💾 Catálogo completo → SOLO en cache SW
-await cachearDatos("/catalogo", catalogo);
-
-statusBox.textContent = `✅ Catálogo cargado (${catalogo.length} productos)`;
-setTimeout(() => statusBox.remove(), 2000);
-
-console.log("✅ Catálogo cargado desde Firestore:", catalogo.length);
-  }
+}
 /* ===========================================================
    🔍 SECCIÓN 6: BÚSQUEDA LOCAL DE PRODUCTOS
    =========================================================== */
@@ -1062,19 +1073,29 @@ function render() {
 
   carrito.forEach(it => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${acortarNombre(it.nombre)}</td>
-      <td style="text-align:center">
-        <input type="number" min="0" step="0.01" value="${it.cantidad}"
-          style="width:70px;text-align:center;padding:4px;border-radius:6px;
-          border:1px solid #ccc;font-size:14px;"
-          onchange="actualizarCantidad('${it.id}', this.value)"
-          oninput="actualizarCantidad('${it.id}', this.value)">
-      </td>
-      <td style="text-align:right">${money(it.importe)}</td>
-      <td class='del-col'>
-        <button class='del' onclick="delItem('${it.id}')">×</button>
-      </td>`;
+tr.innerHTML = `
+  <td>${acortarNombre(it.nombre)}</td>
+  <td style="text-align:center">
+    <input type="number" min="0" step="0.01" value="${it.cantidad}"
+      style="width:70px;text-align:center;padding:4px;border-radius:6px;
+      border:1px solid #ccc;font-size:14px;"
+      onchange="actualizarCantidad('${it.id}', this.value)"
+      oninput="actualizarCantidad('${it.id}', this.value)">
+  </td>
+  <td style="text-align:right">
+    ${money(
+      it.cantidad * (
+        getDescuentoActivo() > 0 && it.permite_descuento
+          ? it.precio_unit * (1 - getDescuentoActivo() / 100)
+          : it.precio_unit
+      )
+    )}
+  </td>
+  <td class="del-col">
+    <button class="del" onclick="delItem('${it.id}')">×</button>
+  </td>
+`;
+</td>
     tbody.appendChild(tr);
   });
   
@@ -1902,18 +1923,23 @@ Cliente : ${cliente}
 
 (window.__VENTA_ACTUAL?.detalle || []).forEach(p => {
   const nombre = p.nombre.substring(0, 32);
-  const cant = p.cantidad;
+  const cant = Number(p.cantidad || 0);
 
-  // 💸 Precio unitario REAL (ya considerado en venta)
-  const precioUnit = Number(p.precio_unit || p.precioUnit || 0);
+  const precioBase = Number(p.precio_unit || 0);
 
-  // 💲 Importe REAL (ya con descuento prorrateado si aplica)
-  const impFinal = Number(p.importe || 0);
+  // ✅ APLICAR DESCUENTO PRORRATEADO
+  let precioFinal = precioBase;
+  if (window.__VENTA_ACTUAL.descuento_porcentaje > 0) {
+    const factor = (100 - window.__VENTA_ACTUAL.descuento_porcentaje) / 100;
+    precioFinal = +(precioBase * factor).toFixed(2);
+  }
+
+  const importeFinal = +(cant * precioFinal).toFixed(2);
 
   ticket += `${nombre}\n`;
   ticket += `Cant:${String(cant).padStart(5)}  `
-         + `${precioUnit.toFixed(2).padStart(8)}  `
-         + `${impFinal.toFixed(2).padStart(9)}\n`;
+         + `${precioFinal.toFixed(2).padStart(8)}  `
+         + `${importeFinal.toFixed(2).padStart(9)}\n`;
 });
 
     // 💵 Totales
@@ -2200,6 +2226,30 @@ function bloquearSiCobroActivo() {
 function haySesionActiva() {
   return document.body.classList.contains("sesion-activa");
 }
+  document.addEventListener("keydown", e => {
+  if (!document.body.classList.contains("sesion-activa")) return;
+
+  // F2 → Cobrar
+  if (e.key === "F2") {
+    e.preventDefault();
+    document.getElementById("btnCobrar")?.click();
+  }
+
+  // F4 → Focus buscador
+  if (e.key === "F4") {
+    e.preventDefault();
+    document.getElementById("buscador")?.focus();
+  }
+
+  // ESC → Cerrar cobro
+  if (e.key === "Escape") {
+    const modal = document.getElementById("modalCobro");
+    if (modal && modal.style.display === "flex") {
+      document.getElementById("btnCancelarCobro")?.click();
+    }
+  }
+});
+
 </script>
 <!-- 🔢 MODAL CANTIDAD PERSONALIZADO -->
 <div id="modalCantidad" 
@@ -2262,7 +2312,7 @@ body.sesion-activa #bottomBar {
 
 </style>
 <script>
-document.getElementById("btnCorteRuta").addEventListener("click", () => {
+document.getElementById("btnCorteRuta")?.addEventListener("click", () => {
   window.location.href = "corterutamovil.html";
 });
 
