@@ -43,7 +43,9 @@ window.generarTXTSifei = async function (idVenta) {
   const venta = snap.data();
 
   // 🔢 TOMAR FOLIO REAL
-  const folio = await tomarFolio(CONFIG.serieFiscal);
+  const folioRaw = await tomarFolio(CONFIG.serieFiscal);
+  const folio = String(folioRaw).padStart(6, "0");
+
 
   // 📅 FECHA LOCAL CFDI
   const fechaLocal = venta.fecha.toDate();
@@ -133,4 +135,5 @@ cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", () => {
   cargarVentas();
 });
+
 
