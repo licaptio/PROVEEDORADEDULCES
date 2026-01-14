@@ -44,16 +44,19 @@ window.generarTXTSifei = async function (idVenta) {
 
   // 🔢 TOMAR FOLIO REAL
   const folio = await tomarFolio(CONFIG.serieFiscal);
-const fechaLocal = venta.fecha.toDate();
 
-const fechaCFDI =
-  fechaLocal.getFullYear() + "-" +
-  String(fechaLocal.getMonth() + 1).padStart(2, "0") + "-" +
-  String(fechaLocal.getDate()).padStart(2, "0") + "T" +
-  String(fechaLocal.getHours()).padStart(2, "0") + ":" +
-  String(fechaLocal.getMinutes()).padStart(2, "0") + ":" +
-  String(fechaLocal.getSeconds()).padStart(2, "0");
-const txt = `
+  // 📅 FECHA LOCAL CFDI
+  const fechaLocal = venta.fecha.toDate();
+  const fechaCFDI =
+    fechaLocal.getFullYear() + "-" +
+    String(fechaLocal.getMonth() + 1).padStart(2, "0") + "-" +
+    String(fechaLocal.getDate()).padStart(2, "0") + "T" +
+    String(fechaLocal.getHours()).padStart(2, "0") + ":" +
+    String(fechaLocal.getMinutes()).padStart(2, "0") + ":" +
+    String(fechaLocal.getSeconds()).padStart(2, "0");
+
+  // 📄 TXT REAL SIFEI
+  const txt = `
 SERIE=${CONFIG.serieFiscal}
 FOLIO=${folio}
 RFC_EMISOR=${CONFIG.rfcEmisor}
@@ -64,6 +67,7 @@ SUBTOTAL=${venta.resumen_financiero.subtotal}
 IMPUESTOS=${venta.resumen_financiero.impuestos}
 TOTAL=${venta.resumen_financiero.total}
 `.trim();
+
   document.getElementById("txt").style.display = "block";
   document.getElementById("txt").textContent = txt;
 
@@ -129,3 +133,4 @@ cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", () => {
   cargarVentas();
 });
+
