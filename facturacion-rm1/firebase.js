@@ -49,12 +49,15 @@ export async function tomarFolio(serie) {
 // 🔎 OBTENER VENTAS DE UNA RUTA
 export async function obtenerVentasRuta(rutaId) {
   const q = query(
-    collection(db, "ventas"),
+    collection(db, "ventas_rutav2"),
     where("rutaId", "==", rutaId),
-    where("estado", "==", "PENDIENTE"),
     orderBy("fecha")
   );
 
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  // 🔑 POST-FILTRO DE ESTADO
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(v => !v.estado || v.estado === "PENDIENTE");
 }
