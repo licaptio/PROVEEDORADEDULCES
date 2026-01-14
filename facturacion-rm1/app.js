@@ -44,20 +44,26 @@ window.generarTXTSifei = async function (idVenta) {
 
   // 🔢 TOMAR FOLIO REAL
   const folio = await tomarFolio(CONFIG.serieFiscal);
+const fechaLocal = venta.fecha.toDate();
 
-  // 📄 TXT REAL
-  const txt = `
+const fechaCFDI =
+  fechaLocal.getFullYear() + "-" +
+  String(fechaLocal.getMonth() + 1).padStart(2, "0") + "-" +
+  String(fechaLocal.getDate()).padStart(2, "0") + "T" +
+  String(fechaLocal.getHours()).padStart(2, "0") + ":" +
+  String(fechaLocal.getMinutes()).padStart(2, "0") + ":" +
+  String(fechaLocal.getSeconds()).padStart(2, "0");
+const txt = `
 SERIE=${CONFIG.serieFiscal}
 FOLIO=${folio}
 RFC_EMISOR=${CONFIG.rfcEmisor}
 RFC_RECEPTOR=XAXX010101000
 USO_CFDI=S01
-FECHA=${venta.fecha.toDate().toISOString()}
+FECHA=${fechaCFDI}
 SUBTOTAL=${venta.resumen_financiero.subtotal}
 IMPUESTOS=${venta.resumen_financiero.impuestos}
 TOTAL=${venta.resumen_financiero.total}
 `.trim();
-
   document.getElementById("txt").style.display = "block";
   document.getElementById("txt").textContent = txt;
 
@@ -123,5 +129,3 @@ cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", () => {
   cargarVentas();
 });
-
-
