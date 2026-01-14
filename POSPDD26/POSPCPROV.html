@@ -1850,7 +1850,16 @@ venta.detalle = carrito.map(it => {
   }
 
   comision_total += comision_calculada;
+  
+// ✅ prorrateo de descuento SOLO a elegibles
+const factorDesc = (it.permite_descuento && descuentoAutorizado > 0)
+  ? (100 - descuentoAutorizado) / 100
+  : 1;
 
+const importeConDesc = +(
+  it.cantidad * it.precio_unit * factorDesc
+).toFixed(2);
+  
   return {
     // 🔑 Identidad
     id: it.id,
@@ -1862,16 +1871,7 @@ venta.detalle = carrito.map(it => {
 
     // 💲 Precios
     precio_unit: +it.precio_unit.toFixed(2),
-   // ✅ prorrateo de descuento SOLO a elegibles
-const factorDesc = (it.permite_descuento && descuentoAutorizado > 0)
-  ? (100 - descuentoAutorizado) / 100
-  : 1;
-
-const importeConDesc = +(it.cantidad * it.precio_unit * factorDesc).toFixed(2);
-
-importe: importeConDesc,
-
-
+  
     // 💰 Costos
     costo_unit: +it.costo_unit.toFixed(2),
     costo_total: +(it.costo_unit * it.cantidad).toFixed(2),
