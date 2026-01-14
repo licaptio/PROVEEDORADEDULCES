@@ -19,8 +19,12 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{
-height:100vh;display:flex;flex-direction:column;font-family:'Poppins',sans-serif;
-background:linear-gradient(to bottom right,#00416A,#E4E5E6);color:#111;
+  height:100vh;
+  overflow:hidden;   /* 🔥 CLAVE */
+  display:flex;
+  flex-direction:column;
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(to bottom right,#00416A,#E4E5E6);
 }
 header{
 position:sticky;top:0;z-index:50;background:rgba(0,0,0,.6);color:#fff;
@@ -29,7 +33,11 @@ gap:8px;font-weight:700;font-size:17px;height:48px;backdrop-filter:blur(4px);
 }
 header img{height:65px;object-fit:contain}
 
-.main-content{flex:1;overflow-y:auto;padding:8px}
+.main-content{
+  flex:1;
+  overflow:hidden;   /* 🔥 */
+  padding:14px 18px;
+}
 
 .carrito-item{
 display:flex;justify-content:space-between;border-bottom:1px solid #eee;
@@ -174,23 +182,26 @@ font-size:14px!important;line-height:1.45;
     padding:14px 18px 110px;
   }
 
-  .pos-body{
-    display:grid;
-    grid-template-columns: 2.4fr 1fr;
-    gap:20px;
-    align-items:stretch;
-  }
+.pos-body{
+  height:100%;
+  display:grid;
+  grid-template-columns: 2.4fr 1fr;
+  gap:20px;
+  align-items:stretch;
+}
 
   /* 🟩 CARRITO FIJO */
-  .pos-carrito{
-    background: rgba(255,255,255,.95);
-    border-radius:20px;
-    padding:14px;
-    min-height:520px;
-    max-height:calc(100vh - 240px);
-    overflow:auto;
-    position:relative;
-  }
+.pos-carrito{
+  background: rgba(255,255,255,.95);
+  border-radius:20px;
+  padding:14px;
+
+  height: calc(100vh - 230px); /* 🔥 ajusta si quieres */
+  overflow-y: auto;            /* 🔥 SCROLL INTERNO */
+  overflow-x: hidden;
+
+  position:relative;
+}
 
   .pos-carrito::after{
     content:"";
