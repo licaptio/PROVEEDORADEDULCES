@@ -1,4 +1,4 @@
-function generarTXTSifeiCompleto(venta, folio, fechaCFDI) {
+export function generarTXTSifeiCompleto(venta, folio, fechaCFDI) {
   const sep = "|";
   const lines = [];
 
@@ -108,3 +108,4 @@ function generarTXTSifeiCompleto(venta, folio, fechaCFDI) {
 
   return lines.join("\n");
 }
+
