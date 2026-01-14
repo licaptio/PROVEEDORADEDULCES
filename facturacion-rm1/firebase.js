@@ -46,18 +46,27 @@ export async function tomarFolio(serie) {
   });
 }
 
-// 🔎 OBTENER VENTAS DE UNA RUTA
-export async function obtenerVentasRuta(rutaId) {
+import { Timestamp } from 
+  "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+export async function obtenerVentasRuta(rutaId, fechaInicio, fechaFin) {
+
+  const inicio = Timestamp.fromDate(fechaInicio);
+  const fin = Timestamp.fromDate(fechaFin);
+
   const q = query(
     collection(db, "ventas_rutav2"),
     where("rutaId", "==", rutaId),
+    where("fecha", ">=", inicio),
+    where("fecha", "<=", fin),
     orderBy("fecha")
   );
 
   const snap = await getDocs(q);
 
-  // 🔑 POST-FILTRO DE ESTADO
   return snap.docs
     .map(d => ({ id: d.id, ...d.data() }))
     .filter(v => !v.estado || v.estado === "PENDIENTE");
 }
+
+
