@@ -553,13 +553,6 @@ const msg = document.getElementById("loginMsg");
 
     const data = snap.docs[0].data();
     USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
-    document.getElementById("infoUsuario").textContent =
-  USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario;
-
-document.getElementById("infoFecha").textContent =
-  new Date().toLocaleString("es-MX");
-
-document.getElementById("infoFolio").textContent = "—";
     rutaId = data.rutaId || null;
 
 
@@ -577,6 +570,13 @@ document.body.classList.add("sesion-activa");
 
 const bb = document.getElementById("bottomBar");
 if (bb) bb.style.display = "flex";
+    document.getElementById("infoUsuario").textContent =
+  USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario;
+
+document.getElementById("infoFecha").textContent =
+  new Date().toLocaleString("es-MX");
+
+document.getElementById("infoFolio").textContent = "—";
 
     // Carga simultánea
     await Promise.all([
