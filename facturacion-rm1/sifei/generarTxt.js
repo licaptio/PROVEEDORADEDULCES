@@ -1,3 +1,4 @@
+import { FISCAL_EMISOR, RECEPTOR_PUBLICO_GENERAL } from "./configFiscal.js";
 export function generarTXTSifeiCompleto(venta, folio, fechaCFDI) {
   const sep = "|";
   const lines = [];
@@ -142,24 +143,60 @@ return {
 export function convertirCFDIBaseASifei(cfdi) {
   const out = [];
 
-  out.push([
-    "01",
-    "FA",
-    cfdi.Version,
-    cfdi.Serie,
-    cfdi.Folio,
-    cfdi.FormaPago,
-    "NO_CERT",
-    "CONTADO",
-    cfdi.Subtotal.toFixed(2),
-    "0.00",
-    cfdi.Moneda,
-    "1",
-    cfdi.Total.toFixed(2),
-    cfdi.TipoDeComprobante,
-    cfdi.MetodoPago,
-    cfdi.LugarExpedicion
-  ].join("|"));
+out.push([
+  "01",
+  "FA",
+  "4.0",
+  cfdi.Serie,
+  cfdi.Folio,
+  cfdi.FormaPago,
+  FISCAL_EMISOR.numeroCertificado,
+  "CONTADO",
+  cfdi.Subtotal.toFixed(2),
+  "0.00",
+  cfdi.Moneda,
+  "1",
+  cfdi.Total.toFixed(2),
+  "Ingreso",
+  cfdi.MetodoPago,
+  FISCAL_EMISOR.cpExpedicion,
+  "",
+  "EMISOR",
+  FISCAL_EMISOR.rfc,
+  FISCAL_EMISOR.razonSocial,
+  FISCAL_EMISOR.regimenFiscal,
+  "RECEPTOR",
+  cfdi.Receptor.Rfc,
+  cfdi.Receptor.Nombre,
+  "",
+  "",
+  cfdi.Receptor.UsoCFDI,
+  cfdi.Receptor.Email || "",
+  "",
+  cfdi.Impuestos.toFixed(2),
+  "INFO_ADIC",
+  "",
+  FISCAL_EMISOR.direccionEmisor,
+  FISCAL_EMISOR.direccionEmisor,
+  cfdi.Receptor.Direccion || "",
+  "",
+  "N"
+].join("|"));
+out.push([
+  "01",
+  "CFDI40",
+  "01",
+  "INFO_GLOBAL",
+  "",
+  "",
+  "",
+  "EMISOR",
+  "",
+  "RECEPTOR",
+  RECEPTOR_PUBLICO_GENERAL.cp,
+  RECEPTOR_PUBLICO_GENERAL.regimenFiscal
+].join("|"));
+
 
   out.push([
     "EMISOR",
@@ -241,5 +278,6 @@ if (cfdi.IEPSTotal && cfdi.IEPSTotal > 0) {
 
   return out.join("\n");
 }
+
 
 
