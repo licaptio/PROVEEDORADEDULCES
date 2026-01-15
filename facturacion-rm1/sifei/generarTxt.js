@@ -33,10 +33,6 @@ function validarCFDI(cfdi) {
  * ============================================
  */
 export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
-  // 🔒 BLINDAJE ANTI-SAT / ANTI-SIFEI
-  validarCFDI(cfdi);
-
-  const out = [];
   let subtotal = 0;
 
   let BaseIVA16 = 0;
@@ -123,7 +119,8 @@ const ivaImporte = tasaIVA > 0
  * ============================================
  */
 export function convertirCFDIBaseASifei(cfdi) {
-
+    // 🔒 BLINDAJE FINAL ANTI-SAT / ANTI-SIFEI
+  validarCFDI(cfdi);
   const out = [];
 
   // ===============================
@@ -250,5 +247,6 @@ export function convertirCFDIBaseASifei(cfdi) {
 
   return out.join("\n");
 }
+
 
 
