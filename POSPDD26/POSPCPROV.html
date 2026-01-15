@@ -89,13 +89,6 @@ td{text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
   white-space: nowrap;
 }
 
-td.del-col{text-align:center}
-td.del-col .del{
-background:#e74c3c;color:#fff;border:none;border-radius:50%;
-width:20px;height:20px;font-size:13px;cursor:pointer;
-}
-td.del-col .del:active{transform:scale(.92)}
-
 .totals{display:flex;flex-direction:column;gap:5px;padding:10px;background:#fff}
 .row{display:flex;justify-content:space-between;font-size:15px}
 .row.muted{color:var(--muted)}
@@ -429,7 +422,6 @@ tr.seleccionado{
         <th>Producto</th>
         <th>Cant</th>
         <th>Importe</th>
-        <th></th>
       </tr>
     </thead>
     <tbody id="tbody"></tbody>
@@ -1213,9 +1205,6 @@ tr.innerHTML = `
           : it.precio_unit
       )
     )}
-  </td>
-  <td class="del-col">
-    <button class="del" onclick="delItem('${it.id}')">×</button>
   </td>
 `;
     tbody.appendChild(tr);
