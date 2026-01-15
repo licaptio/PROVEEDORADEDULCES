@@ -337,6 +337,14 @@ tr.seleccionado{
   background: rgba(12,108,189,.18) !important;
   outline: 2px solid #0c6cbd;
 }
+#tbody tr{
+  cursor: pointer;
+  transition: background .15s ease;
+}
+
+#tbody tr:hover{
+  background: rgba(12,108,189,.08);
+}
 
 /* 🧾 Nombre de producto – usar todo el espacio disponible */
 .nombre-prod{
@@ -1178,12 +1186,14 @@ function render() {
   const tbody = $("#tbody");
   tbody.innerHTML = "";
 
-  carrito.forEach(it => {
-    const tr = document.createElement("tr");
-    tr.onclick = () => {
-  indiceSeleccionado = index;
-  marcarFilaSeleccionada(tr);
-};
+carrito.forEach((it, index) => {
+  const tr = document.createElement("tr");
+
+  tr.addEventListener("click", () => {
+    indiceSeleccionado = index;
+    marcarFilaSeleccionada(tr);
+  });
+
 tr.innerHTML = `
   <td>
   <div class="nombre-prod" title="${it.nombre}">
@@ -1191,11 +1201,15 @@ tr.innerHTML = `
   </div>
 </td>
   <td style="text-align:center">
-    <input type="number" min="0" step="0.01" value="${it.cantidad}"
-      style="width:70px;text-align:center;padding:4px;border-radius:6px;
-      border:1px solid #ccc;font-size:14px;"
-      onchange="actualizarCantidad('${it.id}', this.value)"
-      oninput="actualizarCantidad('${it.id}', this.value)">
+<input type="number"
+  min="0"
+  step="0.01"
+  value="${it.cantidad}"
+  style="width:70px;text-align:center;padding:4px;border-radius:6px;
+  border:1px solid #ccc;font-size:14px;"
+  onclick="event.stopPropagation()"
+  onchange="actualizarCantidad('${it.id}', this.value)"
+  oninput="actualizarCantidad('${it.id}', this.value)">
   </td>
   <td style="text-align:right">
     ${money(
