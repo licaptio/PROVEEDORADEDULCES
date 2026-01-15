@@ -187,7 +187,7 @@ font-size:14px!important;line-height:1.45;
   display:grid;
   grid-template-columns: 2.4fr 1fr;
   gap:20px;
-  align-items:stretch;
+ align-items:start;   /* o center, pero start es más estable */
 }
 
   /* 🟩 CARRITO FIJO */
@@ -214,11 +214,11 @@ font-size:14px!important;line-height:1.45;
 
 /* 🟦 COLUMNA DERECHA */
 .pos-side{
+  height:auto;
   display:flex;
   flex-direction:column;
-- justify-content:flex-end;
-+ justify-content:center;   /* 🔥 CENTRADO VERTICAL */
-  height:100%;
+  justify-content:center;  /* 🔥 AHORA SÍ SE NOTA */
+  align-self:center;       /* 🔥 CENTRA EN EL GRID */
 }
 
 /* ❌ SIN margins automáticos */
