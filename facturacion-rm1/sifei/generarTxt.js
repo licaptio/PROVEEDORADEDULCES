@@ -79,13 +79,9 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
 export function convertirCFDIBaseASifei(cfdi) {
   const out = [];
 
-  // ===============================
-  // REGISTRO 01 — CABECERA
-  // ===============================
+  // ========= 01 CABECERA =========
   out.push([
-    "01",
-    "FA",
-    "4.0",
+    "01","FA","4.0",
     cfdi.Serie,
     cfdi.Folio,
     cfdi.FormaPago,
@@ -122,109 +118,78 @@ export function convertirCFDIBaseASifei(cfdi) {
     "N"
   ].join("|"));
 
-  // ===============================
-  // INFO GLOBAL (OBLIGATORIO PUBLICO GENERAL)
-  // ===============================
-  const fecha = new Date(cfdi.Fecha);
+  // ========= INFO GLOBAL =========
+  const f = new Date(cfdi.Fecha);
   out.push([
+    "01","CFDI40","01","INFO_GLOBAL",
     "01",
-    "CFDI40",
-    "01",
-    "INFO_GLOBAL",
-    "01", // periodicidad mensual
-    String(fecha.getMonth() + 1).padStart(2, "0"),
-    fecha.getFullYear(),
-    "EMISOR",
-    "",
+    String(f.getMonth()+1).padStart(2,"0"),
+    f.getFullYear(),
+    "EMISOR","",
     "RECEPTOR",
     RECEPTOR_PUBLICO_GENERAL.cp,
     RECEPTOR_PUBLICO_GENERAL.regimenFiscal
   ].join("|"));
 
-// ===============================
-// REGISTROS 03 — CONCEPTOS
-// ===============================
-cfdi.Conceptos.forEach((c, idx) => {
+  // ========= CONCEPTOS =========
+  cfdi.Conceptos.forEach((c, idx) => {
+    const tieneImpuestos = (c.TasaIVA > 0 || c.IEPSTasa > 0);
+    const objetoImp = tieneImpuestos ? "02" : "01";
 
-  const tieneImpuestos = (c.TasaIVA > 0 || c.IEPSTasa > 0);
-  const objetoImp = tieneImpuestos ? "02" : "01";
-
-  out.push([
-    "03",
-    idx + 1,
-    c.Cantidad.toFixed(3),
-    c.ClaveUnidad,
-    "PZA",
-    c.ClaveProdServ,
-    "",
-    c.Descripcion,
-    c.ValorUnitario.toFixed(4),
-    "0.00",
-    c.Importe.toFixed(4),
-    "",
-    objetoImp
-  ].join("|"));
-
-  // ===== IVA POR CONCEPTO =====
-  if (c.TasaIVA > 0) {
     out.push([
-      "03-IMP",
-      "TRASLADO",
-      c.Base.toFixed(6),
-      "002",
-      "Tasa",
+      "03",
+      idx + 1,
+      c.Cantidad.toFixed(3),
+      c.ClaveUnidad,
+      "PZA",
+      c.ClaveProdServ,
+      "",
+      c.Descripcion,
+      c.ValorUnitario.toFixed(4),
+      "0.00",
+      c.Importe.toFixed(4),
+      "",
+      objetoImp
+    ].join("|"));
+
+    if (c.TasaIVA > 0) {
+      out.push([
+        "03-IMP","TRASLADO",
+        c.Base.toFixed(6),
+        "002","Tasa","0.160000",
+        c.IVAImporte.toFixed(6)
+      ].join("|"));
+    }
+
+    if (c.IEPSTasa > 0) {
+      out.push([
+        "03-IMP","TRASLADO",
+        c.Base.toFixed(6),
+        "003","Tasa",
+        c.IEPSTasa.toFixed(6),
+        c.IEPSImporte.toFixed(6)
+      ].join("|"));
+    }
+  });
+
+  // ========= IMPUESTOS GLOBALES =========
+  if (cfdi.IVA16Importe > 0) {
+    out.push([
+      "04","TRASLADO","002","Tasa",
       "0.160000",
-      c.IVAImporte.toFixed(6)
+      cfdi.IVA16Importe.toFixed(2),
+      cfdi.BaseIVA16.toFixed(2)
     ].join("|"));
   }
 
-  // ===== IEPS POR CONCEPTO (ESTE ES EL QUE FALTABA) =====
-  if (c.IEPSTasa > 0) {
+  if (cfdi.IEPSImporte > 0) {
     out.push([
-      "03-IMP",
-      "TRASLADO",
-      c.Base.toFixed(6),
-      "003",
-      "Tasa",
-      c.IEPSTasa.toFixed(6),
-      c.IEPSImporte.toFixed(6)
+      "04","TRASLADO","003","Tasa",
+      cfdi.IEPSTasa.toFixed(6),
+      cfdi.IEPSImporte.toFixed(2),
+      cfdi.BaseIEPS.toFixed(2)
     ].join("|"));
   }
-});
-
-
-// ===============================
-// REGISTROS 04 — IMPUESTOS GLOBALES
-// ===============================
-
-// IVA 16%
-if (cfdi.IVA16Importe > 0) {
-  out.push([
-    "04",
-    "TRASLADO",
-    "002",
-    "Tasa",
-    "0.160000",
-    cfdi.IVA16Importe.toFixed(2),
-    cfdi.BaseIVA16.toFixed(2)
-  ].join("|"));
-}
-
-// IEPS
-if (cfdi.IEPSImporte > 0) {
-  out.push([
-    "04",
-    "TRASLADO",
-    "003",
-    "Tasa",
-    cfdi.IEPSTasa.toFixed(6),
-    cfdi.IEPSImporte.toFixed(2),
-    cfdi.BaseIEPS.toFixed(2)
-  ].join("|"));
-}
-
 
   return out.join("\n");
 }
-
-
