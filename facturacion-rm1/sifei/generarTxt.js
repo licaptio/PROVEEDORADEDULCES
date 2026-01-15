@@ -4,9 +4,9 @@ import {
 } from "./configFiscal.js";
 
 /**
- * =====================================================
- * 1️⃣ ARMAR OBJETO CFDI BASE (FUENTE ÚNICA DE VERDAD)
- * =====================================================
+ * ============================================
+ * 1️⃣ ARMAR CFDI BASE (FUENTE ÚNICA DE VERDAD)
+ * ============================================
  */
 export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
 
@@ -33,14 +33,14 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
       IVA16Importe += ivaImporte;
     }
 
-    // ===== IEPS =====
+    // ===== IEPS (USAR EL YA CALCULADO) =====
     const tasaIEPS = Number(item.iepsTasa || 0) / 100;
     const iepsImporte = Number(item.ieps_calculado || 0);
 
     if (tasaIEPS > 0) {
       BaseIEPS += importe;
       IEPSImporte += iepsImporte;
-      IEPSTasa = tasaIEPS; // solo UNA tasa
+      IEPSTasa = tasaIEPS;
     }
 
     return {
@@ -83,9 +83,9 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
 }
 
 /**
- * =====================================================
- * 2️⃣ CONVERTIR CFDI BASE → TXT SIFEI (VALIDADO)
- * =====================================================
+ * ============================================
+ * 2️⃣ CFDI BASE → TXT SIFEI (VALIDADO)
+ * ============================================
  */
 export function convertirCFDIBaseASifei(cfdi) {
 
@@ -133,7 +133,7 @@ export function convertirCFDIBaseASifei(cfdi) {
   ].join("|"));
 
   // ===============================
-  // INFO_GLOBAL (OBLIGATORIO)
+  // INFO_GLOBAL (OBLIGATORIO PG)
   // ===============================
   const fecha = new Date(cfdi.Fecha);
   out.push([
@@ -196,20 +196,20 @@ export function convertirCFDIBaseASifei(cfdi) {
   // ===============================
   // 04 | IMPUESTOS GLOBALES
   // ===============================
-  if (cfdi.IVA16Importe > 0) {
-    out.push([
-      "04","TRASLADO","002","Tasa","0.160000",
-      cfdi.IVA16Importe.toFixed(2),
-      cfdi.BaseIVA16.toFixed(2)
-    ].join("|"));
-  }
-
   if (cfdi.IEPSImporte > 0) {
     out.push([
       "04","TRASLADO","003","Tasa",
       cfdi.IEPSTasa.toFixed(6),
       cfdi.IEPSImporte.toFixed(2),
       cfdi.BaseIEPS.toFixed(2)
+    ].join("|"));
+  }
+
+  if (cfdi.IVA16Importe > 0) {
+    out.push([
+      "04","TRASLADO","002","Tasa","0.160000",
+      cfdi.IVA16Importe.toFixed(2),
+      cfdi.BaseIVA16.toFixed(2)
     ].join("|"));
   }
 
