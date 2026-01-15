@@ -273,7 +273,21 @@ font-size:14px!important;line-height:1.45;
     max-width: calc((100% - 20px) * 2.4 / (2.4 + 1));
     /* mismo ancho que la columna izquierda */
   }
+@media (min-width: 900px){
 
+  .pos-info-venta{
+    margin-bottom: 14px;
+    font-size: 14px;
+    color: #fff;
+    line-height: 1.6;
+    text-align: left;
+  }
+
+  .pos-info-venta strong{
+    font-weight: 600;
+    color: #e5e7eb;
+  }
+}
 
 </style>
 </head>
@@ -294,21 +308,11 @@ font-size:14px!important;line-height:1.45;
 
   <!-- 🧭 ENCABEZADO FIJO SUPERIOR -->
 <header>
-  <span>POS – Ruta de Venta / Descuento</span>
+  <span style="font-size:22px; letter-spacing:1px;">
+    PUNTO VENTA PROVEEDORA V2.1.1 PC
+  </span>
   <img src="logo_proveedora.webp" alt="Logo">
 </header>
-
-<div id="usuarioBar" style="
-  background:#0c6cbd;
-  color:#fff;
-  font-size:13px;
-  padding:4px 10px;
-  text-align:center;
-  font-weight:600;
-  letter-spacing:.3px;
-">
-  Usuario: —
-</div>
 
 <!-- 🧩 CUERPO PRINCIPAL -->
 <div class="main-content">
@@ -351,7 +355,13 @@ font-size:14px!important;line-height:1.45;
 
   <!-- 🟦 COLUMNA DERECHA -->
   <aside class="pos-side">
-
+    
+<div class="pos-info-venta">
+  <div><strong>Usuario:</strong> <span id="infoUsuario">—</span></div>
+  <div><strong>Fecha:</strong> <span id="infoFecha">—</span></div>
+  <div><strong>No. Venta:</strong> <span id="infoFolio">—</span></div>
+</div>
+    
     <div class="pos-side-top">
       <button id="btnCorteRuta" class="btn">Corte</button>
       <button id="btnResumen" class="btn">Resumen</button>
@@ -570,6 +580,13 @@ const msg = document.getElementById("loginMsg");
 
     const data = snap.docs[0].data();
     USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
+    document.getElementById("infoUsuario").textContent =
+  USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario;
+
+document.getElementById("infoFecha").textContent =
+  new Date().toLocaleString("es-MX");
+
+document.getElementById("infoFolio").textContent = "—";
     rutaId = data.rutaId || null;
     document.getElementById("usuarioBar").textContent =
   `Usuario: ${USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario}`;
@@ -1684,6 +1701,8 @@ $("#btnConfirmarCobro").onclick = async () => {
       let consecutivo = snap.exists() ? (snap.data().ultimo || 0) + 1 : 1;
       tx.set(folioRef, { ultimo: consecutivo, fecha: fechaTag });
       folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
+      const folioEl = document.getElementById("infoFolio");
+if (folioEl) folioEl.textContent = folio;
     });
 
 // ===============================
