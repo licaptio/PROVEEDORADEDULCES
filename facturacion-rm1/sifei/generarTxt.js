@@ -152,86 +152,89 @@ export function convertirCFDIBaseASifei(cfdi) {
     RECEPTOR_PUBLICO_GENERAL.regimenFiscal
   ].join("|"));
 
-  // ===============================
-  // REGISTROS 03 — CONCEPTOS
-  // ===============================
-  cfdi.Conceptos.forEach((c, idx) => {
+// ===============================
+// REGISTROS 03 — CONCEPTOS
+// ===============================
+cfdi.Conceptos.forEach((c, idx) => {
 
-    const tieneImpuestos = (c.TasaIVA > 0 || c.IEPSTasa > 0);
-    const objetoImp = tieneImpuestos ? "02" : "01";
+  const tieneImpuestos = (c.TasaIVA > 0 || c.IEPSTasa > 0);
+  const objetoImp = tieneImpuestos ? "02" : "01";
 
+  out.push([
+    "03",
+    idx + 1,
+    c.Cantidad.toFixed(3),
+    c.ClaveUnidad,
+    "PZA",
+    c.ClaveProdServ,
+    "",
+    c.Descripcion,
+    c.ValorUnitario.toFixed(4),
+    "0.00",
+    c.Importe.toFixed(4),
+    "",
+    objetoImp
+  ].join("|"));
+
+  // ===== IVA POR CONCEPTO =====
+  if (c.TasaIVA > 0) {
     out.push([
-      "03",
-      idx + 1,
-      c.Cantidad.toFixed(3),
-      c.ClaveUnidad,
-      "PZA",
-      c.ClaveProdServ,
-      "",
-      c.Descripcion,
-      c.ValorUnitario.toFixed(4),
-      "0.00",
-      c.Importe.toFixed(4),
-      "",
-      objetoImp
-    ].join("|"));
-
-    // ===== IVA POR CONCEPTO =====
-    if (c.TasaIVA > 0) {
-      out.push([
-        "03-IMP",
-        "TRASLADO",
-        c.Base.toFixed(6),
-        "002",
-        "Tasa",
-        "0.160000",
-        c.IVAImporte.toFixed(6)
-      ].join("|"));
-    }
-
-    // ===== IEPS POR CONCEPTO =====
-    if (c.IEPSTasa > 0) {
-      out.push([
-        "03-IMP",
-        "TRASLADO",
-        c.Base.toFixed(6),
-        "003",
-        "Tasa",
-        c.IEPSTasa.toFixed(6),
-        c.IEPSImporte.toFixed(6)
-      ].join("|"));
-    }
-  });
-
-  // ===============================
-  // REGISTROS 04 — IMPUESTOS GLOBALES
-  // ===============================
-
-  // IVA 16%
-  if (cfdi.IVA16Importe > 0) {
-    out.push([
-      "04",
+      "03-IMP",
       "TRASLADO",
+      c.Base.toFixed(6),
       "002",
       "Tasa",
       "0.160000",
-      cfdi.IVA16Importe.toFixed(2),
-      cfdi.BaseIVA16.toFixed(2)
+      c.IVAImporte.toFixed(6)
     ].join("|"));
   }
 
-  // IEPS
-  if (cfdi.IEPSImporte > 0) {
+  // ===== IEPS POR CONCEPTO (ESTE ES EL QUE FALTABA) =====
+  if (c.IEPSTasa > 0) {
     out.push([
-      "04",
+      "03-IMP",
       "TRASLADO",
+      c.Base.toFixed(6),
       "003",
       "Tasa",
-      cfdi.IEPSTasa.toFixed(6),
-      cfdi.IEPSImporte.toFixed(2),
-      cfdi.BaseIEPS.toFixed(2)
+      c.IEPSTasa.toFixed(6),
+      c.IEPSImporte.toFixed(6)
     ].join("|"));
   }
+});
+
+
+// ===============================
+// REGISTROS 04 — IMPUESTOS GLOBALES
+// ===============================
+
+// IVA 16%
+if (cfdi.IVA16Importe > 0) {
+  out.push([
+    "04",
+    "TRASLADO",
+    "002",
+    "Tasa",
+    "0.160000",
+    cfdi.IVA16Importe.toFixed(2),
+    cfdi.BaseIVA16.toFixed(2)
+  ].join("|"));
+}
+
+// IEPS
+if (cfdi.IEPSImporte > 0) {
+  out.push([
+    "04",
+    "TRASLADO",
+    "003",
+    "Tasa",
+    cfdi.IEPSTasa.toFixed(6),
+    cfdi.IEPSImporte.toFixed(2),
+    cfdi.BaseIEPS.toFixed(2)
+  ].join("|"));
+}
+
 
   return out.join("\n");
 }
+
