@@ -4,13 +4,13 @@ import {
 } from "./configFiscal.js";
 
 /**
- * Construye un objeto CFDI base desde la venta
- * Aquí se calculan TODAS las bases e impuestos
+ * ============================================
+ * 1️⃣ ARMAR OBJETO CFDI BASE DESDE LA VENTA
+ * ============================================
  */
 export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
   let subtotal = 0;
 
-  let BaseIVA0 = 0;
   let BaseIVA16 = 0;
   let BaseIEPS = 0;
 
@@ -18,33 +18,28 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
   let IEPSImporte = 0;
   let IEPSTasa = 0;
 
-  const Conceptos = venta.detalle.map((item) => {
+  const Conceptos = venta.detalle.map(item => {
     const importe = Number(item.importe);
     subtotal += importe;
-    // ===============================
-// IEPS FISCAL (NO comercial)
-// ===============================
-const tasaIEPS = Number(item.iepsTasa || 0) / 100;
-const iepsFiscal = tasaIEPS > 0
-  ? +(importe * tasaIEPS).toFixed(2)
-  : 0;
 
-    // IVA
-    if (Number(item.iva) === 16) {
+    // ===== IVA =====
+    const tasaIVA = Number(item.iva) === 16 ? 0.16 : 0;
+    const ivaImporte = Number(item.iva_calculado || 0);
+
+    if (tasaIVA > 0) {
       BaseIVA16 += importe;
-      IVA16Importe += Number(item.iva_calculado || 0);
-    } else if (Number(item.iepsTasa) === 0) {
-      BaseIVA0 += importe;
+      IVA16Importe += ivaImporte;
     }
 
-    // IEPS
-// IEPS
-if (tasaIEPS > 0) {
-  BaseIEPS += importe;
-  IEPSImporte += iepsFiscal;
-  IEPSTasa = tasaIEPS; // solo una tasa global
-}
+    // ===== IEPS =====
+    const tasaIEPS = Number(item.iepsTasa || 0) / 100;
+    const iepsImporte = Number(item.ieps_calculado || 0);
 
+    if (tasaIEPS > 0) {
+      BaseIEPS += importe;
+      IEPSImporte += iepsImporte;
+      IEPSTasa = tasaIEPS; // solo una tasa global
+    }
 
     return {
       Cantidad: Number(item.cantidad),
@@ -53,16 +48,15 @@ if (tasaIEPS > 0) {
       Descripcion: item.nombre,
       ValorUnitario: Number(item.precio_unit),
       Importe: importe,
-
       Base: importe,
 
       // IVA
-      TasaIVA: Number(item.iva) === 16 ? 0.16 : 0,
-      IVAImporte: Number(item.iva_calculado || 0),
+      TasaIVA: tasaIVA,
+      IVAImporte: ivaImporte,
 
       // IEPS
-IEPSTasa: tasaIEPS,
-IEPSImporte: iepsFiscal
+      IEPSTasa: tasaIEPS,
+      IEPSImporte: iepsImporte
     };
   });
 
@@ -77,7 +71,6 @@ IEPSImporte: iepsFiscal
     Subtotal: subtotal,
     Total: subtotal + IVA16Importe + IEPSImporte,
 
-    BaseIVA0,
     BaseIVA16,
     BaseIEPS,
 
@@ -90,13 +83,15 @@ IEPSImporte: iepsFiscal
 }
 
 /**
- * Convierte el CFDI base al TXT SIFEI FINAL
+ * ============================================
+ * 2️⃣ CONVERTIR CFDI BASE → TXT SIFEI
+ * ============================================
  */
 export function convertirCFDIBaseASifei(cfdi) {
   const out = [];
 
   // ===============================
-  // REGISTRO 01 — CABECERA COMPLETA
+  // REGISTRO 01 — CABECERA
   // ===============================
   out.push([
     "01",
@@ -139,16 +134,17 @@ export function convertirCFDIBaseASifei(cfdi) {
   ].join("|"));
 
   // ===============================
-  // REGISTRO 01 — CFDI40 INFO_GLOBAL
+  // INFO GLOBAL (OBLIGATORIO PUBLICO GENERAL)
   // ===============================
+  const fecha = new Date(cfdi.Fecha);
   out.push([
     "01",
     "CFDI40",
     "01",
     "INFO_GLOBAL",
-    "",
-    "",
-    "",
+    "01", // periodicidad mensual
+    String(fecha.getMonth() + 1).padStart(2, "0"),
+    fecha.getFullYear(),
     "EMISOR",
     "",
     "RECEPTOR",
@@ -160,6 +156,10 @@ export function convertirCFDIBaseASifei(cfdi) {
   // REGISTROS 03 — CONCEPTOS
   // ===============================
   cfdi.Conceptos.forEach((c, idx) => {
+
+    const tieneImpuestos = (c.TasaIVA > 0 || c.IEPSTasa > 0);
+    const objetoImp = tieneImpuestos ? "02" : "01";
+
     out.push([
       "03",
       idx + 1,
@@ -173,25 +173,23 @@ export function convertirCFDIBaseASifei(cfdi) {
       "0.00",
       c.Importe.toFixed(4),
       "",
-      "02"
+      objetoImp
     ].join("|"));
 
-    // IVA por concepto
-// IVA por concepto (OBLIGATORIO si ObjetoImp = 02)
-out.push([
-  "03-IMP",
-  "TRASLADO",
-  c.Base.toFixed(6),
-  "002",
-  "Tasa",
-  c.TasaIVA > 0 ? "0.160000" : "0.000000",
-  c.TasaIVA > 0
-    ? c.IVAImporte.toFixed(6)
-    : "0.000000"
-].join("|"));
+    // ===== IVA POR CONCEPTO =====
+    if (c.TasaIVA > 0) {
+      out.push([
+        "03-IMP",
+        "TRASLADO",
+        c.Base.toFixed(6),
+        "002",
+        "Tasa",
+        "0.160000",
+        c.IVAImporte.toFixed(6)
+      ].join("|"));
+    }
 
-
-    // IEPS por concepto
+    // ===== IEPS POR CONCEPTO =====
     if (c.IEPSTasa > 0) {
       out.push([
         "03-IMP",
@@ -208,19 +206,6 @@ out.push([
   // ===============================
   // REGISTROS 04 — IMPUESTOS GLOBALES
   // ===============================
-
-  // IVA 0%
-  if (cfdi.BaseIVA0 > 0) {
-    out.push([
-      "04",
-      "TRASLADO",
-      "002",
-      "Tasa",
-      "0.000000",
-      "0.00",
-      cfdi.BaseIVA0.toFixed(2)
-    ].join("|"));
-  }
 
   // IVA 16%
   if (cfdi.IVA16Importe > 0) {
@@ -250,5 +235,3 @@ out.push([
 
   return out.join("\n");
 }
-
-
