@@ -2,7 +2,20 @@ import {
   FISCAL_EMISOR,
   RECEPTOR_PUBLICO_GENERAL
 } from "./configFiscal.js";
+/* ===============================
+   FUNCIÓN GUARDIA (ANTI-SAT)
+   =============================== */
+function validarCFDI(cfdi) {
+  const ivaConceptos = cfdi.Conceptos
+    .filter(c => c.TasaIVA > 0)
+    .reduce((s, c) => s + c.IVAImporte, 0);
 
+  if (cfdi.IVA16Importe.toFixed(2) !== ivaConceptos.toFixed(2)) {
+    throw new Error(
+      `Descuadre IVA: Global=${cfdi.IVA16Importe} vs Conceptos=${ivaConceptos}`
+    );
+  }
+}
 /**
  * ============================================
  * 1️⃣ ARMAR CFDI BASE (FUENTE ÚNICA DE VERDAD)
@@ -25,8 +38,16 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
     subtotal += importe;
 
     // ===== IVA =====
-    const tasaIVA = Number(item.iva) === 16 ? 0.16 : 0;
-    const ivaImporte = Number(item.iva_calculado || 0);
+const tasaIVA =
+  Number(item.iva) === 16 ||
+  Number(item.ivaTasa) === 0.16 ||
+  Number(item.iva_calculado) > 0
+    ? 0.16
+    : 0;
+
+const ivaImporte = tasaIVA > 0
+  ? Number(item.iva_calculado || 0)
+  : 0;
 
     if (tasaIVA > 0) {
       BaseIVA16 += importe;
@@ -215,3 +236,4 @@ export function convertirCFDIBaseASifei(cfdi) {
 
   return out.join("\n");
 }
+
