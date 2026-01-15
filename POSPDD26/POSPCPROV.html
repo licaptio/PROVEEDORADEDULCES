@@ -337,7 +337,10 @@ font-size:14px!important;line-height:1.45;
   margin-top:14px;
   font-size:14px;
 }
-
+tr.seleccionado{
+  background: rgba(12,108,189,.18) !important;
+  outline: 2px solid #0c6cbd;
+}
 
 </style>
 </head>
@@ -532,6 +535,7 @@ enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off
    =========================================================== */
 const $ = s => document.querySelector(s);
 let carrito = [];
+let indiceSeleccionado = null;
 let catalogo = [];
 let rutaId = null;
 let USUARIO_LOGUEADO = null;
@@ -1162,6 +1166,10 @@ function render() {
 
   carrito.forEach(it => {
     const tr = document.createElement("tr");
+    tr.onclick = () => {
+  indiceSeleccionado = index;
+  marcarFilaSeleccionada(tr);
+};
 tr.innerHTML = `
   <td>${acortarNombre(it.nombre)}</td>
   <td style="text-align:center">
@@ -2311,35 +2319,70 @@ function bloquearSiCobroActivo() {
   }
   return false;
 }
+function marcarFilaSeleccionada(fila) {
+  document
+    .querySelectorAll("#tbody tr")
+    .forEach(tr => tr.classList.remove("seleccionado"));
 
+  fila.classList.add("seleccionado");
+}
 // ✅ Estado real de sesión activa
 function haySesionActiva() {
   return document.body.classList.contains("sesion-activa");
 }
-  document.addEventListener("keydown", e => {
+  const CLAVE_BORRAR_PRODUCTO = "1234";
+  
+document.addEventListener("keydown", e => {
   if (!document.body.classList.contains("sesion-activa")) return;
 
-  // F2 → Cobrar
+  // 🔹 F2 → Cobrar
   if (e.key === "F2") {
     e.preventDefault();
     document.getElementById("btnCobrar")?.click();
+    return;
   }
 
-  // F4 → Focus buscador
+  // 🔹 F4 → Focus buscador
   if (e.key === "F4") {
     e.preventDefault();
     document.getElementById("buscador")?.focus();
+    return;
   }
 
-  // ESC → Cerrar cobro
+  // 🔹 ESC → Cerrar cobro
   if (e.key === "Escape") {
     const modal = document.getElementById("modalCobro");
     if (modal && modal.style.display === "flex") {
       document.getElementById("btnCancelarCobro")?.click();
     }
+    return;
+  }
+
+  // 🔥 SUPR / DELETE → borrar producto seleccionado
+  if (e.key === "Delete" || e.key === "Del") {
+    e.preventDefault();
+
+    if (indiceSeleccionado === null) {
+      toast("⚠️ Selecciona un producto", "#c0392b");
+      beep(300, .12);
+      return;
+    }
+
+    const clave = prompt("🔐 Ingresa la clave para borrar el producto:");
+
+    if (clave !== CLAVE_BORRAR_PRODUCTO) {
+      toast("❌ Clave incorrecta", "#c0392b");
+      beep(200, .15);
+      return;
+    }
+
+    carrito.splice(indiceSeleccionado, 1);
+    indiceSeleccionado = null;
+
+    renderDebounced();
+    beep(700, .12);
   }
 });
-
 </script>
 <!-- 🔢 MODAL CANTIDAD PERSONALIZADO -->
 <div id="modalCantidad" 
