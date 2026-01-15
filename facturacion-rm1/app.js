@@ -101,7 +101,7 @@ window.generarTXTSifei = async function (idVenta) {
   // ===============================
   // DESCARGAR AMBOS ARCHIVOS
   // ===============================
-  descargarTXT(txtBase,  `BASE_${CONFIG.serieFiscal}_${folio}.txt`);
+
   descargarTXT(txtSifei, `SIFEI_${CONFIG.serieFiscal}_${folio}.txt`);
 
   // ===============================
@@ -183,3 +183,4 @@ function setFechasHoy() {
 setFechasHoy();
 cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", cargarVentas);
+
