@@ -82,15 +82,14 @@ window.generarTXTSifei = async function (idVenta) {
   const cfdiObj = armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI);
   const txtSifei = convertirCFDIBaseASifei(cfdiObj);
 
-  console.log("CFDI BASE:\n", txtBase);
-  console.log("CFDI SIFEI:\n", txtSifei);
+    console.log("CFDI SIFEI:\n", txtSifei);
 
   // Mostrar en pantalla (BASE)
   const visor = document.getElementById("txt");
   if (visor) {
     visor.style.display = "block";
-    visor.textContent = txtBase;
-  }
+    visor.textContent = txtSifei;
+    }
 
   // ===============================
   // DESCARGAR AMBOS ARCHIVOS
@@ -177,5 +176,6 @@ function setFechasHoy() {
 setFechasHoy();
 cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", cargarVentas);
+
 
 
