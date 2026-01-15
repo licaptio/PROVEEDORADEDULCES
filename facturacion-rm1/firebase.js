@@ -60,5 +60,5 @@ export async function obtenerVentasRuta(rutaId, inicio, fin) {
 
   return snap.docs
     .map(d => ({ id: d.id, ...d.data() }))
-    .filter(v => !v.estado || v.estado === "PENDIENTE");
 }
+
