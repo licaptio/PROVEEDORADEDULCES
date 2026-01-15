@@ -1,126 +1,84 @@
-export function generarTXTSifeiCompleto(venta, folio, fechaCFDI) {
-  const sep = "|";
-  const lines = [];
+export function convertirCFDIBaseASifei(cfdi) {
+  const out = [];
 
-  // ======================
-  // [CFDI]
-  // ======================
-  lines.push("[CFDI]");
-  lines.push([
-    "Version=4.0",
-    "Serie=RM1",
-    `Folio=${folio}`,
-    `Fecha=${fechaCFDI}`,                // YYYY-MM-DDTHH:mm:ss
-    "FormaPago=01",                      // Efectivo (ajusta si aplica)
-    "MetodoPago=PUE",
-    "Moneda=MXN",
-    "TipoDeComprobante=I",
-    "Exportacion=01",
-    "LugarExpedicion=64000"              // CP emisor
-  ].join(sep));
+  // ===== CABECERA =====
+  out.push([
+    "01",
+    "FA",
+    cfdi.Version,
+    cfdi.Serie,
+    cfdi.Folio,
+    cfdi.FormaPago,
+    "NO_CERT",
+    "CONTADO",
+    cfdi.Subtotal.toFixed(2),
+    "0.00",
+    cfdi.Moneda,
+    "1",
+    cfdi.Total.toFixed(2),
+    "Ingreso",
+    cfdi.MetodoPago,
+    cfdi.LugarExpedicion
+  ].join("|"));
 
-  // ======================
-  // [EMISOR]
-  // ======================
-  lines.push("[EMISOR]");
-  lines.push([
-    "Rfc=PDD031204KL5",
-    "Nombre=PROVEEDORA DE DULCES Y DESECHABLES SA DE CV",
-    "RegimenFiscal=601"
-  ].join(sep));
+  // ===== EMISOR =====
+  out.push([
+    "EMISOR",
+    cfdi.Emisor.Rfc,
+    cfdi.Emisor.Nombre,
+    cfdi.Emisor.RegimenFiscal
+  ].join("|"));
 
-  // ======================
-  // [RECEPTOR] — Público en general
-  // ======================
-  lines.push("[RECEPTOR]");
-  lines.push([
-    "Rfc=XAXX010101000",
-    "Nombre=PUBLICO EN GENERAL",
-    "DomicilioFiscalReceptor=64000",
-    "RegimenFiscalReceptor=616",
-    "UsoCFDI=S01"
-  ].join(sep));
+  // ===== RECEPTOR =====
+  out.push([
+    "RECEPTOR",
+    cfdi.Receptor.Rfc,
+    cfdi.Receptor.Nombre,
+    "",
+    "",
+    cfdi.Receptor.UsoCFDI
+  ].join("|"));
 
-  // ======================
-  // [CONCEPTOS]
-  // ======================
-  lines.push("[CONCEPTOS]");
+  // ===== CONCEPTOS =====
+  cfdi.Conceptos.forEach((c, idx) => {
+    out.push([
+      "03",
+      idx + 1,
+      c.Cantidad.toFixed(3),
+      c.ClaveUnidad,
+      "PZA",
+      c.ClaveProdServ,
+      "",
+      c.Descripcion,
+      c.ValorUnitario.toFixed(4),
+      "0.00",
+      c.Importe.toFixed(4),
+      "",
+      "02"
+    ].join("|"));
 
-  let subtotal = 0;
-  let totalIVA16 = 0;
-  let totalIEPS = 0;
+    // IMPUESTO POR CONCEPTO
+    out.push([
+      "03-IMP",
+      "TRASLADO",
+      c.Base.toFixed(6),
+      "002",
+      "Tasa",
+      c.Tasa.toFixed(6),
+      c.Impuesto.toFixed(6)
+    ].join("|"));
+  });
 
-venta.detalle.forEach(item => {
+  // ===== IMPUESTOS GLOBALES =====
+  out.push([
+    "04",
+    "TRASLADO",
+    "002",
+    "Tasa",
+    cfdi.TasaGlobal.toFixed(6),
+    cfdi.Impuestos.toFixed(2),
+    cfdi.BaseImpuestos.toFixed(2)
+  ].join("|"));
 
-  const cantidad = Number(item.cantidad);
-  const valorUnitario = Number(item.precio_unit);
-  const importe = Number(item.importe);
-
-  subtotal += importe;
-
-  // ======================
-  // IVA
-  // ======================
-  let impuestoIVA = "";
-  if (Number(item.iva) === 16) {
-    const baseIVA = importe;
-    const ivaImporte = Number(item.iva_calculado);
-
-    totalIVA16 += ivaImporte;
-
-    impuestoIVA =
-      `Impuesto=002,TipoFactor=Tasa,TasaOCuota=0.160000,` +
-      `Base=${baseIVA.toFixed(2)},Importe=${ivaImporte.toFixed(2)}`;
-  } else {
-    impuestoIVA = `Impuesto=002,TipoFactor=Exento`;
-  }
-
-  // ======================
-  // IEPS
-  // ======================
-  let impuestoIEPS = "";
-  if (Number(item.iepsTasa) > 0) {
-    const baseIEPS = importe;
-    const tasaIEPS = Number(item.iepsTasa) / 100;
-    const iepsImporte = Number(item.ieps_calculado);
-
-    totalIEPS += iepsImporte;
-
-    impuestoIEPS =
-      `;Impuesto=003,TipoFactor=Tasa,TasaOCuota=${tasaIEPS.toFixed(6)},` +
-      `Base=${baseIEPS.toFixed(2)},Importe=${iepsImporte.toFixed(2)}`;
-  }
-
-  lines.push([
-    `ClaveProdServ=${item.claveSat || "01010101"}`,
-    `Cantidad=${cantidad}`,
-    `ClaveUnidad=${item.unidadSat || "H87"}`,
-    `Descripcion=${item.nombre}`,
-    `ValorUnitario=${valorUnitario.toFixed(2)}`,
-    `Importe=${importe.toFixed(2)}`,
-    impuestoIVA + impuestoIEPS
-  ].join(sep));
-});
-
-  // ======================
-  // [IMPUESTOS] — Globales
-  // ======================
-  lines.push("[IMPUESTOS]");
-  const totalImpuestosTrasladados = +(totalIVA16 + totalIEPS).toFixed(2);
-
-  lines.push([
-    `TotalImpuestosTrasladados=${totalImpuestosTrasladados.toFixed(2)}`,
-    totalIVA16 > 0 ? `IVA16=${totalIVA16.toFixed(2)}` : "",
-    totalIEPS > 0 ? `IEPS=${totalIEPS.toFixed(2)}` : ""
-  ].filter(Boolean).join(sep));
-
-  // ======================
-  // TOTAL
-  // ======================
-  const total = +(subtotal + totalImpuestosTrasladados).toFixed(2);
-  lines.push(`Total=${total.toFixed(2)}`);
-
-  return lines.join("\n");
+  return out.join("\n");
 }
-
-
