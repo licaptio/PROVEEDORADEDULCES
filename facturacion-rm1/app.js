@@ -1,5 +1,10 @@
 // app.js
-import { generarTXTSifeiCompleto } from "./sifei/generarTxt.js";
+import {
+  generarTXTSifeiCompleto,
+  armarObjetoCFDIDesdeVenta,
+  convertirCFDIBaseASifei
+} from "./sifei/generarTxt.js";
+
 import { db, obtenerVentasRuta, tomarFolio } from "./firebase.js";
 import {
   doc,
@@ -15,6 +20,9 @@ const CONFIG = {
   rfcEmisor: "PDD031204KL5"
 };
 
+// ===============================
+// PINTAR TABLA DE VENTAS
+// ===============================
 function pintarVentas(ventas) {
   const tbody = document.getElementById("ventas");
   tbody.innerHTML = "";
@@ -35,24 +43,31 @@ function pintarVentas(ventas) {
   });
 }
 
+// ===============================
+// GENERAR CFDI (BASE + SIFEI)
+// ===============================
 window.generarTXTSifei = async function (idVenta) {
 
   const ref = doc(db, "ventas_rutav2", idVenta);
   const snap = await getDoc(ref);
-  if (!snap.exists()) return alert("Venta no existe");
+  if (!snap.exists()) {
+    alert("Venta no existe");
+    return;
+  }
 
   const venta = snap.data();
 
-  // 🛑 VALIDACIÓN CORRECTA
+  // 🛑 Validación
   if (!venta.detalle || !venta.detalle.length) {
-    return alert("La venta no tiene conceptos");
+    alert("La venta no tiene conceptos");
+    return;
   }
 
-  // 🔢 TOMAR FOLIO REAL
+  // 🔢 Folio fiscal
   const folioRaw = await tomarFolio(CONFIG.serieFiscal);
   const folio = String(folioRaw).padStart(6, "0");
 
-  // 📅 FECHA LOCAL CFDI
+  // 📅 Fecha CFDI (LOCAL)
   const fechaLocal = venta.fecha.toDate();
   const fechaCFDI =
     fechaLocal.getFullYear() + "-" +
@@ -62,27 +77,36 @@ window.generarTXTSifei = async function (idVenta) {
     String(fechaLocal.getMinutes()).padStart(2, "0") + ":" +
     String(fechaLocal.getSeconds()).padStart(2, "0");
 
-  // 📄 TXT SIFEI COMPLETO
-  const txt = generarTXTSifeiCompleto(venta, folio, fechaCFDI);
+  // ===============================
+  // 1️⃣ CFDI BASE (LEGIBLE)
+  // ===============================
+  const txtBase = generarTXTSifeiCompleto(venta, folio, fechaCFDI);
 
-  console.log("TXT SIFEI GENERADO:\n", txt);
+  // ===============================
+  // 2️⃣ CFDI SIFEI PREMIUM
+  // ===============================
+  const cfdiObj = armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI);
+  const txtSifei = convertirCFDIBaseASifei(cfdiObj);
 
-  document.getElementById("txt").style.display = "block";
-  document.getElementById("txt").textContent = txt;
+  console.log("CFDI BASE:\n", txtBase);
+  console.log("CFDI SIFEI:\n", txtSifei);
 
-  // 💾 DESCARGAR
-  const nombreArchivo = `${CONFIG.serieFiscal}_${folio}.txt`;
-  const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
+  // Mostrar en pantalla (BASE)
+  const visor = document.getElementById("txt");
+  if (visor) {
+    visor.style.display = "block";
+    visor.textContent = txtBase;
+  }
 
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = nombreArchivo;
-  link.click();
+  // ===============================
+  // DESCARGAR AMBOS ARCHIVOS
+  // ===============================
+  descargarTXT(txtBase,  `BASE_${CONFIG.serieFiscal}_${folio}.txt`);
+  descargarTXT(txtSifei, `SIFEI_${CONFIG.serieFiscal}_${folio}.txt`);
 
-  URL.revokeObjectURL(url);
-
-  // ✅ MARCAR COMO FACTURADA
+  // ===============================
+  // MARCAR COMO FACTURADA
+  // ===============================
   await updateDoc(ref, {
     estado: "FACTURADA",
     serie_fiscal: CONFIG.serieFiscal,
@@ -91,6 +115,26 @@ window.generarTXTSifei = async function (idVenta) {
   });
 };
 
+// ===============================
+// DESCARGA DE TXT
+// ===============================
+function descargarTXT(contenido, nombreArchivo) {
+  const blob = new Blob([contenido], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nombreArchivo;
+  document.body.appendChild(link);
+  link.click();
+
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+// ===============================
+// FECHAS / FILTROS
+// ===============================
 function dateLocalFromInput(value, endOfDay = false) {
   const [year, month, day] = value.split("-").map(Number);
 
@@ -100,11 +144,11 @@ function dateLocalFromInput(value, endOfDay = false) {
     return new Date(year, month - 1, day, 23, 59, 59, 999);
   }
 }
+
 function rangoDesdeInputs() {
   const desdeInput = document.getElementById("fechaDesde").value;
   const hastaInput = document.getElementById("fechaHasta").value;
 
-  // Default HOY (local)
   if (!desdeInput || !hastaInput) {
     const inicio = new Date();
     inicio.setHours(0,0,0,0);
@@ -115,33 +159,27 @@ function rangoDesdeInputs() {
     return { inicio, fin };
   }
 
-  const inicio = dateLocalFromInput(desdeInput, false);
-  const fin = dateLocalFromInput(hastaInput, true);
-
-  return { inicio, fin };
+  return {
+    inicio: dateLocalFromInput(desdeInput, false),
+    fin: dateLocalFromInput(hastaInput, true)
+  };
 }
+
 async function cargarVentas() {
   const { inicio, fin } = rangoDesdeInputs();
-
-  const ventas = await obtenerVentasRuta(
-    CONFIG.rutaId,
-    inicio,
-    fin
-  );
-
+  const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
   pintarVentas(ventas);
 }
+
 function setFechasHoy() {
   const hoy = new Date().toISOString().split("T")[0];
   document.getElementById("fechaDesde").value = hoy;
   document.getElementById("fechaHasta").value = hoy;
 }
 
-setFechasHoy();
-
+// ===============================
 // ARRANQUE
+// ===============================
+setFechasHoy();
 cargarVentas();
-document.getElementById("btnBuscar").addEventListener("click", () => {
-  cargarVentas();
-});
-
+document.getElementById("btnBuscar").addEventListener("click", cargarVentas);
