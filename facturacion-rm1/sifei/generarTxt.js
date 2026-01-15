@@ -177,17 +177,19 @@ export function convertirCFDIBaseASifei(cfdi) {
     ].join("|"));
 
     // IVA por concepto
-    if (c.TasaIVA > 0) {
-      out.push([
-        "03-IMP",
-        "TRASLADO",
-        c.Base.toFixed(6),
-        "002",
-        "Tasa",
-        c.TasaIVA.toFixed(6),
-        c.IVAImporte.toFixed(6)
-      ].join("|"));
-    }
+// IVA por concepto (OBLIGATORIO si ObjetoImp = 02)
+out.push([
+  "03-IMP",
+  "TRASLADO",
+  c.Base.toFixed(6),
+  "002",
+  "Tasa",
+  c.TasaIVA > 0 ? "0.160000" : "0.000000",
+  c.TasaIVA > 0
+    ? c.IVAImporte.toFixed(6)
+    : "0.000000"
+].join("|"));
+
 
     // IEPS por concepto
     if (c.IEPSTasa > 0) {
@@ -248,4 +250,5 @@ export function convertirCFDIBaseASifei(cfdi) {
 
   return out.join("\n");
 }
+
 
