@@ -341,6 +341,22 @@ tr.seleccionado{
   background: rgba(12,108,189,.18) !important;
   outline: 2px solid #0c6cbd;
 }
+/* 🧾 Nombre de producto en carrito (ajuste real) */
+.nombre-prod{
+  max-width: 140px;        /* PC */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* 📱 Ajuste móvil */
+@media (max-width: 600px){
+  .nombre-prod{
+    max-width: 90px;
+    font-size: 13px;
+  }
+}
 
 </style>
 </head>
@@ -349,7 +365,7 @@ tr.seleccionado{
  <div id="loginScreen">
   <div class="login-card">
     <img id="loginLogo" src="logo_proveedora.webp" alt="Logo La Proveedora">
-    <h2>Acceso Ruta de Venta</h2>
+    <h2>Punto de Venta Prov</h2>
     <input id="loginUsuario" type="text" placeholder="Usuario"/>
     <input id="loginPassword" type="password" placeholder="Contraseña"/>
     <button id="btnLogin" class="btn">Entrar</button>
@@ -1150,13 +1166,6 @@ carrito.forEach(it => {
   };
 }
 
-function acortarNombre(nombre) {
-  if (!nombre) return "";
-  const max = 10; // cámbialo a 7 si quieres más compacto
-  return nombre.length > max
-    ? nombre.substring(0, max) + "…"
-    : nombre;
-}
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
@@ -1171,7 +1180,11 @@ function render() {
   marcarFilaSeleccionada(tr);
 };
 tr.innerHTML = `
-  <td>${acortarNombre(it.nombre)}</td>
+  <td>
+  <div class="nombre-prod" title="${it.nombre}">
+    ${it.nombre}
+  </div>
+</td>
   <td style="text-align:center">
     <input type="number" min="0" step="0.01" value="${it.cantidad}"
       style="width:70px;text-align:center;padding:4px;border-radius:6px;
