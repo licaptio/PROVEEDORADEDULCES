@@ -27,17 +27,25 @@ function pintarVentas(ventas) {
   tbody.innerHTML = "";
 
   ventas.forEach(v => {
+    const estado = v.estado_facturacion === "FACTURADA";
+
+    const iconoEstado = estado
+      ? "🟢 FACTURADA"
+      : "🔴 PENDIENTE";
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${v.fecha.toDate().toLocaleString()}</td>
       <td>${v.cliente}</td>
       <td>$${v.resumen_financiero.total.toFixed(2)}</td>
+      <td style="font-weight:bold">${iconoEstado}</td>
       <td>
         <button onclick="generarTXTSifei('${v.id}')">
           Generar TXT
         </button>
       </td>
     `;
+
     tbody.appendChild(tr);
   });
 }
@@ -176,6 +184,7 @@ function setFechasHoy() {
 setFechasHoy();
 cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", cargarVentas);
+
 
 
 
