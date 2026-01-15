@@ -4,37 +4,43 @@ import {
 } from "./configFiscal.js";
 
 /**
- * ============================================
- * 1️⃣ ARMAR OBJETO CFDI BASE DESDE LA VENTA
- * ============================================
+ * =====================================================
+ * 1️⃣ ARMAR OBJETO CFDI BASE (FUENTE ÚNICA DE VERDAD)
+ * =====================================================
  */
 export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
+
   let subtotal = 0;
+
   let BaseIVA16 = 0;
-  let BaseIEPS = 0;
   let IVA16Importe = 0;
+
+  let BaseIEPS = 0;
   let IEPSImporte = 0;
   let IEPSTasa = 0;
 
   const Conceptos = venta.detalle.map(item => {
+
     const importe = Number(item.importe);
     subtotal += importe;
 
-    // IVA
+    // ===== IVA =====
     const tasaIVA = Number(item.iva) === 16 ? 0.16 : 0;
     const ivaImporte = Number(item.iva_calculado || 0);
+
     if (tasaIVA > 0) {
       BaseIVA16 += importe;
       IVA16Importe += ivaImporte;
     }
 
-    // IEPS
+    // ===== IEPS =====
     const tasaIEPS = Number(item.iepsTasa || 0) / 100;
     const iepsImporte = Number(item.ieps_calculado || 0);
+
     if (tasaIEPS > 0) {
       BaseIEPS += importe;
       IEPSImporte += iepsImporte;
-      IEPSTasa = tasaIEPS;
+      IEPSTasa = tasaIEPS; // solo UNA tasa
     }
 
     return {
@@ -45,8 +51,10 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
       ValorUnitario: Number(item.precio_unit),
       Importe: importe,
       Base: importe,
+
       TasaIVA: tasaIVA,
       IVAImporte: ivaImporte,
+
       IEPSTasa: tasaIEPS,
       IEPSImporte: iepsImporte
     };
@@ -59,27 +67,33 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
     FormaPago: "01",
     MetodoPago: "PUE",
     Moneda: "MXN",
+
     Subtotal: subtotal,
     Total: subtotal + IVA16Importe + IEPSImporte,
+
     BaseIVA16,
-    BaseIEPS,
     IVA16Importe,
+
+    BaseIEPS,
     IEPSImporte,
     IEPSTasa,
+
     Conceptos
   };
 }
 
-
 /**
- * ============================================
- * 2️⃣ CONVERTIR CFDI BASE → TXT SIFEI
- * ============================================
+ * =====================================================
+ * 2️⃣ CONVERTIR CFDI BASE → TXT SIFEI (VALIDADO)
+ * =====================================================
  */
 export function convertirCFDIBaseASifei(cfdi) {
+
   const out = [];
 
-  // ========= 01 CABECERA =========
+  // ===============================
+  // 01 | CABECERA
+  // ===============================
   out.push([
     "01","FA","4.0",
     cfdi.Serie,
@@ -118,21 +132,26 @@ export function convertirCFDIBaseASifei(cfdi) {
     "N"
   ].join("|"));
 
-  // ========= INFO GLOBAL =========
-  const f = new Date(cfdi.Fecha);
+  // ===============================
+  // INFO_GLOBAL (OBLIGATORIO)
+  // ===============================
+  const fecha = new Date(cfdi.Fecha);
   out.push([
     "01","CFDI40","01","INFO_GLOBAL",
     "01",
-    String(f.getMonth()+1).padStart(2,"0"),
-    f.getFullYear(),
+    String(fecha.getMonth()+1).padStart(2,"0"),
+    fecha.getFullYear(),
     "EMISOR","",
     "RECEPTOR",
     RECEPTOR_PUBLICO_GENERAL.cp,
     RECEPTOR_PUBLICO_GENERAL.regimenFiscal
   ].join("|"));
 
-  // ========= CONCEPTOS =========
+  // ===============================
+  // 03 | CONCEPTOS
+  // ===============================
   cfdi.Conceptos.forEach((c, idx) => {
+
     const tieneImpuestos = (c.TasaIVA > 0 || c.IEPSTasa > 0);
     const objetoImp = tieneImpuestos ? "02" : "01";
 
@@ -152,6 +171,7 @@ export function convertirCFDIBaseASifei(cfdi) {
       objetoImp
     ].join("|"));
 
+    // IVA
     if (c.TasaIVA > 0) {
       out.push([
         "03-IMP","TRASLADO",
@@ -161,6 +181,7 @@ export function convertirCFDIBaseASifei(cfdi) {
       ].join("|"));
     }
 
+    // IEPS
     if (c.IEPSTasa > 0) {
       out.push([
         "03-IMP","TRASLADO",
@@ -172,11 +193,12 @@ export function convertirCFDIBaseASifei(cfdi) {
     }
   });
 
-  // ========= IMPUESTOS GLOBALES =========
+  // ===============================
+  // 04 | IMPUESTOS GLOBALES
+  // ===============================
   if (cfdi.IVA16Importe > 0) {
     out.push([
-      "04","TRASLADO","002","Tasa",
-      "0.160000",
+      "04","TRASLADO","002","Tasa","0.160000",
       cfdi.IVA16Importe.toFixed(2),
       cfdi.BaseIVA16.toFixed(2)
     ].join("|"));
