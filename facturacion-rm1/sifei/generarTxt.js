@@ -2,10 +2,9 @@ import {
   FISCAL_EMISOR,
   RECEPTOR_PUBLICO_GENERAL
 } from "./configFiscal.js";
-/* ===============================
-   FUNCIÓN GUARDIA (ANTI-SAT)
-   =============================== */
 function validarCFDI(cfdi) {
+
+  // ===== IVA =====
   const ivaConceptos = cfdi.Conceptos
     .filter(c => c.TasaIVA > 0)
     .reduce((s, c) => s + c.IVAImporte, 0);
@@ -15,14 +14,29 @@ function validarCFDI(cfdi) {
       `Descuadre IVA: Global=${cfdi.IVA16Importe} vs Conceptos=${ivaConceptos}`
     );
   }
+
+  // ===== IEPS =====
+  const iepsConceptos = cfdi.Conceptos
+    .filter(c => c.IEPSTasa > 0)
+    .reduce((s, c) => s + c.IEPSImporte, 0);
+
+  if (cfdi.IEPSImporte.toFixed(2) !== iepsConceptos.toFixed(2)) {
+    throw new Error(
+      `Descuadre IEPS: Global=${cfdi.IEPSImporte} vs Conceptos=${iepsConceptos}`
+    );
+  }
 }
+
 /**
  * ============================================
  * 1️⃣ ARMAR CFDI BASE (FUENTE ÚNICA DE VERDAD)
  * ============================================
  */
 export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
+  // 🔒 BLINDAJE ANTI-SAT / ANTI-SIFEI
+  validarCFDI(cfdi);
 
+  const out = [];
   let subtotal = 0;
 
   let BaseIVA16 = 0;
@@ -236,4 +250,5 @@ export function convertirCFDIBaseASifei(cfdi) {
 
   return out.join("\n");
 }
+
 
