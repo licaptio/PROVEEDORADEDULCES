@@ -1,6 +1,5 @@
 // app.js
 import {
-  generarTXTSifeiCompleto,
   armarObjetoCFDIDesdeVenta,
   convertirCFDIBaseASifei
 } from "./sifei/generarTxt.js";
@@ -76,11 +75,6 @@ window.generarTXTSifei = async function (idVenta) {
     String(fechaLocal.getHours()).padStart(2, "0") + ":" +
     String(fechaLocal.getMinutes()).padStart(2, "0") + ":" +
     String(fechaLocal.getSeconds()).padStart(2, "0");
-
-  // ===============================
-  // 1️⃣ CFDI BASE (LEGIBLE)
-  // ===============================
-  const txtBase = generarTXTSifeiCompleto(venta, folio, fechaCFDI);
 
   // ===============================
   // 2️⃣ CFDI SIFEI PREMIUM
@@ -183,4 +177,5 @@ function setFechasHoy() {
 setFechasHoy();
 cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", cargarVentas);
+
 
