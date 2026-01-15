@@ -1,47 +1,54 @@
+// factura-global-r1.js
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
+  getFirestore,
   collection,
   query,
   where,
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { db } from "./firebase.js";
-
-// 🔒 CONFIG GLOBAL FIJA
-const CONFIG = {
-  rutaId: "R1",
-  serieFiscal: "FG1"
+// 🔥 TU CONFIG REAL AQUÍ
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH",
+  projectId: "TU_PROJECT_ID"
 };
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// 🔒 CONFIG GLOBAL
+const CONFIG = { rutaId: "R1" };
 
 const tbody = document.getElementById("ventas");
 const cnt = document.getElementById("cnt");
 const totalEl = document.getElementById("total");
-const btn = document.getElementById("btnGenerar");
+const btnGenerar = document.getElementById("btnGenerar");
 const chk = document.getElementById("confirmo");
 
+document.getElementById("btnCargar")
+  .addEventListener("click", cargarVentas);
+
 chk.addEventListener("change", () => {
-  btn.disabled = !chk.checked;
+  btnGenerar.disabled = !chk.checked;
 });
 
 function rangoDia(fecha) {
-  const [y,m,d] = fecha.split("-").map(Number);
+  const [y, m, d] = fecha.split("-").map(Number);
   return {
-    inicio: new Date(y, m-1, d, 0,0,0),
-    fin: new Date(y, m-1, d, 23,59,59)
+    inicio: new Date(y, m - 1, d, 0, 0, 0),
+    fin: new Date(y, m - 1, d, 23, 59, 59)
   };
 }
 
-window.cargarVentas = async function () {
-
+async function cargarVentas() {
   tbody.innerHTML = "";
   cnt.textContent = "0";
   totalEl.textContent = "0.00";
 
   const fecha = document.getElementById("fecha").value;
-  if (!fecha) {
-    alert("Selecciona fecha");
-    return;
-  }
+  if (!fecha) return alert("Selecciona fecha");
 
   const { inicio, fin } = rangoDia(fecha);
 
@@ -55,16 +62,14 @@ window.cargarVentas = async function () {
   const snap = await getDocs(q);
 
   let total = 0;
-  let contador = 0;
+  let c = 0;
 
-  snap.forEach(d => {
-    const v = d.data();
-
-    // 🔒 FILTRO FISCAL
+  snap.forEach(doc => {
+    const v = doc.data();
     if (v.estado === "FACTURADA") return;
-    if (v.facturada_global === true) return;
+    if (v.facturada_global) return;
 
-    contador++;
+    c++;
     total += v.resumen_financiero.total;
 
     const tr = document.createElement("tr");
@@ -76,15 +81,6 @@ window.cargarVentas = async function () {
     tbody.appendChild(tr);
   });
 
-  cnt.textContent = contador;
+  cnt.textContent = c;
   totalEl.textContent = total.toFixed(2);
-
-  if (contador === 0) {
-    btn.disabled = true;
-    chk.checked = false;
-  }
-};
-
-window.generarFacturaGlobal = async function () {
-  alert("👉 Aquí va el siguiente paso:\narmar CFDI global + TXT SIFEI + marcar facturada_global");
-};
+}
