@@ -2317,8 +2317,60 @@ window.location.href = "ticketsresumen.html";
 let bloqueoSalida = true;
 
 // 🚫 Bloquear F5 y Ctrl+R
-window.addEventListener("keydown", e => {
-  if (!haySesionActiva()) return;
+document.addEventListener("keydown", e => {
+  if (!document.body.classList.contains("sesion-activa")) return;
+  const CLAVE_BORRAR_PRODUCTO = "1234";
+
+document.addEventListener("keydown", e => {
+
+  if (!document.body.classList.contains("sesion-activa")) return;
+
+  /* F2 → Cobrar */
+  if (e.key === "F2") {
+    e.preventDefault();
+    document.getElementById("btnCobrar")?.click();
+  }
+
+  /* F4 → Buscador */
+  if (e.key === "F4") {
+    e.preventDefault();
+    document.getElementById("buscador")?.focus();
+  }
+
+  /* ESC → Cerrar cobro */
+  if (e.key === "Escape") {
+    const modal = document.getElementById("modalCobro");
+    if (modal && modal.style.display === "flex") {
+      document.getElementById("btnCancelarCobro")?.click();
+    }
+  }
+
+  /* SUPR → Borrar producto seleccionado */
+  if (e.key === "Delete") {
+    e.preventDefault();
+
+    if (indiceSeleccionado === null) {
+      toast("⚠️ Selecciona un producto", "#c0392b");
+      beep(200, .12);
+      return;
+    }
+
+    const clave = prompt("🔐 Ingresa la clave para borrar el producto:");
+
+    if (clave !== CLAVE_BORRAR_PRODUCTO) {
+      toast("❌ Clave incorrecta", "#c0392b");
+      beep(200, .15);
+      return;
+    }
+
+    carrito.splice(indiceSeleccionado, 1);
+    indiceSeleccionado = null;
+
+    renderDebounced();
+    beep(700, .12);
+  }
+
+});
   if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) {
     e.preventDefault();
     alert("Usa el botón 🚪 Salir para cerrar sesión correctamente.");
@@ -2360,59 +2412,7 @@ function marcarFilaSeleccionada(fila) {
 function haySesionActiva() {
   return document.body.classList.contains("sesion-activa");
 }
-  const CLAVE_BORRAR_PRODUCTO = "1234";
-  
-window.addEventListener("keydown", e => {
-  if (!document.body.classList.contains("sesion-activa")) return;
 
-  // 🔹 F2 → Cobrar
-  if (e.key === "F2") {
-    e.preventDefault();
-    document.getElementById("btnCobrar")?.click();
-    return;
-  }
-
-  // 🔹 F4 → Focus buscador
-  if (e.key === "F4") {
-    e.preventDefault();
-    document.getElementById("buscador")?.focus();
-    return;
-  }
-
-  // 🔹 ESC → Cerrar cobro
-  if (e.key === "Escape") {
-    const modal = document.getElementById("modalCobro");
-    if (modal && modal.style.display === "flex") {
-      document.getElementById("btnCancelarCobro")?.click();
-    }
-    return;
-  }
-
-  // 🔥 SUPR / DELETE → borrar producto seleccionado
-  if (e.key === "Delete" || e.key === "Del") {
-    e.preventDefault();
-
-    if (indiceSeleccionado === null) {
-      toast("⚠️ Selecciona un producto", "#c0392b");
-      beep(300, .12);
-      return;
-    }
-
-    const clave = prompt("🔐 Ingresa la clave para borrar el producto:");
-
-    if (clave !== CLAVE_BORRAR_PRODUCTO) {
-      toast("❌ Clave incorrecta", "#c0392b");
-      beep(200, .15);
-      return;
-    }
-
-    carrito.splice(indiceSeleccionado, 1);
-    indiceSeleccionado = null;
-
-    renderDebounced();
-    beep(700, .12);
-  }
-});
 </script>
 <!-- 🔢 MODAL CANTIDAD PERSONALIZADO -->
 <div id="modalCantidad" 
