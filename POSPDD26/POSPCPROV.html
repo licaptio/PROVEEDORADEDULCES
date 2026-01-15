@@ -288,6 +288,24 @@ font-size:14px!important;line-height:1.45;
     color: #e5e7eb;
   }
 }
+@media (min-width: 900px){
+
+  /* reutiliza exactamente el look de Totales */
+  .card-info-venta{
+    margin-bottom: 12px;
+  }
+
+  .card-info-venta .pos-info-venta{
+    font-size: 14px;
+    line-height: 1.6;
+    color: #222;
+  }
+
+  .card-info-venta strong{
+    font-weight: 600;
+  }
+
+}
 
 </style>
 </head>
@@ -356,10 +374,12 @@ font-size:14px!important;line-height:1.45;
   <!-- 🟦 COLUMNA DERECHA -->
   <aside class="pos-side">
     
-<div class="pos-info-venta">
-  <div><strong>Usuario:</strong> <span id="infoUsuario">—</span></div>
-  <div><strong>Fecha:</strong> <span id="infoFecha">—</span></div>
-  <div><strong>No. Venta:</strong> <span id="infoFolio">—</span></div>
+<div class="card-totales card-info-venta">
+  <div class="pos-info-venta">
+    <div><strong>Usuario:</strong> <span id="infoUsuario">—</span></div>
+    <div><strong>Fecha:</strong> <span id="infoFecha">—</span></div>
+    <div><strong>No. Venta:</strong> <span id="infoFolio">—</span></div>
+  </div>
 </div>
     
     <div class="pos-side-top">
