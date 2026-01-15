@@ -10,10 +10,8 @@ import {
  */
 export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
   let subtotal = 0;
-
   let BaseIVA16 = 0;
   let BaseIEPS = 0;
-
   let IVA16Importe = 0;
   let IEPSImporte = 0;
   let IEPSTasa = 0;
@@ -22,23 +20,21 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
     const importe = Number(item.importe);
     subtotal += importe;
 
-    // ===== IVA =====
+    // IVA
     const tasaIVA = Number(item.iva) === 16 ? 0.16 : 0;
     const ivaImporte = Number(item.iva_calculado || 0);
-
     if (tasaIVA > 0) {
       BaseIVA16 += importe;
       IVA16Importe += ivaImporte;
     }
 
-    // ===== IEPS =====
+    // IEPS
     const tasaIEPS = Number(item.iepsTasa || 0) / 100;
     const iepsImporte = Number(item.ieps_calculado || 0);
-
     if (tasaIEPS > 0) {
       BaseIEPS += importe;
       IEPSImporte += iepsImporte;
-      IEPSTasa = tasaIEPS; // solo una tasa global
+      IEPSTasa = tasaIEPS;
     }
 
     return {
@@ -49,12 +45,8 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
       ValorUnitario: Number(item.precio_unit),
       Importe: importe,
       Base: importe,
-
-      // IVA
       TasaIVA: tasaIVA,
       IVAImporte: ivaImporte,
-
-      // IEPS
       IEPSTasa: tasaIEPS,
       IEPSImporte: iepsImporte
     };
@@ -67,20 +59,17 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
     FormaPago: "01",
     MetodoPago: "PUE",
     Moneda: "MXN",
-
     Subtotal: subtotal,
     Total: subtotal + IVA16Importe + IEPSImporte,
-
     BaseIVA16,
     BaseIEPS,
-
     IVA16Importe,
     IEPSImporte,
     IEPSTasa,
-
     Conceptos
   };
 }
+
 
 /**
  * ============================================
@@ -237,4 +226,5 @@ if (cfdi.IEPSImporte > 0) {
 
   return out.join("\n");
 }
+
 
