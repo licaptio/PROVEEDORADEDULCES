@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Factura Global R1 – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
+  <style>
+    body {
+      font-family: Poppins, Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 30px;
+    }
+    h1 { margin-bottom: 10px }
+    .box {
+      background: #020617;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,.4);
+    }
+    .warning {
+      background: #7f1d1d;
+      border: 2px solid #dc2626;
+      padding: 15px;
+      border-radius: 12px;
+      font-weight: bold;
+    }
+    button {
+      background: #2563eb;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #334155;
+      cursor: not-allowed;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border-bottom: 1px solid #334155;
+      padding: 8px;
+      text-align: right;
+    }
+    th:first-child, td:first-child {
+      text-align: left;
+    }
+    .ok { color: #22c55e }
+    .muted { color: #94a3b8 }
+  </style>
+</head>
+<body>
+
+<h1>🧾 Factura Global Diaria – R1</h1>
+<p class="muted">PROVSOFT · Público en General · CFDI 4.0</p>
+
+<div class="box">
+  <label>📅 Fecha:</label>
+  <input type="date" id="fecha" />
+  <button onclick="cargarVentas()">Cargar ventas</button>
+</div>
+
+<div class="box">
+  <h3>📊 Resumen</h3>
+  <p>Tickets a incluir: <b id="cnt">0</b></p>
+  <p>Total: <b>$<span id="total">0.00</span></b></p>
+</div>
+
+<div class="box">
+  <h3>📋 Ventas incluidas</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Hora</th>
+        <th>Cliente</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody id="ventas"></tbody>
+  </table>
+</div>
+
+<div class="box warning">
+  ⚠️ ESTA ACCIÓN GENERA LA FACTURA GLOBAL DE R1<br>
+  ⚠️ SOLO TICKETS NO FACTURADOS<br>
+  ⚠️ NO SE PODRÁ FACTURAR DESPUÉS A CLIENTE
+  <br><br>
+  <input type="checkbox" id="confirmo">
+  <label for="confirmo">Entiendo y confirmo el cierre fiscal</label>
+</div>
+
+<div class="box">
+  <button id="btnGenerar" disabled onclick="generarFacturaGlobal()">
+    🔒 GENERAR FACTURA GLOBAL
+  </button>
+</div>
+
+<script type="module" src="./factura-global-r1.js"></script>
+</body>
+</html>
