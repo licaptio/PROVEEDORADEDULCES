@@ -1,219 +1,155 @@
-import { FISCAL_EMISOR, RECEPTOR_PUBLICO_GENERAL } from "./configFiscal.js";
-export function generarTXTSifeiCompleto(venta, folio, fechaCFDI) {
-  const sep = "|";
-  const lines = [];
+import {
+  FISCAL_EMISOR,
+  RECEPTOR_PUBLICO_GENERAL
+} from "./configFiscal.js";
 
-  lines.push("[CFDI]");
-  lines.push([
-    "Version=4.0",
-    "Serie=RM1",
-    `Folio=${folio}`,
-    `Fecha=${fechaCFDI}`,
-    "FormaPago=01",
-    "MetodoPago=PUE",
-    "Moneda=MXN",
-    "TipoDeComprobante=I",
-    "Exportacion=01",
-    "LugarExpedicion=64000"
-  ].join(sep));
-
-  lines.push("[EMISOR]");
-  lines.push([
-    "Rfc=PDD031204KL5",
-    "Nombre=PROVEEDORA DE DULCES Y DESECHABLES SA DE CV",
-    "RegimenFiscal=601"
-  ].join(sep));
-
-  lines.push("[RECEPTOR]");
-  lines.push([
-    "Rfc=XAXX010101000",
-    "Nombre=PUBLICO EN GENERAL",
-    "DomicilioFiscalReceptor=64000",
-    "RegimenFiscalReceptor=616",
-    "UsoCFDI=S01"
-  ].join(sep));
-
-  lines.push("[CONCEPTOS]");
-
-  let subtotal = 0;
-  let totalIVA = 0;
-  let totalIEPS = 0;
-
-  venta.detalle.forEach(item => {
-    const cantidad = Number(item.cantidad);
-    const valorUnitario = Number(item.precio_unit);
-    const importe = Number(item.importe);
-
-    subtotal += importe;
-
-    let impuestoIVA = "Impuesto=002,TipoFactor=Exento";
-    if (Number(item.iva) === 16) {
-      totalIVA += Number(item.iva_calculado);
-      impuestoIVA =
-        `Impuesto=002,TipoFactor=Tasa,TasaOCuota=0.160000,` +
-        `Base=${importe.toFixed(2)},Importe=${Number(item.iva_calculado).toFixed(2)}`;
-    }
-
-    let impuestoIEPS = "";
-    if (Number(item.iepsTasa) > 0) {
-      totalIEPS += Number(item.ieps_calculado);
-      impuestoIEPS =
-        `;Impuesto=003,TipoFactor=Tasa,TasaOCuota=${(item.iepsTasa / 100).toFixed(6)},` +
-        `Base=${importe.toFixed(2)},Importe=${Number(item.ieps_calculado).toFixed(2)}`;
-    }
-
-    lines.push([
-      `ClaveProdServ=${item.claveSat || "01010101"}`,
-      `Cantidad=${cantidad}`,
-      `ClaveUnidad=${item.unidadSat || "H87"}`,
-      `Descripcion=${item.nombre}`,
-      `ValorUnitario=${valorUnitario.toFixed(2)}`,
-      `Importe=${importe.toFixed(2)}`,
-      impuestoIVA + impuestoIEPS
-    ].join(sep));
-  });
-
-  lines.push("[IMPUESTOS]");
-  lines.push(`TotalImpuestosTrasladados=${(totalIVA + totalIEPS).toFixed(2)}`);
-  lines.push(`Total=${(subtotal + totalIVA + totalIEPS).toFixed(2)}`);
-
-  return lines.join("\n");
-}
-
+/**
+ * Construye un objeto CFDI base desde la venta
+ * Aquí se calculan TODAS las bases e impuestos
+ */
 export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
   let subtotal = 0;
-  let impuestos = 0;
 
-  const conceptos = venta.detalle.map(item => {
-    subtotal += Number(item.importe);
-    impuestos += Number(item.iva_calculado || 0) + Number(item.ieps_calculado || 0);
+  let BaseIVA0 = 0;
+  let BaseIVA16 = 0;
+  let BaseIEPS = 0;
 
-return {
-  Cantidad: Number(item.cantidad),
-  ClaveUnidad: item.unidadSat || "H87",
-  ClaveProdServ: item.claveSat || "01010101",
-  Descripcion: item.nombre,
-  ValorUnitario: Number(item.precio_unit),
-  Importe: Number(item.importe),
+  let IVA16Importe = 0;
+  let IEPSImporte = 0;
+  let IEPSTasa = 0;
 
-  Base: Number(item.importe),
+  const Conceptos = venta.detalle.map((item) => {
+    const importe = Number(item.importe);
+    subtotal += importe;
 
-  // IVA
-  Tasa: Number(item.iva) === 16 ? 0.16 : 0,
-  Impuesto: Number(item.iva_calculado || 0),
+    // IVA
+    if (Number(item.iva) === 16) {
+      BaseIVA16 += importe;
+      IVA16Importe += Number(item.iva_calculado || 0);
+    } else if (Number(item.iepsTasa) === 0) {
+      BaseIVA0 += importe;
+    }
 
-  // IEPS
-  IEPSTasa: Number(item.iepsTasa || 0) / 100,
-  IEPSImporte: Number(item.ieps_calculado || 0)
-};
+    // IEPS
+    if (Number(item.iepsTasa) > 0) {
+      BaseIEPS += importe;
+      IEPSImporte += Number(item.ieps_calculado || 0);
+      IEPSTasa = Number(item.iepsTasa) / 100;
+    }
 
+    return {
+      Cantidad: Number(item.cantidad),
+      ClaveUnidad: item.unidadSat || "H87",
+      ClaveProdServ: item.claveSat || "01010101",
+      Descripcion: item.nombre,
+      ValorUnitario: Number(item.precio_unit),
+      Importe: importe,
+
+      Base: importe,
+
+      // IVA
+      TasaIVA: Number(item.iva) === 16 ? 0.16 : 0,
+      IVAImporte: Number(item.iva_calculado || 0),
+
+      // IEPS
+      IEPSTasa: Number(item.iepsTasa || 0) / 100,
+      IEPSImporte: Number(item.ieps_calculado || 0)
+    };
   });
 
   return {
-    Version: "4.0",
     Serie: "RM1",
     Folio: folio,
+    Fecha: fechaCFDI,
     FormaPago: "01",
     MetodoPago: "PUE",
     Moneda: "MXN",
-    TipoDeComprobante: "Ingreso",
-    LugarExpedicion: "64000",
-    Fecha: fechaCFDI,
 
-    Emisor: {
-      Rfc: "PDD031204KL5",
-      Nombre: "PROVEEDORA DE DULCES Y DESECHABLES SA DE CV",
-      RegimenFiscal: "601"
-    },
-
-    Receptor: {
-      Rfc: "XAXX010101000",
-      Nombre: "PUBLICO EN GENERAL",
-      UsoCFDI: "S01"
-    },
-
-    Conceptos: conceptos,
     Subtotal: subtotal,
-    Impuestos: impuestos,
-    Total: subtotal + impuestos,
-    TasaGlobal: impuestos > 0 ? 0.16 : 0,
-    BaseImpuestos: subtotal
+    Total: subtotal + IVA16Importe + IEPSImporte,
+
+    BaseIVA0,
+    BaseIVA16,
+    BaseIEPS,
+
+    IVA16Importe,
+    IEPSImporte,
+    IEPSTasa,
+
+    Conceptos
   };
 }
+
+/**
+ * Convierte el CFDI base al TXT SIFEI FINAL
+ */
 export function convertirCFDIBaseASifei(cfdi) {
   const out = [];
 
-out.push([
-  "01",
-  "FA",
-  "4.0",
-  cfdi.Serie,
-  cfdi.Folio,
-  cfdi.FormaPago,
-  FISCAL_EMISOR.numeroCertificado,
-  "CONTADO",
-  cfdi.Subtotal.toFixed(2),
-  "0.00",
-  cfdi.Moneda,
-  "1",
-  cfdi.Total.toFixed(2),
-  "Ingreso",
-  cfdi.MetodoPago,
-  FISCAL_EMISOR.cpExpedicion,
-  "",
-  "EMISOR",
-  FISCAL_EMISOR.rfc,
-  FISCAL_EMISOR.razonSocial,
-  FISCAL_EMISOR.regimenFiscal,
-  "RECEPTOR",
-  cfdi.Receptor.Rfc,
-  cfdi.Receptor.Nombre,
-  "",
-  "",
-  cfdi.Receptor.UsoCFDI,
-  cfdi.Receptor.Email || "",
-  "",
-  cfdi.Impuestos.toFixed(2),
-  "INFO_ADIC",
-  "",
-  FISCAL_EMISOR.direccionEmisor,
-  FISCAL_EMISOR.direccionEmisor,
-  cfdi.Receptor.Direccion || "",
-  "",
-  "N"
-].join("|"));
-out.push([
-  "01",
-  "CFDI40",
-  "01",
-  "INFO_GLOBAL",
-  "",
-  "",
-  "",
-  "EMISOR",
-  "",
-  "RECEPTOR",
-  RECEPTOR_PUBLICO_GENERAL.cp,
-  RECEPTOR_PUBLICO_GENERAL.regimenFiscal
-].join("|"));
-
-
+  // ===============================
+  // REGISTRO 01 — CABECERA COMPLETA
+  // ===============================
   out.push([
+    "01",
+    "FA",
+    "4.0",
+    cfdi.Serie,
+    cfdi.Folio,
+    cfdi.FormaPago,
+    FISCAL_EMISOR.numeroCertificado,
+    "CONTADO",
+    cfdi.Subtotal.toFixed(2),
+    "0.00",
+    cfdi.Moneda,
+    "1",
+    cfdi.Total.toFixed(2),
+    "Ingreso",
+    cfdi.MetodoPago,
+    FISCAL_EMISOR.cpExpedicion,
+    "",
     "EMISOR",
-    cfdi.Emisor.Rfc,
-    cfdi.Emisor.Nombre,
-    cfdi.Emisor.RegimenFiscal
-  ].join("|"));
-
-  out.push([
+    FISCAL_EMISOR.rfc,
+    FISCAL_EMISOR.razonSocial,
+    FISCAL_EMISOR.regimenFiscal,
     "RECEPTOR",
-    cfdi.Receptor.Rfc,
-    cfdi.Receptor.Nombre,
+    RECEPTOR_PUBLICO_GENERAL.rfc,
+    RECEPTOR_PUBLICO_GENERAL.nombre,
     "",
     "",
-    cfdi.Receptor.UsoCFDI
+    RECEPTOR_PUBLICO_GENERAL.usoCFDI,
+    "",
+    "",
+    (cfdi.IVA16Importe + cfdi.IEPSImporte).toFixed(2),
+    "INFO_ADIC",
+    "",
+    FISCAL_EMISOR.direccion,
+    FISCAL_EMISOR.direccion,
+    "",
+    "",
+    "N"
   ].join("|"));
 
+  // ===============================
+  // REGISTRO 01 — CFDI40 INFO_GLOBAL
+  // ===============================
+  out.push([
+    "01",
+    "CFDI40",
+    "01",
+    "INFO_GLOBAL",
+    "",
+    "",
+    "",
+    "EMISOR",
+    "",
+    "RECEPTOR",
+    RECEPTOR_PUBLICO_GENERAL.cp,
+    RECEPTOR_PUBLICO_GENERAL.regimenFiscal
+  ].join("|"));
+
+  // ===============================
+  // REGISTROS 03 — CONCEPTOS
+  // ===============================
   cfdi.Conceptos.forEach((c, idx) => {
     out.push([
       "03",
@@ -231,53 +167,75 @@ out.push([
       "02"
     ].join("|"));
 
-// ===============================
-// IMPUESTOS POR CONCEPTO (CORREGIDO)
-// ===============================
+    // IVA por concepto
+    if (c.TasaIVA > 0) {
+      out.push([
+        "03-IMP",
+        "TRASLADO",
+        c.Base.toFixed(6),
+        "002",
+        "Tasa",
+        c.TasaIVA.toFixed(6),
+        c.IVAImporte.toFixed(6)
+      ].join("|"));
+    }
 
-// IVA
-if (c.Tasa > 0) {
-  out.push([
-    "03-IMP",
-    "TRASLADO",
-    c.Base.toFixed(6),
-    "002",                  // IVA
-    "Tasa",
-    c.Tasa.toFixed(6),      // 0.160000
-    c.Impuesto.toFixed(6)
-  ].join("|"));
-}
-
-// IEPS
-if (c.IEPSTasa && c.IEPSTasa > 0) {
-  out.push([
-    "03-IMP",
-    "TRASLADO",
-    c.Base.toFixed(6),
-    "003",                  // IEPS
-    "Tasa",
-    c.IEPSTasa.toFixed(6),  // tasa real (ej. 0.137857)
-    c.IEPSImporte.toFixed(6)
-  ].join("|"));
-}
-
+    // IEPS por concepto
+    if (c.IEPSTasa > 0) {
+      out.push([
+        "03-IMP",
+        "TRASLADO",
+        c.Base.toFixed(6),
+        "003",
+        "Tasa",
+        c.IEPSTasa.toFixed(6),
+        c.IEPSImporte.toFixed(6)
+      ].join("|"));
+    }
   });
 
-// IEPS GLOBAL (si aplica)
-if (cfdi.IEPSTotal && cfdi.IEPSTotal > 0) {
-  out.push([
-    "04",
-    "TRASLADO",
-    "003",
-    "Tasa",
-    cfdi.IEPSTasaGlobal.toFixed(6),
-    cfdi.IEPSTotal.toFixed(2),
-    cfdi.IEPSBaseGlobal.toFixed(2)
-  ].join("|"));
-}
+  // ===============================
+  // REGISTROS 04 — IMPUESTOS GLOBALES
+  // ===============================
+
+  // IVA 0%
+  if (cfdi.BaseIVA0 > 0) {
+    out.push([
+      "04",
+      "TRASLADO",
+      "002",
+      "Tasa",
+      "0.000000",
+      "0.00",
+      cfdi.BaseIVA0.toFixed(2)
+    ].join("|"));
+  }
+
+  // IVA 16%
+  if (cfdi.IVA16Importe > 0) {
+    out.push([
+      "04",
+      "TRASLADO",
+      "002",
+      "Tasa",
+      "0.160000",
+      cfdi.IVA16Importe.toFixed(2),
+      cfdi.BaseIVA16.toFixed(2)
+    ].join("|"));
+  }
+
+  // IEPS
+  if (cfdi.IEPSImporte > 0) {
+    out.push([
+      "04",
+      "TRASLADO",
+      "003",
+      "Tasa",
+      cfdi.IEPSTasa.toFixed(6),
+      cfdi.IEPSImporte.toFixed(2),
+      cfdi.BaseIEPS.toFixed(2)
+    ].join("|"));
+  }
 
   return out.join("\n");
 }
-
-
-
