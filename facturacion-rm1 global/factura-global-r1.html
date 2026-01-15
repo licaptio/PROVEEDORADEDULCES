@@ -16,7 +16,7 @@
       color: #e5e7eb;
       padding: 30px;
     }
-    h1 { margin-bottom: 10px }
+    h1 { margin-bottom: 4px }
     .box {
       background: #020617;
       border-radius: 14px;
@@ -27,9 +27,13 @@
     .warning {
       background: #7f1d1d;
       border: 2px solid #dc2626;
-      padding: 15px;
+      padding: 16px;
       border-radius: 12px;
-      font-weight: bold;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+    .warning strong {
+      color: #fecaca;
     }
     button {
       background: #2563eb;
@@ -56,29 +60,32 @@
     th:first-child, td:first-child {
       text-align: left;
     }
-    .ok { color: #22c55e }
     .muted { color: #94a3b8 }
   </style>
 </head>
+
 <body>
 
 <h1>🧾 Factura Global Diaria – R1</h1>
 <p class="muted">PROVSOFT · Público en General · CFDI 4.0</p>
 
 <div class="box">
-  <label>📅 Fecha:</label>
+  <label>📅 Fecha a cerrar:</label><br>
   <input type="date" id="fecha" />
-  <button onclick="cargarVentas()">Cargar ventas</button>
+  <button onclick="cargarVentas()">Cargar ventas del día</button>
 </div>
 
 <div class="box">
-  <h3>📊 Resumen</h3>
-  <p>Tickets a incluir: <b id="cnt">0</b></p>
-  <p>Total: <b>$<span id="total">0.00</span></b></p>
+  <h3>📊 Resumen fiscal</h3>
+  <p>Tickets que se incluirán en la factura global: <b id="cnt">0</b></p>
+  <p>Total global estimado: <b>$<span id="total">0.00</span></b></p>
+  <p class="muted">
+    * Los tickets ya facturados individualmente no se incluyen.
+  </p>
 </div>
 
 <div class="box">
-  <h3>📋 Ventas incluidas</h3>
+  <h3>📋 Ventas que serán cerradas</h3>
   <table>
     <thead>
       <tr>
@@ -92,17 +99,23 @@
 </div>
 
 <div class="box warning">
-  ⚠️ ESTA ACCIÓN GENERA LA FACTURA GLOBAL DE R1<br>
-  ⚠️ SOLO TICKETS NO FACTURADOS<br>
-  ⚠️ NO SE PODRÁ FACTURAR DESPUÉS A CLIENTE
-  <br><br>
+  <strong>⚠️ ADVERTENCIA FISCAL</strong><br><br>
+
+  • Esta acción generará la <strong>FACTURA GLOBAL DEL DÍA PARA LA RUTA R1</strong>.<br>
+  • Solo se incluirán <strong>tickets NO facturados previamente</strong>.<br>
+  • Los tickets incluidos quedarán <strong>cerrados fiscalmente</strong>.<br>
+  • <strong>No podrán facturarse después a clientes individuales</strong>.<br>
+  • Los tickets ya facturados individualmente <strong>NO se verán afectados</strong>.<br><br>
+
   <input type="checkbox" id="confirmo">
-  <label for="confirmo">Entiendo y confirmo el cierre fiscal</label>
+  <label for="confirmo">
+    Entiendo que este proceso es un <strong>cierre fiscal definitivo</strong>
+  </label>
 </div>
 
 <div class="box">
   <button id="btnGenerar" disabled onclick="generarFacturaGlobal()">
-    🔒 GENERAR FACTURA GLOBAL
+    🔒 GENERAR FACTURA GLOBAL DEFINITIVA
   </button>
 </div>
 
