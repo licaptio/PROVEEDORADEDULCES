@@ -1198,11 +1198,16 @@ function render() {
 carrito.forEach((it, index) => {
   const tr = document.createElement("tr");
 
+  // 🔵 CLICK = SELECCIONAR PRODUCTO
   tr.addEventListener("click", () => {
     indiceSeleccionado = index;
-    marcarFilaSeleccionada(tr);
+    renderDebounced(); // 🔥 vuelve a pintar para marcar selección
   });
-
+  // 🔵 CLICK = SELECCIONAR PRODUCTO
+  tr.addEventListener("click", () => {
+    indiceSeleccionado = index;
+    renderDebounced(); // 🔥 vuelve a pintar para marcar selección
+  });
 tr.innerHTML = `
   <td>
   <div class="nombre-prod" title="${it.nombre}">
