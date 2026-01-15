@@ -70,6 +70,9 @@ padding:10px;cursor:pointer;display:flex;justify-content:space-between;gap:6px;
 .table-wrap{max-height:230px;overflow:auto}
 table{width:100%;border-collapse:collapse}
 thead th{
+    font-size:14px;
+  letter-spacing:.4px;
+}
 background:var(--azul);color:#fff;padding:8px;font-size:12px;position:sticky;
 top:0;z-index:80;text-align:center;
 }
@@ -334,26 +337,32 @@ font-size:14px!important;line-height:1.45;
   font-size:14px;
 }
 tr.seleccionado{
-  background: rgba(12,108,189,.18) !important;
+  background: rgba(12,108,189,.22) !important;
   outline: 2px solid #0c6cbd;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.6);
 }
 #tbody tr{
   cursor: pointer;
   transition: background .15s ease;
+  user-select: none;           /* 🔥 CLAVE */
+  -webkit-user-select: none;
+  -moz-user-select: none;
 }
-
 #tbody tr:hover{
   background: rgba(12,108,189,.08);
 }
 
 /* 🧾 Nombre de producto – usar todo el espacio disponible */
 .nombre-prod{
-  display: block;
-  width: 100%;
-  white-space: normal;       /* 🔥 permite varias palabras */
-  overflow: visible;         /* 🔥 no recorta */
-  font-weight: 500;
-  line-height: 1.25;
+  display:flex;
+  align-items:center;        /* 🔥 centra vertical */
+  min-height:34px;
+  font-size:16px;            /* 🔥 letra más grande */
+  font-weight:600;
+  letter-spacing:.3px;       /* 🔥 más “aire” */
+  line-height:1.3;
+  white-space:normal;
+  pointer-events: none;   /* 🔥 el click va a la fila */
 }
 
 /* 📱 Ajuste móvil */
@@ -1200,18 +1209,10 @@ tr.innerHTML = `
     ${it.nombre}
   </div>
 </td>
-  <td style="text-align:center">
-<input type="number"
-  min="0"
-  step="0.01"
-  value="${it.cantidad}"
-  style="width:70px;text-align:center;padding:4px;border-radius:6px;
-  border:1px solid #ccc;font-size:14px;"
-  onclick="event.stopPropagation()"
-  onchange="actualizarCantidad('${it.id}', this.value)"
-  oninput="actualizarCantidad('${it.id}', this.value)">
-  </td>
-  <td style="text-align:right">
+<td style="text-align:center;font-weight:600;font-size:16px;">
+  ${it.cantidad}
+</td>
+  <td style="text-align:center;font-weight:700;font-size:17px;">
     ${money(
       it.cantidad * (
         getDescuentoActivo() > 0 && it.permite_descuento
@@ -2361,7 +2362,7 @@ function haySesionActiva() {
 }
   const CLAVE_BORRAR_PRODUCTO = "1234";
   
-document.addEventListener("keydown", e => {
+window.addEventListener("keydown", e => {
   if (!document.body.classList.contains("sesion-activa")) return;
 
   // 🔹 F2 → Cobrar
