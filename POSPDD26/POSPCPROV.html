@@ -73,7 +73,10 @@ thead th{
 background:var(--azul);color:#fff;padding:8px;font-size:12px;position:sticky;
 top:0;z-index:80;text-align:center;
 }
-thead th:nth-child(1){width:55%;text-align:left}
+thead th:nth-child(1){
+  width:65%;      /* 🔥 MÁS ESPACIO REAL */
+  text-align:left;
+}
 thead th:nth-child(2){width:15%}
 thead th:nth-child(3){width:20%}
 thead th:nth-child(4){width:10%}
@@ -341,19 +344,29 @@ tr.seleccionado{
   background: rgba(12,108,189,.18) !important;
   outline: 2px solid #0c6cbd;
 }
-/* 🧾 Nombre de producto en carrito (ajuste real) */
+
+/* 🧾 Nombre de producto – usar todo el espacio disponible */
 .nombre-prod{
-  max-width: 140px;        /* PC */
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
   display: block;
+  width: 100%;
+  white-space: normal;       /* 🔥 permite varias palabras */
+  overflow: visible;         /* 🔥 no recorta */
+  font-weight: 500;
+  line-height: 1.25;
 }
 
 /* 📱 Ajuste móvil */
 @media (max-width: 600px){
   .nombre-prod{
     max-width: 90px;
+    font-size: 13px;
+  }
+}
+@media (max-width: 600px){
+  .nombre-prod{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: 13px;
   }
 }
