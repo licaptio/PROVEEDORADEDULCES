@@ -27,8 +27,7 @@ function pintarVentas(ventas) {
   tbody.innerHTML = "";
 
   ventas.forEach(v => {
-    const estado = v.estado_facturacion === "FACTURADA";
-
+    const estado = v.estado === "FACTURADA";
     const iconoEstado = estado
       ? "🟢 FACTURADA"
       : "🔴 PENDIENTE";
@@ -184,6 +183,7 @@ function setFechasHoy() {
 setFechasHoy();
 cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", cargarVentas);
+
 
 
 
