@@ -21,6 +21,13 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
   const Conceptos = venta.detalle.map((item) => {
     const importe = Number(item.importe);
     subtotal += importe;
+    // ===============================
+// IEPS FISCAL (NO comercial)
+// ===============================
+const tasaIEPS = Number(item.iepsTasa || 0) / 100;
+const iepsFiscal = tasaIEPS > 0
+  ? +(importe * tasaIEPS).toFixed(2)
+  : 0;
 
     // IVA
     if (Number(item.iva) === 16) {
@@ -31,11 +38,13 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
     }
 
     // IEPS
-    if (Number(item.iepsTasa) > 0) {
-      BaseIEPS += importe;
-      IEPSImporte += Number(item.ieps_calculado || 0);
-      IEPSTasa = Number(item.iepsTasa) / 100;
-    }
+// IEPS
+if (tasaIEPS > 0) {
+  BaseIEPS += importe;
+  IEPSImporte += iepsFiscal;
+  IEPSTasa = tasaIEPS; // solo una tasa global
+}
+
 
     return {
       Cantidad: Number(item.cantidad),
@@ -52,8 +61,8 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
       IVAImporte: Number(item.iva_calculado || 0),
 
       // IEPS
-      IEPSTasa: Number(item.iepsTasa || 0) / 100,
-      IEPSImporte: Number(item.ieps_calculado || 0)
+IEPSTasa: tasaIEPS,
+IEPSImporte: iepsFiscal
     };
   });
 
@@ -239,3 +248,4 @@ export function convertirCFDIBaseASifei(cfdi) {
 
   return out.join("\n");
 }
+
