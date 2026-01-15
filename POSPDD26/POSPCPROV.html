@@ -212,40 +212,28 @@ font-size:14px!important;line-height:1.45;
     pointer-events:none;
   }
 
-  /* 🟦 COLUMNA DERECHA */
+/* 🟦 COLUMNA DERECHA */
 .pos-side{
   display:flex;
   flex-direction:column;
+  justify-content:flex-end; /* 🔥 TODO ABAJO */
   height:100%;
 }
 
-/* 🔽 Empuja TODO hacia abajo */
-.pos-side-top{
-  margin-top:auto;     /* 🔥 los manda hacia abajo */
-  margin-bottom:6px;   /* 🔥 casi pegados a totales */
-}
-
-/* Botón cobrar bien abajo */
+/* ❌ SIN margins automáticos */
+.pos-side-top,
+.pos-side-middle,
 .pos-side-bottom{
-  margin-top:4px;   /* 🔥 antes 18px */
+  margin:0;
 }
 
-/* Ajuste visual opcional */
-.pos-side-middle{
-  margin-top:auto;     /* 🔥 ESTO ES LA CLAVE REAL */
-  margin-bottom:6px;   /* pequeño colchón */
+/* Botón cobrar */
+.pos-side-bottom .btn{
+  font-size:22px;
+  padding:18px;
+  border-radius:18px;
 }
 
-.pos-side-bottom{
-  margin-top:0;        /* o 4px si quieres aire */
-}
-
-  .pos-side-bottom .btn{
-    font-size:22px;
-    padding:18px;
-    border-radius:18px;
-  }
-}
   #loginScreen{
   background: linear-gradient(135deg,#0c3c60,#dfe7ef);
 }
