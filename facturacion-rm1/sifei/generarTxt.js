@@ -186,15 +186,36 @@ export function convertirCFDIBaseASifei(cfdi) {
       "02"
     ].join("|"));
 
-    out.push([
-      "03-IMP",
-      "TRASLADO",
-      c.Base.toFixed(6),
-      "002",
-      "Tasa",
-      c.Tasa.toFixed(6),
-      c.Impuesto.toFixed(6)
-    ].join("|"));
+// ===============================
+// IMPUESTOS POR CONCEPTO (CORREGIDO)
+// ===============================
+
+// IVA
+if (c.Tasa > 0) {
+  out.push([
+    "03-IMP",
+    "TRASLADO",
+    c.Base.toFixed(6),
+    "002",                  // IVA
+    "Tasa",
+    c.Tasa.toFixed(6),      // 0.160000
+    c.Impuesto.toFixed(6)
+  ].join("|"));
+}
+
+// IEPS
+if (c.IEPSTasa && c.IEPSTasa > 0) {
+  out.push([
+    "03-IMP",
+    "TRASLADO",
+    c.Base.toFixed(6),
+    "003",                  // IEPS
+    "Tasa",
+    c.IEPSTasa.toFixed(6),  // tasa real (ej. 0.137857)
+    c.IEPSImporte.toFixed(6)
+  ].join("|"));
+}
+
   });
 
   out.push([
@@ -209,3 +230,4 @@ export function convertirCFDIBaseASifei(cfdi) {
 
   return out.join("\n");
 }
+
