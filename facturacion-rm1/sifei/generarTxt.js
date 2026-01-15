@@ -87,17 +87,25 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
     subtotal += Number(item.importe);
     impuestos += Number(item.iva_calculado || 0) + Number(item.ieps_calculado || 0);
 
-    return {
-      Cantidad: Number(item.cantidad),
-      ClaveUnidad: item.unidadSat || "H87",
-      ClaveProdServ: item.claveSat || "01010101",
-      Descripcion: item.nombre,
-      ValorUnitario: Number(item.precio_unit),
-      Importe: Number(item.importe),
-      Base: Number(item.importe),
-      Tasa: Number(item.iva) === 16 ? 0.16 : 0,
-      Impuesto: Number(item.iva_calculado || 0)
-    };
+return {
+  Cantidad: Number(item.cantidad),
+  ClaveUnidad: item.unidadSat || "H87",
+  ClaveProdServ: item.claveSat || "01010101",
+  Descripcion: item.nombre,
+  ValorUnitario: Number(item.precio_unit),
+  Importe: Number(item.importe),
+
+  Base: Number(item.importe),
+
+  // IVA
+  Tasa: Number(item.iva) === 16 ? 0.16 : 0,
+  Impuesto: Number(item.iva_calculado || 0),
+
+  // IEPS
+  IEPSTasa: Number(item.iepsTasa || 0) / 100,
+  IEPSImporte: Number(item.ieps_calculado || 0)
+};
+
   });
 
   return {
@@ -218,16 +226,20 @@ if (c.IEPSTasa && c.IEPSTasa > 0) {
 
   });
 
+// IEPS GLOBAL (si aplica)
+if (cfdi.IEPSTotal && cfdi.IEPSTotal > 0) {
   out.push([
     "04",
     "TRASLADO",
-    "002",
+    "003",
     "Tasa",
-    cfdi.TasaGlobal.toFixed(6),
-    cfdi.Impuestos.toFixed(2),
-    cfdi.BaseImpuestos.toFixed(2)
+    cfdi.IEPSTasaGlobal.toFixed(6),
+    cfdi.IEPSTotal.toFixed(2),
+    cfdi.IEPSBaseGlobal.toFixed(2)
   ].join("|"));
+}
 
   return out.join("\n");
 }
+
 
