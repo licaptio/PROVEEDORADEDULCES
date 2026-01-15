@@ -1,156 +1,50 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PROVSOFT – Menú Principal</title>
-  <style>
-    :root {
-      --azul: #00416A;
-      --gris: #f7f7f7;
-      --blanco: #fff;
-      --sombra: rgba(0,0,0,0.15);
-    }
+<meta charset="UTF-8">
+<title>PROVSOFT | Index rápido</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background: var(--gris);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    header {
-      background: var(--azul);
-      color: white;
-      text-align: center;
-      padding: 20px 10px;
-      box-shadow: 0 3px 10px var(--sombra);
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 22px;
-      letter-spacing: 1px;
-    }
-
-    .contenedor {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-      padding: 20px;
-    }
-
-    .tarjeta {
-      background: var(--blanco);
-      border-radius: 18px;
-      box-shadow: 0 4px 14px var(--sombra);
-      padding: 30px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: transform 0.15s ease-in-out;
-    }
-
-    .tarjeta:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 6px 20px var(--sombra);
-    }
-
-    .tarjeta h2 {
-      color: var(--azul);
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-
-    .tarjeta p {
-      font-size: 14px;
-      color: #333;
-      margin: 0;
-    }
-
-    footer {
-      text-align: center;
-      font-size: 13px;
-      color: #666;
-      padding: 10px;
-      background: #e9e9e9;
-    }
-
-    a {
-      text-decoration: none;
-    }
-  </style>
+<style>
+body{
+  font-family:Arial, sans-serif;
+  background:#f4f4f4;
+  margin:0;
+  padding:20px;
+}
+h1{
+  margin-top:0;
+}
+a{
+  display:block;
+  padding:8px 10px;
+  margin-bottom:6px;
+  background:#fff;
+  border-left:4px solid #00416A;
+  color:#000;
+  text-decoration:none;
+  font-size:14px;
+}
+a:hover{
+  background:#e8f0f8;
+}
+</style>
 </head>
+
 <body>
 
-  <!-- ===== ENCABEZADO PRINCIPAL ===== -->
-  <header>
-    <h1>🏭 PROVSOFT – Panel Principal</h1>
-    <p>Menú de módulos empresariales</p>
-  </header>
+<h1>PROVSOFT – Índice</h1>
 
-  <!-- ===== MENÚ DE MÓDULOS ===== -->
-  <div class="contenedor">
+<!-- AGREGA SOLO LINKS -->
+<a href="ABASALIDAPDD.html">Salidas Abarrote PDD</a>
+<a href="RUTASPOS/index.html">Traspaso rutas venta</a>
+<a href="UBICAINTERNA/admin_destinos.html">Ubicación interna – destinos</a>
+<a href="UBICAINTERNA/admin_trabajadores.html">Ubicación interna – trabajadores</a>
+<a href="GIBRAN/index.html">Menú PROVSOFT</a>
+<a href="POSPDD26/POSPDD2026V1.html">POS móvil 2026</a>
+<a href="POSPDD26/POSPCPROV.html">POS PC proveedora</a>
+<a href="POSPDD26/productos_por_departamento_control.html">Clasificación productos</a>
+<a href="facturacion-rm1/index.html">Facturación ruta 1</a>
 
-    <a href="ABASALIDAPDD.html">
-      <div class="tarjeta">
-        <h2>🚚 Salidas Abarrote PDD</h2>
-        <p>Control de salidas con firmas y guardado en Firestore</p>
-      </div>
-    </a>
-<a href="RUTASPOS/index.html">
-  <div class="tarjeta">
-    <h2> TRASPASO RUTAS VENTA </h2>
-    <p>CARGA DE MERCANCIA RUTAS DE VENTA </p>
-  </div>
-<a href="UBICAINTERNA/admin_destinos.html">
-  <div class="tarjeta">
-    <h2>📍 Ubicación Interna</h2>
-    <p>Alta y control de destinos registrados</p>
-  </div>
-</a>
-
-<a href="UBICAINTERNA/admin_trabajadores.html">
-  <div class="tarjeta">
-    <h2>👷 Trabajadores</h2>
-    <p>Registro general y ubicación de personal</p>
-  </div>
-</a>
-<a href="GIBRAN/index.html">
-  <div class="tarjeta">
-    <h2>👷 MENU PROVSOFT </h2>
-    <p>Menu Provsoft Administrador Ventas </p>
-  </div>
-</a>
-<a href="POSPDD26/POSPDD2026V1.html">
-  <div class="tarjeta">
-    <h2>👷 POS MOVIL 2026 </h2>
-    <p> POS MOVIL 2026 </p>
-  </div>
-  </a>
-<a href="POSPDD26/POSPCPROV.html">
-  <div class="tarjeta">
-    <h2>👷 POS PC PROVEEDORA </h2>
-    <p> POS PC PROV</p>
-  </div>
-</a>
-<a href="POSPDD26/productos_por_departamento_control.html">
-  <div class="tarjeta">
-    <h2>👷 CLASIFICACION DE DEPTOS Y PRODUCTOS </h2>
-    <p> PRODUCTOS Y ARTICULOS </p>
-  </div>
-  <a href="facturacion-rm1/index.html">
-  <div class="tarjeta">
-    <h2> FACTURACION RUTA 1</h2>
-    <p>  FACTURACION RUTA 1 </p>
-  </div>
-</a>
-
-
-  </div>
-
-  <footer>© 2025 PROVSOFT – Sistema Empresarial Integrado</footer>
 </body>
 </html>
