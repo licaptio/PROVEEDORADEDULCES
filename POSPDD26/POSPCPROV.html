@@ -249,6 +249,31 @@ font-size:14px!important;line-height:1.45;
   width:260px;
   border-radius:16px;
 }
+  @media (min-width: 900px){
+
+  /* 🟩 CUADRO VERDE COMPLETAMENTE INVISIBLE */
+  .pos-side{
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Opcional: si hubiera pseudo fondos */
+  .pos-side::before,
+  .pos-side::after{
+    display: none !important;
+  }
+
+}
+@media (min-width: 900px){
+
+  /* 🔴 CONTROLES DEL MISMO ANCHO QUE EL CARRITO */
+  .controls-limitados{
+    max-width: calc((100% - 20px) * 2.4 / (2.4 + 1));
+    /* mismo ancho que la columna izquierda */
+  }
+
 
 </style>
 </head>
@@ -289,7 +314,7 @@ font-size:14px!important;line-height:1.45;
 <div class="main-content">
 
 <!-- CONTROLES -->
-<section id="pantallaVenta" class="controls">
+<section id="pantallaVenta" class="controls controls-limitados">
   <div class="field" style="margin-bottom:10px;">
   <label>Cliente</label>
   <input id="cliente" type="text" value="PÚBLICO EN GENERAL" />
