@@ -169,12 +169,12 @@ font-size:14px!important;line-height:1.45;
     background-position: 0 600px;
   }
 }
-
 /* ===============================
    🧱 POS DESKTOP DEFINITIVO
    =============================== */
 @media (min-width: 900px){
 
+  /* CONTENEDOR GENERAL */
   .main-content{
     display:flex;
     flex-direction:column;
@@ -182,26 +182,25 @@ font-size:14px!important;line-height:1.45;
     padding:14px 18px 110px;
   }
 
-.pos-body{
-  height:100%;
-  display:grid;
-  grid-template-columns: 2.4fr 1fr;
-  gap:20px;
- align-items:start;   /* o center, pero start es más estable */
-}
+  /* GRID PRINCIPAL */
+  .pos-body{
+    height:auto;
+    display:grid;
+    grid-template-columns: 2.4fr 1fr;
+    gap:20px;
+    align-items:center; /* 🔥 CENTRADO REAL */
+  }
 
-  /* 🟩 CARRITO FIJO */
-.pos-carrito{
-  background: rgba(255,255,255,.95);
-  border-radius:20px;
-  padding:14px;
-
-  height: calc(100vh - 230px); /* 🔥 ajusta si quieres */
-  overflow-y: auto;            /* 🔥 SCROLL INTERNO */
-  overflow-x: hidden;
-
-  position:relative;
-}
+  /* CARRITO */
+  .pos-carrito{
+    background: rgba(255,255,255,.95);
+    border-radius:20px;
+    padding:14px;
+    height: calc(100vh - 230px);
+    overflow-y:auto;
+    overflow-x:hidden;
+    position:relative;
+  }
 
   .pos-carrito::after{
     content:"";
@@ -212,122 +211,53 @@ font-size:14px!important;line-height:1.45;
     pointer-events:none;
   }
 
-/* 🟦 COLUMNA DERECHA */
-.pos-side{
-  height:auto;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;  /* 🔥 AHORA SÍ SE NOTA */
-  align-self:center;       /* 🔥 CENTRA EN EL GRID */
-}
-
-/* ❌ SIN margins automáticos */
-.pos-side-top{
-  display: flex;
-  flex-direction: column;
-  gap: 12px;           /* 🔥 AIRE ENTRE BOTONES */
-  margin-bottom: 14px; /* 🔥 separación con los totales */
-}
-.pos-side-middle{
-  margin-bottom: 16px;
-}
-.pos-side-bottom{
-  margin-top: 10px;
-}
-
-/* Botón cobrar */
-.pos-side-bottom .btn{
-  font-size:22px;
-  padding:18px;
-  border-radius:18px;
-}
-
-  #loginScreen{
-  background: linear-gradient(135deg,#0c3c60,#dfe7ef);
-}
-
-#loginScreen input{
-  width:260px;
-  font-size:16px;
-  padding:14px;
-  border-radius:14px;
-}
-
-#btnLogin{
-  width:260px;
-  border-radius:16px;
-}
-  @media (min-width: 900px){
-
-  /* 🟩 CUADRO VERDE COMPLETAMENTE INVISIBLE */
+  /* COLUMNA DERECHA */
   .pos-side{
-    background: transparent !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
+    height:auto;
+    display:flex;
+    flex-direction:column;
+    background:transparent;
+    box-shadow:none;
+    padding:0;
   }
 
-  /* Opcional: si hubiera pseudo fondos */
-  .pos-side::before,
-  .pos-side::after{
-    display: none !important;
+  /* BOTONES SUPERIORES */
+  .pos-side-top{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-bottom:14px;
   }
 
-}
-@media (min-width: 900px){
-
-  /* 🔴 CONTROLES DEL MISMO ANCHO QUE EL CARRITO */
-  .controls-limitados{
-    max-width: calc((100% - 20px) * 2.4 / (2.4 + 1));
-    /* mismo ancho que la columna izquierda */
-  }
-@media (min-width: 900px){
-
-  .pos-info-venta{
-    margin-bottom: 14px;
-    font-size: 14px;
-    color: #fff;
-    line-height: 1.6;
-    text-align: left;
+  .pos-side-middle{
+    margin-bottom:16px;
   }
 
-  .pos-info-venta strong{
-    font-weight: 600;
-    color: #e5e7eb;
+  .pos-side-bottom{
+    margin-top:10px;
   }
-}
-@media (min-width: 900px){
 
-  /* reutiliza exactamente el look de Totales */
+  .pos-side-bottom .btn{
+    font-size:22px;
+    padding:18px;
+    border-radius:18px;
+  }
+
+  /* INFO VENTA */
   .card-info-venta{
-    margin-bottom: 12px;
+    margin-bottom:12px;
   }
 
   .card-info-venta .pos-info-venta{
-    font-size: 14px;
-    line-height: 1.6;
-    color: #222;
+    font-size:14px;
+    line-height:1.6;
+    color:#333;
   }
 
   .card-info-venta strong{
-    font-weight: 600;
+    font-weight:600;
   }
 
-}
-  @media (min-width: 900px){
-  .card-info-venta{
-    margin-bottom: 12px;
-  }
-
-  .card-info-venta .pos-info-venta{
-    font-size: 14px;
-    line-height: 1.6;
-    color: #333;
-  }
-
-  .card-info-venta strong{
-    font-weight: 600;
-  }
 }
 
 </style>
@@ -675,9 +605,6 @@ $("#btnLogin").onclick = loginUsuario;
   try {
     USUARIO_LOGUEADO = JSON.parse(guardado);
     rutaId = USUARIO_LOGUEADO?.rutaId || null;
-
-    document.getElementById("usuarioBar").textContent =
-      `Usuario: ${USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario}`;
 
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("posApp").style.display = "block";
