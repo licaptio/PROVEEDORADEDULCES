@@ -1552,18 +1552,9 @@ buscador.addEventListener("keydown", (e) => {
 });
 
 /* 🧩 MODO ANDROID (evento input HID-Bluetooth) */
-buscador.addEventListener("input", (e) => {
-  const valor = e.target.value.trim();
-  if (!valor) return;
-
-  modoScanner = true;
-  scanBuffer = valor;
-  clearTimeout(scanTimer);
-
-  // Espera 300 ms sin nuevos caracteres antes de procesar
-  scanTimer = setTimeout(() => {
-    procesarCodigoEscaneado(scanBuffer);
-  }, 300);
+buscador.addEventListener("input", () => {
+  // ❌ NO mostrar sugerencias al escribir
+  resultadosDiv.style.display = "none";
 });
 
 /* 🔹 Procesar también si el input pierde el foco */
@@ -1650,7 +1641,115 @@ item.addEventListener("click", () => {
 });
 
 
+function abrirBuscadorFlotante() {
+  // Evitar abrir más de uno
+  if (document.getElementById("modalBuscadorF1")) return;
 
+  const modal = document.createElement("div");
+  modal.id = "modalBuscadorF1";
+  modal.style.cssText = `
+    position:fixed;inset:0;z-index:99999;
+    background:rgba(0,0,0,.55);
+    display:flex;align-items:center;justify-content:center;
+    backdrop-filter:blur(4px);
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      background:#fff;
+      width:90%;
+      max-width:420px;
+      max-height:80vh;
+      border-radius:16px;
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+    ">
+      <h3 style="margin-bottom:10px;color:#00416A;text-align:center;">
+        🔍 Buscar artículo
+      </h3>
+
+      <input id="inputBuscadorF1"
+        placeholder="Nombre o código..."
+        style="
+          padding:12px;
+          font-size:16px;
+          border-radius:10px;
+          border:1px solid #ccc;
+          margin-bottom:10px;
+        " />
+
+      <div id="resultadosF1"
+        style="
+          flex:1;
+          overflow-y:auto;
+          border-top:1px solid #eee;
+        ">
+      </div>
+
+      <button class="btn"
+        style="margin-top:10px;background:#c0392b"
+        id="cerrarBuscadorF1">
+        Cerrar
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const input = document.getElementById("inputBuscadorF1");
+  const resultados = document.getElementById("resultadosF1");
+  const cerrar = document.getElementById("cerrarBuscadorF1");
+
+  input.focus();
+
+  input.addEventListener("input", async () => {
+    const texto = input.value.trim().toLowerCase();
+    resultados.innerHTML = "";
+    if (texto.length < 2) return;
+
+    let lista = buscarLocal(texto);
+    if (lista.length === 0) {
+      lista = await buscarEquivalenteRemoto(texto);
+    }
+
+    if (lista.length === 0) {
+      resultados.innerHTML = `<div style="padding:10px;color:#777;">Sin resultados</div>`;
+      return;
+    }
+
+    lista.forEach(p => {
+      const item = document.createElement("div");
+      item.style.cssText = `
+        padding:10px;
+        border-bottom:1px solid #eee;
+        cursor:pointer;
+        display:flex;
+        justify-content:space-between;
+      `;
+      item.innerHTML = `
+        <span>${p.nombre}</span>
+        <strong>${money(p.precioPublico)}</strong>
+      `;
+
+      item.onclick = () => {
+        p.codigo = p.codigo || p.codigoBarra || "";
+        solicitarCantidadYAgregar(p);
+        modal.remove();
+      };
+
+      resultados.appendChild(item);
+    });
+  });
+
+  cerrar.onclick = () => modal.remove();
+
+  // ESC cierra
+  modal.addEventListener("keydown", e => {
+    if (e.key === "Escape") modal.remove();
+  });
+}
+window.abrirBuscadorFlotante = abrirBuscadorFlotante;
 
 /* ===========================================================
    💳 SECCIÓN 11: MODAL DE COBRO CON AUTORIZACIÓN DE DESCUENTO
@@ -2354,6 +2453,21 @@ document.addEventListener("keydown", e => {
 
   // 🔒 Solo si hay sesión activa
   if (!document.body.classList.contains("sesion-activa")) return;
+/* =========================
+   🔍 F1 → BUSCADOR FLOTANTE
+   ========================= */
+if (e.key === "F1") {
+  e.preventDefault();
+
+  // 🚫 No abrir si hay cobro activo
+  if (bloquearSiCobroActivo()) return;
+
+  // 🚫 No abrir si ya existe
+  if (document.getElementById("modalBuscadorF1")) return;
+
+  abrirBuscadorFlotante();
+  return;
+}
 
   /* =========================
      🚫 BLOQUEAR F5 y CTRL+R
