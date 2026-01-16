@@ -726,22 +726,45 @@ $("#btnLogin").onclick = loginUsuario;
   if (!guardado) return;
 
   try {
-    USUARIO_LOGUEADO = JSON.parse(guardado);
-    rutaId = USUARIO_LOGUEADO?.rutaId || null;
+    const u = JSON.parse(guardado);
 
+    // 🔥 VALIDAR USUARIO EN FIRESTORE
+    const ref = doc(db, "usuarios_ruta", u.id);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists() || snap.data().activo !== true) {
+      throw new Error("Sesión inválida");
+    }
+
+    USUARIO_LOGUEADO = { id: snap.id, ...snap.data() };
+    rutaId = USUARIO_LOGUEADO.rutaId || null;
+
+    // ✅ AHORA SÍ, ENTRAR
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("posApp").style.display = "block";
     document.body.classList.add("sesion-activa");
 
-    const bb = document.getElementById("bottomBar");
-    if (bb) bb.style.display = "flex";
+    document.getElementById("infoUsuario").textContent =
+      USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario;
 
-    await Promise.all([cargarCatalogo(), fijarClientePublico()]);
+    document.getElementById("infoFecha").textContent =
+      new Date().toLocaleString("es-MX");
+
+    await Promise.all([
+      cargarCatalogo(),
+      fijarClientePublico()
+    ]);
+
   } catch (err) {
-    console.warn("⚠️ No se pudo restaurar sesión previa:", err);
+    console.warn("⛔ Sesión inválida, forzando login");
     localStorage.removeItem("usuario_ruta");
+
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("posApp").style.display = "none";
+    document.body.classList.remove("sesion-activa");
   }
-})(); // ✅ ESTA LÍNEA ES LA CLAVE
+})();
+
 /* ===========================================================
    📦 CACHE DINÁMICO–PROVSOFT (SW)
    =========================================================== */
@@ -2326,7 +2349,6 @@ let bloqueoSalida = true;
    =========================================================== */
 
 const CLAVE_BORRAR_PRODUCTO = "1234";
-let bloqueoSalida = true;
 
 document.addEventListener("keydown", e => {
 
@@ -2417,7 +2439,22 @@ window.addEventListener("beforeunload", e => {
    ✅ AL CERRAR SESIÓN → PERMITIR SALIDA
    =========================================================== */
 document.getElementById("btnLogout")?.addEventListener("click", () => {
-  bloqueoSalida = false;
+
+  if (bloquearSiCobroActivo()) return;
+
+  bloqueoSalida = false; // 🔥 CLAVE
+
+  localStorage.removeItem("usuario_ruta");
+
+  document.body.classList.remove("sesion-activa");
+  document.getElementById("posApp").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
+
+  document.getElementById("loginUsuario").value = "";
+  document.getElementById("loginPassword").value = "";
+  document.getElementById("loginMsg").textContent = "";
+
+  alert("Sesión cerrada correctamente.");
 });
 
 // 🚧 GUARDIÁN GLOBAL ANTI-BUG — Bloquea navegación durante cobro
