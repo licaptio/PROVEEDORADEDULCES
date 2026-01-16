@@ -501,6 +501,21 @@ tr.seleccionado{
     <span id="cobroTotal" 
           style="font-weight:700;color:#0c6cbd;font-size:24px;">$0.00</span>
   </div>
+<!-- 💳 Forma de pago -->
+<label style="font-weight:600;">Forma de pago</label>
+<select id="formaPago"
+  style="
+    padding:14px;
+    border-radius:10px;
+    border:1px solid #ccc;
+    font-size:16px;
+    font-weight:600;
+    background:#f9f9f9;
+  ">
+  <option value="EFECTIVO">💵 Efectivo</option>
+  <option value="TARJETA_DEBITO">💳 Tarjeta Débito</option>
+  <option value="TARJETA_CREDITO">💳 Tarjeta Crédito</option>
+</select>
 
   <!-- 💵 Monto recibido -->
   <label for="montoRecibido" style="font-weight:600;">Monto recibido</label>
@@ -1772,6 +1787,25 @@ const modalCobro = $("#modalCobro");
 const cobroTotal = $("#cobroTotal");
 const montoRecibido = $("#montoRecibido");
 const montoCambio = $("#montoCambio");
+  const formaPago = document.getElementById("formaPago");
+
+// 🔄 Cambiar comportamiento según forma de pago
+formaPago.addEventListener("change", () => {
+  const esEfectivo = formaPago.value === "EFECTIVO";
+
+  montoRecibido.disabled = !esEfectivo;
+  montoRecibido.style.opacity = esEfectivo ? "1" : "0.5";
+
+  if (!esEfectivo) {
+    montoRecibido.value = "";
+    montoCambio.textContent = "$0.00";
+  }
+
+  if (esEfectivo) {
+    setTimeout(() => montoRecibido.focus(), 50);
+  }
+});
+
 const descuentoInfo = $("#descuentoInfo");
 
 
@@ -1909,12 +1943,24 @@ $("#btnConfirmarCobro").onclick = async () => {
     }
 
     const tot = calcularTotales(descuentoAutorizado);
-    const pago = parseFloat($("#montoRecibido").value) || 0;
-    const cambio = pago - tot.total;
-    if (cambio < 0) {
-      alert("⚠️ El monto recibido es menor al total a pagar.");
-      return;
-    }
+const metodoPago = formaPago.value;
+
+let pago = 0;
+let cambio = 0;
+
+if (metodoPago === "EFECTIVO") {
+  pago = parseFloat($("#montoRecibido").value) || 0;
+  cambio = pago - tot.total;
+
+  if (cambio < 0) {
+    alert("⚠️ El monto recibido es menor al total a pagar.");
+    return;
+  }
+} else {
+  // Tarjeta = pago exacto
+  pago = tot.total;
+  cambio = 0;
+}
 
     // 🧮 Folio incremental por usuario y fecha
     let folio = "";
@@ -1942,7 +1988,7 @@ const venta = {
   folio,
   rutaId,
   cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
-
+  forma_pago: formaPago.value, // 👈 AQUÍ
   moneda: "MXN",
   tipoCambio: 1,
 
