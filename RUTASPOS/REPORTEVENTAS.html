@@ -134,42 +134,25 @@ window.generarListado = async function(){
 
   let dataPorDepto = {};
   let totalGeneral = 0;
-  let totalGeneralVentas = 0; // ventas
+  let totalGeneralVentas = 0;
 
   snap.forEach(doc=>{
     const v = doc.data();
 
-v.detalle.forEach(item=>{
+    if(!Array.isArray(v.detalle)) return;
 
-  const depto = item.departamento_info?.nombre || "SIN DEPTO";
-  const comision = Number(item.comision_monto) || 0;
-  const importe = Number(item.importe) || 0;
+    v.detalle.forEach(item=>{
 
-  if(!dataPorDepto[depto]){
-    dataPorDepto[depto] = {
-      filas: [],
-      totalComision: 0,
-      totalVentas: 0
-    };
-  }
+      const depto = item.departamento_info?.nombre || "SIN DEPTO";
+      const comision = Number(item.comision_monto) || 0;
+      const importe = Number(item.importe) || 0;
 
-  dataPorDepto[depto].filas.push({
-    folio: v.folio || "-",
-    fecha: v.fecha_txt || "-",
-    codigo: item.codigo || "-",
-    nombre: item.nombre || "-",
-    precio: item.precio_unit || 0,
-    importe: importe,
-    comisionValor: item.comision_valor || 0,
-    comisionMonto: comision
-  });
-
-  // ✅ SUMATORIAS
-  dataPorDepto[depto].totalComision += comision;
-  dataPorDepto[depto].totalVentas += importe;
-  totalGeneral += comision;
-  totalGeneralVentas += importe;
-});
+      if(!dataPorDepto[depto]){
+        dataPorDepto[depto] = {
+          filas: [],
+          totalComision: 0,
+          totalVentas: 0
+        };
       }
 
       dataPorDepto[depto].filas.push({
@@ -177,33 +160,35 @@ v.detalle.forEach(item=>{
         fecha: v.fecha_txt || "-",
         codigo: item.codigo || "-",
         nombre: item.nombre || "-",
-        precio: item.precio_unit || 0,
-        importe: item.importe || 0,
+        precio: Number(item.precio_unit) || 0,
+        importe: importe,
         comisionValor: item.comision_valor || 0,
         comisionMonto: comision
       });
 
+      // 🔢 SUMATORIAS
       dataPorDepto[depto].totalComision += comision;
+      dataPorDepto[depto].totalVentas += importe;
       totalGeneral += comision;
+      totalGeneralVentas += importe;
     });
   });
 
-  // 🔽 ORDENAR DEPARTAMENTOS ALFABÉTICAMENTE
   const departamentosOrdenados = Object.keys(dataPorDepto).sort();
 
-let html = `
-  <p><strong>Ruta:</strong> ${ruta}</p>
-  <p><strong>Periodo:</strong> ${f1} al ${f2}</p>
+  let html = `
+    <p><strong>Ruta:</strong> ${ruta}</p>
+    <p><strong>Periodo:</strong> ${f1} al ${f2}</p>
 
-  <p style="font-size:16px;margin:10px 0;">
-    <strong>Total General de Ventas:</strong>
-    $${totalGeneralVentas.toFixed(2)}
-  </p>
+    <p style="font-size:16px;margin:10px 0;">
+      <strong>Total General de Ventas:</strong>
+      $${totalGeneralVentas.toFixed(2)}
+    </p>
 
-  <p style="font-size:16px;margin:5px 0;">
-    <strong>Total General de Comisión:</strong>
-    $${totalGeneral.toFixed(2)}
-  </p>
+    <p style="font-size:16px;margin:5px 0;">
+      <strong>Total General de Comisión:</strong>
+      $${totalGeneral.toFixed(2)}
+    </p>
 
     <table>
       <tr>
@@ -221,7 +206,6 @@ let html = `
 
   departamentosOrdenados.forEach(depto=>{
 
-    // 🟦 ENCABEZADO DEPARTAMENTO
     html += `
       <tr style="background:#e3eefc;font-weight:bold;">
         <td colspan="9">📦 ${depto}</td>
@@ -244,28 +228,23 @@ let html = `
       `;
     });
 
-    // 🟨 TOTAL POR DEPARTAMENTO
     html += `
       <tr style="background:#fff3cd;font-weight:bold;">
         <td colspan="8">Total Comisión ${depto}</td>
         <td>$${dataPorDepto[depto].totalComision.toFixed(2)}</td>
       </tr>
+
+      <tr style="background:#e8f5e9;font-weight:bold;">
+        <td colspan="8">Total Ventas ${depto}</td>
+        <td>$${dataPorDepto[depto].totalVentas.toFixed(2)}</td>
+      </tr>
     `;
-      // 🟩 TOTAL POR DEPARTAMENTO (VENTAS)
-  html += `
-    <tr style="background:#e8f5e9;font-weight:bold;">
-      <td colspan="8">Total Ventas ${depto}</td>
-      <td>$${dataPorDepto[depto].totalVentas.toFixed(2)}</td>
-    </tr>
-  `;
   });
 
   html += `</table>`;
 
   document.getElementById("resultado").innerHTML = html;
-}
-
+};
 </script>
-
 </body>
 </html>
