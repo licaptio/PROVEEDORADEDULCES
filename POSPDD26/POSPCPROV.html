@@ -1198,16 +1198,16 @@ function render() {
 carrito.forEach((it, index) => {
   const tr = document.createElement("tr");
 
-  // 🔵 CLICK = SELECCIONAR PRODUCTO
-  tr.addEventListener("click", () => {
-    indiceSeleccionado = index;
-    renderDebounced(); // 🔥 vuelve a pintar para marcar selección
-  });
-  // 🔵 CLICK = SELECCIONAR PRODUCTO
-  tr.addEventListener("click", () => {
-    indiceSeleccionado = index;
-    renderDebounced(); // 🔥 vuelve a pintar para marcar selección
-  });
+tr.addEventListener("click", () => {
+  indiceSeleccionado = index;
+  marcarFilaSeleccionada(tr);
+});
+  
+tr.addEventListener("click", () => {
+  indiceSeleccionado = index;
+  marcarFilaSeleccionada(tr);
+});
+
 tr.innerHTML = `
   <td>
   <div class="nombre-prod" title="${it.nombre}">
@@ -2321,42 +2321,65 @@ window.location.href = "ticketsresumen.html";
 <script>
 let bloqueoSalida = true;
 
-// 🚫 Bloquear F5 y Ctrl+R
-document.addEventListener("keydown", e => {
-  if (!document.body.classList.contains("sesion-activa")) return;
-  const CLAVE_BORRAR_PRODUCTO = "1234";
+/* ===========================================================
+   ⌨️ CONTROL GLOBAL DE TECLAS (POS PC)
+   =========================================================== */
+
+const CLAVE_BORRAR_PRODUCTO = "1234";
+let bloqueoSalida = true;
 
 document.addEventListener("keydown", e => {
 
+  // 🔒 Solo si hay sesión activa
   if (!document.body.classList.contains("sesion-activa")) return;
 
-  /* F2 → Cobrar */
+  /* =========================
+     🚫 BLOQUEAR F5 y CTRL+R
+     ========================= */
+  if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) {
+    e.preventDefault();
+    alert("Usa el botón 🚪 Salir para cerrar sesión correctamente.");
+    return;
+  }
+
+  /* =========================
+     💰 F2 → COBRAR
+     ========================= */
   if (e.key === "F2") {
     e.preventDefault();
     document.getElementById("btnCobrar")?.click();
+    return;
   }
 
-  /* F4 → Buscador */
+  /* =========================
+     🔍 F4 → BUSCADOR
+     ========================= */
   if (e.key === "F4") {
     e.preventDefault();
     document.getElementById("buscador")?.focus();
+    return;
   }
 
-  /* ESC → Cerrar cobro */
+  /* =========================
+     ❌ ESC → CERRAR COBRO
+     ========================= */
   if (e.key === "Escape") {
     const modal = document.getElementById("modalCobro");
     if (modal && modal.style.display === "flex") {
       document.getElementById("btnCancelarCobro")?.click();
     }
+    return;
   }
 
-  /* SUPR → Borrar producto seleccionado */
+  /* =========================
+     🗑️ SUPR / DELETE → BORRAR PRODUCTO SELECCIONADO
+     ========================= */
   if (e.key === "Delete") {
     e.preventDefault();
 
     if (indiceSeleccionado === null) {
       toast("⚠️ Selecciona un producto", "#c0392b");
-      beep(200, .12);
+      beep(200, 0.12);
       return;
     }
 
@@ -2364,7 +2387,7 @@ document.addEventListener("keydown", e => {
 
     if (clave !== CLAVE_BORRAR_PRODUCTO) {
       toast("❌ Clave incorrecta", "#c0392b");
-      beep(200, .15);
+      beep(200, 0.15);
       return;
     }
 
@@ -2372,17 +2395,15 @@ document.addEventListener("keydown", e => {
     indiceSeleccionado = null;
 
     renderDebounced();
-    beep(700, .12);
+    beep(700, 0.12);
+    return;
   }
 
 });
-  if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) {
-    e.preventDefault();
-    alert("Usa el botón 🚪 Salir para cerrar sesión correctamente.");
-  }
-});
 
-// ⚠️ Confirmar antes de salir o recargar
+/* ===========================================================
+   ⚠️ CONFIRMACIÓN ANTES DE SALIR / RECARGAR
+   =========================================================== */
 window.addEventListener("beforeunload", e => {
   if (!haySesionActiva()) return;
   if (bloqueoSalida) {
@@ -2392,7 +2413,9 @@ window.addEventListener("beforeunload", e => {
   }
 });
 
-// ✅ Al cerrar sesión, desbloquear salida
+/* ===========================================================
+   ✅ AL CERRAR SESIÓN → PERMITIR SALIDA
+   =========================================================== */
 document.getElementById("btnLogout")?.addEventListener("click", () => {
   bloqueoSalida = false;
 });
