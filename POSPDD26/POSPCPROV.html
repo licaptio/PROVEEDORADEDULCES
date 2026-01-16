@@ -477,6 +477,44 @@ input:focus, textarea:focus, select:focus{
   border-radius: 26px;
   box-shadow: 0 20px 40px rgba(0,0,0,.25);
 }
+/* 🍎 iOS TOP CARD – Cliente + Buscador */
+.ios-top-card{
+  background: rgba(255,255,255,0.95);
+  border-radius: 24px;
+  padding: 14px 16px;
+  box-shadow:
+    0 12px 28px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.9);
+  margin-bottom: 14px;
+}
+
+/* Labels visibles */
+.ios-top-card label{
+  color:#1c1c1e;
+  font-weight:600;
+  font-size:13px;
+}
+
+/* Inputs con contraste */
+.ios-top-card input{
+  background:#fff;
+  border:1px solid #d1d1d6;
+  color:#000;
+  font-weight:500;
+}
+
+/* Placeholder iOS */
+.ios-top-card input::placeholder{
+  color:#8e8e93;
+}
+
+/* Botón lupa */
+.ios-top-card .cam-btn{
+  background: linear-gradient(180deg,#007aff,#005ecb);
+  box-shadow:
+    0 6px 14px rgba(0,122,255,.35),
+    inset 0 1px 0 rgba(255,255,255,.45);
+}
 
 </style>
 </head>
@@ -509,7 +547,7 @@ input:focus, textarea:focus, select:focus{
 <div class="main-content">
 
 <!-- CONTROLES -->
-<section id="pantallaVenta" class="controls controls-limitados">
+<section id="pantallaVenta" class="controls controls-limitados ios-top-card">
   <div class="field" style="margin-bottom:10px;">
   <label>Cliente</label>
   <input id="cliente" type="text" value="PÚBLICO EN GENERAL" />
