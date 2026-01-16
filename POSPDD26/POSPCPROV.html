@@ -2482,6 +2482,14 @@ if (e.key === "F1") {
   abrirBuscadorFlotante();
   return;
 }
+/* =========================
+   ❌ F3 → CANCELAR VENTA
+   ========================= */
+if (e.key === "F3") {
+  e.preventDefault();
+  cancelarVentaConAutorizacion();
+  return;
+}
 
   /* =========================
      🚫 BLOQUEAR F5 y CTRL+R
@@ -2601,6 +2609,44 @@ function marcarFilaSeleccionada(fila) {
 
   fila.classList.add("seleccionado");
 }
+  function cancelarVentaConAutorizacion() {
+
+  // 🚫 No permitir cancelar si hay cobro activo
+  if (bloquearSiCobroActivo()) return;
+
+  if (carrito.length === 0) {
+    toast("⚠️ No hay productos en la venta", "#c0392b");
+    beep(200, 0.12);
+    return;
+  }
+
+  const clave = prompt("🔐 Ingresa la clave para CANCELAR la venta:");
+
+  if (!clave || clave.trim() !== window.CLAVE_BORRAR_PRODUCTO) {
+    toast("❌ Clave incorrecta", "#c0392b");
+    beep(200, 0.15);
+    return;
+  }
+
+  // 🧹 LIMPIAR TODO
+  carrito = [];
+  indiceSeleccionado = null;
+
+  // 🔥 Reset de descuentos
+  descuentoAutorizado = 0;
+  localStorage.removeItem("desc_porcentaje");
+
+  renderDebounced();
+
+  // 🔊 Confirmación
+  beep(600, 0.18);
+  toast("🧹 Venta cancelada correctamente", "#1e8e3e");
+
+  // 🎯 Regresar foco al buscador
+  const buscador = document.getElementById("buscador");
+  if (buscador) buscador.focus();
+}
+
 // ✅ Estado real de sesión activa
 function haySesionActiva() {
   return document.body.classList.contains("sesion-activa");
