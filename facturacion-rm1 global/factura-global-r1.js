@@ -125,8 +125,9 @@ async function cargarVentas() {
 // ===============================
 // ARRANQUE
 // ===============================
-setFechasHoy();
-cargarVentas();
+document
+  .getElementById("btnCargar")
+  .addEventListener("click", cargarVentas);
 
 function armarObjetoCFDIDesdeVentasGlobales(ventas, folio, fechaCFDI) {
 
@@ -157,3 +158,4 @@ function rangoDiaDesdeInput() {
 
   return { inicio, fin };
 }
+
