@@ -132,7 +132,8 @@ window.generarListado = async function(){
 
   const snap = await getDocs(q);
 
-  let filas = "";
+  let dataPorDepto = {};
+  let totalGeneral = 0;
 
   snap.forEach(doc=>{
     const v = doc.data();
@@ -140,38 +141,95 @@ window.generarListado = async function(){
     v.detalle.forEach(item=>{
 
       const depto = item.departamento_info?.nombre || "SIN DEPTO";
+      const comision = Number(item.comision_monto) || 0;
 
-      filas += `
-      <tr>
-        <td>${v.folio || "-"}</td>
-        <td>${v.fecha_txt || "-"}</td>
-        <td>${item.codigo || "-"}</td>
-        <td>${item.nombre || "-"}</td>
-        <td>${depto}</td>
-        <td>$${(item.precio_unit || 0).toFixed(2)}</td>
-        <td>$${(item.importe || 0).toFixed(2)}</td>
-        <td>${item.comision_valor || 0}%</td>
-        <td>$${(item.comision_monto || 0).toFixed(2)}</td>
-      </tr>`;
+      if(!dataPorDepto[depto]){
+        dataPorDepto[depto] = {
+          filas: [],
+          totalComision: 0
+        };
+      }
+
+      dataPorDepto[depto].filas.push({
+        folio: v.folio || "-",
+        fecha: v.fecha_txt || "-",
+        codigo: item.codigo || "-",
+        nombre: item.nombre || "-",
+        precio: item.precio_unit || 0,
+        importe: item.importe || 0,
+        comisionValor: item.comision_valor || 0,
+        comisionMonto: comision
+      });
+
+      dataPorDepto[depto].totalComision += comision;
+      totalGeneral += comision;
     });
   });
 
-  document.getElementById("resultado").innerHTML = `
-  <table>
-    <tr>
-      <th>Folio</th>
-      <th>Fecha</th>
-      <th>Código</th>
-      <th>Descripción</th>
-      <th>Departamento</th>
-      <th>Precio Unit.</th>
-      <th>Total</th>
-      <th>% Comisión</th>
-      <th>Total Comisión</th>
-    </tr>
-    ${filas || `<tr><td colspan="9">Sin resultados</td></tr>`}
-  </table>`;
+  // 🔽 ORDENAR DEPARTAMENTOS ALFABÉTICAMENTE
+  const departamentosOrdenados = Object.keys(dataPorDepto).sort();
+
+  let html = `
+    <p><strong>Ruta:</strong> ${ruta}</p>
+    <p><strong>Periodo:</strong> ${f1} al ${f2}</p>
+    <p style="font-size:16px;margin:10px 0;">
+      <strong>Total General de Comisión:</strong>
+      $${totalGeneral.toFixed(2)}
+    </p>
+
+    <table>
+      <tr>
+        <th>Folio</th>
+        <th>Fecha</th>
+        <th>Código</th>
+        <th>Descripción</th>
+        <th>Departamento</th>
+        <th>Precio Unit.</th>
+        <th>Total</th>
+        <th>% Comisión</th>
+        <th>Total Comisión</th>
+      </tr>
+  `;
+
+  departamentosOrdenados.forEach(depto=>{
+
+    // 🟦 ENCABEZADO DEPARTAMENTO
+    html += `
+      <tr style="background:#e3eefc;font-weight:bold;">
+        <td colspan="9">📦 ${depto}</td>
+      </tr>
+    `;
+
+    dataPorDepto[depto].filas.forEach(f=>{
+      html += `
+        <tr>
+          <td>${f.folio}</td>
+          <td>${f.fecha}</td>
+          <td>${f.codigo}</td>
+          <td>${f.nombre}</td>
+          <td>${depto}</td>
+          <td>$${f.precio.toFixed(2)}</td>
+          <td>$${f.importe.toFixed(2)}</td>
+          <td>${f.comisionValor}%</td>
+          <td>$${f.comisionMonto.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+
+    // 🟨 TOTAL POR DEPARTAMENTO
+    html += `
+      <tr style="background:#fff3cd;font-weight:bold;">
+        <td colspan="8">Total Comisión ${depto}</td>
+        <td>$${dataPorDepto[depto].totalComision.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  html += `</table>`;
+
+  document.getElementById("resultado").innerHTML = html;
 }
+
 </script>
 
 </body>
