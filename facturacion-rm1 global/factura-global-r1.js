@@ -54,7 +54,13 @@ function pintarVentas(ventas) {
 // ===============================
 window.generarTXTSifeiGlobal = async function () {
 
-  const { inicio, fin } = rangoDesdeInputs();
+  const rango = rangoDiaDesdeInput();
+if (!rango) {
+  alert("Selecciona fecha");
+  return;
+}
+const { inicio, fin } = rango;
+
 
   const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
 
@@ -109,58 +115,18 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
-
-// ===============================
-// FECHAS / FILTROS
-// ===============================
-function dateLocalFromInput(value, endOfDay = false) {
-  const [year, month, day] = value.split("-").map(Number);
-
-  if (!endOfDay) {
-    return new Date(year, month - 1, day, 0, 0, 0, 0);
-  } else {
-    return new Date(year, month - 1, day, 23, 59, 59, 999);
-  }
-}
-
-function rangoDesdeInputs() {
-  const desdeInput = document.getElementById("fechaDesde").value;
-  const hastaInput = document.getElementById("fechaHasta").value;
-
-  if (!desdeInput || !hastaInput) {
-    const inicio = new Date();
-    inicio.setHours(0,0,0,0);
-
-    const fin = new Date();
-    fin.setHours(23,59,59,999);
-
-    return { inicio, fin };
-  }
-
-  return {
-    inicio: dateLocalFromInput(desdeInput, false),
-    fin: dateLocalFromInput(hastaInput, true)
-  };
-}
-
 async function cargarVentas() {
   const { inicio, fin } = rangoDesdeInputs();
   const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
   pintarVentas(ventas);
 }
 
-function setFechasHoy() {
-  const hoy = new Date().toISOString().split("T")[0];
-  document.getElementById("fechaDesde").value = hoy;
-  document.getElementById("fechaHasta").value = hoy;
-}
 
 // ===============================
 // ARRANQUE
 // ===============================
 setFechasHoy();
 cargarVentas();
-document.getElementById("btnBuscar").addEventListener("click", cargarVentas);
 
 function armarObjetoCFDIDesdeVentasGlobales(ventas, folio, fechaCFDI) {
 
@@ -180,5 +146,14 @@ function armarObjetoCFDIDesdeVentasGlobales(ventas, folio, fechaCFDI) {
   };
 }
 
+function rangoDiaDesdeInput() {
+  const input = document.getElementById("fecha");
+  if (!input || !input.value) return null;
 
+  const [y, m, d] = input.value.split("-").map(Number);
 
+  const inicio = new Date(y, m - 1, d, 0, 0, 0);
+  const fin = new Date(y, m - 1, d, 23, 59, 59, 999);
+
+  return { inicio, fin };
+}
