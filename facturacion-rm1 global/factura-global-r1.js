@@ -6,7 +6,8 @@ import {
   query,
   where,
   getDocs,
-  Timestamp
+  Timestamp,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // 🔥 TU CONFIG REAL
@@ -90,3 +91,4 @@ const q = query(
   cnt.textContent = c;
   totalEl.textContent = total.toFixed(2);
 }
+
