@@ -116,7 +116,14 @@ function descargarTXT(contenido, nombreArchivo) {
   URL.revokeObjectURL(url);
 }
 async function cargarVentas() {
-  const { inicio, fin } = rangoDesdeInputs();
+  const rango = rangoDiaDesdeInput();
+  if (!rango) {
+    alert("Selecciona fecha");
+    return;
+  }
+
+  const { inicio, fin } = rango;
+
   const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
   pintarVentas(ventas);
 }
@@ -158,4 +165,5 @@ function rangoDiaDesdeInput() {
 
   return { inicio, fin };
 }
+
 
