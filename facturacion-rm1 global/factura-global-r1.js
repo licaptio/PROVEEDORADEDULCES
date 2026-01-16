@@ -142,28 +142,6 @@ document
   .getElementById("btnCargar")
   .addEventListener("click", cargarVentas);
 
-function armarObjetoCFDIDesdeVentasGlobales(ventas, folio, fechaCFDI) {
-
-return {
-  tipo: "GLOBAL",
-  rfc_receptor: "XAXX010101000",
-  nombre_receptor: "PUBLICO EN GENERAL",
-  uso_cfdi: "S01",
-  info_global: {
-    periodicidad: "01",
-    meses: String(new Date(fechaCFDI).getMonth() + 1).padStart(2, "0"),
-    año: String(new Date(fechaCFDI).getFullYear())
-  },
-
-  // 🔑 ESTO ES LO QUE SIFEI NECESITA
-  detalle: ventas.flatMap(v => v.detalle),
-
-  folio,
-  fechaCFDI
-};
-
-}
-
 function rangoDiaDesdeInput() {
   const input = document.getElementById("fecha");
   if (!input || !input.value) return null;
@@ -175,8 +153,4 @@ function rangoDiaDesdeInput() {
 
   return { inicio, fin };
 }
-
-
-
-
 
