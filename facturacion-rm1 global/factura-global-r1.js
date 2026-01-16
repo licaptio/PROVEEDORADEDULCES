@@ -5,7 +5,8 @@ import {
   collection,
   query,
   where,
-  getDocs
+  getDocs,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // 🔥 TU CONFIG REAL
@@ -56,12 +57,13 @@ async function cargarVentas() {
 
   const { inicio, fin } = rangoDia(fecha);
 
-  const q = query(
-    collection(db, "ventas_rutav2"),
-    where("rutaId", "==", CONFIG.rutaId),
-    where("fecha", ">=", inicio),
-    where("fecha", "<=", fin)
-  );
+const q = query(
+  collection(db, "ventas_rutav2"),
+  where("rutaId", "==", CONFIG.rutaId),
+  where("fecha", ">=", Timestamp.fromMillis(inicio.getTime())),
+  where("fecha", "<", Timestamp.fromMillis(fin.getTime() + 1))
+);
+
 
   const snap = await getDocs(q);
 
@@ -88,3 +90,4 @@ async function cargarVentas() {
   cnt.textContent = c;
   totalEl.textContent = total.toFixed(2);
 }
+
