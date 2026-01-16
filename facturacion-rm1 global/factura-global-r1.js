@@ -90,4 +90,3 @@ const q = query(
   cnt.textContent = c;
   totalEl.textContent = total.toFixed(2);
 }
-
