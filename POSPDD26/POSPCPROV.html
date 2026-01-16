@@ -572,7 +572,7 @@ enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off
    🔧 SECCIÓN 2: VARIABLES GLOBALES
    =========================================================== */
 const $ = s => document.querySelector(s);
-let carrito = [];
+window.carrito = [];
 window.indiceSeleccionado = null;
 let catalogo = [];
 let rutaId = null;
