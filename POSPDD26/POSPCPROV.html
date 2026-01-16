@@ -2166,6 +2166,14 @@ function rellenarTicket(v){
   $("#tImpuestos").textContent=money(t.impuestos);
   $("#tArticulos").textContent=carrito.reduce((a,b)=>a+b.cantidad,0);
   $("#tCajero").textContent=USUARIO_LOGUEADO?.nombre || "—";
+  // 💳 Forma de pago
+const formaPagoTexto = (v.forma_pago || "EFECTIVO")
+  .replace("TARJETA_", "TARJETA ")
+  .replace("_", " ");
+
+const elFP = document.getElementById("tFormaPago");
+if (elFP) elFP.textContent = formaPagoTexto;
+
 
   const tbody=document.getElementById("tLineas");
   tbody.innerHTML="";
@@ -2430,11 +2438,12 @@ window.toast = function(msg, color = "#0c6cbd") {
     <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
 
     <!-- 🧾 Información adicional -->
-    <div style="font-size:13px;">
-      <div>Artículos vendidos: <span id="tArticulos">0</span></div>
-      <div>Incluye <span id="tImpuestos">$0.00</span> de Impuestos</div>
-      <div>Cajero: <span id="tCajero">—</span></div>
-    </div>
+<div style="font-size:13px;">
+  <div>Artículos vendidos: <span id="tArticulos">0</span></div>
+  <div>Incluye <span id="tImpuestos">$0.00</span> de Impuestos</div>
+  <div>Forma de pago: <span id="tFormaPago">—</span></div>
+  <div>Cajero: <span id="tCajero">—</span></div>
+</div>
 
     <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
     <div style="text-align:center;font-size:13px;">¡Gracias por su compra!</div>
