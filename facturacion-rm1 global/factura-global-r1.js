@@ -77,11 +77,18 @@ const { inicio, fin } = rango;
   const fechaCFDI = ahora.toISOString().slice(0,19);
 
   // 🧾 CFDI BASE GLOBAL
-  const cfdiObj = armarObjetoCFDIDesdeVentasGlobales(
-    ventasGlobal,
-    folio,
-    fechaCFDI
-  );
+// 🔥 1) Aplanar conceptos de todas las ventas
+const ventaGlobalFake = {
+  detalle: ventasGlobal.flatMap(v => v.detalle)
+};
+
+// 🔥 2) Reusar el generador BASE (el que ya funciona)
+const cfdiObj = armarObjetoCFDIDesdeVenta(
+  ventaGlobalFake,
+  folio,
+  fechaCFDI
+);
+
 
   // 🔄 TXT SIFEI
   const txtSifei = convertirCFDIBaseASifei(cfdiObj);
@@ -168,6 +175,7 @@ function rangoDiaDesdeInput() {
 
   return { inicio, fin };
 }
+
 
 
 
