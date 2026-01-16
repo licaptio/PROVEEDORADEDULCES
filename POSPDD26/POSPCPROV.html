@@ -2203,7 +2203,7 @@ window.addEventListener("online", () => {
 
   console.log("✅ Conexión restaurada, Firestore volverá a sincronizar automáticamente.");
 });
-function toast(msg, color = "#0c6cbd") {
+window.toast = function(msg, color = "#0c6cbd") {
   const aviso = document.createElement("div");
   aviso.textContent = msg;
   aviso.style.cssText = `
@@ -2215,7 +2215,7 @@ function toast(msg, color = "#0c6cbd") {
   document.body.appendChild(aviso);
   setTimeout(()=>aviso.style.opacity=1,50);
   setTimeout(()=>{aviso.style.opacity=0;setTimeout(()=>aviso.remove(),400)},2500);
-}
+};
 // ✅ cierre del async
 })(); 
 
@@ -2348,7 +2348,7 @@ let bloqueoSalida = true;
    ⌨️ CONTROL GLOBAL DE TECLAS (POS PC)
    =========================================================== */
 
-const CLAVE_BORRAR_PRODUCTO = "1234";
+window.CLAVE_BORRAR_PRODUCTO = "1234";
 
 document.addEventListener("keydown", e => {
 
