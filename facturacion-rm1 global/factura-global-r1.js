@@ -52,72 +52,46 @@ function pintarVentas(ventas) {
 // ===============================
 // GENERAR CFDI (BASE + SIFEI)
 // ===============================
-window.generarTXTSifei = async function (idVenta) {
+window.generarTXTSifeiGlobal = async function () {
 
-  const ref = doc(db, "ventas_rutav2", idVenta);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) {
-    alert("Venta no existe");
+  const { inicio, fin } = rangoDesdeInputs();
+
+  const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
+
+  const ventasGlobal = ventas.filter(v =>
+    v.estado !== "FACTURADA" &&
+    !v.facturada_global
+  );
+
+  if (!ventasGlobal.length) {
+    alert("No hay ventas para factura global");
     return;
   }
 
-const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
-const ventasGlobal = ventas.filter(v =>
-  v.estado !== "FACTURADA" &&
-  !v.facturada_global
-);
-
-  // 🛑 Validación
-  if (!venta.detalle || !venta.detalle.length) {
-    alert("La venta no tiene conceptos");
-    return;
-  }
-
-  // 🔢 Folio fiscal
+  // 🔢 Folio
   const folioRaw = await tomarFolio(CONFIG.serieFiscal);
   const folio = String(folioRaw).padStart(6, "0");
 
-  // 📅 Fecha CFDI (LOCAL)
-  const fechaLocal = venta.fecha.toDate();
-  const fechaCFDI =
-    fechaLocal.getFullYear() + "-" +
-    String(fechaLocal.getMonth() + 1).padStart(2, "0") + "-" +
-    String(fechaLocal.getDate()).padStart(2, "0") + "T" +
-    String(fechaLocal.getHours()).padStart(2, "0") + ":" +
-    String(fechaLocal.getMinutes()).padStart(2, "0") + ":" +
-    String(fechaLocal.getSeconds()).padStart(2, "0");
+  // 📅 Fecha CFDI
+  const ahora = new Date();
+  const fechaCFDI = ahora.toISOString().slice(0,19);
 
-  // ===============================
-  // 2️⃣ CFDI SIFEI PREMIUM
-  // ===============================
-  const cfdiObj = armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI);
+  // 🧾 CFDI BASE GLOBAL
+  const cfdiObj = armarObjetoCFDIDesdeVentasGlobales(
+    ventasGlobal,
+    folio,
+    fechaCFDI
+  );
+
+  // 🔄 TXT SIFEI
   const txtSifei = convertirCFDIBaseASifei(cfdiObj);
 
-    console.log("CFDI SIFEI:\n", txtSifei);
+  console.log("TXT GLOBAL:\n", txtSifei);
 
-  // Mostrar en pantalla (BASE)
-  const visor = document.getElementById("txt");
-  if (visor) {
-    visor.style.display = "block";
-    visor.textContent = txtSifei;
-    }
-
-  // ===============================
-  // DESCARGAR AMBOS ARCHIVOS
-  // ===============================
-
-  descargarTXT(txtSifei, `SIFEI_${CONFIG.serieFiscal}_${folio}.txt`);
-
-  // ===============================
-  // MARCAR COMO FACTURADA
-  // ===============================
-  await updateDoc(ref, {
-    estado: "FACTURADA",
-    serie_fiscal: CONFIG.serieFiscal,
-    folio_fiscal: folio,
-    facturada_at: serverTimestamp()
-  });
+  descargarTXT(txtSifei, `GLOBAL_${CONFIG.serieFiscal}_${folio}.txt`);
 };
+
+  // ===============================
 
 // ===============================
 // DESCARGA DE TXT
@@ -187,4 +161,22 @@ function setFechasHoy() {
 setFechasHoy();
 cargarVentas();
 document.getElementById("btnBuscar").addEventListener("click", cargarVentas);
+
+function armarObjetoCFDIDesdeVentasGlobales(ventas, folio, fechaCFDI) {
+
+  return {
+    tipo: "GLOBAL",
+    rfc_receptor: "XAXX010101000",
+    nombre_receptor: "PUBLICO EN GENERAL",
+    uso_cfdi: "S01",
+    info_global: {
+      periodicidad: "01",
+      meses: String(new Date(fechaCFDI).getMonth() + 1).padStart(2, "0"),
+      año: String(new Date(fechaCFDI).getFullYear())
+    },
+    ventas_origen: ventas,
+    folio,
+    fechaCFDI
+  };
+}
 
