@@ -1,6 +1,4 @@
-// app.js
 import {
-  armarObjetoCFDIDesdeVenta,
   convertirCFDIBaseASifei
 } from "./sifei/generarTxt.js";
 
@@ -49,13 +47,13 @@ function pintarVentas(ventas) {
 window.generarTXTSifeiGlobal = async function () {
 
   const rango = rangoDiaDesdeInput();
-if (!rango) {
-  alert("Selecciona fecha");
-  return;
-}
-const { inicio, fin } = rango;
+  if (!rango) {
+    alert("Selecciona fecha");
+    return;
+  }
+  const { inicio, fin } = rango;
 
-
+  // 1️⃣ Traer ventas
   const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
 
   const ventasGlobal = ventas.filter(v =>
@@ -68,35 +66,61 @@ const { inicio, fin } = rango;
     return;
   }
 
-  // 🔢 Folio
+  // 2️⃣ Folio
   const folioRaw = await tomarFolio(CONFIG.serieFiscal);
   const folio = String(folioRaw).padStart(6, "0");
 
-  // 📅 Fecha CFDI
+  // 3️⃣ Fecha CFDI
   const ahora = new Date();
   const fechaCFDI = ahora.toISOString().slice(0,19);
 
-  // 🧾 CFDI BASE GLOBAL
-// 🔥 1) Aplanar conceptos de todas las ventas
-const ventaGlobalFake = {
-  detalle: ventasGlobal.flatMap(v => v.detalle)
-};
+  // 4️⃣ Conceptos por TICKET
+  const conceptos = generarConceptosGlobales(ventasGlobal);
 
-// 🔥 2) Reusar el generador BASE (el que ya funciona)
-const cfdiObj = armarObjetoCFDIDesdeVenta(
-  ventaGlobalFake,
-  folio,
-  fechaCFDI
-);
+  // 5️⃣ CFDI GLOBAL (PG)
+  const cfdiObj = {
+    Serie: CONFIG.serieFiscal,
+    Folio: folio,
+    Fecha: fechaCFDI,
+    FormaPago: "01",
+    MetodoPago: "PUE",
+    Moneda: "MXN",
 
+    Conceptos: conceptos.map(c => ({
+      Cantidad: 1,
+      ClaveUnidad: "ACT",
+      ClaveProdServ: "01010101",
+      Descripcion: "Venta",
+      ValorUnitario: c.base,
+      Importe: c.base,
+      Base: c.base,
 
-  // 🔄 TXT SIFEI
+      TasaIVA: c.baseIVA > 0 ? 0.16 : 0,
+      IVAImporte: c.iva,
+
+      IEPSTasa: c.iepsTasa || 0,
+      IEPSImporte: c.ieps || 0
+    })),
+
+    BaseIVA16: conceptos.reduce((s,c)=>s+c.baseIVA,0),
+    IVA16Importe: conceptos.reduce((s,c)=>s+c.iva,0),
+
+    BaseIEPS: conceptos.reduce((s,c)=>s+c.baseIEPS,0),
+    IEPSImporte: conceptos.reduce((s,c)=>s+c.ieps,0),
+    IEPSTasa: conceptos.find(c=>c.iepsTasa)?.iepsTasa || 0,
+
+    Subtotal: conceptos.reduce((s,c)=>s+c.base,0),
+    Total: conceptos.reduce((s,c)=>s+c.total,0)
+  };
+
+  // 6️⃣ TXT SIFEI
   const txtSifei = convertirCFDIBaseASifei(cfdiObj);
 
   console.log("TXT GLOBAL:\n", txtSifei);
 
   descargarTXT(txtSifei, `GLOBAL_${CONFIG.serieFiscal}_${folio}.txt`);
 };
+
 // ===============================
 // DESCARGA DE TXT
 // ===============================
@@ -185,4 +209,5 @@ function generarConceptosGlobales(ventas) {
     };
   });
 }
+
 
