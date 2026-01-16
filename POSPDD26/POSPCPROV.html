@@ -573,7 +573,7 @@ enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off
    =========================================================== */
 const $ = s => document.querySelector(s);
 let carrito = [];
-let indiceSeleccionado = null;
+window.indiceSeleccionado = null;
 let catalogo = [];
 let rutaId = null;
 let USUARIO_LOGUEADO = null;
