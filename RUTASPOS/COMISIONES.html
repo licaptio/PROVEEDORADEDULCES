@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reporte de Comisiones por Ruta</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: 'Poppins', Arial, sans-serif;
+  background:#f4f6f9;
+  padding:20px;
+}
+
+h1{
+  color:#00416A;
+  margin-bottom:15px;
+}
+
+.card{
+  background:white;
+  border-radius:14px;
+  padding:20px;
+  box-shadow:0 6px 20px rgba(0,0,0,.15);
+  max-width:1100px;
+  margin:auto;
+}
+
+.filtros{
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+  gap:12px;
+  margin-bottom:15px;
+}
+
+select,input,button{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:14px;
+}
+
+button{
+  background:#00416A;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+}
+
+th,td{
+  padding:8px;
+  border:1px solid #ddd;
+  text-align:center;
+  font-size:13px;
+}
+
+th{
+  background:#00416A;
+  color:white;
+}
+
+.total{
+  font-weight:bold;
+  background:#eaf2f8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h1>📊 Reporte de Comisiones</h1>
+
+<div class="filtros">
+  <select id="ruta">
+    <option value="">Selecciona ruta</option>
+    <option value="Almacen_Ruta_1">Ruta 1</option>
+    <option value="Almacen_Ruta_2">Ruta 2</option>
+  </select>
+
+  <input type="date" id="fechaInicio">
+  <input type="date" id="fechaFin">
+
+  <button onclick="generarReporte()">Generar Reporte</button>
+</div>
+
+<div id="resultado"></div>
+</div>
+
+<!-- 🔥 FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.generarReporte = async function(){
+
+  const ruta = document.getElementById("ruta").value;
+  const f1 = document.getElementById("fechaInicio").value;
+  const f2 = document.getElementById("fechaFin").value;
+
+  if(!ruta || !f1 || !f2){
+    alert("Selecciona ruta y rango de fechas");
+    return;
+  }
+
+  const inicio = new Date(f1 + "T00:00:00");
+  const fin = new Date(f2 + "T23:59:59");
+
+  const q = query(
+    collection(db,"ventas_rutav2"),
+    where("rutaId","==",ruta),
+    where("fecha",">=",inicio),
+    where("fecha","<=",fin)
+  );
+
+  const snap = await getDocs(q);
+
+  let departamentos = {};
+  let totalRuta = 0;
+  let usuarios = new Set();
+
+  snap.forEach(doc=>{
+    const v = doc.data();
+    usuarios.add(v.usuarioNombre);
+
+    v.detalle.forEach(item=>{
+      const depto = item.departamento_info.nombre;
+      const comision = Number(item.comision_monto) || 0;
+
+      if(!departamentos[depto]){
+        departamentos[depto] = 0;
+      }
+      departamentos[depto] += comision;
+      totalRuta += comision;
+    });
+  });
+
+  let html = `
+  <p><strong>Ruta:</strong> ${ruta}</p>
+  <p><strong>Usuarios:</strong> ${[...usuarios].join(", ")}</p>
+  <p><strong>Periodo:</strong> ${f1} al ${f2}</p>
+
+  <table>
+    <tr>
+      <th>Departamento</th>
+      <th>Total Comisión</th>
+    </tr>
+  `;
+
+  Object.keys(departamentos).forEach(d=>{
+    html += `
+    <tr>
+      <td>${d}</td>
+      <td>$${departamentos[d].toFixed(2)}</td>
+    </tr>`;
+  });
+
+  html += `
+    <tr class="total">
+      <td>TOTAL RUTA</td>
+      <td>$${totalRuta.toFixed(2)}</td>
+    </tr>
+  </table>
+  `;
+
+  document.getElementById("resultado").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
