@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Detalle de Ventas por Artículo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family:'Poppins',Arial,sans-serif;
+  background:#f4f6f9;
+  padding:20px;
+}
+
+.card{
+  background:white;
+  border-radius:14px;
+  padding:20px;
+  max-width:1300px;
+  margin:auto;
+  box-shadow:0 8px 24px rgba(0,0,0,.15);
+}
+
+h1{
+  color:#00416A;
+  margin-bottom:15px;
+}
+
+.filtros{
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+  gap:12px;
+}
+
+select,input,button{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:14px;
+}
+
+button{
+  background:#00416A;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+  font-size:13px;
+}
+
+th,td{
+  padding:7px;
+  border:1px solid #ddd;
+  text-align:center;
+}
+
+th{
+  background:#00416A;
+  color:white;
+  position:sticky;
+  top:0;
+}
+
+tr:nth-child(even){
+  background:#f8f9fb;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h1>📋 Detalle Global de Ventas</h1>
+
+<div class="filtros">
+  <select id="ruta">
+    <option value="">Selecciona ruta</option>
+    <option value="Almacen_Ruta_1">Ruta 1</option>
+    <option value="Almacen_Ruta_2">Ruta 2</option>
+  </select>
+
+  <input type="date" id="fechaInicio">
+  <input type="date" id="fechaFin">
+
+  <button onclick="generarListado()">Generar Listado</button>
+</div>
+
+<div id="resultado"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.generarListado = async function(){
+
+  const ruta = document.getElementById("ruta").value;
+  const f1 = document.getElementById("fechaInicio").value;
+  const f2 = document.getElementById("fechaFin").value;
+
+  if(!ruta || !f1 || !f2){
+    alert("Selecciona ruta y rango de fechas");
+    return;
+  }
+
+  const inicio = new Date(f1 + "T00:00:00");
+  const fin = new Date(f2 + "T23:59:59");
+
+  const q = query(
+    collection(db,"ventas_rutav2"),
+    where("rutaId","==",ruta),
+    where("fecha",">=",inicio),
+    where("fecha","<=",fin)
+  );
+
+  const snap = await getDocs(q);
+
+  let filas = "";
+
+  snap.forEach(doc=>{
+    const v = doc.data();
+
+    v.detalle.forEach(item=>{
+
+      const depto = item.departamento_info?.nombre || "SIN DEPTO";
+
+      filas += `
+      <tr>
+        <td>${v.folio || "-"}</td>
+        <td>${v.fecha_txt || "-"}</td>
+        <td>${item.codigo || "-"}</td>
+        <td>${item.nombre || "-"}</td>
+        <td>${depto}</td>
+        <td>$${(item.precio_unit || 0).toFixed(2)}</td>
+        <td>$${(item.importe || 0).toFixed(2)}</td>
+        <td>${item.comision_valor || 0}%</td>
+        <td>$${(item.comision_monto || 0).toFixed(2)}</td>
+      </tr>`;
+    });
+  });
+
+  document.getElementById("resultado").innerHTML = `
+  <table>
+    <tr>
+      <th>Folio</th>
+      <th>Fecha</th>
+      <th>Código</th>
+      <th>Descripción</th>
+      <th>Departamento</th>
+      <th>Precio Unit.</th>
+      <th>Total</th>
+      <th>% Comisión</th>
+      <th>Total Comisión</th>
+    </tr>
+    ${filas || `<tr><td colspan="9">Sin resultados</td></tr>`}
+  </table>`;
+}
+</script>
+
+</body>
+</html>
