@@ -154,3 +154,35 @@ function rangoDiaDesdeInput() {
   return { inicio, fin };
 }
 
+function resumirTicketParaGlobal(venta) {
+  return {
+    baseIVA: Number(venta.resumen_financiero.baseIVA || 0),
+    iva: Number(venta.resumen_financiero.iva || 0),
+
+    baseIEPS: Number(venta.resumen_financiero.baseIEPS || 0),
+    ieps: Number(venta.resumen_financiero.ieps || 0),
+    iepsTasa: Number(venta.resumen_financiero.iepsTasa || 0),
+
+    total: Number(venta.resumen_financiero.total),
+    folioVenta: venta.folio || "",
+    fecha: venta.fecha
+  };
+}
+function generarConceptosGlobales(ventas) {
+  return ventas.map((venta, idx) => {
+    const t = resumirTicketParaGlobal(venta);
+
+    return {
+      idx: idx + 1,
+      descripcion: "Venta",
+      base: t.baseIVA + t.baseIEPS,
+      baseIVA: t.baseIVA,
+      iva: t.iva,
+      baseIEPS: t.baseIEPS,
+      ieps: t.ieps,
+      iepsTasa: t.iepsTasa,
+      total: t.total
+    };
+  });
+}
+
