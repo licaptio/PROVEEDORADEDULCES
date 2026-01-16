@@ -380,7 +380,11 @@ tr.seleccionado{
     font-size: 13px;
   }
 }
-
+/* 🚫 DESACTIVAR BUSCADOR INLINE */
+#resultados {
+  display: none !important;
+  pointer-events: none !important;
+}
 </style>
 </head>
 <body>
@@ -1555,6 +1559,16 @@ buscador.addEventListener("keydown", (e) => {
 buscador.addEventListener("input", () => {
   // ❌ NO mostrar sugerencias al escribir
   resultadosDiv.style.display = "none";
+});
+  // 🚫 DESACTIVAR BÚSQUEDA MANUAL POR TEXTO
+buscador.addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+
+  // SOLO permitir escáner / enter directo
+  if (scanBuffer.length === 0) return;
+
+  procesarCodigoEscaneado(scanBuffer);
 });
 
 /* 🔹 Procesar también si el input pierde el foco */
