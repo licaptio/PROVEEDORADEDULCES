@@ -86,21 +86,27 @@ window.generarTXTSifeiGlobal = async function () {
     MetodoPago: "PUE",
     Moneda: "MXN",
 
-    Conceptos: conceptos.map(c => ({
-      Cantidad: 1,
-      ClaveUnidad: "ACT",
-      ClaveProdServ: "01010101",
-      Descripcion: "Venta",
-      ValorUnitario: c.base,
-      Importe: c.base,
-      Base: c.base,
+Conceptos: conceptos.map(c => {
+  const tieneImpuestos = c.baseIVA > 0 || c.baseIEPS > 0;
 
-      TasaIVA: c.baseIVA > 0 ? 0.16 : 0,
-      IVAImporte: c.iva,
+  return {
+    Cantidad: 1,
+    ClaveUnidad: "PZA",
+    ClaveProdServ: "01010101",
+    Descripcion: `Venta ${c.idx}`,
+    ValorUnitario: c.base,
+    Importe: c.base,
+    Base: c.base,
 
-      IEPSTasa: c.iepsTasa || 0,
-      IEPSImporte: c.ieps || 0
-    })),
+    TasaIVA: c.baseIVA > 0 ? 0.16 : 0,
+    IVAImporte: c.iva,
+
+    IEPSTasa: c.iepsTasa || 0,
+    IEPSImporte: c.ieps || 0,
+
+    objetoImp: tieneImpuestos ? "02" : "01" // 🔑 ESTE ES EL QUE TE FALTABA
+  };
+}),
 
     BaseIVA16: conceptos.reduce((s,c)=>s+c.baseIVA,0),
     IVA16Importe: conceptos.reduce((s,c)=>s+c.iva,0),
@@ -179,35 +185,46 @@ function rangoDiaDesdeInput() {
 }
 
 function resumirTicketParaGlobal(venta) {
+
+  const subtotal = Number(venta.resumen_financiero.subtotal || 0);
+  const impuestos = Number(venta.resumen_financiero.impuestos || 0);
+  const total = Number(venta.resumen_financiero.total || 0);
+
+  const baseIVA = impuestos > 0 ? subtotal : 0;
+  const iva = impuestos; // aquí es IVA directo
+
   return {
-    baseIVA: Number(venta.resumen_financiero.baseIVA || 0),
-    iva: Number(venta.resumen_financiero.iva || 0),
+    base: subtotal,
+    baseIVA: baseIVA,
+    iva: iva,
 
-    baseIEPS: Number(venta.resumen_financiero.baseIEPS || 0),
-    ieps: Number(venta.resumen_financiero.ieps || 0),
-    iepsTasa: Number(venta.resumen_financiero.iepsTasa || 0),
+    baseIEPS: 0,
+    ieps: 0,
+    iepsTasa: 0,
 
-    total: Number(venta.resumen_financiero.total),
-    folioVenta: venta.folio || "",
+    total: total,
+    folioVenta: venta.folio,
     fecha: venta.fecha
   };
 }
 function generarConceptosGlobales(ventas) {
+
   return ventas.map((venta, idx) => {
     const t = resumirTicketParaGlobal(venta);
 
     return {
       idx: idx + 1,
-      descripcion: "Venta",
-      base: t.baseIVA + t.baseIEPS,
+      descripcion: `Venta ${venta.folio}`,
+      base: t.base,
+
       baseIVA: t.baseIVA,
       iva: t.iva,
-      baseIEPS: t.baseIEPS,
-      ieps: t.ieps,
-      iepsTasa: t.iepsTasa,
+
+      baseIEPS: 0,
+      ieps: 0,
+      iepsTasa: 0,
+
       total: t.total
     };
   });
 }
-
-
