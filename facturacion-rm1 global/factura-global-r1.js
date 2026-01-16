@@ -8,12 +8,12 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔥 TU CONFIG REAL AQUÍ
+// 🔥 TU CONFIG REAL
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
   projectId: "inventariopv-643f1",
-  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  storageBucket: "inventariopv-643f1.appspot.com",
   messagingSenderId: "96242533231",
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
@@ -24,14 +24,15 @@ const db = getFirestore(app);
 // 🔒 CONFIG GLOBAL
 const CONFIG = { rutaId: "R1" };
 
+// DOM
 const tbody = document.getElementById("ventas");
 const cnt = document.getElementById("cnt");
 const totalEl = document.getElementById("total");
 const btnGenerar = document.getElementById("btnGenerar");
 const chk = document.getElementById("confirmo");
+const btnCargar = document.getElementById("btnCargar");
 
-document.getElementById("btnCargar")
-  .addEventListener("click", cargarVentas);
+btnCargar.addEventListener("click", cargarVentas);
 
 chk.addEventListener("change", () => {
   btnGenerar.disabled = !chk.checked;
@@ -67,8 +68,8 @@ async function cargarVentas() {
   let total = 0;
   let c = 0;
 
-  snap.forEach(doc => {
-    const v = doc.data();
+  snap.forEach(docSnap => {
+    const v = docSnap.data();
     if (v.estado === "FACTURADA") return;
     if (v.facturada_global) return;
 
@@ -87,4 +88,3 @@ async function cargarVentas() {
   cnt.textContent = c;
   totalEl.textContent = total.toFixed(2);
 }
-
