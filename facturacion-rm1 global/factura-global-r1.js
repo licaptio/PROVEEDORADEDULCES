@@ -91,7 +91,7 @@ Conceptos: conceptos.map(c => {
 
   return {
     Cantidad: 1,
-    ClaveUnidad: "PZA",
+    ClaveUnidad: "ACT",
     ClaveProdServ: "01010101",
     Descripcion: `Venta ${c.idx}`,
     ValorUnitario: c.base,
@@ -187,15 +187,16 @@ function rangoDiaDesdeInput() {
 function resumirTicketParaGlobal(venta) {
 
   const subtotal = Number(venta.resumen_financiero.subtotal || 0);
-  const impuestos = Number(venta.resumen_financiero.impuestos || 0);
   const total = Number(venta.resumen_financiero.total || 0);
 
-  const baseIVA = impuestos > 0 ? subtotal : 0;
-  const iva = impuestos; // aquí es IVA directo
+  const iva = Number(
+    venta.resumen_financiero.iva ??
+    (total - subtotal)
+  );
 
   return {
     base: subtotal,
-    baseIVA: baseIVA,
+    baseIVA: iva > 0 ? subtotal : 0,
     iva: iva,
 
     baseIEPS: 0,
@@ -207,6 +208,7 @@ function resumirTicketParaGlobal(venta) {
     fecha: venta.fecha
   };
 }
+
 function generarConceptosGlobales(ventas) {
 
   return ventas.map((venta, idx) => {
@@ -228,3 +230,4 @@ function generarConceptosGlobales(ventas) {
     };
   });
 }
+
