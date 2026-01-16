@@ -40,7 +40,7 @@ function pintar(ventas) {
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
-      <td>${v.fecha.toDate().toLocaleTimeString()}</td>
+      <td>${new Date(v.fecha?.seconds ? v.fecha.seconds * 1000 : v.fecha).toLocaleTimeString()}</td>
       <td>${v.folio}</td>
       <td>$${v.resumen_financiero.total.toFixed(2)}</td>
       <td>${estado}</td>
@@ -72,4 +72,6 @@ async function desmarcar(id) {
   });
 
   alert("✔ Ticket liberado");
+document.getElementById("btnCargar").click();
 }
+
