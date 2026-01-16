@@ -141,16 +141,22 @@ window.generarReporte = async function(){
     const v = doc.data();
     usuarios.add(v.usuarioNombre);
 
-    v.detalle.forEach(item=>{
-      const depto = item.departamento_info.nombre;
-      const comision = Number(item.comision_monto) || 0;
+v.detalle.forEach(item => {
 
-      if(!departamentos[depto]){
-        departamentos[depto] = 0;
-      }
-      departamentos[depto] += comision;
-      totalRuta += comision;
-    });
+  const depto =
+    item.departamento_info?.nombre
+    || "SIN DEPARTAMENTO";
+
+  const comision = Number(item.comision_monto) || 0;
+
+  if(!departamentos[depto]){
+    departamentos[depto] = 0;
+  }
+
+  departamentos[depto] += comision;
+  totalRuta += comision;
+});
+
   });
 
   let html = `
