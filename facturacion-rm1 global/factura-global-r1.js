@@ -37,12 +37,6 @@ function pintarVentas(ventas) {
       <td>${v.fecha.toDate().toLocaleString()}</td>
       <td>${v.cliente}</td>
       <td>$${v.resumen_financiero.total.toFixed(2)}</td>
-      <td style="font-weight:bold">${iconoEstado}</td>
-      <td>
-        <button onclick="generarTXTSifei('${v.id}')">
-          Generar TXT
-        </button>
-      </td>
     `;
 
     tbody.appendChild(tr);
@@ -96,9 +90,6 @@ const { inicio, fin } = rango;
 
   descargarTXT(txtSifei, `GLOBAL_${CONFIG.serieFiscal}_${folio}.txt`);
 };
-
-  // ===============================
-
 // ===============================
 // DESCARGA DE TXT
 // ===============================
@@ -126,8 +117,16 @@ async function cargarVentas() {
 
   const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
   pintarVentas(ventas);
-}
+  let total = 0;
 
+ventas.forEach(v => {
+  if (v.estado === "FACTURADA" || v.facturada_global) return;
+  total += v.resumen_financiero.total;
+});
+document.getElementById("total").textContent = total.toFixed(2);
+document.getElementById("cnt").textContent = ventas.length;
+
+}
 
 // ===============================
 // ARRANQUE
@@ -165,5 +164,6 @@ function rangoDiaDesdeInput() {
 
   return { inicio, fin };
 }
+
 
 
