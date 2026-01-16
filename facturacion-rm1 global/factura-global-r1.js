@@ -4,7 +4,7 @@ import {
   convertirCFDIBaseASifei
 } from "./sifei/generarTxt.js";
 
-import { db, obtenerVentasRuta, tomarFolio } from "../firebase.js";
+import { db, obtenerVentasRuta, tomarFolio } from "./firebase.js";
 import {
   doc,
   getDoc,
@@ -179,5 +179,6 @@ function armarObjetoCFDIDesdeVentasGlobales(ventas, folio, fechaCFDI) {
     fechaCFDI
   };
 }
+
 
 
