@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Visor de Tickets – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+
+<h2>📋 Visor de Tickets Fiscales</h2>
+
+<label>📍 Ruta:</label>
+<select id="ruta">
+  <option value="Almacen_Ruta_1">Ruta 1</option>
+  <option value="Almacen_Ruta_2">Ruta 2</option>
+  <option value="Almacen_Ruta_3">Ruta 3</option>
+</select>
+
+<label>📅 Fecha:</label>
+<input type="date" id="fecha">
+
+<button id="btnCargar">Cargar tickets</button>
+<hr>
+
+<table border="1" width="100%">
+  <thead>
+    <tr>
+      <th>Hora</th>
+      <th>Folio</th>
+      <th>Total</th>
+      <th>Estado</th>
+      <th>Acción</th>
+    </tr>
+  </thead>
+  <tbody id="tabla"></tbody>
+</table>
+
+<script type="module" src="./visor-tickets.js"></script>
+</body>
+</html>
