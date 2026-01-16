@@ -1304,7 +1304,7 @@ function renderDebounced() {
   clearTimeout(renderTimer);
   renderTimer = setTimeout(render, 100);
 }
-
+window.renderDebounced = renderDebounced;
 /* ===========================================================
    ⌨️ SECCIÓN 10: FLUJO DE ENTRADA (BUSCADOR + CANTIDAD)
    =========================================================== */
