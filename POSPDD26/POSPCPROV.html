@@ -327,17 +327,22 @@ font-size:14px!important;line-height:1.45;
    =============================== */
 
 #loginScreen{
-  background: linear-gradient(180deg,#003a5f,#001f33);
+  min-height: 100vh;
   display:flex;
   align-items:center;
   justify-content:center;
+
+  background:
+    radial-gradient(circle at top left, #c9d6ff, transparent 40%),
+    radial-gradient(circle at bottom right, #e2ebf0, transparent 40%),
+    linear-gradient(180deg,#f2f4f8,#e5e9f0);
 }
 
 .login-card{
   width:100%;
   max-width:380px;
   padding:32px 28px 36px;
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.65);
   border-radius:26px;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
