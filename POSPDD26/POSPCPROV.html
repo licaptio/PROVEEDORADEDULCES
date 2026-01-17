@@ -20,6 +20,7 @@
   --ios-green: #34c759;
   --ios-red: #ff3b30;
   --ios-gray: #8e8e93;
+  --login-bg: linear-gradient(180deg, #003a5f, #001f33);
 
   /* 🧊 Glass */
   --glass: rgba(255,255,255,0.72);
@@ -40,10 +41,7 @@ body{
   display:flex;
   flex-direction:column;
   font-family:'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
-  background:
-    radial-gradient(circle at top left, #c9d6ff, transparent 40%),
-    radial-gradient(circle at bottom right, #e2ebf0, transparent 40%),
-    linear-gradient(180deg,#f2f4f8,#e5e9f0);
+ background: var(--login-bg);
 }
 header{
   position:sticky;
@@ -331,11 +329,7 @@ font-size:14px!important;line-height:1.45;
   display:flex;
   align-items:center;
   justify-content:center;
-
-  background:
-    radial-gradient(circle at top left, #c9d6ff, transparent 40%),
-    radial-gradient(circle at bottom right, #e2ebf0, transparent 40%),
-    linear-gradient(180deg,#f2f4f8,#e5e9f0);
+  background: var(--login-bg);
 }
 
 .login-card{
