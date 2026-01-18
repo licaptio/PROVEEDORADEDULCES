@@ -78,53 +78,46 @@ window.generarTXTSifeiGlobal = async function () {
   const conceptos = generarConceptosGlobales(ventasGlobal);
 
   // 5️⃣ CFDI GLOBAL (PG)
-  const cfdiObj = {
-    Serie: CONFIG.serieFiscal,
-    Folio: folio,
-    Fecha: fechaCFDI,
-    FormaPago: "01",
-    MetodoPago: "PUE",
-    Moneda: "MXN",
+const cfdiObj = {
+  Serie: CONFIG.serieFiscal,
+  Folio: folio,
+  Fecha: fechaCFDI,
+  FormaPago: "01",
+  MetodoPago: "PUE",
+  Moneda: "MXN",
 
-Conceptos: conceptos.map(c => {
-  const tieneImpuestos = (c.iva > 0 || c.ieps > 0);
+  Conceptos: conceptos.map(c => {
+    const tieneIVA = c.iva > 0;
+    const tieneIEPS = c.ieps > 0;
+    const tieneImpuestos = tieneIVA || tieneIEPS;
 
-  return {
-    Cantidad: 1,
-    ClaveUnidad: "ACT",
-    ClaveProdServ: "01010101",
-    Descripcion: c.descripcion,
-    ValorUnitario: c.base,
-    Importe: c.base,
-    Base: c.base,
-    objetoImp: tieneImpuestos ? "02" : "01",
+    return {
+      Cantidad: 1,
+      ClaveUnidad: "ACT",
+      ClaveProdServ: "01010101",
+      Descripcion: c.descripcion,
+      ValorUnitario: c.base,
+      Importe: c.base,
+      Base: c.base,
+      objetoImp: tieneImpuestos ? "02" : "01",
 
-    // IVA
-    ...(c.iva > 0 ? {
-      BaseIVA16: c.baseIVA,
-      TasaIVA16: 0.16,
-      IVA16Importe: c.iva
-    } : {}),
+      ...(tieneIVA ? {
+        BaseIVA16: c.base,
+        TasaIVA16: 0.16,
+        IVA16Importe: c.iva
+      } : {}),
 
-    // IEPS
-    ...(c.ieps > 0 ? {
-      BaseIEPS: c.baseIEPS,
-      IEPSTasa: c.iepsTasa,
-      IEPSImporte: c.ieps
-    } : {})
-  };
-}),
+      ...(tieneIEPS ? {
+        BaseIEPS: c.base,
+        IEPSTasa: c.iepsTasa,
+        IEPSImporte: c.ieps
+      } : {})
+    };
+  }),
 
-    BaseIVA16: conceptos.reduce((s,c)=>s+c.baseIVA,0),
-    IVA16Importe: conceptos.reduce((s,c)=>s+c.iva,0),
-
-    BaseIEPS: conceptos.reduce((s,c)=>s+c.baseIEPS,0),
-    IEPSImporte: conceptos.reduce((s,c)=>s+c.ieps,0),
-    IEPSTasa: conceptos.find(c=>c.iepsTasa)?.iepsTasa || 0,
-
-    Subtotal: conceptos.reduce((s,c)=>s+c.base,0),
-    Total: conceptos.reduce((s,c)=>s+c.total,0)
-  };
+  Subtotal: conceptos.reduce((s, c) => s + c.base, 0),
+  Total: conceptos.reduce((s, c) => s + c.total, 0)
+};
 
   // 6️⃣ TXT SIFEI
   const txtSifei = convertirCFDIBaseASifei(cfdiObj);
@@ -249,4 +242,5 @@ function generarConceptosGlobales(ventas) {
     };
   });
 }
+
 
