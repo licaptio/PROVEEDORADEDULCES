@@ -87,22 +87,6 @@ window.generarTXTSifeiGlobal = async function () {
     Moneda: "MXN",
 
 Conceptos: conceptos.map(c => {
-  const tieneImpuestos = c.baseIVA > 0 || c.baseIEPS > 0;
-
-  return {
-    Cantidad: 1,
-    ClaveUnidad: "ACT",
-    ClaveProdServ: "01010101",
-    Descripcion: `Venta ${c.idx}`,
-    ValorUnitario: c.base,
-    Importe: c.base,
-    Base: c.base,
-
-    TasaIVA: c.baseIVA > 0 ? 0.16 : 0,
-    IVAImporte: c.iva,
-
-    IEPSTasa: c.iepsTasa || 0,
-    IEPSImporte: c.ieps || 0,
 
     objetoImp: tieneImpuestos ? "02" : "01" // 🔑 ESTE ES EL QUE TE FALTABA
   };
@@ -187,27 +171,39 @@ function rangoDiaDesdeInput() {
 function resumirTicketParaGlobal(venta) {
 
   const subtotal = Number(venta.resumen_financiero.subtotal || 0);
+  const impuestos = Number(venta.resumen_financiero.impuestos || 0);
   const total = Number(venta.resumen_financiero.total || 0);
 
-  const iva = Number(
-    venta.resumen_financiero.iva ??
-    (total - subtotal)
-  );
+  // 🔎 Detectar IEPS desde el detalle (una sola pasada)
+  let ieps = 0;
+  let iepsTasa = 0;
+
+  if (Array.isArray(venta.detalle)) {
+    venta.detalle.forEach(item => {
+      if (Number(item.ieps_calculado) > 0) {
+        ieps += Number(item.ieps_calculado);
+        iepsTasa = Number(item.iepsTasa || 0) / 100;
+      }
+    });
+  }
+
+  const iva = impuestos - ieps;
 
   return {
     base: subtotal,
     baseIVA: iva > 0 ? subtotal : 0,
     iva: iva,
 
-    baseIEPS: 0,
-    ieps: 0,
-    iepsTasa: 0,
+    baseIEPS: ieps > 0 ? subtotal : 0,
+    ieps: ieps,
+    iepsTasa: iepsTasa,
 
     total: total,
     folioVenta: venta.folio,
     fecha: venta.fecha
   };
 }
+
 
 function generarConceptosGlobales(ventas) {
 
@@ -222,12 +218,11 @@ function generarConceptosGlobales(ventas) {
       baseIVA: t.baseIVA,
       iva: t.iva,
 
-      baseIEPS: 0,
-      ieps: 0,
-      iepsTasa: 0,
+      baseIEPS: t.baseIEPS,
+      ieps: t.ieps,
+      iepsTasa: t.iepsTasa,
 
       total: t.total
     };
   });
 }
-
