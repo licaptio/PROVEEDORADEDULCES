@@ -87,8 +87,31 @@ window.generarTXTSifeiGlobal = async function () {
     Moneda: "MXN",
 
 Conceptos: conceptos.map(c => {
+  const tieneImpuestos = (c.iva > 0 || c.ieps > 0);
 
-    objetoImp: tieneImpuestos ? "02" : "01" // 🔑 ESTE ES EL QUE TE FALTABA
+  return {
+    Cantidad: 1,
+    ClaveUnidad: "ACT",
+    ClaveProdServ: "01010101",
+    Descripcion: c.descripcion,
+    ValorUnitario: c.base,
+    Importe: c.base,
+    Base: c.base,
+    objetoImp: tieneImpuestos ? "02" : "01",
+
+    // IVA
+    ...(c.iva > 0 ? {
+      BaseIVA16: c.baseIVA,
+      TasaIVA16: 0.16,
+      IVA16Importe: c.iva
+    } : {}),
+
+    // IEPS
+    ...(c.ieps > 0 ? {
+      BaseIEPS: c.baseIEPS,
+      IEPSTasa: c.iepsTasa,
+      IEPSImporte: c.ieps
+    } : {})
   };
 }),
 
@@ -226,3 +249,4 @@ function generarConceptosGlobales(ventas) {
     };
   });
 }
+
