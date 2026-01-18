@@ -6,14 +6,13 @@ import {
 /**
  * ============================================
  * VALIDADOR CFDI GLOBAL (PG)
+ * SOLO VALIDA COHERENCIA, NO RE-CALCULA
  * ============================================
- * - NO valida contra impuestos globales
- * - SOLO valida conceptos
  */
 function validarCFDI(cfdi) {
 
   if (!Array.isArray(cfdi.Conceptos) || !cfdi.Conceptos.length) {
-    throw new Error("CFDI sin conceptos");
+    throw new Error("CFDI GLOBAL sin conceptos");
   }
 
   const ivaConceptos = cfdi.Conceptos
@@ -21,7 +20,7 @@ function validarCFDI(cfdi) {
     .reduce((s, c) => s + c.IVAImporte, 0);
 
   if (ivaConceptos < 0) {
-    throw new Error(`IVA inválido en conceptos: ${ivaConceptos}`);
+    throw new Error("IVA inválido en conceptos");
   }
 
   const iepsConceptos = cfdi.Conceptos
@@ -29,88 +28,8 @@ function validarCFDI(cfdi) {
     .reduce((s, c) => s + c.IEPSImporte, 0);
 
   if (iepsConceptos < 0) {
-    throw new Error(`IEPS inválido en conceptos: ${iepsConceptos}`);
+    throw new Error("IEPS inválido en conceptos");
   }
-}
-
-/**
- * ============================================
- * ARMAR CFDI GLOBAL DESDE TICKETS
- * 1 CONCEPTO = 1 TICKET
- * ============================================
- */
-export function armarCFDIGlobalDesdeTickets({
-  serie,
-  folio,
-  fechaCFDI,
-  tickets
-}) {
-
-  let subtotal = 0;
-  let total = 0;
-
-  let BaseIVA16 = 0;
-  let IVA16Importe = 0;
-
-  let BaseIEPS = 0;
-  let IEPSImporte = 0;
-  let IEPSTasa = 0;
-
-  const Conceptos = tickets.map((t, idx) => {
-
-    subtotal += t.base;
-    total += t.total;
-
-    // IVA
-    if (t.iva > 0) {
-      BaseIVA16 += t.base;
-      IVA16Importe += t.iva;
-    }
-
-    // IEPS
-    if (t.ieps > 0) {
-      BaseIEPS += t.base;
-      IEPSImporte += t.ieps;
-      IEPSTasa = t.iepsTasa;
-    }
-
-    return {
-      Cantidad: 1,
-      ClaveUnidad: "ACT",
-      ClaveProdServ: "01010101",
-      Descripcion: t.descripcion,
-      ValorUnitario: t.base,
-      Importe: t.base,
-      Base: t.base,
-
-      TasaIVA: t.iva > 0 ? 0.16 : 0,
-      IVAImporte: t.iva || 0,
-
-      IEPSTasa: t.ieps > 0 ? t.iepsTasa : 0,
-      IEPSImporte: t.ieps || 0
-    };
-  });
-
-  return {
-    Serie: serie,
-    Folio: folio,
-    Fecha: fechaCFDI,
-    FormaPago: "01",
-    MetodoPago: "PUE",
-    Moneda: "MXN",
-
-    Subtotal: subtotal,
-    Total: total,
-
-    BaseIVA16,
-    IVA16Importe,
-
-    BaseIEPS,
-    IEPSImporte,
-    IEPSTasa,
-
-    Conceptos
-  };
 }
 
 /**
@@ -118,7 +37,7 @@ export function armarCFDIGlobalDesdeTickets({
  * CFDI GLOBAL → TXT SIFEI
  * ============================================
  */
-export function convertirCFDIGlobalASifei(cfdi) {
+export function convertirCFDIBaseASifei(cfdi) {
 
   validarCFDI(cfdi);
   const out = [];
@@ -154,10 +73,7 @@ export function convertirCFDIGlobalASifei(cfdi) {
     RECEPTOR_PUBLICO_GENERAL.usoCFDI,
     "",
     "",
-    (
-      (cfdi.IVA16Importe || 0) +
-      (cfdi.IEPSImporte || 0)
-    ).toFixed(2),
+    ((cfdi.IVA16Importe || 0) + (cfdi.IEPSImporte || 0)).toFixed(2),
     "INFO_ADIC",
     "",
     FISCAL_EMISOR.direccion,
@@ -193,30 +109,30 @@ export function convertirCFDIGlobalASifei(cfdi) {
       "03",
       idx + 1,
       "1.000",
-      c.ClaveUnidad,
-      "PZA",
-      c.ClaveProdServ,
+      "ACT",
+      "",
+      "01010101",
       "",
       c.Descripcion,
-      c.ValorUnitario.toFixed(4),
+      c.ValorUnitario.toFixed(6),
       "0.00",
-      c.Importe.toFixed(4),
+      c.Importe.toFixed(6),
       "",
       tieneImpuestos ? "02" : "01"
     ].join("|"));
 
-    // IVA
-if (c.TasaIVA >= 0 && (c.TasaIVA > 0 || c.IEPSTasa > 0)) {
-  out.push([
-    "03-IMP","TRASLADO",
-    c.Base.toFixed(6),
-    "002","Tasa",
-    (c.TasaIVA || 0).toFixed(6),
-    (c.IVAImporte || 0).toFixed(6)
-  ].join("|"));
-}
+    // IVA SOLO SI > 0
+    if (c.TasaIVA > 0) {
+      out.push([
+        "03-IMP","TRASLADO",
+        c.Base.toFixed(6),
+        "002","Tasa",
+        "0.160000",
+        c.IVAImporte.toFixed(6)
+      ].join("|"));
+    }
 
-    // IEPS
+    // IEPS SOLO SI > 0
     if (c.IEPSTasa > 0) {
       out.push([
         "03-IMP","TRASLADO",
@@ -229,8 +145,17 @@ if (c.TasaIVA >= 0 && (c.TasaIVA > 0 || c.IEPSTasa > 0)) {
   });
 
   // ===============================
-  // 04 | IMPUESTOS GLOBALES (AGREGADOS)
+  // 04 | IMPUESTOS GLOBALES
   // ===============================
+  if (cfdi.IVA16Importe > 0) {
+    out.push([
+      "04","TRASLADO","002","Tasa",
+      "0.160000",
+      cfdi.IVA16Importe.toFixed(2),
+      cfdi.BaseIVA16.toFixed(2)
+    ].join("|"));
+  }
+
   if (cfdi.IEPSImporte > 0) {
     out.push([
       "04","TRASLADO","003","Tasa",
@@ -240,14 +165,5 @@ if (c.TasaIVA >= 0 && (c.TasaIVA > 0 || c.IEPSTasa > 0)) {
     ].join("|"));
   }
 
-  if (cfdi.IVA16Importe > 0) {
-    out.push([
-      "04","TRASLADO","002","Tasa","0.160000",
-      cfdi.IVA16Importe.toFixed(2),
-      cfdi.BaseIVA16.toFixed(2)
-    ].join("|"));
-  }
-
   return out.join("\n");
 }
-
