@@ -206,14 +206,15 @@ export function convertirCFDIGlobalASifei(cfdi) {
     ].join("|"));
 
     // IVA
-    if (c.TasaIVA > 0) {
-      out.push([
-        "03-IMP","TRASLADO",
-        c.Base.toFixed(6),
-        "002","Tasa","0.160000",
-        c.IVAImporte.toFixed(6)
-      ].join("|"));
-    }
+if (c.TasaIVA >= 0 && (c.TasaIVA > 0 || c.IEPSTasa > 0)) {
+  out.push([
+    "03-IMP","TRASLADO",
+    c.Base.toFixed(6),
+    "002","Tasa",
+    (c.TasaIVA || 0).toFixed(6),
+    (c.IVAImporte || 0).toFixed(6)
+  ].join("|"));
+}
 
     // IEPS
     if (c.IEPSTasa > 0) {
@@ -249,3 +250,4 @@ export function convertirCFDIGlobalASifei(cfdi) {
 
   return out.join("\n");
 }
+
