@@ -168,7 +168,3 @@ export function convertirCFDIBaseASifei(cfdi) {
   return out.join("\n");
 }
 
-export function convertirCFDIBaseASifei(cfdi) {
-  ...
-}
-
