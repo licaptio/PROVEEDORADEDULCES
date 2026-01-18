@@ -2,32 +2,52 @@ import {
   FISCAL_EMISOR,
   RECEPTOR_PUBLICO_GENERAL
 } from "./configFiscal.js";
+
+/**
+ * ============================================
+ * VALIDADOR CFDI GLOBAL (PG)
+ * ============================================
+ * - NO valida contra impuestos globales
+ * - SOLO valida conceptos
+ */
 function validarCFDI(cfdi) {
 
-  // ===== IVA =====
+  if (!Array.isArray(cfdi.Conceptos) || !cfdi.Conceptos.length) {
+    throw new Error("CFDI sin conceptos");
+  }
+
   const ivaConceptos = cfdi.Conceptos
     .filter(c => c.TasaIVA > 0)
     .reduce((s, c) => s + c.IVAImporte, 0);
 
-if (ivaConceptos < 0) {
-  throw new Error(`IVA inválido en conceptos: ${ivaConceptos}`);
-}
+  if (ivaConceptos < 0) {
+    throw new Error(`IVA inválido en conceptos: ${ivaConceptos}`);
+  }
 
-  // ===== IEPS =====
   const iepsConceptos = cfdi.Conceptos
     .filter(c => c.IEPSTasa > 0)
     .reduce((s, c) => s + c.IEPSImporte, 0);
-if (iepsConceptos < 0) {
+
+  if (iepsConceptos < 0) {
     throw new Error(`IEPS inválido en conceptos: ${iepsConceptos}`);
   }
 }
+
 /**
  * ============================================
- * 1️⃣ ARMAR CFDI BASE (FUENTE ÚNICA DE VERDAD)
+ * ARMAR CFDI GLOBAL DESDE TICKETS
+ * 1 CONCEPTO = 1 TICKET
  * ============================================
  */
-export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
+export function armarCFDIGlobalDesdeTickets({
+  serie,
+  folio,
+  fechaCFDI,
+  tickets
+}) {
+
   let subtotal = 0;
+  let total = 0;
 
   let BaseIVA16 = 0;
   let IVA16Importe = 0;
@@ -36,57 +56,43 @@ export function armarObjetoCFDIDesdeVenta(venta, folio, fechaCFDI) {
   let IEPSImporte = 0;
   let IEPSTasa = 0;
 
-  const Conceptos = venta.detalle.map(item => {
+  const Conceptos = tickets.map((t, idx) => {
 
-    const importe = Number(item.importe);
-    subtotal += importe;
+    subtotal += t.base;
+    total += t.total;
 
-    // ===== IVA =====
-const tasaIVA =
-  Number(item.iva) === 16 ||
-  Number(item.ivaTasa) === 0.16 ||
-  Number(item.iva_calculado) > 0
-    ? 0.16
-    : 0;
-
-const ivaImporte = tasaIVA > 0
-  ? Number(item.iva_calculado || 0)
-  : 0;
-
-    if (tasaIVA > 0) {
-      BaseIVA16 += importe;
-      IVA16Importe += ivaImporte;
+    // IVA
+    if (t.iva > 0) {
+      BaseIVA16 += t.base;
+      IVA16Importe += t.iva;
     }
 
-    // ===== IEPS (USAR EL YA CALCULADO) =====
-    const tasaIEPS = Number(item.iepsTasa || 0) / 100;
-    const iepsImporte = Number(item.ieps_calculado || 0);
-
-    if (tasaIEPS > 0) {
-      BaseIEPS += importe;
-      IEPSImporte += iepsImporte;
-      IEPSTasa = tasaIEPS;
+    // IEPS
+    if (t.ieps > 0) {
+      BaseIEPS += t.base;
+      IEPSImporte += t.ieps;
+      IEPSTasa = t.iepsTasa;
     }
 
     return {
-      Cantidad: Number(item.cantidad),
-      ClaveUnidad: item.unidadSat || "H87",
-      ClaveProdServ: item.claveSat || "01010101",
-      Descripcion: item.nombre,
-      ValorUnitario: Number(item.precio_unit),
-      Importe: importe,
-      Base: importe,
+      Cantidad: 1,
+      ClaveUnidad: "ACT",
+      ClaveProdServ: "01010101",
+      Descripcion: t.descripcion,
+      ValorUnitario: t.base,
+      Importe: t.base,
+      Base: t.base,
 
-      TasaIVA: tasaIVA,
-      IVAImporte: ivaImporte,
+      TasaIVA: t.iva > 0 ? 0.16 : 0,
+      IVAImporte: t.iva || 0,
 
-      IEPSTasa: tasaIEPS,
-      IEPSImporte: iepsImporte
+      IEPSTasa: t.ieps > 0 ? t.iepsTasa : 0,
+      IEPSImporte: t.ieps || 0
     };
   });
 
   return {
-    Serie: "RM1",
+    Serie: serie,
     Folio: folio,
     Fecha: fechaCFDI,
     FormaPago: "01",
@@ -94,7 +100,7 @@ const ivaImporte = tasaIVA > 0
     Moneda: "MXN",
 
     Subtotal: subtotal,
-    Total: subtotal + IVA16Importe + IEPSImporte,
+    Total: total,
 
     BaseIVA16,
     IVA16Importe,
@@ -109,11 +115,11 @@ const ivaImporte = tasaIVA > 0
 
 /**
  * ============================================
- * 2️⃣ CFDI BASE → TXT SIFEI (VALIDADO)
+ * CFDI GLOBAL → TXT SIFEI
  * ============================================
  */
-export function convertirCFDIBaseASifei(cfdi) {
-    // 🔒 BLINDAJE FINAL ANTI-SAT / ANTI-SIFEI
+export function convertirCFDIGlobalASifei(cfdi) {
+
   validarCFDI(cfdi);
   const out = [];
 
@@ -148,7 +154,10 @@ export function convertirCFDIBaseASifei(cfdi) {
     RECEPTOR_PUBLICO_GENERAL.usoCFDI,
     "",
     "",
-    (cfdi.IVA16Importe + cfdi.IEPSImporte).toFixed(2),
+    (
+      (cfdi.IVA16Importe || 0) +
+      (cfdi.IEPSImporte || 0)
+    ).toFixed(2),
     "INFO_ADIC",
     "",
     FISCAL_EMISOR.direccion,
@@ -159,13 +168,13 @@ export function convertirCFDIBaseASifei(cfdi) {
   ].join("|"));
 
   // ===============================
-  // INFO_GLOBAL (OBLIGATORIO PG)
+  // INFO_GLOBAL
   // ===============================
   const fecha = new Date(cfdi.Fecha);
   out.push([
     "01","CFDI40","01","INFO_GLOBAL",
     "01",
-    String(fecha.getMonth()+1).padStart(2,"0"),
+    String(fecha.getMonth() + 1).padStart(2, "0"),
     fecha.getFullYear(),
     "EMISOR","",
     "RECEPTOR",
@@ -174,17 +183,16 @@ export function convertirCFDIBaseASifei(cfdi) {
   ].join("|"));
 
   // ===============================
-  // 03 | CONCEPTOS
+  // 03 | CONCEPTOS (1 = 1 ticket)
   // ===============================
   cfdi.Conceptos.forEach((c, idx) => {
 
     const tieneImpuestos = (c.TasaIVA > 0 || c.IEPSTasa > 0);
-    const objetoImp = tieneImpuestos ? "02" : "01";
 
     out.push([
       "03",
       idx + 1,
-      c.Cantidad.toFixed(3),
+      "1.000",
       c.ClaveUnidad,
       "PZA",
       c.ClaveProdServ,
@@ -194,7 +202,7 @@ export function convertirCFDIBaseASifei(cfdi) {
       "0.00",
       c.Importe.toFixed(4),
       "",
-      objetoImp
+      tieneImpuestos ? "02" : "01"
     ].join("|"));
 
     // IVA
@@ -220,7 +228,7 @@ export function convertirCFDIBaseASifei(cfdi) {
   });
 
   // ===============================
-  // 04 | IMPUESTOS GLOBALES
+  // 04 | IMPUESTOS GLOBALES (AGREGADOS)
   // ===============================
   if (cfdi.IEPSImporte > 0) {
     out.push([
@@ -241,4 +249,3 @@ export function convertirCFDIBaseASifei(cfdi) {
 
   return out.join("\n");
 }
-
