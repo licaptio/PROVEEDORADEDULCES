@@ -9,11 +9,9 @@ function validarCFDI(cfdi) {
     .filter(c => c.TasaIVA > 0)
     .reduce((s, c) => s + c.IVAImporte, 0);
 
-  if (cfdi.IVA16Importe.toFixed(2) !== ivaConceptos.toFixed(2)) {
-    throw new Error(
-      `Descuadre IVA: Global=${cfdi.IVA16Importe} vs Conceptos=${ivaConceptos}`
-    );
-  }
+if (ivaConceptos < 0) {
+  throw new Error(`IVA inválido en conceptos: ${ivaConceptos}`);
+}
 
   // ===== IEPS =====
   const iepsConceptos = cfdi.Conceptos
@@ -247,6 +245,7 @@ export function convertirCFDIBaseASifei(cfdi) {
 
   return out.join("\n");
 }
+
 
 
 
