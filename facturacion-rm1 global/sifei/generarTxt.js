@@ -21,7 +21,6 @@ if (iepsConceptos < 0) {
     throw new Error(`IEPS inválido en conceptos: ${iepsConceptos}`);
   }
 }
-}
 /**
  * ============================================
  * 1️⃣ ARMAR CFDI BASE (FUENTE ÚNICA DE VERDAD)
@@ -242,3 +241,4 @@ export function convertirCFDIBaseASifei(cfdi) {
 
   return out.join("\n");
 }
+
