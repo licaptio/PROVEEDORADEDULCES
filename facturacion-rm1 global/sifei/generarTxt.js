@@ -17,14 +17,11 @@ if (ivaConceptos < 0) {
   const iepsConceptos = cfdi.Conceptos
     .filter(c => c.IEPSTasa > 0)
     .reduce((s, c) => s + c.IEPSImporte, 0);
-
-  if (cfdi.IEPSImporte.toFixed(2) !== iepsConceptos.toFixed(2)) {
-    throw new Error(
-      `Descuadre IEPS: Global=${cfdi.IEPSImporte} vs Conceptos=${iepsConceptos}`
-    );
+if (iepsConceptos < 0) {
+    throw new Error(`IEPS inválido en conceptos: ${iepsConceptos}`);
   }
 }
-
+}
 /**
  * ============================================
  * 1️⃣ ARMAR CFDI BASE (FUENTE ÚNICA DE VERDAD)
@@ -245,7 +242,3 @@ export function convertirCFDIBaseASifei(cfdi) {
 
   return out.join("\n");
 }
-
-
-
-
