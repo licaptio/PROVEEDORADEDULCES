@@ -1,7 +1,4 @@
-import {
-  convertirCFDIGlobalASifei
-} from "./sifei/generarTxt.js";
-
+const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
 import { db, obtenerVentasRuta, tomarFolio } from "./firebase.js";
 import {
   doc,
@@ -242,6 +239,7 @@ function generarConceptosGlobales(ventas) {
     };
   });
 }
+
 
 
 
