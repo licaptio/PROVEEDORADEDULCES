@@ -114,3 +114,6 @@ export function convertirCFDIGlobalASifei(cfdi) {
 
   return out.join("\n");
 }
+
+
+...
