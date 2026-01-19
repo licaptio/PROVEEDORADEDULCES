@@ -1,9 +1,5 @@
-import {
-  prorratearGlobal,
-  aplicarRedondeoSAT,
-  round2,
-  round6
-} from "./utils/prorrateoSAT.js";
+import { round2, round6 } from "../prorrateoSAT.js";
+
 /**
  * EXPORT ÚNICO
  */
@@ -109,5 +105,6 @@ export function convertirCFDIGlobalASifei(cfdi) {
 
   return out.join("\n");
 }
+
 
 
