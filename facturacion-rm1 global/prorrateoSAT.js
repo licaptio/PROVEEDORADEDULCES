@@ -67,3 +67,5 @@ export function aplicarRedondeoSAT({
 
   return out;
 }
+
+.
