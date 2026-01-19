@@ -72,10 +72,75 @@ window.generarTXTSifeiGlobal = async function () {
   const ahora = new Date();
   const fechaCFDI = ahora.toISOString().slice(0,19);
 
-  // 4️⃣ Conceptos por TICKET
-  const conceptos = generarConceptosGlobales(ventasGlobal);
+const tickets = ventasGlobal.map(v => ({
+  folio: v.folio,
+  total: Number(v.resumen_financiero.total)
+}));
 
-  // 5️⃣ CFDI GLOBAL (PG)
+const baseGlobal = ventasGlobal.reduce(
+  (s,v)=>s+Number(v.resumen_financiero.subtotal||0),0
+);
+const ivaGlobal = ventasGlobal.reduce(
+  (s,v)=>s+Number(v.resumen_financiero.iva||0),0
+);
+const iepsGlobal = ventasGlobal.reduce(
+  (s,v)=>s+Number(v.resumen_financiero.ieps||0),0
+);
+
+const prorrateados = prorratearGlobal({
+  tickets,
+  baseGlobal,
+  ivaGlobal,
+  iepsGlobal
+});
+
+const conceptosFinales = aplicarRedondeoSAT({
+  conceptos: prorrateados,
+  baseGlobal,
+  ivaGlobal,
+  iepsGlobal
+});
+
+const conceptosCFDI = conceptosFinales.map(c => {
+  const tieneIVA  = c.iva > 0;
+  const tieneIEPS = c.ieps > 0;
+
+  return {
+    Cantidad: 1,
+    ClaveUnidad: "ACT",
+    ClaveProdServ: "01010101",
+    Descripcion: `Venta ${c.folio}`,
+    ValorUnitario: c.base,
+    Importe: c.base,
+    Base: c.base,
+
+    TasaIVA: tieneIVA ? 0.16 : 0,
+    IVAImporte: tieneIVA ? c.iva : 0,
+
+    IEPSTasa: (tieneIEPS && c.base > 0)
+      ? round6(c.ieps / c.base)
+      : 0,
+    IEPSImporte: tieneIEPS ? c.ieps : 0
+  };
+});
+const BaseIVA16 = round2(
+  conceptosCFDI.reduce((s,c)=>s+(c.TasaIVA>0?c.Base:0),0)
+);
+const IVA16Importe = round2(
+  conceptosCFDI.reduce((s,c)=>s+c.IVAImporte,0)
+);
+
+const BaseIEPS = round2(
+  conceptosCFDI.reduce((s,c)=>s+(c.IEPSTasa>0?c.Base:0),0)
+);
+const IEPSImporte = round2(
+  conceptosCFDI.reduce((s,c)=>s+c.IEPSImporte,0)
+);
+
+const Subtotal = round2(
+  conceptosCFDI.reduce((s,c)=>s+c.Base,0)
+);
+const Total = round2(Subtotal + IVA16Importe + IEPSImporte);
 const cfdiObj = {
   Serie: CONFIG.serieFiscal,
   Folio: folio,
@@ -84,161 +149,24 @@ const cfdiObj = {
   MetodoPago: "PUE",
   Moneda: "MXN",
 
-  Conceptos: conceptos.map(c => {
-    const tieneIVA = c.iva > 0;
-    const tieneIEPS = c.ieps > 0;
-    const tieneImpuestos = tieneIVA || tieneIEPS;
+  Subtotal,
+  Total,
 
-    return {
-      Cantidad: 1,
-      ClaveUnidad: "ACT",
-      ClaveProdServ: "01010101",
-      Descripcion: c.descripcion,
-      ValorUnitario: c.base,
-      Importe: c.base,
-      Base: c.base,
-      objetoImp: tieneImpuestos ? "02" : "01",
+  BaseIVA16,
+  IVA16Importe,
 
-      ...(tieneIVA ? {
-        BaseIVA16: c.base,
-        TasaIVA16: 0.16,
-        IVA16Importe: c.iva
-      } : {}),
+  BaseIEPS,
+  IEPSImporte,
+  IEPSTasa: BaseIEPS > 0
+    ? round6(IEPSImporte / BaseIEPS)
+    : 0,
 
-      ...(tieneIEPS ? {
-        BaseIEPS: c.base,
-        IEPSTasa: c.iepsTasa,
-        IEPSImporte: c.ieps
-      } : {})
-    };
-  }),
-
-  Subtotal: conceptos.reduce((s, c) => s + c.base, 0),
-  Total: conceptos.reduce((s, c) => s + c.total, 0)
+  Conceptos: conceptosCFDI
 };
 
-  // 6️⃣ TXT SIFEI
-  const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
-
-  console.log("TXT GLOBAL:\n", txtSifei);
-
-  descargarTXT(txtSifei, `GLOBAL_${CONFIG.serieFiscal}_${folio}.txt`);
-};
-
-// ===============================
-// DESCARGA DE TXT
-// ===============================
-function descargarTXT(contenido, nombreArchivo) {
-  const blob = new Blob([contenido], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = nombreArchivo;
-  document.body.appendChild(link);
-  link.click();
-
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-async function cargarVentas() {
-  const rango = rangoDiaDesdeInput();
-  if (!rango) {
-    alert("Selecciona fecha");
-    return;
-  }
-
-  const { inicio, fin } = rango;
-
-  const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
-  pintarVentas(ventas);
-  let total = 0;
-
-ventas.forEach(v => {
-  if (v.estado === "FACTURADA" || v.facturada_global) return;
-  total += v.resumen_financiero.total;
-});
-document.getElementById("total").textContent = total.toFixed(2);
-document.getElementById("cnt").textContent = ventas.length;
-
-}
-
-// ===============================
-// ARRANQUE
-// ===============================
-document
-  .getElementById("btnCargar")
-  .addEventListener("click", cargarVentas);
-
-function rangoDiaDesdeInput() {
-  const input = document.getElementById("fecha");
-  if (!input || !input.value) return null;
-
-  const [y, m, d] = input.value.split("-").map(Number);
-
-  const inicio = new Date(y, m - 1, d, 0, 0, 0);
-  const fin = new Date(y, m - 1, d, 23, 59, 59, 999);
-
-  return { inicio, fin };
-}
-
-function resumirTicketParaGlobal(venta) {
-
-  const subtotal = Number(venta.resumen_financiero.subtotal || 0);
-  const impuestos = Number(venta.resumen_financiero.impuestos || 0);
-  const total = Number(venta.resumen_financiero.total || 0);
-
-  // 🔎 Detectar IEPS desde el detalle (una sola pasada)
-  let ieps = 0;
-  let iepsTasa = 0;
-
-  if (Array.isArray(venta.detalle)) {
-    venta.detalle.forEach(item => {
-      if (Number(item.ieps_calculado) > 0) {
-        ieps += Number(item.ieps_calculado);
-        iepsTasa = Number(item.iepsTasa || 0) / 100;
-      }
-    });
-  }
-
-  const iva = impuestos - ieps;
-
-  return {
-    base: subtotal,
-    baseIVA: iva > 0 ? subtotal : 0,
-    iva: iva,
-
-    baseIEPS: ieps > 0 ? subtotal : 0,
-    ieps: ieps,
-    iepsTasa: iepsTasa,
-
-    total: total,
-    folioVenta: venta.folio,
-    fecha: venta.fecha
-  };
-}
-
-
-function generarConceptosGlobales(ventas) {
-
-  return ventas.map((venta, idx) => {
-    const t = resumirTicketParaGlobal(venta);
-
-    return {
-      idx: idx + 1,
-      descripcion: `Venta ${venta.folio}`,
-      base: t.base,
-
-      baseIVA: t.baseIVA,
-      iva: t.iva,
-
-      baseIEPS: t.baseIEPS,
-      ieps: t.ieps,
-      iepsTasa: t.iepsTasa,
-
-      total: t.total
-    };
-  });
-}
-
+console.assert(
+  round2(Subtotal + IVA16Importe + IEPSImporte) === round2(Total),
+  "❌ Totales inconsistentes"
+);
+const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
 
