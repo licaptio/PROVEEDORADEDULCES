@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Factura Global Diaria · PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+
+<body>
+
+  <h1>🧾 Factura Global Diaria</h1>
+  <p>PROVSOFT · Público en General · CFDI 4.0</p>
+
+  <!-- ===============================
+       SELECCIÓN DE FECHA
+       =============================== -->
+  <label>📅 Fecha a cerrar:</label><br>
+  <input type="date" id="fecha" />
+  <br><br>
+
+  <button id="btnCargar">
+    Cargar ventas del día
+  </button>
+
+  <hr>
+
+  <!-- ===============================
+       RESUMEN
+       =============================== -->
+  <p>
+    Tickets encontrados:
+    <b id="cnt">0</b>
+  </p>
+
+  <p>
+    Total global estimado:
+    <b>$<span id="total">0.00</span></b>
+  </p>
+
+  <!-- ===============================
+       TABLA DE VENTAS
+       =============================== -->
+  <table border="1" width="100%" cellpadding="6">
+    <thead>
+      <tr>
+        <th>Hora</th>
+        <th>Cliente</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody id="ventas"></tbody>
+  </table>
+
+  <hr>
+
+  <!-- ===============================
+       CONFIRMACIÓN FISCAL
+       =============================== -->
+  <input type="checkbox" id="confirmo" />
+  <label>
+    Entiendo que este cierre fiscal es definitivo
+  </label>
+
+  <br><br>
+
+  <button onclick="generarTXTSifeiGlobal(event)">
+    GENERAR TXT GLOBAL
+  </button>
+
+  <!-- ===============================
+       APP PRINCIPAL
+       =============================== -->
+  <script type="module" src="./factura-global-app.js"></script>
+
+</body>
+</html>
