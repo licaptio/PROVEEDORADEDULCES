@@ -169,4 +169,3 @@ console.assert(
   "❌ Totales inconsistentes"
 );
 const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
-
