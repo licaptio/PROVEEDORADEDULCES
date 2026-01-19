@@ -461,14 +461,19 @@ async function cargarListaVendedores() {
    🟫 INIT CORRECTO (TODO DENTRO)
 ========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
-
+ await cargarListaVendedores(); // 🔥 ESTA LÍNEA FALTABA
   document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
 
   document.getElementById("cerrarModal").addEventListener("click", () => {
     document.getElementById("modalResultados").style.display = "none";
   });
+document.getElementById("vendedorSelect").addEventListener("change", e => {
+  const option = e.target.selectedOptions[0];
+  const ruta = option?.dataset.ruta || "";
 
+  document.getElementById("rutaId").value = ruta;
+});
   document.getElementById("busquedaNombre").addEventListener("input", e => {
     clearTimeout(debounceTimer);
 
