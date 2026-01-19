@@ -461,7 +461,8 @@ async function cargarListaVendedores() {
    🟫 INIT CORRECTO (TODO DENTRO)
 ========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
- await cargarListaVendedores(); // 🔥 ESTA LÍNEA FALTABA
+  await syncProductos();        // 🔥 CARGA PRODUCTOS
+  await cargarListaVendedores(); // 🔥 ESTA LÍNEA FALTABA
   document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
 
