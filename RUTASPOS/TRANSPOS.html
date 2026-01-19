@@ -181,6 +181,30 @@
     box-shadow: none !important;
   }
 }
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #ticketMini, #ticketMini * {
+    visibility: visible;
+  }
+
+  #ticketMini {
+    position:absolute;
+    top:0;
+    left:0;
+    width:58mm;
+    font-family:monospace;
+    font-size:11px;
+    color:black;
+  }
+
+  hr {
+    border:none;
+    border-top:1px dashed black;
+  }
+}
 
 </style>
 
@@ -402,7 +426,9 @@ window.eliminarItem = i => {
   localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
 
 };
-
+let firmaBase64 = null;
+let imprimirDespuesDeGuardar = false;
+let btnMini, modalFirma, canvas, ctx;
 
 /* ==========================================================
    🟦 CARGAR LISTA DE VENDEDORES
@@ -435,120 +461,99 @@ async function cargarListaVendedores() {
    🟫 INIT CORRECTO (TODO DENTRO)
 ========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
-document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
 
-  const ultimaSync = localStorage.getItem("ultima_sync_productos");
-
-if (!ultimaSync || Date.now() - ultimaSync > 1000 * 60 * 60 * 12) {
-  await syncProductos();
-  localStorage.setItem("ultima_sync_productos", Date.now());
-}
-
-  await cargarListaVendedores();
-const guardado = localStorage.getItem("carrito_traspaso");
-if (guardado) {
-
-  // Mostrar barra PRO
-  const barra = document.getElementById("barraSesion");
-  barra.style.display = "block";
-  barra.style.opacity = "1";
-  barra.textContent = "Recuperando sesión anterior…";
-
-  // Restaurar datos
-  carrito = JSON.parse(guardado);
-  renderTabla();
-
-  // Cambiar mensaje después de un momento
-  setTimeout(() => {
-    barra.textContent = "Sesión restaurada ✓";
-  }, 600);
-
-  // Desaparecer suavemente
-  setTimeout(() => {
-    barra.style.opacity = "0";
-  }, 1400);
-
-  // Ocultar completamente
-  setTimeout(() => {
-    barra.style.display = "none";
-  }, 2000);
-}
-
-  // seleccionar vendedor
-  document.getElementById("vendedorSelect").addEventListener("change", e => {
-    const opt = e.target.selectedOptions[0];
-    if (!opt) return;
-    
-    document.getElementById("rutaId").value = opt.dataset.ruta;
-  });
-  // escaneo con pistola (ENTER)
-document.getElementById("buscador").addEventListener("keypress", e => {
-  if (e.key === "Enter") {
-    e.preventDefault();
-    buscarPorCodigo();
-  }
-});
-
+  document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
-});
-document.getElementById("cerrarModal").addEventListener("click", () => {
-  document.getElementById("modalResultados").style.display = "none";
-});
 
-document.getElementById("busquedaNombre").addEventListener("input", e => {
-  clearTimeout(debounceTimer);
+  document.getElementById("cerrarModal").addEventListener("click", () => {
+    document.getElementById("modalResultados").style.display = "none";
+  });
 
-  debounceTimer = setTimeout(() => {
-    const term = e.target.value.toLowerCase().trim();
-    const lista = document.getElementById("listaResultados");
+  document.getElementById("busquedaNombre").addEventListener("input", e => {
+    clearTimeout(debounceTimer);
 
-    if (term.length < 2) {
+    debounceTimer = setTimeout(() => {
+      const term = e.target.value.toLowerCase().trim();
+      const lista = document.getElementById("listaResultados");
+
+      if (term.length < 2) {
+        lista.innerHTML = "";
+        return;
+      }
+
+      const filtrados = resultadosBusqueda
+        .filter(p => p.concepto?.toLowerCase().includes(term))
+        .slice(0, 30);
+
       lista.innerHTML = "";
+
+      filtrados.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.textContent = `${p.concepto} (${p.codigoBarra})`;
+
+        div.onclick = () => {
+          productoSeleccionadoPorNombre = p;
+          document.getElementById("modalResultados").style.display = "none";
+          document.getElementById("modalCantidad").style.display = "flex";
+          document.getElementById("inputCantidadNombre").value = "";
+          document.getElementById("inputCantidadNombre").focus();
+        };
+
+        lista.appendChild(div);
+      });
+    }, 200);
+  });
+
+  // =============================
+  // MINI PRINTER + FIRMA
+  // =============================
+  btnMini = document.getElementById("btnMiniPrint");
+  modalFirma = document.getElementById("modalFirma");
+  canvas = document.getElementById("canvasFirma");
+  ctx = canvas.getContext("2d");
+
+  let dibujando = false;
+
+  btnMini.addEventListener("click", () => {
+    if (carrito.length === 0) {
+      alert("No hay productos");
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    modalFirma.style.display = "flex";
+  });
+
+  canvas.addEventListener("mousedown", e => {
+    dibujando = true;
+    ctx.beginPath();
+    ctx.moveTo(e.offsetX, e.offsetY);
+  });
+
+  canvas.addEventListener("mousemove", e => {
+    if (!dibujando) return;
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+  });
+
+  canvas.addEventListener("mouseup", () => dibujando = false);
+  canvas.addEventListener("mouseleave", () => dibujando = false);
+
+  document.getElementById("btnLimpiarFirma").onclick = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  document.getElementById("btnAceptarFirma").onclick = async () => {
+    if (canvas.toDataURL().length < 1000) {
+      alert("Debe firmar antes de imprimir");
       return;
     }
 
-    const filtrados = resultadosBusqueda
-      .filter(p => p.concepto?.toLowerCase().includes(term))
-      .slice(0, 30); // 🔥 LIMITE PRO
-
-    lista.innerHTML = "";
-
-    filtrados.forEach(p => {
-      const div = document.createElement("div");
-      div.className = "item";
-      div.textContent = `${p.concepto} (${p.codigoBarra})`;
-
-      div.onclick = () => {
-        productoSeleccionadoPorNombre = p;
-        document.getElementById("modalResultados").style.display = "none";
-        document.getElementById("modalCantidad").style.display = "flex";
-        document.getElementById("inputCantidadNombre").value = "";
-        document.getElementById("inputCantidadNombre").focus();
-      };
-
-      lista.appendChild(div);
-    });
-  }, 200); // ⏱ debounce real
-});
-
-
-/* ==========================================================
-   🟦 BUSCAR POR NOMBRE – ABRIR MODAL
-========================================================== */
-let resultadosBusqueda = [];
-let debounceTimer = null;
-
-async function buscarPorNombre() {
-  document.getElementById("modalResultados").style.display = "flex";
-
-  // limpiar
-  document.getElementById("busquedaNombre").value = "";
-  document.getElementById("listaResultados").innerHTML = "";
-
-  // cargar productos
-  const productos = await getAllProductos();
-  resultadosBusqueda = productos;
-}
+    firmaBase64 = canvas.toDataURL("image/png");
+    imprimirDespuesDeGuardar = true;
+    modalFirma.style.display = "none";
+    await guardarTraspaso();
+  };
 document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
   const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
 
@@ -572,7 +577,26 @@ document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
 document.getElementById("preview").innerText = "";
 // 🔥 Enfocar escáner después de agregar manualmente
   document.getElementById("buscador").focus();
-});
+  
+}); // ✅ ÚNICO cierre de DOMContentLoaded
+
+/* ==========================================================
+   🟦 BUSCAR POR NOMBRE – ABRIR MODAL
+========================================================== */
+let resultadosBusqueda = [];
+let debounceTimer = null;
+
+async function buscarPorNombre() {
+  document.getElementById("modalResultados").style.display = "flex";
+
+  // limpiar
+  document.getElementById("busquedaNombre").value = "";
+  document.getElementById("listaResultados").innerHTML = "";
+
+  // cargar productos
+  const productos = await getAllProductos();
+  resultadosBusqueda = productos;
+}
 /* ==========================================================
    🟪 GUARDAR TRASPASO EN: /almacenes/{rutaId}/entradas/
 ========================================================== */
@@ -596,17 +620,19 @@ document.getElementById("preview").innerText = "";
     return;
   }
 
-  const payload = {
-    vendedorId,
-    rutaId,
-    fecha: new Date().toISOString(),
-    items: carrito.map(i => ({
-      codigo: i.codigo,
-      concepto: i.concepto,
-      cantidad: i.cantidad,
-      precio: i.precio
-    }))
-  };
+const payload = {
+  vendedorId,
+  rutaId,
+  fecha: new Date().toISOString(),
+  firma: firmaBase64 || null, // 🔥 FIRMA AQUÍ
+  items: carrito.map(i => ({
+    codigo: i.codigo,
+    concepto: i.concepto,
+    cantidad: i.cantidad,
+    precio: i.precio
+  }))
+};
+
 
   try {
     // 🔥 GRABA AQUÍ: /almacenes/{rutaId}/entradas/
@@ -617,19 +643,54 @@ const idTraspaso = docRef.id;
 
 alert("✔ Traspaso enviado correctamente");
 
-// abrir hoja de impresión
-window.open(`impresion_traspaso.html?id=${idTraspaso}&ruta=${rutaId}`, "_blank");
+if (imprimirDespuesDeGuardar) {
+  generarTicket();           // 🖨 mini printer
+  imprimirDespuesDeGuardar = false;
+} else {
+  window.open(
+    `impresion_traspaso.html?id=${idTraspaso}&ruta=${rutaId}`,
+    "_blank"
+  );
+}
 
-// limpiar pantalla
+// limpiar
+firmaBase64 = null;
 carrito = [];
 renderTabla();
 localStorage.removeItem("carrito_traspaso");
-
 
   } catch (err) {
     console.error(err);
     alert("❌ Error al guardar: " + err.message);
   }
+}
+
+function generarTicket() {
+  document.getElementById("tFecha").textContent =
+    new Date().toLocaleString();
+
+  document.getElementById("tVendedor").textContent =
+    document.getElementById("vendedorSelect")
+      .selectedOptions[0]?.textContent || "";
+
+  const tbody = document.getElementById("tItems");
+  tbody.innerHTML = "";
+
+  carrito.forEach(i => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i.concepto.substring(0,16)}</td>
+      <td>${i.cantidad}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("imgFirma").src =
+    canvas.toDataURL("image/png");
+
+  document.getElementById("ticketMini").style.display = "block";
+  window.print();
+  document.getElementById("ticketMini").style.display = "none";
 }
 
 </script>
@@ -691,6 +752,15 @@ localStorage.removeItem("carrito_traspaso");
 </div>
   <!-- BOTÓN -->
   <button id="btnTraspaso" style="margin-top:12px; width:100%;">Finalizar Traspaso</button>
+  <button id="btnMiniPrint" style="
+  margin-top:8px;
+  width:100%;
+  background:#1e8e3e;
+  font-size:16px;
+">
+🖨 Imprimir (Mini Printer)
+</button>
+
 
 </div>
 
@@ -769,6 +839,63 @@ localStorage.removeItem("carrito_traspaso");
       Cancelar
     </button>
 
+  </div>
+</div>
+<!-- MODAL FIRMA -->
+<div id="modalFirma" style="
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:2000;
+">
+  <div style="
+    background:#fff;
+    padding:20px;
+    border-radius:16px;
+    width:95%;
+    max-width:420px;
+    color:#111;
+  ">
+    <h3 style="margin-top:0;color:#00416A;">Firma de recibido</h3>
+
+    <canvas id="canvasFirma" width="360" height="180"
+      style="border:2px solid #ccc;border-radius:8px;width:100%;">
+    </canvas>
+
+    <button id="btnLimpiarFirma" style="margin-top:8px;width:100%;">
+      Limpiar firma
+    </button>
+
+    <button id="btnAceptarFirma" style="
+      margin-top:8px;
+      width:100%;
+      background:#0c6cbd;
+      color:white;
+      font-weight:bold;
+    ">
+      Aceptar y imprimir
+    </button>
+  </div>
+</div>
+<!-- TICKET MINI PRINTER -->
+<div id="ticketMini" style="display:none;">
+  <div class="ticket">
+    <h3>TRASPASO DE ALMACÉN</h3>
+    <p id="tFecha"></p>
+    <p><strong>Vendedor:</strong> <span id="tVendedor"></span></p>
+    <hr>
+
+    <table>
+      <tbody id="tItems"></tbody>
+    </table>
+
+    <hr>
+    <img id="imgFirma" style="width:100%;margin-top:10px;">
+    <p style="text-align:center;">FIRMA</p>
   </div>
 </div>
 
