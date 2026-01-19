@@ -170,3 +170,4 @@ console.assert(
 );
 const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
 }; // ← CIERRA generarTXTSifeiGlobal
+
