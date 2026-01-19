@@ -1,31 +1,31 @@
+import {
+  FISCAL_EMISOR,
+  RECEPTOR_PUBLICO_GENERAL
+} from "../configFiscal.js";
+
+/**
+ * ===============================
+ * VALIDADOR MINIMO
+ * ===============================
+ */
 function validarCFDI(cfdi) {
-
-  if (!Array.isArray(cfdi.Conceptos) || !cfdi.Conceptos.length) {
-    throw new Error("CFDI GLOBAL sin conceptos");
-  }
-
-  const ivaConceptos = cfdi.Conceptos
-    .filter(c => c.TasaIVA > 0)
-    .reduce((s, c) => s + c.IVAImporte, 0);
-
-  if (ivaConceptos < 0) {
-    throw new Error("IVA inválido en conceptos");
-  }
-
-  const iepsConceptos = cfdi.Conceptos
-    .filter(c => c.IEPSTasa > 0)
-    .reduce((s, c) => s + c.IEPSImporte, 0);
-
-  if (iepsConceptos < 0) {
-    throw new Error("IEPS inválido en conceptos");
+  if (!cfdi || !Array.isArray(cfdi.Conceptos) || !cfdi.Conceptos.length) {
+    throw new Error("CFDI GLOBAL inválido");
   }
 }
 
+/**
+ * ===============================
+ * EXPORT ÚNICO Y REAL
+ * ===============================
+ */
 export function convertirCFDIGlobalASifei(cfdi) {
+
   validarCFDI(cfdi);
+
   const out = [];
 
-  // 01 | CABECERA
+  // ---------- 01 CABECERA ----------
   out.push([
     "01","FA","4.0",
     cfdi.Serie,
@@ -54,7 +54,10 @@ export function convertirCFDIGlobalASifei(cfdi) {
     RECEPTOR_PUBLICO_GENERAL.usoCFDI,
     "",
     "",
-    ((cfdi.IVA16Importe || 0) + (cfdi.IEPSImporte || 0)).toFixed(2),
+    (
+      (cfdi.IVA16Importe || 0) +
+      (cfdi.IEPSImporte || 0)
+    ).toFixed(2),
     "INFO_ADIC",
     "",
     FISCAL_EMISOR.direccion,
@@ -64,7 +67,7 @@ export function convertirCFDIGlobalASifei(cfdi) {
     "N"
   ].join("|"));
 
-  // INFO_GLOBAL
+  // ---------- INFO_GLOBAL ----------
   const fecha = new Date(cfdi.Fecha);
   out.push([
     "01","CFDI40","01","INFO_GLOBAL",
@@ -77,13 +80,13 @@ export function convertirCFDIGlobalASifei(cfdi) {
     RECEPTOR_PUBLICO_GENERAL.regimenFiscal
   ].join("|"));
 
-  // 03 | CONCEPTOS
-  cfdi.Conceptos.forEach((c, idx) => {
+  // ---------- 03 CONCEPTOS ----------
+  cfdi.Conceptos.forEach((c, i) => {
     const tieneImp = c.TasaIVA > 0 || c.IEPSTasa > 0;
 
     out.push([
       "03",
-      idx + 1,
+      i + 1,
       "1.000",
       "ACT",
       "",
@@ -117,7 +120,7 @@ export function convertirCFDIGlobalASifei(cfdi) {
     }
   });
 
-  // 04 | IMPUESTOS GLOBALES
+  // ---------- 04 IMPUESTOS ----------
   if (cfdi.IVA16Importe > 0) {
     out.push([
       "04","TRASLADO","002","Tasa","0.160000",
@@ -137,4 +140,3 @@ export function convertirCFDIGlobalASifei(cfdi) {
 
   return out.join("\n");
 }
-
