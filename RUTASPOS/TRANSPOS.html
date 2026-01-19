@@ -484,6 +484,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("vendedorSelect").addEventListener("change", e => {
     const option = e.target.selectedOptions[0];
     document.getElementById("rutaId").value = option?.dataset.ruta || "";
+      // 🔥 NUEVO
+  window.nombreRuta = option?.dataset.ruta || "";
   });
 
   // ✅ búsqueda por nombre
@@ -683,6 +685,9 @@ function generarTicket() {
   document.getElementById("tVendedor").textContent =
     document.getElementById("vendedorSelect")
       .selectedOptions[0]?.textContent || "";
+    // 🔥 AQUÍ VA
+  document.getElementById("tRuta").textContent =
+    window.nombreRuta || "";
 
   const tbody = document.getElementById("tItems");
   tbody.innerHTML = "";
@@ -696,14 +701,15 @@ function generarTicket() {
     tbody.appendChild(tr);
   });
 
-  document.getElementById("imgFirma").src =
-    canvas.toDataURL("image/png");
+const firmaParaImprimir = firmaBase64;
 
+if (firmaParaImprimir) {
+  document.getElementById("imgFirma").src = firmaParaImprimir;
+}
   document.getElementById("ticketMini").style.display = "block";
   window.print();
   document.getElementById("ticketMini").style.display = "none";
 }
-
 </script>
 
 </head>
@@ -898,6 +904,7 @@ function generarTicket() {
     <h3>TRASPASO DE ALMACÉN</h3>
     <p id="tFecha"></p>
     <p><strong>Vendedor:</strong> <span id="tVendedor"></span></p>
+    <p><strong>Ruta:</strong> <span id="tRuta"></span></p>
     <hr>
 
     <table>
