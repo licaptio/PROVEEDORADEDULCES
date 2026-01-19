@@ -461,20 +461,32 @@ async function cargarListaVendedores() {
    🟫 INIT CORRECTO (TODO DENTRO)
 ========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
-  await syncProductos();        // 🔥 CARGA PRODUCTOS
-  await cargarListaVendedores(); // 🔥 ESTA LÍNEA FALTABA
+  await syncProductos();
+  await cargarListaVendedores();
+
   document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
 
+  // ✅ escaneo con pistola (ENTER)
+  document.getElementById("buscador").addEventListener("keypress", e => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      buscarPorCodigo();
+    }
+  });
+
+  // ✅ cerrar modal
   document.getElementById("cerrarModal").addEventListener("click", () => {
     document.getElementById("modalResultados").style.display = "none";
   });
-document.getElementById("vendedorSelect").addEventListener("change", e => {
-  const option = e.target.selectedOptions[0];
-  const ruta = option?.dataset.ruta || "";
 
-  document.getElementById("rutaId").value = ruta;
-});
+  // ✅ setear rutaId cuando eligen vendedor
+  document.getElementById("vendedorSelect").addEventListener("change", e => {
+    const option = e.target.selectedOptions[0];
+    document.getElementById("rutaId").value = option?.dataset.ruta || "";
+  });
+
+  // ✅ búsqueda por nombre
   document.getElementById("busquedaNombre").addEventListener("input", e => {
     clearTimeout(debounceTimer);
 
@@ -511,9 +523,7 @@ document.getElementById("vendedorSelect").addEventListener("change", e => {
     }, 200);
   });
 
-  // =============================
-  // MINI PRINTER + FIRMA
-  // =============================
+  // ✅ mini printer + firma
   btnMini = document.getElementById("btnMiniPrint");
   modalFirma = document.getElementById("modalFirma");
   canvas = document.getElementById("canvasFirma");
@@ -560,32 +570,27 @@ document.getElementById("vendedorSelect").addEventListener("change", e => {
     modalFirma.style.display = "none";
     await guardarTraspaso();
   };
-document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
-  const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
 
-  if (!cant || cant <= 0) {
-    alert("Escriba una cantidad válida");
-    return;
-  }
+  // ✅ aceptar cantidad
+  document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
+    const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
 
-  // cerrar modal de cantidad
-  document.getElementById("modalCantidad").style.display = "none";
+    if (!cant || cant <= 0) {
+      alert("Escriba una cantidad válida");
+      return;
+    }
 
-  // poner producto seleccionado
-  seleccionarProducto(productoSeleccionadoPorNombre);
+    document.getElementById("modalCantidad").style.display = "none";
+    seleccionarProducto(productoSeleccionadoPorNombre);
+    window.cantidadManual = cant;
 
-  // guardar cantidad manual
-  window.cantidadManual = cant;
+    agregarItem();
+    renderTabla();
 
-  // agregar al carrito
-  agregarItem();
-  renderTabla();
-document.getElementById("preview").innerText = "";
-// 🔥 Enfocar escáner después de agregar manualmente
-  document.getElementById("buscador").focus();
-  
- }); // ✅ ÚNICO cierre de DOMContentLoaded
-}); // ✅ DOMContentLoaded
+    document.getElementById("preview").innerText = "";
+    document.getElementById("buscador").focus();
+  });
+});
 /* ==========================================================
    🟦 BUSCAR POR NOMBRE – ABRIR MODAL
 ========================================================== */
