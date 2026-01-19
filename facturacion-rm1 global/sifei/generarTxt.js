@@ -1,161 +1,118 @@
 /**
- * Prorratea BASE / IVA / IEPS globales por ticket
- * SIN redondear hasta el final
+ * generarTxt.js
+ * SOLO convierte un CFDI válido a TXT SIFEI
  */
-function prorratearGlobal({
-  tickets,           // [{ total }]
-  baseGlobal,
-  ivaGlobal,
-  iepsGlobal
-}) {
-  const totalGlobal = tickets.reduce((s, t) => s + t.total, 0);
 
-  return tickets.map(t => {
-    const factor = t.total / totalGlobal;
-
-    return {
-      ...t,
-      baseCalc:  baseGlobal  * factor,
-      ivaCalc:   ivaGlobal   * factor,
-      iepsCalc:  iepsGlobal  * factor
-    };
-  });
-}
-/**
- * Aplica redondeo SAT y ajusta el último concepto
- */
-function aplicarRedondeoSAT({
-  conceptos,
-  baseGlobal,
-  ivaGlobal,
-  iepsGlobal
-}) {
-
-  // acumulados SIN redondear
-  const sumBase  = conceptos.reduce((s,c)=>s+c.baseCalc,0);
-  const sumIVA   = conceptos.reduce((s,c)=>s+c.ivaCalc,0);
-  const sumIEPS  = conceptos.reduce((s,c)=>s+c.iepsCalc,0);
-
-  // redondeo SAT (solo aquí)
-  const baseSAT  = round2(baseGlobal);
-  const ivaSAT   = round2(ivaGlobal);
-  const iepsSAT  = round2(iepsGlobal);
-
-  // ajustes
-  const ajusteBase  = baseSAT  - round2(sumBase);
-  const ajusteIVA   = ivaSAT   - round2(sumIVA);
-  const ajusteIEPS  = iepsSAT  - round2(sumIEPS);
-
-  // clonar conceptos
-  const out = conceptos.map(c => ({
-    ...c,
-    base:  round6(c.baseCalc),
-    iva:   round6(c.ivaCalc),
-    ieps:  round6(c.iepsCalc)
-  }));
-
-  // 🔥 el último paga los centavos
-  const last = out.length - 1;
-  out[last].base  = round6(out[last].base  + ajusteBase);
-  out[last].iva   = round6(out[last].iva   + ajusteIVA);
-  out[last].ieps  = round6(out[last].ieps  + ajusteIEPS);
-
-  return out;
-}
+/* utilidades */
 function round2(n) {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
-
 function round6(n) {
   return Math.round((n + Number.EPSILON) * 1e6) / 1e6;
 }
-// tickets del día
-const tickets = ventasGlobal.map(v => ({
-  folio: v.folio,
-  total: Number(v.resumen_financiero.total)
-}));
 
-// totales globales
-const baseGlobal = ventasGlobal.reduce((s,v)=>s+v.resumen_financiero.subtotal,0);
-const ivaGlobal  = ventasGlobal.reduce((s,v)=>s+(v.resumen_financiero.iva||0),0);
-const iepsGlobal = ventasGlobal.reduce((s,v)=>s+(v.resumen_financiero.ieps||0),0);
+/**
+ * EXPORT ÚNICO
+ */
+export function convertirCFDIGlobalASifei(cfdi) {
 
-// 1️⃣ prorrateo
-const prorrateados = prorratearGlobal({
-  tickets,
-  baseGlobal,
-  ivaGlobal,
-  iepsGlobal
-});
+  if (!cfdi || !Array.isArray(cfdi.Conceptos)) {
+    throw new Error("CFDI inválido");
+  }
 
-// 2️⃣ redondeo SAT
-const conceptosFinales = aplicarRedondeoSAT({
-  conceptos: prorrateados,
-  baseGlobal,
-  ivaGlobal,
-  iepsGlobal
-});
-const conceptosCFDI = conceptosFinales.map((c, idx) => {
-  const tieneIVA  = c.iva > 0;
-  const tieneIEPS = c.ieps > 0;
+  const out = [];
 
-  return {
-    Cantidad: 1,
-    ClaveUnidad: "ACT",
-    ClaveProdServ: "01010101",
-    Descripcion: `Venta ${c.folio}`,
-    ValorUnitario: c.base,
-    Importe: c.base,
-    Base: c.base,
+  // 01 CABECERA
+  out.push([
+    "01","FA","4.0",
+    cfdi.Serie,
+    cfdi.Folio,
+    cfdi.FormaPago,
+    cfdi.NumCertificado || "",
+    "CONTADO",
+    round2(cfdi.Subtotal).toFixed(2),
+    "0.00",
+    cfdi.Moneda,
+    "1",
+    round2(cfdi.Total).toFixed(2),
+    "Ingreso",
+    cfdi.MetodoPago,
+    cfdi.CPExpedicion || "",
+    "",
+    "EMISOR",
+    cfdi.RfcEmisor || "",
+    cfdi.RazonEmisor || "",
+    cfdi.RegimenFiscal || "",
+    "RECEPTOR",
+    cfdi.RfcReceptor || "XAXX010101000",
+    cfdi.NombreReceptor || "PUBLICO EN GENERAL",
+    "",
+    "",
+    "S01",
+    "",
+    "",
+    round2((cfdi.IVA16Importe||0)+(cfdi.IEPSImporte||0)).toFixed(2),
+    "INFO_ADIC",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "N"
+  ].join("|"));
 
-    TasaIVA: tieneIVA ? 0.16 : 0,
-    IVAImporte: tieneIVA ? c.iva : 0,
+  // INFO_GLOBAL
+  const f = new Date(cfdi.Fecha);
+  out.push([
+    "01","CFDI40","01","INFO_GLOBAL",
+    "01",
+    String(f.getMonth()+1).padStart(2,"0"),
+    f.getFullYear(),
+    "EMISOR","",
+    "RECEPTOR",
+    cfdi.CPReceptor || "",
+    cfdi.RegimenReceptor || ""
+  ].join("|"));
 
-    IEPSTasa: (tieneIEPS && c.base > 0) ? (c.ieps / c.base) : 0,
-    IEPSImporte: tieneIEPS ? c.ieps : 0
-  };
-});
-const BaseIVA16     = round2(
-  conceptosCFDI.reduce((s,c)=>s+(c.TasaIVA>0?c.Base:0),0)
-);
-const IVA16Importe = round2(
-  conceptosCFDI.reduce((s,c)=>s+c.IVAImporte,0)
-);
+  // CONCEPTOS
+  cfdi.Conceptos.forEach((c,i)=>{
+    const tieneImp = c.TasaIVA>0 || c.IEPSTasa>0;
 
-const BaseIEPS     = round2(
-  conceptosCFDI.reduce((s,c)=>s+(c.IEPSTasa>0?c.Base:0),0)
-);
-const IEPSImporte  = round2(
-  conceptosCFDI.reduce((s,c)=>s+c.IEPSImporte,0)
-);
+    out.push([
+      "03",
+      i+1,
+      "1.000",
+      "ACT",
+      "",
+      "01010101",
+      "",
+      c.Descripcion,
+      round6(c.Base).toFixed(6),
+      "0.00",
+      round6(c.Base).toFixed(6),
+      "",
+      tieneImp ? "02" : "01"
+    ].join("|"));
 
-const Subtotal = round2(
-  conceptosCFDI.reduce((s,c)=>s+c.Base,0)
-);
-const Total = round2(Subtotal + IVA16Importe + IEPSImporte);
-const cfdiObj = {
-  Serie: CONFIG.serieFiscal,
-  Folio: folio,
-  Fecha: fechaCFDI,
-  FormaPago: "01",
-  MetodoPago: "PUE",
-  Moneda: "MXN",
+    if (c.TasaIVA>0){
+      out.push([
+        "03-IMP","TRASLADO",
+        round6(c.Base).toFixed(6),
+        "002","Tasa","0.160000",
+        round6(c.IVAImporte).toFixed(6)
+      ].join("|"));
+    }
 
-  Subtotal,
-  Total,
+    if (c.IEPSTasa>0){
+      out.push([
+        "03-IMP","TRASLADO",
+        round6(c.Base).toFixed(6),
+        "003","Tasa",
+        round6(c.IEPSTasa).toFixed(6),
+        round6(c.IEPSImporte).toFixed(6)
+      ].join("|"));
+    }
+  });
 
-  BaseIVA16,
-  IVA16Importe,
-
-  BaseIEPS,
-  IEPSImporte,
-  IEPSTasa: BaseIEPS > 0 ? round6(IEPSImporte / BaseIEPS) : 0,
-
-  Conceptos: conceptosCFDI
-};
-console.assert(
-  round2(Subtotal + IVA16Importe + IEPSImporte) === round2(Total),
-  "❌ Totales inconsistentes"
-);
-const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
-
+  return out.join("\n");
+}
