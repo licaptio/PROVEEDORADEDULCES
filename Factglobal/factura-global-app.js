@@ -10,7 +10,7 @@
    IMPORTS EXTERNOS (NO SE TOCAN)
    ========================================================= */
 import { db, obtenerVentasRuta, tomarFolio } from "./firebase.js";
-import { convertirCFDIGlobalASifei } from "./sifei/generarTxt.js";
+
 
 /* =========================================================
    CONFIGURACIÓN GENERAL DE LA APP
@@ -269,3 +269,103 @@ document.getElementById("btnCargar").addEventListener("click", async () => {
   document.getElementById("total").innerText =
     ventas.reduce((s,v)=>s+Number(v.resumen_financiero.total||0),0).toFixed(2);
 });
+
+/* =========================================================
+   SIFEI · CONVERSIÓN CFDI → TXT
+   ========================================================= */
+
+/**
+ * Convierte un CFDI Global a layout TXT SIFEI
+ * TODO LOCAL — SIN IMPORTS
+ */
+function convertirCFDIGlobalASifei(cfdi) {
+
+  if (!cfdi || !Array.isArray(cfdi.Conceptos)) {
+    throw new Error("CFDI inválido");
+  }
+
+  const out = [];
+
+  // CABECERA
+  out.push([
+    "01","FA","4.0",
+    cfdi.Serie,
+    cfdi.Folio,
+    cfdi.FormaPago,
+    "",
+    "CONTADO",
+    round2(cfdi.Subtotal).toFixed(2),
+    "0.00",
+    cfdi.Moneda,
+    "1",
+    round2(cfdi.Total).toFixed(2),
+    "Ingreso",
+    cfdi.MetodoPago,
+    "",
+    "",
+    "EMISOR",
+    CONFIG.rfcEmisor,
+    "",
+    "",
+    "RECEPTOR",
+    "XAXX010101000",
+    "PUBLICO EN GENERAL",
+    "",
+    "",
+    "S01",
+    "",
+    "",
+    round2((cfdi.IVA16Importe||0)+(cfdi.IEPSImporte||0)).toFixed(2),
+    "",
+    "",
+    "",
+    "",
+    "",
+    "N"
+  ].join("|"));
+
+  // CONCEPTOS
+  cfdi.Conceptos.forEach((c,i)=>{
+
+    out.push([
+      "03",
+      i+1,
+      "1.000",
+      "ACT",
+      "",
+      "01010101",
+      "",
+      c.Descripcion,
+      round6(c.Base).toFixed(6),
+      "0.00",
+      round6(c.Base).toFixed(6),
+      "",
+      (c.TasaIVA>0 || c.IEPSTasa>0) ? "02" : "01"
+    ].join("|"));
+
+    if (c.TasaIVA>0){
+      out.push([
+        "03-IMP","TRASLADO",
+        round6(c.Base).toFixed(6),
+        "002","Tasa","0.160000",
+        round6(c.IVAImporte).toFixed(6)
+      ].join("|"));
+    }
+
+    if (c.IEPSTasa>0){
+      out.push([
+        "03-IMP","TRASLADO",
+        round6(c.Base).toFixed(6),
+        "003","Tasa",
+        round6(c.IEPSTasa).toFixed(6),
+        round6(c.IEPSImporte).toFixed(6)
+      ].join("|"));
+    }
+  });
+
+  const txt = out.join("\n");
+
+  console.log("📄 TXT SIFEI GENERADO:\n", txt);
+
+  return txt;
+}
