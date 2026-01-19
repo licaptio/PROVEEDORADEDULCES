@@ -171,3 +171,40 @@ console.assert(
 const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
 }; // ← CIERRA generarTXTSifeiGlobal
 
+document.getElementById("btnCargar").addEventListener("click", async () => {
+  const rango = rangoDiaDesdeInput();
+  if (!rango) {
+    alert("Selecciona una fecha");
+    return;
+  }
+
+  const { inicio, fin } = rango;
+
+  console.log("🔍 Buscando ventas:", inicio, fin);
+
+  const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
+
+  console.log("📦 Ventas encontradas:", ventas);
+
+  pintarVentas(ventas);
+
+  document.getElementById("cnt").innerText = ventas.length;
+
+  const total = ventas.reduce(
+    (s, v) => s + Number(v.resumen_financiero?.total || 0),
+    0
+  );
+
+  document.getElementById("total").innerText = total.toFixed(2);
+});
+
+function rangoDiaDesdeInput() {
+  const input = document.getElementById("fecha").value;
+  if (!input) return null;
+
+  // 🔥 IMPORTANTE: usar hora local
+  const inicio = new Date(input + "T00:00:00");
+  const fin = new Date(input + "T23:59:59");
+
+  return { inicio, fin };
+}
