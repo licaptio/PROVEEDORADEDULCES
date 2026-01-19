@@ -659,25 +659,33 @@ alert("✔ Traspaso enviado correctamente");
 if (imprimirDespuesDeGuardar) {
   generarTicket();           // 🖨 mini printer
   imprimirDespuesDeGuardar = false;
+
+  // 🔥 limpiar DESPUÉS de imprimir
+  setTimeout(() => {
+    firmaBase64 = null;
+    carrito = [];
+    renderTabla();
+    localStorage.removeItem("carrito_traspaso");
+  }, 600);
+
 } else {
   window.open(
     `impresion_traspaso.html?id=${idTraspaso}&ruta=${rutaId}`,
     "_blank"
   );
-}
 
-// limpiar
-firmaBase64 = null;
-carrito = [];
-renderTabla();
-localStorage.removeItem("carrito_traspaso");
+  // limpiar inmediato (no hay mini printer)
+  firmaBase64 = null;
+  carrito = [];
+  renderTabla();
+  localStorage.removeItem("carrito_traspaso");
+}
 
   } catch (err) {
     console.error(err);
     alert("❌ Error al guardar: " + err.message);
   }
 }
-
 function generarTicket() {
   document.getElementById("tFecha").textContent =
     new Date().toLocaleString();
@@ -685,7 +693,7 @@ function generarTicket() {
   document.getElementById("tVendedor").textContent =
     document.getElementById("vendedorSelect")
       .selectedOptions[0]?.textContent || "";
-    // 🔥 AQUÍ VA
+
   document.getElementById("tRuta").textContent =
     window.nombreRuta || "";
 
@@ -701,15 +709,30 @@ function generarTicket() {
     tbody.appendChild(tr);
   });
 
-const firmaParaImprimir = firmaBase64;
+  const img = document.getElementById("imgFirma");
 
-if (firmaParaImprimir) {
-  document.getElementById("imgFirma").src = firmaParaImprimir;
+  if (firmaBase64) {
+    // 🔥 CLONAR FIRMA (NO usar la variable original)
+    const firmaClon = firmaBase64;
+    img.src = firmaClon;
+
+    // 🔥 ESPERAR A QUE CARGUE ANTES DE IMPRIMIR
+    img.onload = () => imprimirTicketSeguro();
+  } else {
+    imprimirTicketSeguro();
+  }
 }
-  document.getElementById("ticketMini").style.display = "block";
-  window.print();
-  document.getElementById("ticketMini").style.display = "none";
+  function imprimirTicketSeguro() {
+  const ticket = document.getElementById("ticketMini");
+  ticket.style.display = "block";
+
+  // 🔥 delay real para mini printers
+  setTimeout(() => {
+    window.print();
+    ticket.style.display = "none";
+  }, 300);
 }
+
 </script>
 
 </head>
