@@ -222,3 +222,38 @@ function rangoDiaDesdeInput() {
   return { inicio, fin };
 }
 
+// ===============================
+// CARGAR VENTAS DEL DÍA (UI)
+// ===============================
+document.getElementById("btnCargar").addEventListener("click", async () => {
+  try {
+    const rango = rangoDiaDesdeInput();
+    if (!rango) {
+      alert("Selecciona una fecha");
+      return;
+    }
+
+    const { inicio, fin } = rango;
+
+    console.log("🔍 Buscando ventas:", inicio, fin);
+
+    const ventas = await obtenerVentasRuta(CONFIG.rutaId, inicio, fin);
+
+    console.log("📦 Ventas encontradas:", ventas);
+
+    pintarVentas(ventas);
+
+    document.getElementById("cnt").innerText = ventas.length;
+
+    const total = ventas.reduce(
+      (s, v) => s + Number(v.resumen_financiero?.total || 0),
+      0
+    );
+
+    document.getElementById("total").innerText = total.toFixed(2);
+
+  } catch (err) {
+    console.error("❌ Error cargando ventas:", err);
+    alert("Error al cargar ventas");
+  }
+});
