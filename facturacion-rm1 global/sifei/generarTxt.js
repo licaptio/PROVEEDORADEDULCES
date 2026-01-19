@@ -1,7 +1,7 @@
 import {
   FISCAL_EMISOR,
   RECEPTOR_PUBLICO_GENERAL
-} from "../configFiscal.js";
+} from "../../configFiscal.js";
 
 /**
  * ===============================
@@ -140,3 +140,4 @@ export function convertirCFDIGlobalASifei(cfdi) {
 
   return out.join("\n");
 }
+
