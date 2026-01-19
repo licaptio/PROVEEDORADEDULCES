@@ -1,3 +1,26 @@
+function validarCFDI(cfdi) {
+
+  if (!Array.isArray(cfdi.Conceptos) || !cfdi.Conceptos.length) {
+    throw new Error("CFDI GLOBAL sin conceptos");
+  }
+
+  const ivaConceptos = cfdi.Conceptos
+    .filter(c => c.TasaIVA > 0)
+    .reduce((s, c) => s + c.IVAImporte, 0);
+
+  if (ivaConceptos < 0) {
+    throw new Error("IVA inválido en conceptos");
+  }
+
+  const iepsConceptos = cfdi.Conceptos
+    .filter(c => c.IEPSTasa > 0)
+    .reduce((s, c) => s + c.IEPSImporte, 0);
+
+  if (iepsConceptos < 0) {
+    throw new Error("IEPS inválido en conceptos");
+  }
+}
+
 export function convertirCFDIGlobalASifei(cfdi) {
   validarCFDI(cfdi);
   const out = [];
@@ -114,3 +137,4 @@ export function convertirCFDIGlobalASifei(cfdi) {
 
   return out.join("\n");
 }
+
