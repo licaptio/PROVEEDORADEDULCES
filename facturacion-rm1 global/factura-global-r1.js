@@ -241,8 +241,3 @@ function generarConceptosGlobales(ventas) {
   });
 }
 
-
-
-
-
-
