@@ -233,7 +233,13 @@ window.generarTXTSifeiGlobal = async function (event) {
       Conceptos: conceptosCFDI
     };
 
-    convertirCFDIGlobalASifei(cfdiObj);
+    const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
+
+const nombreArchivo =
+  `CFDI_GLOBAL_${CONFIG.serieFiscal}_${folio}.txt`;
+
+descargarTXT(txtSifei, nombreArchivo);
+
 
     alert(`✅ FACTURA GLOBAL GENERADA\nSerie ${CONFIG.serieFiscal} Folio ${folio}`);
 
@@ -368,4 +374,27 @@ function convertirCFDIGlobalASifei(cfdi) {
   console.log("📄 TXT SIFEI GENERADO:\n", txt);
 
   return txt;
+}
+
+/* =========================================================
+   DESCARGA DE TXT (BROWSER)
+   ========================================================= */
+function descargarTXT(contenido, nombreArchivo) {
+
+  const blob = new Blob([contenido], {
+    type: "text/plain;charset=utf-8;"
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombreArchivo;
+  a.style.display = "none";
+
+  document.body.appendChild(a);
+  a.click();
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
