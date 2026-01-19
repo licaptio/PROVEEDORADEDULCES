@@ -5,19 +5,6 @@ import {
   round6
 } from "./utils/prorrateoSAT.js";
 /**
- * generarTxt.js
- * SOLO convierte un CFDI válido a TXT SIFEI
- */
-
-/* utilidades */
-function round2(n) {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
-}
-function round6(n) {
-  return Math.round((n + Number.EPSILON) * 1e6) / 1e6;
-}
-
-/**
  * EXPORT ÚNICO
  */
 export function convertirCFDIGlobalASifei(cfdi) {
@@ -122,4 +109,5 @@ export function convertirCFDIGlobalASifei(cfdi) {
 
   return out.join("\n");
 }
+
 
