@@ -224,19 +224,26 @@ const baseGlobal = round2(baseIVA);
     const IEPSImporte = round2(conceptosCFDI.reduce((s,c)=>s+c.IEPSImporte,0));
     const Total = round2(Subtotal + IVA16Importe + IEPSImporte);
 
-    const cfdiObj = {
-      Serie: CONFIG.serieFiscal,
-      Folio: folio,
-      Fecha: new Date().toISOString().slice(0,19),
-      FormaPago: "01",
-      MetodoPago: "PUE",
-      Moneda: "MXN",
-      Subtotal,
-      Total,
-      IVA16Importe,
-      IEPSImporte,
-      Conceptos: conceptosCFDI
-    };
+const cfdiObj = {
+  Serie: CONFIG.serieFiscal,
+  Folio: folio,
+  Fecha: new Date().toISOString().slice(0,19),
+  FormaPago: "01",
+  MetodoPago: "PUE",
+  Moneda: "MXN",
+
+  Subtotal,
+  Total,
+
+  // 👇 IVA 16 REAL (solo ventas con IVA)
+  IVA16Base: baseGlobal,
+  IVA16Importe: ivaGlobal,
+
+  // 👇 IEPS ya incluido en ventas (no fabricante)
+  IEPSImporte,
+
+  Conceptos: conceptosCFDI
+};
 
     const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
 
@@ -374,16 +381,16 @@ out.push([
     /* =====================================================
      SECCIÓN 04 · IMPUESTOS GLOBALES (COMO SIFEI REAL)
      ===================================================== */
-
-  if (ivaGlobal > 0) {
+// IVA 16 %
+if (cfdi.IVA16Importe > 0) {
   out.push([
     "04",
     "TRASLADO",
     "002",
     "Tasa",
     "0.160000",
-    round2(ivaGlobal).toFixed(2),
-    round2(baseGlobal).toFixed(2)
+    round2(cfdi.IVA16Importe).toFixed(2),
+    round2(cfdi.IVA16Base).toFixed(2)
   ].join("|"));
 }
 
@@ -445,6 +452,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
