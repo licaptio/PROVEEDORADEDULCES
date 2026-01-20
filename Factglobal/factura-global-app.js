@@ -251,6 +251,13 @@ function convertirCFDIGlobalASifei(cfdi) {
   }
 
   const out = [];
+// ===============================
+// BASE TOTAL PARA PRORRATEO IEPS
+// ===============================
+const totalBaseProrrateo = cfdi.Conceptos.reduce(
+  (s, c) => s + Number(c.Base || 0),
+  0
+);
 
 out.push([
   "01",
@@ -342,6 +349,28 @@ cfdi.Conceptos.forEach((c,i)=>{
       ivaConcepto.toFixed(6)
     ].join("|"));
   }
+// =====================
+// 03-IMP IEPS (PRORRATEADO)
+// =====================
+if (cfdi.IEPSImporte > 0 && totalBaseProrrateo > 0) {
+
+  const factorIEPS = c.Base / totalBaseProrrateo;
+  const iepsConcepto = round6(cfdi.IEPSImporte * factorIEPS);
+
+  const tasaIEPS = c.Base > 0
+    ? round6(iepsConcepto / c.Base)
+    : 0;
+
+  out.push([
+    "03-IMP",
+    "TRASLADO",
+    round6(c.Base).toFixed(6),
+    "003",
+    "Tasa",
+    tasaIEPS.toFixed(6),
+    iepsConcepto.toFixed(6)
+  ].join("|"));
+}
 
 });
 
@@ -419,10 +448,3 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-
-
-
-
-
-
