@@ -292,44 +292,40 @@ function convertirCFDIGlobalASifei(cfdi) {
 
   const out = [];
 
-  // CABECERA
-  out.push([
-  "01","FA","4.0",
+out.push([
+  "01",
+  "FA",
+  "4.0",
   cfdi.Serie,
   cfdi.Folio,
   cfdi.FormaPago,
   FISCAL_EMISOR.numeroCertificado,
   "CONTADO",
-    round2(cfdi.Subtotal).toFixed(2),
-    "0.00",
-    cfdi.Moneda,
-    "1",
-    round2(cfdi.Total).toFixed(2),
-    "Ingreso",
-    cfdi.MetodoPago,
-    "",
-    "",
-"EMISOR",
-FISCAL_EMISOR.rfc,
-FISCAL_EMISOR.razonSocial,
-FISCAL_EMISOR.regimenFiscal,
-
-    "RECEPTOR",
-    "XAXX010101000",
-    "PUBLICO EN GENERAL",
-    "",
-    "",
-    "S01",
-    "",
-    "",
-    round2((cfdi.IVA16Importe||0)+(cfdi.IEPSImporte||0)).toFixed(2),
-    "",
-    "",
-    "",
-    "",
-    "",
-    "N"
-  ].join("|"));
+  round2(cfdi.Subtotal).toFixed(2),
+  "0.00",
+  cfdi.Moneda,
+  "1",
+  round2(cfdi.Total).toFixed(2),
+  "Ingreso",
+  cfdi.MetodoPago,
+  "", // ← EXACTO
+  "", // ← EXACTO
+  "EMISOR",
+  FISCAL_EMISOR.rfc,
+  FISCAL_EMISOR.razonSocial,
+  FISCAL_EMISOR.regimenFiscal,
+  "RECEPTOR",
+  "XAXX010101000",
+  "PUBLICO EN GENERAL",
+  "", // ← EXACTO
+  "", // ← EXACTO
+  "S01",
+  "", // ← EXACTO
+  "", // ← EXACTO
+  round2((cfdi.IVA16Importe||0)+(cfdi.IEPSImporte||0)).toFixed(2),
+  "", "", "", "", "",
+  "N"
+].join("|"));
 
   // CONCEPTOS
   cfdi.Conceptos.forEach((c,i)=>{
@@ -399,5 +395,6 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
