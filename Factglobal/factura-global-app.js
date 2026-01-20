@@ -10,7 +10,7 @@
    IMPORTS EXTERNOS (NO SE TOCAN)
    ========================================================= */
 import { db, obtenerVentasRuta, tomarFolio } from "./firebase.js";
-
+import { FISCAL_EMISOR } from "./configFiscal.js";
 
 /* =========================================================
    CONFIGURACIÓN GENERAL DE LA APP
@@ -399,4 +399,5 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
