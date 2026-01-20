@@ -275,8 +275,8 @@ out.push([
   round2(cfdi.Total).toFixed(2),
   "Ingreso",
   cfdi.MetodoPago,
-  "", // ← EXACTO
-  "", // ← EXACTO
+  "67700", // CP expedición
+  "",      // Email
   "EMISOR",
   FISCAL_EMISOR.rfc,
   FISCAL_EMISOR.razonSocial,
@@ -284,15 +284,20 @@ out.push([
   "RECEPTOR",
   "XAXX010101000",
   "PUBLICO EN GENERAL",
-  "", // ← EXACTO
-  "", // ← EXACTO
+  "",
+  "",
   "S01",
-  "", // ← EXACTO
-  "", // ← EXACTO
-  round2((cfdi.IVA16Importe||0)+(cfdi.IEPSImporte||0)).toFixed(2),
-  "", "", "", "", "",
+  "",
+  "",
+  round2((cfdi.IVA16Importe || 0) + (cfdi.IEPSImporte || 0)).toFixed(2),
+  "INFO_ADIC",
+  "MADERO 690 CENTRO LINARES NUEVO LEON MEXICO",
+  "SUCURSAL",
+  "PUBLICO EN GENERAL",
+  "",
   "N"
 ].join("|"));
+
 out.push([
   "01",
   "CFDI40",
@@ -364,26 +369,28 @@ cfdi.Conceptos.forEach((c,i)=>{
     ].join("|"));
   }
 // =====================
-// 03-IMP IEPS (PRORRATEADO)
+// 03-IMP IEPS (PRORRATEADO CORRECTO)
 // =====================
 if (cfdi.IEPSImporte > 0 && totalBaseProrrateo > 0) {
 
   const factorIEPS = c.Base / totalBaseProrrateo;
+  const baseIEPSConcepto = round6(c.Base);
   const iepsConcepto = round6(cfdi.IEPSImporte * factorIEPS);
-
-  const tasaIEPS = c.Base > 0
-    ? round6(iepsConcepto / c.Base)
+  const tasaIEPS = baseIEPSConcepto > 0
+    ? round6(iepsConcepto / baseIEPSConcepto)
     : 0;
 
   out.push([
-  "03-IMP",
-  "TRASLADO",
-  iepsConcepto.toFixed(6), // 👈 BASE IEPS
-  "003",
-  "Tasa",
-  tasaIEPS.toFixed(6),
-  iepsConcepto.toFixed(6)
-].join("|"));
+    "03-IMP",
+    "TRASLADO",
+    baseIEPSConcepto.toFixed(6), // ✅ BASE
+    "003",
+    "Tasa",
+    tasaIEPS.toFixed(6),
+    iepsConcepto.toFixed(6)      // ✅ IMPORTE
+  ].join("|"));
+}
+
     /* =====================================================
      SECCIÓN 04 · IMPUESTOS GLOBALES (COMO SIFEI REAL)
      ===================================================== */
@@ -457,4 +464,5 @@ function descargarTXT(contenido, nombreArchivo) {
 
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+
 
