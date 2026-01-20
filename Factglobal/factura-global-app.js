@@ -140,13 +140,6 @@ ventasGlobal.forEach(v => {
 
   });
 });
-let iva0Base = 0;
-
-conceptosCFDI.forEach(c => {
-  if (c.ivaTasa === 0) {
-    iva0Base += c.Base;
-  }
-});
 
 iva0Base = round2(iva0Base);
 
@@ -189,6 +182,14 @@ ventasGlobal.forEach(v => {
 
   });
 });
+let iva0Base = 0;
+
+conceptosCFDI.forEach(c => {
+  if (c.ivaTasa === 0) {
+    iva0Base += c.Base;
+  }
+});
+
 const totalGlobal = round2(subtotalGlobal + iva16Importe + iepsImporte);
 const cfdiObj = {
   Serie: CONFIG.serieFiscal,
@@ -453,5 +454,6 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
