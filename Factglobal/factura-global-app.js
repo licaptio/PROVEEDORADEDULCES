@@ -115,12 +115,6 @@ window.generarTXTSifeiGlobal = async function (event) {
       await tomarFolio(CONFIG.serieFiscal)
     ).padStart(6, "0");
 
-    /* === 4. TOTALES GLOBALES === */
-    const tickets = ventasGlobal.map(v => ({
-      folio: v.folio,
-      total: Number(v.resumen_financiero.total)
-    }));
-
 // ===============================
 // BASE GLOBAL REAL (TODO)
 // ===============================
@@ -150,6 +144,16 @@ ventasGlobal.forEach(v => {
 baseIVA16   = round2(baseIVA16);
 iva16Importe = round2(iva16Importe);
 iepsImporte  = round2(iepsImporte);
+let iva0Base = 0;
+
+conceptosCFDI.forEach(c => {
+  if (c.ivaTasa === 0) {
+    iva0Base += c.Base;
+  }
+});
+
+iva0Base = round2(iva0Base);
+
 
 // 👇 SUBTOTAL GLOBAL REAL (TODO lo vendido)
 let subtotalGlobal = 0;
@@ -160,25 +164,30 @@ ventasGlobal.forEach(v => {
 
 subtotalGlobal = round2(subtotalGlobal);
 // BASE IVA 0 % (lo que NO llevó IVA 16)
-const baseIVA0 = round2(subtotalGlobal - baseIVA16);
 
     /* === 5. PRORRATEO + SAT === */
-const conceptosCFDI = tickets.map(t => {
-  const base = round2(t.total / 1.16);
-  return {
-    Cantidad: 1,
-    ClaveUnidad: "ACT",
-    ClaveProdServ: "01010101",
-    Descripcion: `Venta ${t.folio}`,
-    ValorUnitario: base,
-    Importe: base,
-    Base: base
-  };
-});
-const baseIVA16Conceptos = round2(
-  conceptosCFDI.reduce((s,c)=>s + c.Base, 0)
-);
+const conceptosCFDI = [];
 
+ventasGlobal.forEach(v => {
+  (v.detalle || []).forEach(d => {
+
+    const base = round2(Number(d.importe || 0));
+    if (base <= 0) return;
+
+    conceptosCFDI.push({
+      Cantidad: 1,
+      ClaveUnidad: "ACT",
+      ClaveProdServ: "01010101",
+      Descripcion: `Venta ${v.folio}`,
+      ValorUnitario: base,
+      Importe: base,
+      Base: base,
+      ivaTasa: Number(d.ivaTasa || 0),
+      iepsTasa: Number(d.iepsTasa || 0)
+    });
+
+  });
+});
 const totalGlobal = round2(subtotalGlobal + iva16Importe + iepsImporte);
 const cfdiObj = {
   Serie: CONFIG.serieFiscal,
@@ -342,6 +351,7 @@ out.push([
   // =====================
   // 03-IMP IVA 0 %
   // =====================
+  if (c.ivaTasa === 0) {
   out.push([
     "03-IMP",
     "TRASLADO",
@@ -351,42 +361,54 @@ out.push([
     "0.000000",
     "0.000000"
   ].join("|"));
+}
 
   // =====================
   // 03-IMP IVA 16 %
   // (PRORRATEADO SIMPLE)
   // =====================
-  if (cfdi.IVA16Importe > 0 && cfdi.IVA16Base > 0) {
+if (c.ivaTasa === 0.16) {
+  const iva = round6(c.Base * 0.16);
 
-    const factorIVA = c.Base / cfdi.Subtotal;
-    const baseIVAConcepto = round6(cfdi.IVA16Base * factorIVA);
-    const ivaConcepto = round6(cfdi.IVA16Importe * factorIVA);
+  out.push([
+    "03-IMP",
+    "TRASLADO",
+    round6(c.Base).toFixed(6),
+    "002",
+    "Tasa",
+    "0.160000",
+    iva.toFixed(6)
+  ].join("|"));
+}
 
-    out.push([
-      "03-IMP",
-      "TRASLADO",
-      baseIVAConcepto.toFixed(6),
-      "002",
-      "Tasa",
-      "0.160000",
-      ivaConcepto.toFixed(6)
-    ].join("|"));
-  }
 
 }); // ✅ ESTE ERA EL QUE FALTABA
+let iva16Base = 0;
+let iva16Importe = 0;
+
+conceptosCFDI.forEach(c => {
+  if (c.ivaTasa === 0.16) {
+    iva16Base += c.Base;
+    iva16Importe += c.Base * 0.16;
+  }
+});
+
+iva16Base = round2(iva16Base);
+iva16Importe = round2(iva16Importe);
+
     /* =====================================================
      SECCIÓN 04 · IMPUESTOS GLOBALES (COMO SIFEI REAL)
      ===================================================== */
 // IVA 16 %
-if (cfdi.IVA16Importe > 0) {
+if (iva16Importe > 0) {
   out.push([
     "04",
     "TRASLADO",
     "002",
     "Tasa",
     "0.160000",
-    round2(cfdi.IVA16Importe).toFixed(2),
-    round2(cfdi.IVA16Base).toFixed(2)
+    round2(iva16Importe).toFixed(2),
+    round2(iva16Base).toFixed(2)
   ].join("|"));
 }
 
@@ -398,21 +420,8 @@ if (cfdi.IVA16Importe > 0) {
     "Tasa",
     "0.000000",
     "0.00",
-    round2(cfdi.IVA0Base).toFixed(2)
+    round2(iva0Base).toFixed(2)
   ].join("|"));
-
-  // IEPS (si aplica)
-  if (cfdi.IEPSImporte > 0) {
-  out.push([
-    "04",
-    "TRASLADO",
-    "003",
-    "Tasa",
-    "0.080000",
-    round2(cfdi.IEPSImporte).toFixed(2),
-    round2(cfdi.Subtotal).toFixed(2)
-  ].join("|"));
-}
 
    const txt = out.join("\n");
 
@@ -443,7 +452,4 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-
-
 
