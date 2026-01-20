@@ -164,18 +164,21 @@ ventasGlobal.forEach(v => {
     const base = round2(Number(d.importe || 0));
     if (base <= 0) return;
 
-    conceptosCFDI.push({
-      ticketFolio: v.folio,   // 👈 AÑADE ESTO
-      Cantidad: 1,
-      ClaveUnidad: "ACT",
-      ClaveProdServ: "01010101",
-      Descripcion: `Venta ${v.folio}`,
-      ValorUnitario: base,
-      Importe: base,
-      Base: base,
-      ivaTasa: Number(d.ivaTasa || 0),
-      iepsTasa: Number(d.iepsTasa || 0)
-    });
+conceptosCFDI.push({
+  ticketFolio: v.folio,
+
+  Cantidad: 1,
+  ClaveUnidad: "ACT",
+  ClaveProdServ: "01010101",
+  NoIdentificacion: v.folio,
+  Descripcion: "Venta",
+  ValorUnitario: base,
+  Importe: base,
+
+  // 👇 CLAVE ABSOLUTA
+  impuestos: d.impuestos || []
+});
+
 
   });
 });
@@ -183,7 +186,7 @@ let iva0Base = 0;
 
 conceptosCFDI.forEach(c => {
   if (c.ivaTasa === 0) {
-    iva0Base += c.Base;
+    iva0Base += c.Importe;
   }
 });
 
@@ -252,6 +255,38 @@ document.getElementById("btnCargar").addEventListener("click", async () => {
   document.getElementById("total").innerText =
     ventas.reduce((s,v)=>s+Number(v.resumen_financiero.total||0),0).toFixed(2);
 });
+function generarImpuestosConceptoSifei(out, concepto) {
+
+  (concepto.impuestos || []).forEach(imp => {
+
+    // IVA
+    if (imp.tipo === "IVA") {
+      out.push([
+        "03-IMP",
+        "TRASLADO",
+        round6(imp.base).toFixed(6),
+        "002",
+        "Tasa",
+        imp.tasa.toFixed(6),
+        round6(imp.base * imp.tasa).toFixed(6)
+      ].join("|"));
+    }
+
+    // IEPS
+    if (imp.tipo === "IEPS") {
+      out.push([
+        "03-IMP",
+        "TRASLADO",
+        round6(imp.base).toFixed(6),
+        "003",
+        "Tasa",
+        imp.tasa.toFixed(6),
+        round6(imp.base * imp.tasa).toFixed(6)
+      ].join("|"));
+    }
+
+  });
+}
 
 /* =========================================================
    SIFEI · CONVERSIÓN CFDI → TXT
@@ -330,7 +365,7 @@ const tickets = {};
 
 cfdi.Conceptos.forEach(c => {
   // extraemos el folio del ticket desde la descripción
-  const folio = c.Descripcion.replace("Venta ", "");
+  const folio = c.ticketFolio;
 
   if (!tickets[folio]) {
     tickets[folio] = {
@@ -341,19 +376,7 @@ cfdi.Conceptos.forEach(c => {
     };
   }
 
-  tickets[folio].subtotal += c.Base;
-
-  if (c.ivaTasa === 0.16) {
-    tickets[folio].iva16 += c.Base * 0.16;
-  }
-
-  if (c.ivaTasa === 0) {
-    tickets[folio].iva0 += c.Base;
-  }
-
-  if (c.iepsTasa > 0) {
-    tickets[folio].ieps += c.Base * c.iepsTasa;
-  }
+  tickets[folio].subtotal += c.Importe;
 });
 
 Object.entries(tickets).forEach(([folio, t]) => {
@@ -390,57 +413,8 @@ out.push([
   "",
   "02"
 ].join("|"));
-
-  // =====================
-  // 03-IMP IVA 0 %
-  // =====================
-// =====================
-// IMPUESTOS POR CONCEPTO (SIFEI REAL)
-// =====================
-
-// IVA 0 %
-if (c.ivaTasa === 0) {
-  out.push([
-    "03-IMP",
-    "TRASLADO",
-    round6(c.Base).toFixed(6),
-    "002",
-    "Tasa",
-    "0.000000",
-    "0.000000"
-  ].join("|"));
-}
-
-// IVA 16 %
-if (c.ivaTasa === 0.16) {
-  const iva = round6(c.Base * 0.16);
-
-  out.push([
-    "03-IMP",
-    "TRASLADO",
-    round6(c.Base).toFixed(6),
-    "002",
-    "Tasa",
-    "0.160000",
-    iva.toFixed(6)
-  ].join("|"));
-}
-
-// IEPS (clave 003)
-if (c.iepsTasa > 0) {
-  const baseIeps = round6(c.Base);
-  const ieps = round6(baseIeps * c.iepsTasa);
-
-  out.push([
-    "03-IMP",
-    "TRASLADO",
-    baseIeps.toFixed(6),
-    "003",
-    "Tasa",
-    c.iepsTasa.toFixed(6),
-    ieps.toFixed(6)
-  ].join("|"));
-}
+// 👇 ESTA ES LA LÍNEA CLAVE
+generarImpuestosConceptoSifei(out, c);
 
 
 }); // ✅ ESTE ERA EL QUE FALTABA
@@ -448,11 +422,14 @@ let iva16Base = 0;
 let iva16Importe = 0;
 
 cfdi.Conceptos.forEach(c => {
-  if (c.ivaTasa === 0.16) {
-    iva16Base += c.Base;
-    iva16Importe += c.Base * 0.16;
-  }
+  (c.impuestos || []).forEach(imp => {
+    if (imp.tipo === "IVA" && imp.tasa === 0.16) {
+      iva16Base += imp.base;
+      iva16Importe += imp.base * imp.tasa;
+    }
+  });
 });
+
 
 iva16Base = round2(iva16Base);
 iva16Importe = round2(iva16Importe);
@@ -460,7 +437,7 @@ let iva0Base = 0;
 
 cfdi.Conceptos.forEach(c => {
   if (c.ivaTasa === 0) {
-    iva0Base += c.Base;
+    iva0Base += c.Importe;
   }
 });
 
@@ -503,8 +480,8 @@ cfdi.Conceptos.forEach(c => {
     if (!iepsPorTasa[c.iepsTasa]) {
       iepsPorTasa[c.iepsTasa] = { base: 0, importe: 0 };
     }
-    iepsPorTasa[c.iepsTasa].base += c.Base;
-    iepsPorTasa[c.iepsTasa].importe += c.Base * c.iepsTasa;
+    iepsPorTasa[c.iepsTasa].base += c.Importe;
+    iepsPorTasa[c.iepsTasa].importe += c.Importe * c.iepsTasa;
   }
 });
 
@@ -550,5 +527,6 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
