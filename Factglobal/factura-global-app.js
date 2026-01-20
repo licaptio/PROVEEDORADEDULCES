@@ -180,11 +180,12 @@ ventasGlobal.forEach(v => {
 });
 let iva0Base = 0;
 
-cfdi.Conceptos.forEach(c => {
+conceptosCFDI.forEach(c => {
   if (c.ivaTasa === 0) {
     iva0Base += c.Base;
   }
 });
+
 
 const totalGlobal = round2(subtotalGlobal + iva16Importe + iepsImporte);
 const cfdiObj = {
@@ -384,7 +385,7 @@ if (c.ivaTasa === 0.16) {
 let iva16Base = 0;
 let iva16Importe = 0;
 
-conceptosCFDI.forEach(c => {
+cfdi.Conceptos.forEach(c => {
   if (c.ivaTasa === 0.16) {
     iva16Base += c.Base;
     iva16Importe += c.Base * 0.16;
@@ -450,6 +451,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
