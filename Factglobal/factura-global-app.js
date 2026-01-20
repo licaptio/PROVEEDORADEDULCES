@@ -163,17 +163,23 @@ subtotalGlobal = round2(subtotalGlobal);
 const baseIVA0 = round2(subtotalGlobal - baseIVA16);
 
     /* === 5. PRORRATEO + SAT === */
-const conceptosCFDI = tickets.map(t => ({
-  Cantidad: 1,
-  ClaveUnidad: "ACT",
-  ClaveProdServ: "01010101",
-  Descripcion: `Venta ${t.folio}`,
-  ValorUnitario: round6(t.total),
-  Importe: round6(t.total),
-  Base: round6(t.total / (1 + 0.16)) // aproximación segura
-}));
+const conceptosCFDI = tickets.map(t => {
+  const base = round2(t.total / 1.16);
+  return {
+    Cantidad: 1,
+    ClaveUnidad: "ACT",
+    ClaveProdServ: "01010101",
+    Descripcion: `Venta ${t.folio}`,
+    ValorUnitario: base,
+    Importe: base,
+    Base: base
+  };
+});
+const baseIVA16Conceptos = round2(
+  conceptosCFDI.reduce((s,c)=>s + c.Base, 0)
+);
 
-
+const totalGlobal = round2(subtotalGlobal + iva16Importe + iepsImporte);
 const cfdiObj = {
   Serie: CONFIG.serieFiscal,
   Folio: folio,
@@ -182,15 +188,16 @@ const cfdiObj = {
   MetodoPago: "PUE",
   Moneda: "MXN",
 
-  Subtotal: round2(subtotalGlobal),
-  Total: round2(subtotalGlobal + iva16Importe + iepsImporte),
+  Subtotal: subtotalGlobal,
+  Total: totalGlobal,
 
   IVA16Base: baseIVA16,
   IVA16Importe: iva16Importe,
   IEPSImporte: iepsImporte,
-  IVA0Base: baseIVA0,   // 👈 ESTA LÍNEA NUEVA 
+
   Conceptos: conceptosCFDI
 };
+
 
 
     const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
@@ -251,13 +258,6 @@ function convertirCFDIGlobalASifei(cfdi) {
   }
 
   const out = [];
-// ===============================
-// BASE TOTAL PARA PRORRATEO IEPS
-// ===============================
-const totalBaseProrrateo = cfdi.Conceptos.reduce(
-  (s, c) => s + Number(c.Base || 0),
-  0
-);
 
 out.push([
   "01",
@@ -322,21 +322,21 @@ cfdi.Conceptos.forEach((c,i)=>{
   // =====================
   // LINEA 03 (CONCEPTO)
   // =====================
-  out.push([
-    "03",
-    i+1,
-    "1.000",
-    "ACT",
-    "",
-    "01010101",
-    "",
-    c.Descripcion,
-    round6(c.Base).toFixed(6),
-    "0.00",
-    round6(c.Base).toFixed(6),
-    "",
-    "02" // 👈 OBLIGATORIO SI HAY IMPUESTOS
-  ].join("|"));
+out.push([
+  "03",
+  i+1,
+  "1.000",
+  "ACT",
+  "",
+  "01010101",
+  "",
+  c.Descripcion,
+  round2(c.Importe).toFixed(2),
+  "0.00",
+  round2(c.Importe).toFixed(2),
+  "",
+  "02"
+].join("|"));
 
   // =====================
   // 03-IMP IVA 0 %
@@ -371,28 +371,7 @@ cfdi.Conceptos.forEach((c,i)=>{
       ivaConcepto.toFixed(6)
     ].join("|"));
   }
-// =====================
-// 03-IMP IEPS (PRORRATEADO CORRECTO)
-// =====================
-if (cfdi.IEPSImporte > 0 && totalBaseProrrateo > 0) {
 
-  const factorIEPS = c.Base / totalBaseProrrateo;
-  const baseIEPSConcepto = round6(c.Base);
-  const iepsConcepto = round6(cfdi.IEPSImporte * factorIEPS);
-  const tasaIEPS = baseIEPSConcepto > 0
-    ? round6(iepsConcepto / baseIEPSConcepto)
-    : 0;
-
-  out.push([
-    "03-IMP",
-    "TRASLADO",
-    baseIEPSConcepto.toFixed(6), // ✅ BASE
-    "003",
-    "Tasa",
-    tasaIEPS.toFixed(6),
-    iepsConcepto.toFixed(6)      // ✅ IMPORTE
-  ].join("|"));
-}
 }); // ✅ ESTE ERA EL QUE FALTABA
     /* =====================================================
      SECCIÓN 04 · IMPUESTOS GLOBALES (COMO SIFEI REAL)
@@ -423,21 +402,16 @@ if (cfdi.IVA16Importe > 0) {
 
   // IEPS (si aplica)
   if (cfdi.IEPSImporte > 0) {
-    const tasaIEPS =
-      cfdi.Subtotal > 0
-        ? round6(cfdi.IEPSImporte / cfdi.Subtotal)
-        : 0;
-
-    out.push([
-      "04",
-      "TRASLADO",
-      "003",
-      "Tasa",
-      tasaIEPS.toFixed(6),
-      round2(cfdi.IEPSImporte).toFixed(2),
-      round2(cfdi.Subtotal + cfdi.IEPSImporte).toFixed(2)
-    ].join("|"));
-  }
+  out.push([
+    "04",
+    "TRASLADO",
+    "003",
+    "Tasa",
+    "0.080000",
+    round2(cfdi.IEPSImporte).toFixed(2),
+    round2(cfdi.Subtotal).toFixed(2)
+  ].join("|"));
+}
 
    const txt = out.join("\n");
 
@@ -468,5 +442,6 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
