@@ -394,6 +394,15 @@ cfdi.Conceptos.forEach(c => {
 
 iva16Base = round2(iva16Base);
 iva16Importe = round2(iva16Importe);
+let iva0Base = 0;
+
+cfdi.Conceptos.forEach(c => {
+  if (c.ivaTasa === 0) {
+    iva0Base += c.Base;
+  }
+});
+
+iva0Base = round2(iva0Base);
 
     /* =====================================================
      SECCIÓN 04 · IMPUESTOS GLOBALES (COMO SIFEI REAL)
@@ -451,6 +460,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
