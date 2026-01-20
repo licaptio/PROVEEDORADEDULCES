@@ -260,23 +260,23 @@ const totalBaseProrrateo = cfdi.Conceptos.reduce(
 );
 
 out.push([
-  "01",                                   // Tipo registro
-  "FA",                                   // Tipo comprobante
-  "4.0",                                  // Versión CFDI
-  cfdi.Serie,                             // Serie
-  cfdi.Folio,                             // Folio
-  cfdi.FormaPago,                         // FormaPago
-  FISCAL_EMISOR.numeroCertificado,        // NoCertificado
-  "CONTADO",                              // CondicionesPago
-  round2(cfdi.Subtotal).toFixed(2),       // Subtotal
-  "0.00",                                 // Descuento
-  cfdi.Moneda,                            // Moneda
-  "1",                                    // TipoCambio
-  round2(cfdi.Total).toFixed(2),          // Total
-  "Ingreso",                              // TipoDeComprobante
-  cfdi.MetodoPago,                        // MetodoPago
-  "67700",                                // LugarExpedicion
-  "",                                     // Confirmacion (OBLIGATORIO AUNQUE VACIO)
+  "01",
+  "FA",
+  "4.0",
+  cfdi.Serie,
+  cfdi.Folio,
+  cfdi.FormaPago,
+  FISCAL_EMISOR.numeroCertificado,
+  "CONTADO",
+  round2(cfdi.Subtotal).toFixed(2),
+  "0.00",
+  cfdi.Moneda,
+  "1",
+  round2(cfdi.Total).toFixed(2),
+  "Ingreso",
+  cfdi.MetodoPago,
+  "67700",
+  "", // 17 Confirmacion
   "EMISOR",
   FISCAL_EMISOR.rfc,
   FISCAL_EMISOR.razonSocial,
@@ -284,19 +284,21 @@ out.push([
   "RECEPTOR",
   "XAXX010101000",
   "PUBLICO EN GENERAL",
-  "",                                     // UsoCFDI
-  "",                                     // ResidenciaFiscal
-  "S01",                                  // UsoCFDI SAT
-  "admonproveedora@infinitummail.com",    // Email
-  "",                                     // RFC extranjero
+  "", // 25 UsoCFDI
+  "", // 26 ResidenciaFiscal
+  "S01",
+  "admonproveedora@infinitummail.com",
+  "", // 29 RFC extranjero
   round2((cfdi.IVA16Importe || 0) + (cfdi.IEPSImporte || 0)).toFixed(2),
   "INFO_ADIC",
-  "",                                     // Observaciones 1
+  "", // 32
   "MADERO 690 CENTRO LINARES NUEVO LEON MEXICO",
+  " 690 CENTRO LINARES NUEVO LEON MEXICO",
   "CONOCIDO S/N CENTRO LINARES 67700 NUEVO LEON MEXICO",
-  "",                                     // Observaciones 2
-  "N"                                    // EsExportacion
+  "", // 36
+  "N"
 ].join("|"));
+
 
 
 out.push([
@@ -466,4 +468,5 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
