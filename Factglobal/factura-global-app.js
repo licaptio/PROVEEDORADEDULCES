@@ -202,16 +202,6 @@ ventasGlobal.forEach(v => {
 });
 
 subtotalGlobal = round2(subtotalGlobal);
-
-// 👇 IEPS GLOBAL (ya viene en ventas, solo se suma)
-let iepsGlobal = 0;
-
-ventasGlobal.forEach(v => {
-  iepsGlobal += Number(v.resumen_financiero.ieps || 0);
-});
-
-iepsGlobal = round2(iepsGlobal);
-
     /* === 5. PRORRATEO + SAT === */
 const conceptosFinales = aplicarRedondeoSAT({
   conceptos: prorratearGlobal({
@@ -474,6 +464,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
