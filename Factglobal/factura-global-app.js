@@ -350,7 +350,12 @@ out.push([
   // =====================
   // 03-IMP IVA 0 %
   // =====================
-  if (c.ivaTasa === 0) {
+// =====================
+// IMPUESTOS POR CONCEPTO (SIFEI REAL)
+// =====================
+
+// IVA 0 %
+if (c.ivaTasa === 0) {
   out.push([
     "03-IMP",
     "TRASLADO",
@@ -362,10 +367,7 @@ out.push([
   ].join("|"));
 }
 
-  // =====================
-  // 03-IMP IVA 16 %
-  // (PRORRATEADO SIMPLE)
-  // =====================
+// IVA 16 %
 if (c.ivaTasa === 0.16) {
   const iva = round6(c.Base * 0.16);
 
@@ -377,6 +379,22 @@ if (c.ivaTasa === 0.16) {
     "Tasa",
     "0.160000",
     iva.toFixed(6)
+  ].join("|"));
+}
+
+// IEPS (clave 003)
+if (c.iepsTasa > 0) {
+  const baseIeps = round6(c.Base);
+  const ieps = round6(baseIeps * c.iepsTasa);
+
+  out.push([
+    "03-IMP",
+    "TRASLADO",
+    baseIeps.toFixed(6),
+    "003",
+    "Tasa",
+    c.iepsTasa.toFixed(6),
+    ieps.toFixed(6)
   ].join("|"));
 }
 
@@ -431,6 +449,34 @@ if (iva16Importe > 0) {
     round2(iva0Base).toFixed(2)
   ].join("|"));
 
+// =====================
+// IEPS GLOBAL (AGRUPADO POR TASA – SAT REAL)
+// =====================
+const iepsPorTasa = {};
+
+cfdi.Conceptos.forEach(c => {
+  if (c.iepsTasa > 0) {
+    if (!iepsPorTasa[c.iepsTasa]) {
+      iepsPorTasa[c.iepsTasa] = { base: 0, importe: 0 };
+    }
+    iepsPorTasa[c.iepsTasa].base += c.Base;
+    iepsPorTasa[c.iepsTasa].importe += c.Base * c.iepsTasa;
+  }
+});
+
+Object.entries(iepsPorTasa).forEach(([tasa, v]) => {
+  out.push([
+    "04",
+    "TRASLADO",
+    "003",
+    "Tasa",
+    Number(tasa).toFixed(6),
+    round2(v.importe).toFixed(2),
+    round2(v.base).toFixed(2)
+  ].join("|"));
+});
+
+
    const txt = out.join("\n");
 
   console.log("📄 TXT SIFEI GENERADO:\n", txt);
@@ -460,11 +506,4 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-
-
-
-
-
-
 
