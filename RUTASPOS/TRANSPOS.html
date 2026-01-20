@@ -181,158 +181,7 @@
     box-shadow: none !important;
   }
 }
-@media print {
-  body * {
-    visibility: hidden;
-  }
 
-  #ticketMini, #ticketMini * {
-    visibility: visible;
-  }
-
-  #ticketMini {
-    position:absolute;
-    top:0;
-    left:0;
-    width:58mm;
-    font-family:monospace;
-    font-size:11px;
-    color:black;
-  }
-
-  hr {
-    border:none;
-    border-top:1px dashed black;
-  }
-}
-/* ==============================
-   🖨 TICKET MINI PRINTER 80mm
-============================== */
-@media print {
-
-  @page {
-    size: 80mm auto;
-    margin: 0;
-  }
-
-  body {
-    margin: 0;
-    padding: 0;
-  }
-
-  body * {
-    visibility: hidden;
-  }
-
-  #ticketMini,
-  #ticketMini * {
-    visibility: visible;
-  }
-
-  #ticketMini {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 80mm;
-    padding: 6mm;
-    box-sizing: border-box;
-
-    font-family: monospace;
-    font-size: 11px;
-    line-height: 1.3;
-    color: #000;
-    background: #fff;
-  }
-
-  #ticketMini h3 {
-    text-align: center;
-    margin: 0 0 4px 0;
-    font-size: 13px;
-  }
-
-  #ticketMini p {
-    margin: 2px 0;
-  }
-
-  #ticketMini hr {
-    border: none;
-    border-top: 1px dashed #000;
-    margin: 6px 0;
-  }
-
-  #ticketMini table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-
-  #ticketMini td {
-    padding: 2px 0;
-    font-size: 11px;
-  }
-
-  #ticketMini td:first-child {
-    text-align: left;
-    width: 70%;
-    word-break: break-word;
-  }
-
-  #ticketMini td:last-child {
-    text-align: right;
-    width: 30%;
-  }
-
-  #ticketMini img {
-    display: block;
-    width: 100%;
-    margin-top: 6px;
-    border-top: 1px dashed #000;
-    padding-top: 4px;
-  }
-
-}
-@media print {
-
-  #tablaTicket {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 10.5px;
-  }
-
-  #tablaTicket tr {
-    border-bottom: 1px dashed #000;
-  }
-
-  #tablaTicket td {
-    padding: 2px 0;
-    vertical-align: top;
-    white-space: nowrap;
-  }
-
-  /* Código */
-  #tablaTicket td.col-codigo {
-    width: 18%;
-    text-align: left;
-  }
-
-  /* Descripción */
-  #tablaTicket td.col-desc {
-    width: 42%;
-    white-space: normal;
-    word-break: break-word;
-  }
-
-  /* Cantidad */
-  #tablaTicket td.col-cant {
-    width: 15%;
-    text-align: center;
-  }
-
-  /* Precio */
-  #tablaTicket td.col-precio {
-    width: 25%;
-    text-align: right;
-  }
-}
 </style>
 
 <script type="module">
@@ -553,9 +402,7 @@ window.eliminarItem = i => {
   localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
 
 };
-let firmaBase64 = null;
-let imprimirDespuesDeGuardar = false;
-let btnMini, modalFirma, canvas, ctx;
+
 
 /* ==========================================================
    🟦 CARGAR LISTA DE VENDEDORES
@@ -588,138 +435,103 @@ async function cargarListaVendedores() {
    🟫 INIT CORRECTO (TODO DENTRO)
 ========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
+document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
+
+  const ultimaSync = localStorage.getItem("ultima_sync_productos");
+
+if (!ultimaSync || Date.now() - ultimaSync > 1000 * 60 * 60 * 12) {
   await syncProductos();
+  localStorage.setItem("ultima_sync_productos", Date.now());
+}
+
   await cargarListaVendedores();
+const guardado = localStorage.getItem("carrito_traspaso");
+if (guardado) {
 
-  document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
-  document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
+  // Mostrar barra PRO
+  const barra = document.getElementById("barraSesion");
+  barra.style.display = "block";
+  barra.style.opacity = "1";
+  barra.textContent = "Recuperando sesión anterior…";
 
-  // ✅ escaneo con pistola (ENTER)
-  document.getElementById("buscador").addEventListener("keypress", e => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      buscarPorCodigo();
-    }
-  });
+  // Restaurar datos
+  carrito = JSON.parse(guardado);
+  renderTabla();
 
-  // ✅ cerrar modal
-  document.getElementById("cerrarModal").addEventListener("click", () => {
-    document.getElementById("modalResultados").style.display = "none";
-  });
+  // Cambiar mensaje después de un momento
+  setTimeout(() => {
+    barra.textContent = "Sesión restaurada ✓";
+  }, 600);
 
-  // ✅ setear rutaId cuando eligen vendedor
+  // Desaparecer suavemente
+  setTimeout(() => {
+    barra.style.opacity = "0";
+  }, 1400);
+
+  // Ocultar completamente
+  setTimeout(() => {
+    barra.style.display = "none";
+  }, 2000);
+}
+
+  // seleccionar vendedor
   document.getElementById("vendedorSelect").addEventListener("change", e => {
-    const option = e.target.selectedOptions[0];
-    document.getElementById("rutaId").value = option?.dataset.ruta || "";
-      // 🔥 NUEVO
-  window.nombreRuta = option?.dataset.ruta || "";
+    const opt = e.target.selectedOptions[0];
+    if (!opt) return;
+    
+    document.getElementById("rutaId").value = opt.dataset.ruta;
   });
-
-  // ✅ búsqueda por nombre
-  document.getElementById("busquedaNombre").addEventListener("input", e => {
-    clearTimeout(debounceTimer);
-
-    debounceTimer = setTimeout(() => {
-      const term = e.target.value.toLowerCase().trim();
-      const lista = document.getElementById("listaResultados");
-
-      if (term.length < 2) {
-        lista.innerHTML = "";
-        return;
-      }
-
-      const filtrados = resultadosBusqueda
-        .filter(p => p.concepto?.toLowerCase().includes(term))
-        .slice(0, 30);
-
-      lista.innerHTML = "";
-
-      filtrados.forEach(p => {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.textContent = `${p.concepto} (${p.codigoBarra})`;
-
-        div.onclick = () => {
-          productoSeleccionadoPorNombre = p;
-          document.getElementById("modalResultados").style.display = "none";
-          document.getElementById("modalCantidad").style.display = "flex";
-          document.getElementById("inputCantidadNombre").value = "";
-          document.getElementById("inputCantidadNombre").focus();
-        };
-
-        lista.appendChild(div);
-      });
-    }, 200);
-  });
-
-  // ✅ mini printer + firma
-  btnMini = document.getElementById("btnMiniPrint");
-  modalFirma = document.getElementById("modalFirma");
-  canvas = document.getElementById("canvasFirma");
-  ctx = canvas.getContext("2d");
-
-  let dibujando = false;
-
-  btnMini.addEventListener("click", () => {
-    if (carrito.length === 0) {
-      alert("No hay productos");
-      return;
-    }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    modalFirma.style.display = "flex";
-  });
-
-  canvas.addEventListener("mousedown", e => {
-    dibujando = true;
-    ctx.beginPath();
-    ctx.moveTo(e.offsetX, e.offsetY);
-  });
-
-  canvas.addEventListener("mousemove", e => {
-    if (!dibujando) return;
-    ctx.lineTo(e.offsetX, e.offsetY);
-    ctx.stroke();
-  });
-
-  canvas.addEventListener("mouseup", () => dibujando = false);
-  canvas.addEventListener("mouseleave", () => dibujando = false);
-
-  document.getElementById("btnLimpiarFirma").onclick = () => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
-
-  document.getElementById("btnAceptarFirma").onclick = async () => {
-    if (canvas.toDataURL().length < 1000) {
-      alert("Debe firmar antes de imprimir");
-      return;
-    }
-
-    firmaBase64 = canvas.toDataURL("image/png");
-    imprimirDespuesDeGuardar = true;
-    modalFirma.style.display = "none";
-    await guardarTraspaso();
-  };
-
-  // ✅ aceptar cantidad
-  document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
-    const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
-
-    if (!cant || cant <= 0) {
-      alert("Escriba una cantidad válida");
-      return;
-    }
-
-    document.getElementById("modalCantidad").style.display = "none";
-    seleccionarProducto(productoSeleccionadoPorNombre);
-    window.cantidadManual = cant;
-
-    agregarItem();
-    renderTabla();
-
-    document.getElementById("preview").innerText = "";
-    document.getElementById("buscador").focus();
-  });
+  // escaneo con pistola (ENTER)
+document.getElementById("buscador").addEventListener("keypress", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    buscarPorCodigo();
+  }
 });
+
+  document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
+});
+document.getElementById("cerrarModal").addEventListener("click", () => {
+  document.getElementById("modalResultados").style.display = "none";
+});
+
+document.getElementById("busquedaNombre").addEventListener("input", e => {
+  clearTimeout(debounceTimer);
+
+  debounceTimer = setTimeout(() => {
+    const term = e.target.value.toLowerCase().trim();
+    const lista = document.getElementById("listaResultados");
+
+    if (term.length < 2) {
+      lista.innerHTML = "";
+      return;
+    }
+
+    const filtrados = resultadosBusqueda
+      .filter(p => p.concepto?.toLowerCase().includes(term))
+      .slice(0, 30); // 🔥 LIMITE PRO
+
+    lista.innerHTML = "";
+
+    filtrados.forEach(p => {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.textContent = `${p.concepto} (${p.codigoBarra})`;
+
+      div.onclick = () => {
+        productoSeleccionadoPorNombre = p;
+        document.getElementById("modalResultados").style.display = "none";
+        document.getElementById("modalCantidad").style.display = "flex";
+        document.getElementById("inputCantidadNombre").value = "";
+        document.getElementById("inputCantidadNombre").focus();
+      };
+
+      lista.appendChild(div);
+    });
+  }, 200); // ⏱ debounce real
+});
+
+
 /* ==========================================================
    🟦 BUSCAR POR NOMBRE – ABRIR MODAL
 ========================================================== */
@@ -737,6 +549,30 @@ async function buscarPorNombre() {
   const productos = await getAllProductos();
   resultadosBusqueda = productos;
 }
+document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
+  const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
+
+  if (!cant || cant <= 0) {
+    alert("Escriba una cantidad válida");
+    return;
+  }
+
+  // cerrar modal de cantidad
+  document.getElementById("modalCantidad").style.display = "none";
+
+  // poner producto seleccionado
+  seleccionarProducto(productoSeleccionadoPorNombre);
+
+  // guardar cantidad manual
+  window.cantidadManual = cant;
+
+  // agregar al carrito
+  agregarItem();
+  renderTabla();
+document.getElementById("preview").innerText = "";
+// 🔥 Enfocar escáner después de agregar manualmente
+  document.getElementById("buscador").focus();
+});
 /* ==========================================================
    🟪 GUARDAR TRASPASO EN: /almacenes/{rutaId}/entradas/
 ========================================================== */
@@ -760,19 +596,17 @@ async function buscarPorNombre() {
     return;
   }
 
-const payload = {
-  vendedorId,
-  rutaId,
-  fecha: new Date().toISOString(),
-  firma: firmaBase64 || null, // 🔥 FIRMA AQUÍ
-  items: carrito.map(i => ({
-    codigo: i.codigo,
-    concepto: i.concepto,
-    cantidad: i.cantidad,
-    precio: i.precio
-  }))
-};
-
+  const payload = {
+    vendedorId,
+    rutaId,
+    fecha: new Date().toISOString(),
+    items: carrito.map(i => ({
+      codigo: i.codigo,
+      concepto: i.concepto,
+      cantidad: i.cantidad,
+      precio: i.precio
+    }))
+  };
 
   try {
     // 🔥 GRABA AQUÍ: /almacenes/{rutaId}/entradas/
@@ -783,90 +617,19 @@ const idTraspaso = docRef.id;
 
 alert("✔ Traspaso enviado correctamente");
 
-if (imprimirDespuesDeGuardar) {
-  generarTicket();           // 🖨 mini printer
-  imprimirDespuesDeGuardar = false;
+// abrir hoja de impresión
+window.open(`impresion_traspaso.html?id=${idTraspaso}&ruta=${rutaId}`, "_blank");
 
-  // 🔥 limpiar DESPUÉS de imprimir
-  setTimeout(() => {
-    firmaBase64 = null;
-    carrito = [];
-    renderTabla();
-    localStorage.removeItem("carrito_traspaso");
-  }, 600);
+// limpiar pantalla
+carrito = [];
+renderTabla();
+localStorage.removeItem("carrito_traspaso");
 
-} else {
-  window.open(
-    `impresion_traspaso.html?id=${idTraspaso}&ruta=${rutaId}`,
-    "_blank"
-  );
-
-  // limpiar inmediato (no hay mini printer)
-  firmaBase64 = null;
-  carrito = [];
-  renderTabla();
-  localStorage.removeItem("carrito_traspaso");
-}
 
   } catch (err) {
     console.error(err);
     alert("❌ Error al guardar: " + err.message);
   }
-}
-function generarTicket() {
-  document.getElementById("tFecha").textContent =
-    new Date().toLocaleString();
-
-  document.getElementById("tVendedor").textContent =
-    document.getElementById("vendedorSelect")
-      .selectedOptions[0]?.textContent || "";
-
-  document.getElementById("tRuta").textContent =
-    window.nombreRuta || "";
-
-  const tbody = document.getElementById("tItems");
-  tbody.innerHTML = "";
-
-carrito.forEach(i => {
-  const tr = document.createElement("tr");
-
-  const descripcionCorta = i.concepto.length > 20
-    ? i.concepto.substring(0, 20)
-    : i.concepto;
-
-  tr.innerHTML = `
-    <td class="col-codigo">${i.codigo}</td>
-    <td class="col-desc">${descripcionCorta}</td>
-    <td class="col-cant">${i.cantidad}</td>
-    <td class="col-precio">$${i.precio.toFixed(2)}</td>
-  `;
-
-  tbody.appendChild(tr);
-});
-
-
-  const img = document.getElementById("imgFirma");
-
-  if (firmaBase64) {
-    // 🔥 CLONAR FIRMA (NO usar la variable original)
-    const firmaClon = firmaBase64;
-    img.src = firmaClon;
-
-    // 🔥 ESPERAR A QUE CARGUE ANTES DE IMPRIMIR
-    img.onload = () => imprimirTicketSeguro();
-  } else {
-    imprimirTicketSeguro();
-  }
-}
-  function imprimirTicketSeguro() {
-  const ticket = document.getElementById("ticketMini");
-  ticket.style.display = "block";
-
-  // 🔥 delay real para mini printers
-  setTimeout(() => {
-    window.print();
-    ticket.style.display = "none";
-  }, 300);
 }
 
 </script>
@@ -928,15 +691,6 @@ carrito.forEach(i => {
 </div>
   <!-- BOTÓN -->
   <button id="btnTraspaso" style="margin-top:12px; width:100%;">Finalizar Traspaso</button>
-  <button id="btnMiniPrint" style="
-  margin-top:8px;
-  width:100%;
-  background:#1e8e3e;
-  font-size:16px;
-">
-🖨 Imprimir (Mini Printer)
-</button>
-
 
 </div>
 
@@ -1015,64 +769,6 @@ carrito.forEach(i => {
       Cancelar
     </button>
 
-  </div>
-</div>
-<!-- MODAL FIRMA -->
-<div id="modalFirma" style="
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.6);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:2000;
-">
-  <div style="
-    background:#fff;
-    padding:20px;
-    border-radius:16px;
-    width:95%;
-    max-width:420px;
-    color:#111;
-  ">
-    <h3 style="margin-top:0;color:#00416A;">Firma de recibido</h3>
-
-    <canvas id="canvasFirma" width="360" height="180"
-      style="border:2px solid #ccc;border-radius:8px;width:100%;">
-    </canvas>
-
-    <button id="btnLimpiarFirma" style="margin-top:8px;width:100%;">
-      Limpiar firma
-    </button>
-
-    <button id="btnAceptarFirma" style="
-      margin-top:8px;
-      width:100%;
-      background:#0c6cbd;
-      color:white;
-      font-weight:bold;
-    ">
-      Aceptar y imprimir
-    </button>
-  </div>
-</div>
-<!-- TICKET MINI PRINTER -->
-<div id="ticketMini" style="display:none;">
-  <div class="ticket">
-    <h3>TRASPASO DE ALMACÉN</h3>
-    <p id="tFecha"></p>
-    <p><strong>Vendedor:</strong> <span id="tVendedor"></span></p>
-    <p><strong>Ruta:</strong> <span id="tRuta"></span></p>
-    <hr>
-
-<table id="tablaTicket">
-  <tbody id="tItems"></tbody>
-</table>
-
-    <hr>
-    <img id="imgFirma" style="width:100%;margin-top:10px;">
-    <p style="text-align:center;">FIRMA</p>
   </div>
 </div>
 
