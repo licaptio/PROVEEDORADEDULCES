@@ -124,20 +124,32 @@ window.generarTXTSifeiGlobal = async function (event) {
 // ===============================
 // BASE GLOBAL REAL (TODO)
 // ===============================
-let baseGlobal = 0;
-let ivaGlobal = 0;
-let iepsGlobal = 0;
+let baseIVA16 = 0;
+let iva16Importe = 0;
+let iepsImporte = 0;
 
 ventasGlobal.forEach(v => {
-  baseGlobal += Number(v.resumen_financiero.subtotal || 0);
-  ivaGlobal  += Number(v.resumen_financiero.iva || 0);
-  iepsGlobal += Number(v.resumen_financiero.ieps || 0);
+  (v.detalle || []).forEach(d => {
+
+    const importe = Number(d.importe || 0);
+
+    // IVA 16 %
+    if (Number(d.ivaTasa) === 0.16) {
+      baseIVA16 += importe;
+      iva16Importe += Number(d.iva_calculado || 0);
+    }
+
+    // IEPS
+    if (Number(d.ieps_calculado) > 0) {
+      iepsImporte += Number(d.ieps_calculado);
+    }
+
+  });
 });
 
-baseGlobal = round2(baseGlobal);
-ivaGlobal  = round2(ivaGlobal);
-iepsGlobal = round2(iepsGlobal);
-
+baseIVA16   = round2(baseIVA16);
+iva16Importe = round2(iva16Importe);
+iepsImporte  = round2(iepsImporte);
 
 // 👇 SUBTOTAL GLOBAL REAL (TODO lo vendido)
 let subtotalGlobal = 0;
@@ -174,9 +186,9 @@ const cfdiObj = {
   Subtotal: round2(subtotalGlobal),
   Total: round2(subtotalGlobal + ivaGlobal + iepsGlobal),
 
-  IVA16Base: baseGlobal,
-  IVA16Importe: ivaGlobal,
-  IEPSImporte: iepsGlobal,
+  IVA16Base: baseIVA16,
+  IVA16Importe: iva16Importe,
+  IEPSImporte: iepsImporte,
 
   Conceptos: conceptosCFDI
 };
@@ -389,5 +401,6 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
