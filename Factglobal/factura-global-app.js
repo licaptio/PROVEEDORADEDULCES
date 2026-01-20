@@ -384,10 +384,6 @@ if (cfdi.IEPSImporte > 0 && totalBaseProrrateo > 0) {
   tasaIEPS.toFixed(6),
   iepsConcepto.toFixed(6)
 ].join("|"));
-
-
-});
-
     /* =====================================================
      SECCIÓN 04 · IMPUESTOS GLOBALES (COMO SIFEI REAL)
      ===================================================== */
@@ -462,4 +458,5 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
