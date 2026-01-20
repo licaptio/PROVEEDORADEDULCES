@@ -176,20 +176,24 @@ window.generarTXTSifeiGlobal = async function (event) {
       total: Number(v.resumen_financiero.total)
     }));
 
-let baseIVA = 0;
+// ===============================
+// BASE GLOBAL REAL (TODO)
+// ===============================
+let baseGlobal = 0;
 let ivaGlobal = 0;
+let iepsGlobal = 0;
 
 ventasGlobal.forEach(v => {
-  const sub = Number(v.resumen_financiero.subtotal || 0);
-  const iva = Number(v.resumen_financiero.iva || 0);
-
-  if (iva > 0) {
-    baseIVA += sub;
-    ivaGlobal += iva;
-  }
+  baseGlobal += Number(v.resumen_financiero.subtotal || 0);
+  ivaGlobal  += Number(v.resumen_financiero.iva || 0);
+  iepsGlobal += Number(v.resumen_financiero.ieps || 0);
 });
 
-const baseGlobal = round2(baseIVA);
+baseGlobal = round2(baseGlobal);
+ivaGlobal  = round2(ivaGlobal);
+iepsGlobal = round2(iepsGlobal);
+
+
 // 👇 SUBTOTAL GLOBAL REAL (TODO lo vendido)
 let subtotalGlobal = 0;
 
@@ -470,6 +474,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
