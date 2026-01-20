@@ -193,7 +193,8 @@ const cfdiObj = {
 
   IVA16Base: baseIVA16,
   IVA16Importe: iva16Importe,
-  IEPSImporte: iepsImporte,
+   IVA0Base: baseIVA0,
+   IEPSImporte: iepsImporte,
 
   Conceptos: conceptosCFDI
 };
@@ -442,6 +443,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
