@@ -288,43 +288,62 @@ out.push([
 ].join("|"));
 
   // CONCEPTOS
-  cfdi.Conceptos.forEach((c,i)=>{
+cfdi.Conceptos.forEach((c,i)=>{
+
+  // =====================
+  // LINEA 03 (CONCEPTO)
+  // =====================
+  out.push([
+    "03",
+    i+1,
+    "1.000",
+    "ACT",
+    "",
+    "01010101",
+    "",
+    c.Descripcion,
+    round6(c.Base).toFixed(6),
+    "0.00",
+    round6(c.Base).toFixed(6),
+    "",
+    "02" // 👈 OBLIGATORIO SI HAY IMPUESTOS
+  ].join("|"));
+
+  // =====================
+  // 03-IMP IVA 0 %
+  // =====================
+  out.push([
+    "03-IMP",
+    "TRASLADO",
+    round6(c.Base).toFixed(6),
+    "002",
+    "Tasa",
+    "0.000000",
+    "0.000000"
+  ].join("|"));
+
+  // =====================
+  // 03-IMP IVA 16 %
+  // (PRORRATEADO SIMPLE)
+  // =====================
+  if (cfdi.IVA16Importe > 0 && cfdi.IVA16Base > 0) {
+
+    const factorIVA = c.Base / cfdi.Subtotal;
+    const baseIVAConcepto = round6(cfdi.IVA16Base * factorIVA);
+    const ivaConcepto = round6(cfdi.IVA16Importe * factorIVA);
 
     out.push([
-      "03",
-      i+1,
-      "1.000",
-      "ACT",
-      "",
-      "01010101",
-      "",
-      c.Descripcion,
-      round6(c.Base).toFixed(6),
-      "0.00",
-      round6(c.Base).toFixed(6),
-      "",
-      (c.TasaIVA>0 || c.IEPSTasa>0) ? "02" : "01"
+      "03-IMP",
+      "TRASLADO",
+      baseIVAConcepto.toFixed(6),
+      "002",
+      "Tasa",
+      "0.160000",
+      ivaConcepto.toFixed(6)
     ].join("|"));
+  }
 
-    if (c.TasaIVA>0){
-      out.push([
-        "03-IMP","TRASLADO",
-        round6(c.Base).toFixed(6),
-        "002","Tasa","0.160000",
-        round6(c.IVAImporte).toFixed(6)
-      ].join("|"));
-    }
-
-    if (c.IEPSTasa>0){
-      out.push([
-        "03-IMP","TRASLADO",
-        round6(c.Base).toFixed(6),
-        "003","Tasa",
-        round6(c.IEPSTasa).toFixed(6),
-        round6(c.IEPSImporte).toFixed(6)
-      ].join("|"));
-    }
-  });
+});
 
     /* =====================================================
      SECCIÓN 04 · IMPUESTOS GLOBALES (COMO SIFEI REAL)
@@ -400,6 +419,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
