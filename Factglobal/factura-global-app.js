@@ -159,6 +159,9 @@ ventasGlobal.forEach(v => {
 });
 
 subtotalGlobal = round2(subtotalGlobal);
+// BASE IVA 0 % (lo que NO llevó IVA 16)
+const baseIVA0 = round2(subtotalGlobal - baseIVA16);
+
     /* === 5. PRORRATEO + SAT === */
 const conceptosCFDI = tickets.map(t => ({
   Cantidad: 1,
@@ -185,7 +188,7 @@ const cfdiObj = {
   IVA16Base: baseIVA16,
   IVA16Importe: iva16Importe,
   IEPSImporte: iepsImporte,
-
+  IVA0Base: baseIVA0,   // 👈 ESTA LÍNEA NUEVA 
   Conceptos: conceptosCFDI
 };
 
@@ -347,7 +350,7 @@ if (cfdi.IVA16Importe > 0) {
     "Tasa",
     "0.000000",
     "0.00",
-    round2(cfdi.Subtotal).toFixed(2)
+    round2(cfdi.IVA0Base).toFixed(2)
   ].join("|"));
 
   // IEPS (si aplica)
@@ -397,6 +400,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
