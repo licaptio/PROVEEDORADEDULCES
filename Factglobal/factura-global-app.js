@@ -176,15 +176,20 @@ window.generarTXTSifeiGlobal = async function (event) {
       total: Number(v.resumen_financiero.total)
     }));
 
-    const baseGlobal = ventasGlobal.reduce(
-      (s,v)=>s+Number(v.resumen_financiero.subtotal||0),0
-    );
-    const ivaGlobal = ventasGlobal.reduce(
-      (s,v)=>s+Number(v.resumen_financiero.iva||0),0
-    );
-    const iepsGlobal = ventasGlobal.reduce(
-      (s,v)=>s+Number(v.resumen_financiero.ieps||0),0
-    );
+let baseIVA = 0;
+let ivaGlobal = 0;
+
+ventasGlobal.forEach(v => {
+  const sub = Number(v.resumen_financiero.subtotal || 0);
+  const iva = Number(v.resumen_financiero.iva || 0);
+
+  if (iva > 0) {
+    baseIVA += sub;
+    ivaGlobal += iva;
+  }
+});
+
+const baseGlobal = round2(baseIVA);
 
     /* === 5. PRORRATEO + SAT === */
     const conceptosFinales = aplicarRedondeoSAT({
@@ -370,18 +375,17 @@ out.push([
      SECCIÓN 04 · IMPUESTOS GLOBALES (COMO SIFEI REAL)
      ===================================================== */
 
-  // IVA 16 %
-  if (cfdi.IVA16Importe > 0) {
-    out.push([
-      "04",
-      "TRASLADO",
-      "002",
-      "Tasa",
-      "0.160000",
-      round2(cfdi.IVA16Importe).toFixed(2),
-      round2(cfdi.Subtotal + cfdi.IVA16Importe).toFixed(2)
-    ].join("|"));
-  }
+  if (ivaGlobal > 0) {
+  out.push([
+    "04",
+    "TRASLADO",
+    "002",
+    "Tasa",
+    "0.160000",
+    round2(ivaGlobal).toFixed(2),
+    round2(baseGlobal).toFixed(2)
+  ].join("|"));
+}
 
   // IVA 0 % (obligatorio aunque sea cero)
   out.push([
@@ -441,6 +445,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
