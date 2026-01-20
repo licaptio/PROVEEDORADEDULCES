@@ -170,10 +170,6 @@ const conceptosCFDI = tickets.map(t => ({
   Base: round6(t.total)
 }));
 
-    const Subtotal = round2(conceptosCFDI.reduce((s,c)=>s+c.Base,0));
-    const IVA16Importe = round2(conceptosCFDI.reduce((s,c)=>s+c.IVAImporte,0));
-    const IEPSImporte = round2(conceptosCFDI.reduce((s,c)=>s+c.IEPSImporte,0));
-    const Total = round2(subtotalGlobal + IVA16Importe + IEPSImporte);
 
 const cfdiObj = {
   Serie: CONFIG.serieFiscal,
@@ -184,7 +180,7 @@ const cfdiObj = {
   Moneda: "MXN",
 
   Subtotal: round2(subtotalGlobal),
-  Total: round2(subtotalGlobal + ivaGlobal + iepsGlobal),
+  Total: round2(subtotalGlobal + iva16Importe + iepsImporte),
 
   IVA16Base: baseIVA16,
   IVA16Importe: iva16Importe,
@@ -401,6 +397,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
