@@ -170,7 +170,7 @@ const conceptosCFDI = tickets.map(t => ({
   Descripcion: `Venta ${t.folio}`,
   ValorUnitario: round6(t.total),
   Importe: round6(t.total),
-  Base: round6(t.total)
+  Base: round6(t.total / (1 + 0.16)) // aproximación segura
 }));
 
 
@@ -400,6 +400,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
