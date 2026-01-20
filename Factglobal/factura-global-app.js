@@ -141,13 +141,9 @@ ventasGlobal.forEach(v => {
   });
 });
 
-iva0Base = round2(iva0Base);
-
 baseIVA16   = round2(baseIVA16);
 iva16Importe = round2(iva16Importe);
 iepsImporte  = round2(iepsImporte);
-
-
 
 // 👇 SUBTOTAL GLOBAL REAL (TODO lo vendido)
 let subtotalGlobal = 0;
@@ -454,6 +450,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
