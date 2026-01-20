@@ -190,6 +190,15 @@ ventasGlobal.forEach(v => {
 });
 
 const baseGlobal = round2(baseIVA);
+// 👇 SUBTOTAL GLOBAL REAL (TODO lo vendido)
+let subtotalGlobal = 0;
+
+ventasGlobal.forEach(v => {
+  subtotalGlobal += Number(v.resumen_financiero.subtotal || 0);
+});
+
+subtotalGlobal = round2(subtotalGlobal);
+
 // 👇 IEPS GLOBAL (ya viene en ventas, solo se suma)
 let iepsGlobal = 0;
 
@@ -200,17 +209,18 @@ ventasGlobal.forEach(v => {
 iepsGlobal = round2(iepsGlobal);
 
     /* === 5. PRORRATEO + SAT === */
-    const conceptosFinales = aplicarRedondeoSAT({
-      conceptos: prorratearGlobal({
-        tickets,
-        baseGlobal,
-        ivaGlobal,
-        iepsGlobal
-      }),
-      baseGlobal,
-      ivaGlobal,
-      iepsGlobal
-    });
+const conceptosFinales = aplicarRedondeoSAT({
+  conceptos: prorratearGlobal({
+    tickets,
+    baseGlobal: subtotalGlobal, // 👈 AQUÍ
+    ivaGlobal,
+    iepsGlobal
+  }),
+  baseGlobal: subtotalGlobal,   // 👈 Y AQUÍ
+  ivaGlobal,
+  iepsGlobal
+});
+
 
     /* === 6. CFDI OBJ === */
     const conceptosCFDI = conceptosFinales.map(c => ({
@@ -230,7 +240,7 @@ iepsGlobal = round2(iepsGlobal);
     const Subtotal = round2(conceptosCFDI.reduce((s,c)=>s+c.Base,0));
     const IVA16Importe = round2(conceptosCFDI.reduce((s,c)=>s+c.IVAImporte,0));
     const IEPSImporte = round2(conceptosCFDI.reduce((s,c)=>s+c.IEPSImporte,0));
-    const Total = round2(Subtotal + IVA16Importe + IEPSImporte);
+    const Total = round2(subtotalGlobal + IVA16Importe + IEPSImporte);
 
 const cfdiObj = {
   Serie: CONFIG.serieFiscal,
@@ -240,7 +250,7 @@ const cfdiObj = {
   MetodoPago: "PUE",
   Moneda: "MXN",
 
-  Subtotal,
+  Subtotal: subtotalGlobal,
   Total,
 
   // 👇 IVA 16 REAL (solo ventas con IVA)
@@ -460,6 +470,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
