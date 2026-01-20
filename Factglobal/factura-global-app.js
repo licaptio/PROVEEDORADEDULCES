@@ -34,61 +34,6 @@ function round6(n) {
   return Math.round((n + Number.EPSILON) * 1e6) / 1e6;
 }
 
-/* =========================================================
-   PRORRATEO GLOBAL SAT
-   ========================================================= */
-
-/**
- * Prorratea base/IVA/IEPS por ticket
- * ⚠️ SIN redondear aquí
- */
-function prorratearGlobal({ tickets, baseGlobal, ivaGlobal, iepsGlobal }) {
-  const totalGlobal = tickets.reduce((s, t) => s + t.total, 0);
-
-  return tickets.map(t => {
-    const factor = totalGlobal > 0 ? t.total / totalGlobal : 0;
-    return {
-      ...t,
-      baseCalc: baseGlobal * factor,
-      ivaCalc: ivaGlobal * factor,
-      iepsCalc: iepsGlobal * factor
-    };
-  });
-}
-
-/**
- * Aplica redondeo SAT y ajusta el último concepto
- */
-function aplicarRedondeoSAT({ conceptos, baseGlobal, ivaGlobal, iepsGlobal }) {
-
-  const sumBase = conceptos.reduce((s,c)=>s+c.baseCalc,0);
-  const sumIVA  = conceptos.reduce((s,c)=>s+c.ivaCalc,0);
-  const sumIEPS = conceptos.reduce((s,c)=>s+c.iepsCalc,0);
-
-  const baseSAT = round2(baseGlobal);
-  const ivaSAT  = round2(ivaGlobal);
-  const iepsSAT = round2(iepsGlobal);
-
-  const ajusteBase = baseSAT - round2(sumBase);
-  const ajusteIVA  = ivaSAT  - round2(sumIVA);
-  const ajusteIEPS = iepsSAT - round2(sumIEPS);
-
-  const out = conceptos.map(c => ({
-    ...c,
-    base: round6(c.baseCalc),
-    iva: round6(c.ivaCalc),
-    ieps: round6(c.iepsCalc)
-  }));
-
-  const last = out.length - 1;
-  if (last >= 0) {
-    out[last].base += ajusteBase;
-    out[last].iva  += ajusteIVA;
-    out[last].ieps += ajusteIEPS;
-  }
-
-  return out;
-}
 
 /* =========================================================
    UI · TABLA DE VENTAS
@@ -213,22 +158,6 @@ const conceptosCFDI = tickets.map(t => ({
   Base: round6(t.total)
 }));
 
-
-    /* === 6. CFDI OBJ === */
-    const conceptosCFDI = conceptosFinales.map(c => ({
-      Cantidad: 1,
-      ClaveUnidad: "ACT",
-      ClaveProdServ: "01010101",
-      Descripcion: `Venta ${c.folio}`,
-      ValorUnitario: c.base,
-      Importe: c.base,
-      Base: c.base,
-      TasaIVA: c.iva > 0 ? 0.16 : 0,
-      IVAImporte: c.iva,
-      IEPSTasa: c.base > 0 ? round6(c.ieps / c.base) : 0,
-      IEPSImporte: c.ieps
-    }));
-
     const Subtotal = round2(conceptosCFDI.reduce((s,c)=>s+c.Base,0));
     const IVA16Importe = round2(conceptosCFDI.reduce((s,c)=>s+c.IVAImporte,0));
     const IEPSImporte = round2(conceptosCFDI.reduce((s,c)=>s+c.IEPSImporte,0));
@@ -243,11 +172,11 @@ const cfdiObj = {
   Moneda: "MXN",
 
   Subtotal: round2(subtotalGlobal),
-  Total: round2(subtotalGlobal + iva16Importe + iepsImporte),
+  Total: round2(subtotalGlobal + ivaGlobal + iepsGlobal),
 
-  IVA16Base: baseIVA16,
-  IVA16Importe: iva16Importe,
-  IEPSImporte: iepsImporte,
+  IVA16Base: baseGlobal,
+  IVA16Importe: ivaGlobal,
+  IEPSImporte: iepsGlobal,
 
   Conceptos: conceptosCFDI
 };
@@ -460,4 +389,5 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
