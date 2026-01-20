@@ -180,7 +180,7 @@ ventasGlobal.forEach(v => {
 });
 let iva0Base = 0;
 
-conceptosCFDI.forEach(c => {
+cfdi.Conceptos.forEach(c => {
   if (c.ivaTasa === 0) {
     iva0Base += c.Base;
   }
@@ -450,6 +450,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
