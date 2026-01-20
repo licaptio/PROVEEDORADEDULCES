@@ -293,6 +293,20 @@ out.push([
   "", "", "", "", "",
   "N"
 ].join("|"));
+out.push([
+  "01",
+  "CFDI40",
+  "01",              // Tipo global
+  "INFO_GLOBAL",
+  "01",              // Periodicidad (Diaria)
+  "01",              // Mes
+  new Date().getFullYear(),
+  "EMISOR",
+  "",
+  "RECEPTOR",
+  "67700",           // CP receptor
+  "616"              // Régimen receptor (Público en general)
+].join("|"));
 
   // CONCEPTOS
 cfdi.Conceptos.forEach((c,i)=>{
@@ -362,15 +376,15 @@ if (cfdi.IEPSImporte > 0 && totalBaseProrrateo > 0) {
     : 0;
 
   out.push([
-    "03-IMP",
-    "TRASLADO",
-    round6(c.Base).toFixed(6),
-    "003",
-    "Tasa",
-    tasaIEPS.toFixed(6),
-    iepsConcepto.toFixed(6)
-  ].join("|"));
-}
+  "03-IMP",
+  "TRASLADO",
+  iepsConcepto.toFixed(6), // 👈 BASE IEPS
+  "003",
+  "Tasa",
+  tasaIEPS.toFixed(6),
+  iepsConcepto.toFixed(6)
+].join("|"));
+
 
 });
 
@@ -448,3 +462,4 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
