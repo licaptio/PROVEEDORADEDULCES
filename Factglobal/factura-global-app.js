@@ -294,12 +294,12 @@ function convertirCFDIGlobalASifei(cfdi) {
 
   // CABECERA
   out.push([
-    "01","FA","4.0",
-    cfdi.Serie,
-    cfdi.Folio,
-    cfdi.FormaPago,
-    "",
-    "CONTADO",
+  "01","FA","4.0",
+  cfdi.Serie,
+  cfdi.Folio,
+  cfdi.FormaPago,
+  FISCAL_EMISOR.numeroCertificado,
+  "CONTADO",
     round2(cfdi.Subtotal).toFixed(2),
     "0.00",
     cfdi.Moneda,
@@ -309,10 +309,11 @@ function convertirCFDIGlobalASifei(cfdi) {
     cfdi.MetodoPago,
     "",
     "",
-    "EMISOR",
-    CONFIG.rfcEmisor,
-    "",
-    "",
+"EMISOR",
+FISCAL_EMISOR.rfc,
+FISCAL_EMISOR.razonSocial,
+FISCAL_EMISOR.regimenFiscal,
+
     "RECEPTOR",
     "XAXX010101000",
     "PUBLICO EN GENERAL",
@@ -398,3 +399,4 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
