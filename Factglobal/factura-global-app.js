@@ -366,7 +366,53 @@ out.push([
     }
   });
 
-  const txt = out.join("\n");
+    /* =====================================================
+     SECCIÓN 04 · IMPUESTOS GLOBALES (COMO SIFEI REAL)
+     ===================================================== */
+
+  // IVA 16 %
+  if (cfdi.IVA16Importe > 0) {
+    out.push([
+      "04",
+      "TRASLADO",
+      "002",
+      "Tasa",
+      "0.160000",
+      round2(cfdi.IVA16Importe).toFixed(2),
+      round2(cfdi.Subtotal + cfdi.IVA16Importe).toFixed(2)
+    ].join("|"));
+  }
+
+  // IVA 0 % (obligatorio aunque sea cero)
+  out.push([
+    "04",
+    "TRASLADO",
+    "002",
+    "Tasa",
+    "0.000000",
+    "0.00",
+    round2(cfdi.Subtotal).toFixed(2)
+  ].join("|"));
+
+  // IEPS (si aplica)
+  if (cfdi.IEPSImporte > 0) {
+    const tasaIEPS =
+      cfdi.Subtotal > 0
+        ? round6(cfdi.IEPSImporte / cfdi.Subtotal)
+        : 0;
+
+    out.push([
+      "04",
+      "TRASLADO",
+      "003",
+      "Tasa",
+      tasaIEPS.toFixed(6),
+      round2(cfdi.IEPSImporte).toFixed(2),
+      round2(cfdi.Subtotal + cfdi.IEPSImporte).toFixed(2)
+    ].join("|"));
+  }
+
+   const txt = out.join("\n");
 
   console.log("📄 TXT SIFEI GENERADO:\n", txt);
 
@@ -395,6 +441,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
