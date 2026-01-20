@@ -203,17 +203,15 @@ ventasGlobal.forEach(v => {
 
 subtotalGlobal = round2(subtotalGlobal);
     /* === 5. PRORRATEO + SAT === */
-const conceptosFinales = aplicarRedondeoSAT({
-  conceptos: prorratearGlobal({
-    tickets,
-    baseGlobal: subtotalGlobal, // 👈 AQUÍ
-    ivaGlobal,
-    iepsGlobal
-  }),
-  baseGlobal: subtotalGlobal,   // 👈 Y AQUÍ
-  ivaGlobal,
-  iepsGlobal
-});
+const conceptosCFDI = tickets.map(t => ({
+  Cantidad: 1,
+  ClaveUnidad: "ACT",
+  ClaveProdServ: "01010101",
+  Descripcion: `Venta ${t.folio}`,
+  ValorUnitario: round6(t.total),
+  Importe: round6(t.total),
+  Base: round6(t.total)
+}));
 
 
     /* === 6. CFDI OBJ === */
@@ -244,18 +242,16 @@ const cfdiObj = {
   MetodoPago: "PUE",
   Moneda: "MXN",
 
-  Subtotal: subtotalGlobal,
-  Total,
+  Subtotal: round2(subtotalGlobal),
+  Total: round2(subtotalGlobal + iva16Importe + iepsImporte),
 
-  // 👇 IVA 16 REAL (solo ventas con IVA)
-  IVA16Base: baseGlobal,
-  IVA16Importe: ivaGlobal,
-
-  // 👇 IEPS ya incluido en ventas (no fabricante)
-  IEPSImporte,
+  IVA16Base: baseIVA16,
+  IVA16Importe: iva16Importe,
+  IEPSImporte: iepsImporte,
 
   Conceptos: conceptosCFDI
 };
+
 
     const txtSifei = convertirCFDIGlobalASifei(cfdiObj);
 
@@ -464,3 +460,4 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
