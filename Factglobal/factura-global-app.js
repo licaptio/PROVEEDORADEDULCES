@@ -464,6 +464,4 @@ function descargarTXT(contenido, nombreArchivo) {
 
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-
-
-
+}
