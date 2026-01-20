@@ -165,6 +165,7 @@ ventasGlobal.forEach(v => {
     if (base <= 0) return;
 
     conceptosCFDI.push({
+      ticketFolio: v.folio,   // 👈 AÑADE ESTO
       Cantidad: 1,
       ClaveUnidad: "ACT",
       ClaveProdServ: "01010101",
@@ -308,8 +309,6 @@ out.push([
   "N"
 ].join("|"));
 
-
-
 out.push([
   "01",
   "CFDI40",
@@ -324,6 +323,51 @@ out.push([
   "67700",           // CP receptor
   "616"              // Régimen receptor (Público en general)
 ].join("|"));
+// =====================
+// CFDI40 · RESUMEN POR TICKET (OBLIGATORIO SIFEI)
+// =====================
+const tickets = {};
+
+cfdi.Conceptos.forEach(c => {
+  // extraemos el folio del ticket desde la descripción
+  const folio = c.Descripcion.replace("Venta ", "");
+
+  if (!tickets[folio]) {
+    tickets[folio] = {
+      subtotal: 0,
+      iva16: 0,
+      iva0: 0,
+      ieps: 0
+    };
+  }
+
+  tickets[folio].subtotal += c.Base;
+
+  if (c.ivaTasa === 0.16) {
+    tickets[folio].iva16 += c.Base * 0.16;
+  }
+
+  if (c.ivaTasa === 0) {
+    tickets[folio].iva0 += c.Base;
+  }
+
+  if (c.iepsTasa > 0) {
+    tickets[folio].ieps += c.Base * c.iepsTasa;
+  }
+});
+
+Object.entries(tickets).forEach(([folio, t]) => {
+  out.push([
+    "01",
+    "CFDI40",
+    "02",                // POR TICKET
+    folio,
+    round2(t.subtotal).toFixed(2),
+    round2(t.iva16).toFixed(2),
+    round2(t.iva0).toFixed(2),
+    round2(t.ieps).toFixed(2)
+  ].join("|"));
+});
 
   // CONCEPTOS
 cfdi.Conceptos.forEach((c,i)=>{
@@ -506,4 +550,5 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
