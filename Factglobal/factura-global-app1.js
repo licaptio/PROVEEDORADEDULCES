@@ -152,92 +152,54 @@ let iepsImporte = 0;
 ventasGlobal.forEach(v => {
   (v.detalle || []).forEach(d => {
 
-    const importe = Number(d.importe || 0);
+    const baseTotal = round6(Number(d.importe || 0));
 
-    // IVA 16 %
-    if (Number(d.ivaTasa) === 0.16) {
-      baseIVA16 += importe;
-      iva16Importe += Number(d.iva_calculado || 0);
+    // 🔑 bases prorrateadas (ESTO ES LO CORRECTO)
+    const baseIVA0  = round6(Number(d.base_iva0  || 0));
+    const baseIVA16 = round6(Number(d.base_iva16 || 0));
+    const baseIEPS  = round6(Number(d.base_ieps  || 0));
+
+    const impuestos = [];
+
+    if (baseIVA0 > 0) {
+      impuestos.push({
+        tipo: "IVA",
+        base: baseIVA0,
+        tasa: 0,
+        importe: 0
+      });
     }
 
-    // IEPS
-    if (Number(d.ieps_calculado) > 0) {
-      iepsImporte += Number(d.ieps_calculado);
+    if (baseIVA16 > 0) {
+      impuestos.push({
+        tipo: "IVA",
+        base: baseIVA16,
+        tasa: 0.16,
+        importe: round6(baseIVA16 * 0.16)
+      });
     }
 
-  });
-});
+    if (baseIEPS > 0) {
+      impuestos.push({
+        tipo: "IEPS",
+        base: baseIEPS,
+        tasa: Number(d.iepsTasa) / 100,
+        importe: round6(baseIEPS * (Number(d.iepsTasa) / 100))
+      });
+    }
 
-baseIVA16   = round2(baseIVA16);
-iva16Importe = round2(iva16Importe);
-iepsImporte  = round2(iepsImporte);
+    conceptosCFDI.push({
+      ticketFolio: v.folio,
+      Cantidad: 1,
+      ClaveUnidad: "ACT",
+      ClaveProdServ: "01010101",
+      NoIdentificacion: v.folio,
+      Descripcion: d.nombre || "Venta",
+      ValorUnitario: baseTotal,
+      Importe: baseTotal,
+      impuestos
+    });
 
-// 👇 SUBTOTAL GLOBAL REAL (TODO lo vendido)
-let subtotalGlobal = 0;
-
-ventasGlobal.forEach(v => {
-  subtotalGlobal += Number(v.resumen_financiero.subtotal || 0);
-});
-
-subtotalGlobal = round2(subtotalGlobal);
-// BASE IVA 0 % (lo que NO llevó IVA 16)
-
-    /* === 5. PRORRATEO + SAT === */
-const conceptosCFDI = [];
-
-ventasGlobal.forEach(v => {
-  (v.detalle || []).forEach(d => {
-
-const baseTotal = round6(Number(d.importe || 0));
-
-// 🔑 bases prorrateadas
-const baseIVA0  = round6(Number(d.base_iva0  || 0));
-const baseIVA16 = round6(Number(d.base_iva16 || 0));
-const baseIEPS  = round6(Number(d.base_ieps  || 0));
-
-const impuestos = [];
-
-// IVA 0 %
-if (baseIVA0 > 0) {
-  impuestos.push({
-    tipo: "IVA",
-    base: baseIVA0,
-    tasa: 0,
-    importe: 0
-  });
-}
-
-// IVA 16 %
-if (baseIVA16 > 0) {
-  impuestos.push({
-    tipo: "IVA",
-    base: baseIVA16,
-    tasa: 0.16,
-    importe: round6(baseIVA16 * 0.16)
-  });
-}
-
-// IEPS
-if (baseIEPS > 0) {
-  impuestos.push({
-    tipo: "IEPS",
-    base: baseIEPS,
-    tasa: Number(d.iepsTasa) / 100,
-    importe: round6(baseIEPS * (Number(d.iepsTasa) / 100))
-  });
-}
-
-conceptosCFDI.push({
-  ticketFolio: v.folio,
-  Cantidad: 1,
-  ClaveUnidad: "ACT",
-  ClaveProdServ: "01010101",
-  NoIdentificacion: v.folio,
-  Descripcion: d.nombre || "Venta",
-  ValorUnitario: baseTotal,
-  Importe: baseTotal,
-  impuestos
-});
   });
 });
 
@@ -573,5 +535,6 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
