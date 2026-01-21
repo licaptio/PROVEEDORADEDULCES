@@ -198,12 +198,30 @@ conceptosCFDI.push({
   ClaveUnidad: "ACT",
   ClaveProdServ: "01010101",
   NoIdentificacion: v.folio,
-  Descripcion: "Venta",
+  Descripcion: d.nombre || "Venta",
   ValorUnitario: base,
   Importe: base,
 
-  // 👇 CLAVE ABSOLUTA
-  impuestos: d.impuestos || []
+  impuestos: [
+    ...(Number(d.ivaTasa) > 0 ? [{
+      tipo: "IVA",
+      base: base,
+      tasa: Number(d.ivaTasa),
+      importe: Number(d.iva_calculado || 0)
+    }] : [{
+      tipo: "IVA",
+      base: base,
+      tasa: 0,
+      importe: 0
+    }]),
+
+    ...(Number(d.ieps_calculado) > 0 ? [{
+      tipo: "IEPS",
+      base: base,
+      tasa: Number(d.iepsTasa) / 100,
+      importe: Number(d.ieps_calculado)
+    }] : [])
+  ]
 });
 
 
@@ -286,7 +304,6 @@ function generarImpuestosConceptoSifei(out, concepto) {
 
   (concepto.impuestos || []).forEach(imp => {
 
-    // IVA
     if (imp.tipo === "IVA") {
       out.push([
         "03-IMP",
@@ -295,11 +312,10 @@ function generarImpuestosConceptoSifei(out, concepto) {
         "002",
         "Tasa",
         imp.tasa.toFixed(6),
-        round6(imp.base * imp.tasa).toFixed(6)
+        round6(imp.importe).toFixed(6)
       ].join("|"));
     }
 
-    // IEPS
     if (imp.tipo === "IEPS") {
       out.push([
         "03-IMP",
@@ -308,7 +324,7 @@ function generarImpuestosConceptoSifei(out, concepto) {
         "003",
         "Tasa",
         imp.tasa.toFixed(6),
-        round6(imp.base * imp.tasa).toFixed(6)
+        round6(imp.importe).toFixed(6)
       ].join("|"));
     }
 
@@ -422,53 +438,54 @@ Object.entries(tickets).forEach(([folio, t]) => {
   // CONCEPTOS
 cfdi.Conceptos.forEach((c,i)=>{
 
-  // =====================
-  // LINEA 03 (CONCEPTO)
-  // =====================
-out.push([
-  "03",
-  i+1,
-  "1.000",
-  "ACT",
-  "",
-  "01010101",
-  "",
-  c.Descripcion,
-  round2(c.Importe).toFixed(2),
-  "0.00",
-  round2(c.Importe).toFixed(2),
-  "",
-  "02"
-].join("|"));
-// 👇 ESTA ES LA LÍNEA CLAVE
-generarImpuestosConceptoSifei(out, c);
+  out.push([
+    "03",
+    i+1,
+    "1.000",
+    "ACT",
+    "",
+    "01010101",
+    "",
+    c.Descripcion,
+    round2(c.Importe).toFixed(2),
+    "0.00",
+    round2(c.Importe).toFixed(2),
+    "",
+    "02"
+  ].join("|"));
 
+  generarImpuestosConceptoSifei(out, c);
 
-}); // ✅ ESTE ERA EL QUE FALTABA
+});
+
 let iva16Base = 0;
 let iva16Importe = 0;
+let iva0Base = 0;
+let iepsPorTasa = {};
 
 cfdi.Conceptos.forEach(c => {
   (c.impuestos || []).forEach(imp => {
+
     if (imp.tipo === "IVA" && imp.tasa === 0.16) {
       iva16Base += imp.base;
-      iva16Importe += imp.base * imp.tasa;
+      iva16Importe += imp.importe;
     }
+
+    if (imp.tipo === "IVA" && imp.tasa === 0) {
+      iva0Base += imp.base;
+    }
+
+    if (imp.tipo === "IEPS") {
+      if (!iepsPorTasa[imp.tasa]) {
+        iepsPorTasa[imp.tasa] = { base: 0, importe: 0 };
+      }
+      iepsPorTasa[imp.tasa].base += imp.base;
+      iepsPorTasa[imp.tasa].importe += imp.importe;
+    }
+
   });
 });
 
-
-iva16Base = round2(iva16Base);
-iva16Importe = round2(iva16Importe);
-let iva0Base = 0;
-
-cfdi.Conceptos.forEach(c => {
-  if (c.ivaTasa === 0) {
-    iva0Base += c.Importe;
-  }
-});
-
-iva0Base = round2(iva0Base);
 
     /* =====================================================
      SECCIÓN 04 · IMPUESTOS GLOBALES (COMO SIFEI REAL)
@@ -500,18 +517,6 @@ if (iva16Importe > 0) {
 // =====================
 // IEPS GLOBAL (AGRUPADO POR TASA – SAT REAL)
 // =====================
-const iepsPorTasa = {};
-
-cfdi.Conceptos.forEach(c => {
-  if (c.iepsTasa > 0) {
-    if (!iepsPorTasa[c.iepsTasa]) {
-      iepsPorTasa[c.iepsTasa] = { base: 0, importe: 0 };
-    }
-    iepsPorTasa[c.iepsTasa].base += c.Importe;
-    iepsPorTasa[c.iepsTasa].importe += c.Importe * c.iepsTasa;
-  }
-});
-
 Object.entries(iepsPorTasa).forEach(([tasa, v]) => {
   out.push([
     "04",
@@ -554,3 +559,4 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
