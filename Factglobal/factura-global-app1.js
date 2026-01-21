@@ -227,13 +227,6 @@ conceptosCFDI.push({
 
   });
 });
-let iva0Base = 0;
-
-conceptosCFDI.forEach(c => {
-  if (c.ivaTasa === 0) {
-    iva0Base += c.Importe;
-  }
-});
 
 
 const totalGlobal = round2(subtotalGlobal + iva16Importe + iepsImporte);
@@ -248,11 +241,7 @@ const cfdiObj = {
   Subtotal: subtotalGlobal,
   Total: totalGlobal,
 
-  IVA16Base: baseIVA16,
-  IVA16Importe: iva16Importe,
-   IVA0Base: iva0Base,
-   IEPSImporte: iepsImporte,
-
+ 
   Conceptos: conceptosCFDI
 };
 
@@ -559,4 +548,3 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
