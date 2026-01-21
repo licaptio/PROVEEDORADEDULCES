@@ -95,18 +95,16 @@ async function consultar() {
     return;
   }
 
-  const { data, error } = await supabaseClient
-    .from('v_ingresos_estado_resultados_base')
-    .select('sucursal, fecha, tasa_iva, venta_neta')
-    .gte('fecha', fi)
-    .lte('fecha', ff);
+const { data, error } = await supabaseClient
+  .rpc('rpc_estado_resultados_por_sucursal', {
+    f_inicio: fi,
+    f_fin: ff
+  });
 
   if (error) {
     alert(error.message);
     return;
   }
-
-
   
   const resumen = {};
 
@@ -123,20 +121,21 @@ async function consultar() {
     resumen[r.sucursal].total += r.venta_neta;
   });
 
-  const tbody = document.getElementById('resultado');
-  tbody.innerHTML = '';
+const tbody = document.getElementById('resultado');
+tbody.innerHTML = '';
 
-  Object.entries(resumen).forEach(([s, v]) => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${s}</td>
-        <td>${v.v0.toFixed(2)}</td>
-        <td>${v.v16.toFixed(2)}</td>
-        <td>${v.v8.toFixed(2)}</td>
-        <td>${v.otras.toFixed(2)}</td>
-        <td><b>${v.total.toFixed(2)}</b></td>
-      </tr>`;
-  });
+data.forEach(r => {
+  tbody.innerHTML += `
+    <tr>
+      <td>${r.sucursal}</td>
+      <td>${Number(r.ventas_0).toFixed(2)}</td>
+      <td>${Number(r.ventas_16).toFixed(2)}</td>
+      <td>${Number(r.ventas_8).toFixed(2)}</td>
+      <td>${Number(r.ventas_otras).toFixed(2)}</td>
+      <td><b>${Number(r.ventas_totales).toFixed(2)}</b></td>
+    </tr>`;
+});
+
 }
 </script>
 </body>
