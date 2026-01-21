@@ -148,7 +148,7 @@ if (ventaSeleccionadaId && ventasGlobal.length !== 1) {
 let baseIVA16 = 0;
 let iva16Importe = 0;
 let iepsImporte = 0;
-
+const conceptosCFDI = [];
 ventasGlobal.forEach(v => {
   (v.detalle || []).forEach(d => {
 
@@ -203,6 +203,13 @@ ventasGlobal.forEach(v => {
   });
 });
 
+let subtotalGlobal = 0;
+
+ventasGlobal.forEach(v => {
+  subtotalGlobal += Number(v.resumen_financiero?.subtotal || 0);
+});
+
+subtotalGlobal = round2(subtotalGlobal);
 
 const totalGlobal = round2(subtotalGlobal + iva16Importe + iepsImporte);
 const cfdiObj = {
@@ -535,6 +542,7 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
 
 
 
