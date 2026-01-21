@@ -335,6 +335,18 @@ function convertirCFDIGlobalASifei(cfdi) {
   }
 
   const out = [];
+// ===============================
+// TOTAL DE IMPUESTOS TRASLADADOS
+// ===============================
+let totalImpuestosTrasladados = 0;
+
+cfdi.Conceptos.forEach(c => {
+  (c.impuestos || []).forEach(imp => {
+    totalImpuestosTrasladados += Number(imp.importe || 0);
+  });
+});
+
+totalImpuestosTrasladados = round2(totalImpuestosTrasladados);
 
 out.push([
   "01",
@@ -366,7 +378,7 @@ out.push([
   "S01",
   "admonproveedora@infinitummail.com",
   "", // 29 RFC extranjero
-  round2((cfdi.IVA16Importe || 0) + (cfdi.IEPSImporte || 0)).toFixed(2),
+  totalImpuestosTrasladados.toFixed(2),
   "INFO_ADIC",
   "", // 32
   "MADERO 690 CENTRO LINARES NUEVO LEON MEXICO",
@@ -548,3 +560,4 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
