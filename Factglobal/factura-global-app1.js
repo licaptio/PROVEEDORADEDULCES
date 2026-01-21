@@ -22,6 +22,7 @@ const CONFIG = {
 };
 
 let generandoGlobal = false;
+let ventaSeleccionadaId = null; // 👈 ESTA ES LA CLAVE
 
 /* =========================================================
    UTILIDADES MATEMÁTICAS (SAT)
@@ -44,14 +45,30 @@ function pintarVentas(ventas) {
 
   ventas.forEach(v => {
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td>${v.fecha.toDate().toLocaleString()}</td>
       <td>${v.cliente || "-"}</td>
       <td>$${Number(v.resumen_financiero.total).toFixed(2)}</td>
+      <td>
+        <input 
+          type="radio" 
+          name="ventaSeleccionada" 
+          value="${v.id}"
+        >
+      </td>
     `;
+
+    // 👇 AQUÍ CAPTURAS CUÁL SE SELECCIONÓ
+    tr.querySelector('input[type="radio"]').addEventListener("change", e => {
+      ventaSeleccionadaId = e.target.value;
+      console.log("🧪 Venta seleccionada:", ventaSeleccionadaId);
+    });
+
     tbody.appendChild(tr);
   });
 }
+
 
 /* =========================================================
    FECHA (RANGO DIARIO LOCAL)
@@ -101,10 +118,20 @@ window.generarTXTSifeiGlobal = async function (event) {
       rango.fin
     );
 
-    const ventasGlobal = ventas.filter(v =>
-      v.estado !== "FACTURADA" &&
-      !v.facturada_global
-    );
+let ventasGlobal = ventas.filter(v =>
+  v.estado !== "FACTURADA" &&
+  !v.facturada_global
+);
+
+// 🧪 MODO DEPURACIÓN: SOLO UNA VENTA
+if (ventaSeleccionadaId) {
+  ventasGlobal = ventasGlobal.filter(
+    v => v.id === ventaSeleccionadaId
+  );
+}
+if (ventaSeleccionadaId && ventasGlobal.length !== 1) {
+  throw "Error: no se pudo aislar la venta seleccionada";
+}
 
     if (!ventasGlobal.length) {
       throw "No hay ventas para facturar";
@@ -527,6 +554,3 @@ function descargarTXT(contenido, nombreArchivo) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-
-
