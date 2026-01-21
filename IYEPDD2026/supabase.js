@@ -6,6 +6,7 @@ window.supabaseClient = window.supabaseClient || null;
 
 window.supabaseClient = supabase.createClient(
   SUPABASE_URL,
+  
   SUPABASE_KEY
 );
 
