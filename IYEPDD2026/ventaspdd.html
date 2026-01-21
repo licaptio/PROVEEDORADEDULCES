@@ -95,7 +95,7 @@ async function consultar() {
     return;
   }
 
-  const { data, error } = await supabaseClients
+  const { data, error } = await supabaseClient
     .from('v_ingresos_estado_resultados_base')
     .select('sucursal, fecha, tasa_iva, venta_neta')
     .gte('fecha', fi)
