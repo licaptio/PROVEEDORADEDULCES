@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Carga de Notas de Crédito – SAT</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background:#f9f9f9; }
+    li { font-size: 14px; margin-bottom: 4px; }
+    .ok { color: green; }
+    .warn { color: orange; }
+    .err { color: red; }
+    .pending { color: blue; }
+    .progress-bar { width:100%; height:16px; background:#ddd; border-radius:6px; }
+    .progress-bar div { height:100%; width:0%; background:#0c6cbd; }
+    pre { background:#eee; padding:10px; max-height:200px; overflow:auto; }
+  </style>
+</head>
+<body>
+
+<h2>Subir NOTAS DE CRÉDITO (CFDI tipo E) – SAT</h2>
+<input type="file" id="xmlInput" accept=".xml" multiple>
+<button onclick="procesarArchivos()">Procesar y Subir</button>
+
+<div class="progress-bar"><div id="progreso"></div></div>
+
+<ul id="archivoList"></ul>
+<pre id="bitacora"></pre>
+
+
+<script>
+const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
+const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
+let archivosDatos = [];
+
+document.getElementById("xmlInput").addEventListener("change", async function () {
+  const lista = document.getElementById("archivoList");
+  lista.innerHTML = "";
+  archivosDatos = [];
+
+  for (const file of this.files) {
+    try {
+const xml = new DOMParser().parseFromString(await file.text(), "application/xml");
+
+if (xml.getElementsByTagName("parsererror").length) {
+  throw new Error("XML mal formado");
+}
+
+const nodos = [...xml.getElementsByTagName("*")];
+// ===============================
+// PARSEO DE IMPUESTOS (IVA / IEPS)
+// ===============================
+let totalIVA = 0;
+let totalIEPS = 0;
+let impuestosDetalle = [];
+
+const traslados = nodos.filter(n => n.localName === "Traslado");
+
+for (const tImp of traslados) {
+  const impuesto = tImp.getAttribute("Impuesto");
+  const importe = parseFloat(tImp.getAttribute("Importe") || 0);
+  const tasa = tImp.getAttribute("TasaOCuota");
+
+  if (impuesto === "002") totalIVA += importe;   // IVA
+  if (impuesto === "003") totalIEPS += importe;  // IEPS
+
+  impuestosDetalle.push({
+    impuesto,
+    importe,
+    tasa
+  });
+}
+
+const c = nodos.find(n => n.localName === "Comprobante");
+// =====================================
+// IMPUESTOS GLOBALES (SAT manda aquí)
+// =====================================
+const nodoImpuestos = nodos.find(n => n.localName === "Impuestos");
+
+let totalImpuestosSAT = 0;
+if (nodoImpuestos) {
+  totalImpuestosSAT = parseFloat(
+    nodoImpuestos.getAttribute("TotalImpuestosTrasladados") || 0
+  );
+}
+
+const e = nodos.find(n => n.localName === "Emisor");
+const r = nodos.find(n => n.localName === "Receptor");
+const t = nodos.find(n => n.localName === "TimbreFiscalDigital");
+const rel = nodos.find(n => n.localName === "CfdiRelacionado");
+const uuidRelacionado = rel ? rel.getAttribute("UUID") : null;
+
+if (!c || !e || !t) {
+  throw new Error("CFDI incompleto");
+}
+
+if (c.getAttribute("TipoDeComprobante") !== "E") {
+  throw new Error("No es Nota de Crédito");
+}
+
+const fecha = new Date(c.getAttribute("Fecha"));
+
+if (!uuidRelacionado) {
+  throw new Error("NC sin CFDI de ingreso relacionado");
+}
+
+archivosDatos.push({
+  uuid_cfdi: t.getAttribute("UUID"),
+  uuid_ingreso_relacionado: uuidRelacionado,
+
+  fecha_emision: c.getAttribute("Fecha"),
+  fecha_certificacion: t.getAttribute("FechaTimbrado"),
+  fecha_cancelacion: null,
+
+  subtotal: parseFloat(c.getAttribute("SubTotal")),
+total_iva: totalIVA,          // solo si hay IVA
+total_ieps: totalImpuestosSAT, // 🔥 VALOR SAT REAL
+monto_total: parseFloat(c.getAttribute("Total")),
+
+  impuestos_json: impuestosDetalle,
+
+  moneda: c.getAttribute("Moneda"),
+  tipo_comprobante: "E",
+  estatus: 1,
+
+  periodo_anio: fecha.getFullYear(),
+  periodo_mes: fecha.getMonth() + 1,
+
+  rfc_emisor: e.getAttribute("Rfc"),
+  rfc_receptor: r ? r.getAttribute("Rfc") : null,
+
+  archivo_xml: file.name
+});
+
+
+const li = document.createElement("li");
+li.dataset.uuid = t.getAttribute("UUID");
+li.innerHTML = `<b>${t.getAttribute("UUID")}</b> <span class="pending">→ Lista</span>`;
+lista.appendChild(li);
+
+
+} catch (err) {
+  console.error(file.name, err);
+  lista.innerHTML += `<li class="err">${file.name} → ${err.message}</li>`;
+}
+  }
+});
+
+async function procesarArchivos() {
+  const bar = document.getElementById("progreso");
+  const total = archivosDatos.length;
+  const LOTE = 5;
+  let procesados = 0;
+
+  for (let i = 0; i < total; i += LOTE) {
+    const bloque = archivosDatos.slice(i, i + LOTE);
+
+    // deja respirar la UI
+    await new Promise(r => setTimeout(r, 0));
+
+    await Promise.all(
+      bloque.map(async d => {
+        const li = document.querySelector(`li[data-uuid="${d.uuid_cfdi}"]`);
+        li.querySelector("span").textContent = "⏳ Subiendo...";
+        li.querySelector("span").className = "pending";
+
+        try {
+          const r = await fetch(
+            `${SUPABASE_URL}/rest/v1/notas_credito_pdd_v2?on_conflict=uuid_cfdi`,
+            {
+              method: "POST",
+              headers: {
+                apikey: API_KEY,
+                Authorization: `Bearer ${API_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "resolution=merge-duplicates"
+              },
+              body: JSON.stringify(d)
+            }
+          );
+
+if (r.status === 201) {
+  li.querySelector("span").textContent = "✅ Insertado";
+  li.querySelector("span").className = "ok";
+
+} else if (r.status === 204) {
+  li.querySelector("span").textContent = "✔ Ya existía";
+  li.querySelector("span").className = "warn";
+
+} else if (r.status === 200) {
+  li.querySelector("span").textContent = "✔ Procesado";
+  li.querySelector("span").className = "ok";
+
+} else {
+  li.querySelector("span").textContent = `❌ Error (${r.status})`;
+  li.querySelector("span").className = "err";
+}
+
+
+        } catch (e) {
+          li.querySelector("span").textContent = "❌ Red";
+          li.querySelector("span").className = "err";
+        }
+
+        procesados++;
+        bar.style.width = Math.round((procesados / total) * 100) + "%";
+      })
+    );
+  }
+
+  bar.style.width = "100%";
+}
+</script>
+
+<footer style="margin-top:40px;padding:10px;text-align:center;font-size:13px;color:#555;border-top:1px solid #ccc;">
+    ⚙️ POWERED BY <b>PROVSOFT</b> · 2025 · Sistema de integración CFDI 4.0
+  </footer>
+</body>
+</html>

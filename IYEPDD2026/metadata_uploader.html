@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PROVSOFT – Carga Metadata SAT (Batch)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#0c6cbd;
+  padding:30px;
+}
+.card{
+  background:#fff;
+  max-width:750px;
+  margin:auto;
+  padding:25px;
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,.25);
+}
+h2{ color:#00416A; margin-top:0; }
+button{
+  padding:10px 18px;
+  font-size:15px;
+  border-radius:6px;
+  border:none;
+  cursor:pointer;
+}
+#log{
+  margin-top:15px;
+  font-family:monospace;
+  font-size:12px;
+  white-space:pre-wrap;
+  background:#f5f5f5;
+  padding:10px;
+  border-radius:6px;
+  max-height:260px;
+  overflow:auto;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>📥 Carga Metadata SAT (Batch)</h2>
+
+  <input type="file" id="fileInput" accept=".txt" multiple><br><br>
+
+  <button onclick="procesarArchivos()">Procesar archivos</button>
+
+  <!-- 🔵 BARRA DE PROGRESO -->
+  <div style="margin-top:15px;">
+    <div style="background:#ddd; border-radius:8px; overflow:hidden; height:18px;">
+      <div id="progressBar"
+           style="height:100%; width:0%; background:#0c6cbd; transition:width .2s;">
+      </div>
+    </div>
+    <div id="progressText"
+         style="margin-top:6px; font-size:13px; color:#333;">
+      Esperando…
+    </div>
+  </div>
+
+  <div id="log"></div>
+</div>
+
+<script>
+// ================= CONFIG =================
+const SUPABASE_URL =
+  "https://cvpbtjlupswbyxenugpz.supabase.co/rest/v1/metadata_ingresos";
+const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
+
+// batch size recomendado
+const BATCH_SIZE = 500;
+// =========================================
+
+function log(msg){
+  document.getElementById("log").textContent += msg + "\n";
+}
+
+function setProgress(actual, total, extra=""){
+  const percent = Math.round((actual / total) * 100);
+  document.getElementById("progressBar").style.width = percent + "%";
+  document.getElementById("progressText").textContent =
+    `${extra} ${actual}/${total} (${percent}%)`;
+}
+
+// 🔵 ENVÍO POR LOTE
+async function enviarLote(batch){
+  const res = await fetch(
+    SUPABASE_URL + "?on_conflict=uuid_cfdi",
+    {
+      method: "POST",
+      headers: {
+        "apikey": ANON_KEY,
+        "Authorization": "Bearer " + ANON_KEY,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify(batch)
+    }
+  );
+
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(t);
+  }
+}
+
+// 🔵 PROCESO PRINCIPAL
+async function procesarArchivos(){
+  const input = document.getElementById("fileInput");
+  if(!input.files.length){
+    alert("Selecciona uno o más archivos TXT");
+    return;
+  }
+
+  const files = Array.from(input.files);
+  let totalArchivos = files.length;
+  let archivoActual = 0;
+
+  log(`📂 Archivos seleccionados: ${totalArchivos}`);
+
+  for (const file of files){
+    archivoActual++;
+    log(`\n📄 Procesando: ${file.name}`);
+
+    const text = await file.text();
+    const lineas = text.split(/\r?\n/).filter(l => l.trim());
+
+    let batch = [];
+    let procesadas = 0;
+
+    for (const linea of lineas){
+      if (linea.startsWith("Uuid~")) continue;
+
+      const c = linea.split("~");
+      if (c.length < 11) continue;
+
+      batch.push({
+        uuid_cfdi: c[0],
+        rfc_emisor: c[1],
+        nombre_emisor: c[2],
+        rfc_receptor: c[3],
+        nombre_receptor: c[4],
+        rfc_pac: c[5],
+        fecha_emision: c[6] || null,
+        fecha_certificacion: c[7] || null,
+        monto: Number(c[8] || 0),
+        efecto_comprobante: c[9],
+        estatus: Number(c[10]),
+        fecha_cancelacion: c[11] || null,
+        periodo_anio: new Date(c[6]).getFullYear(),
+        periodo_mes: new Date(c[6]).getMonth() + 1,
+        raw_line: linea
+      });
+
+      if (batch.length === BATCH_SIZE){
+        await enviarLote(batch);
+        procesadas += batch.length;
+        batch = [];
+        setProgress(archivoActual, totalArchivos, `Archivo ${archivoActual}/${totalArchivos}`);
+      }
+    }
+
+    // enviar sobrantes
+    if (batch.length){
+      await enviarLote(batch);
+      procesadas += batch.length;
+    }
+
+    log(`✔ ${procesadas} registros sincronizados (${file.name})`);
+  }
+
+  setProgress(1,1);
+  document.getElementById("progressText").textContent =
+    "✅ Proceso terminado (todos los archivos)";
+  log("\n🎯 CARGA COMPLETA FINALIZADA");
+}
+</script>
+
+</body>
+</html>
