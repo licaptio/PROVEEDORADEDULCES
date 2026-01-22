@@ -161,40 +161,50 @@ function pintarVentas(ventas) {
     tbody.appendChild(tr);
   });
 }
+function normRate(raw){
+  raw = Number(raw || 0);
+  // acepta 0.08, 8, 800 (tu caso)
+  if (raw >= 100) return raw / 10000; // 800 -> 0.08
+  if (raw >= 1)   return raw / 100;   // 8   -> 0.08
+  return raw;                         // 0.08
+}
+
 function extraerBasesYImpuestos(venta){
   const det = Array.isArray(venta.detalle) ? venta.detalle : [];
 
   let base16 = 0, iva16 = 0, base0 = 0, baseIEPS = 0, ieps = 0;
 
   det.forEach(it => {
-    const importe = Number(it.importe || 0);
-    const ivaTasa = Number(it.ivaTasa || 0);
-    const ivaCalc = Number(it.iva_calculado || 0);
-    const iepsCalc = Number(it.ieps_calculado || 0);
+    const gross = Number(it.importe || 0);   // 👈 el precio FINAL
+    if (gross <= 0) return;
 
-    // IVA 16% (tu ticket trae ivaTasa = 0.16 y el iva_calculado ya calculado)
-    if (ivaTasa > 0) {
-      const base = Math.max(0, importe - ivaCalc - iepsCalc);
+    const ivaRate  = Number(it.ivaTasa || 0);                 // 0.16 o 0
+    const iepsRate = normRate(it.iepsTasa ?? it.ieps ?? 0);   // 0.08 si aplica
+
+    // IVA 16 (solo)
+    if (ivaRate > 0 && iepsRate <= 0) {
+      const base = gross / (1 + ivaRate);
       base16 += base;
-      iva16  += ivaCalc;
+      iva16  += (gross - base);
       return;
     }
 
-    // IEPS (si viene calculado)
-    if (iepsCalc > 0) {
-      const base = Math.max(0, importe - iepsCalc);
+    // IEPS (solo)
+    if (iepsRate > 0 && ivaRate <= 0) {
+      const base = gross / (1 + iepsRate);
       baseIEPS += base;
-      ieps += iepsCalc;
+      ieps     += (gross - base);
       return;
     }
 
-    // Exento (IVA 0 e IEPS 0)
-    base0 += importe;
+    // Exento
+    base0 += gross;
   });
 
   return { base16, iva16, base0, baseIEPS, ieps };
 }
-function addImp(impMap, impuesto, tasa, base) {
+
+  function addImp(impMap, impuesto, tasa, base) {
   const key = `${impuesto}_${Number(tasa).toFixed(6)}`;
   if (!impMap[key]) impMap[key] = { impuesto, tasa: Number(tasa), base: 0, importe: 0 };
   impMap[key].base += Number(base) || 0;
@@ -437,6 +447,7 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
+
 
 
 
