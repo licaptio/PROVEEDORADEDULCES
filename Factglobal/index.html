@@ -97,7 +97,8 @@ let ventaSeleccionadaId = null;
    UTILIDADES
    ====================================================== */
 const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
-
+const r6 = n => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6; // <-- AQUÍ
+  
 /* ======================================================
    FECHA
    ====================================================== */
@@ -263,17 +264,17 @@ grupos[firma].baseTotal += baseTotalVenta;
 
 if (base16 > 0 && iva16 > 0) {
   addImp(grupos[firma].impMap, "002", 0.16, base16);
-  acumularImpuestoGlobal("002", 0.16, base16, iva16);
+  acumularImpuestoGlobal("002", 0.16, base16); // ← QUITAR iva16
 }
 
 if (base0 > 0) {
-  addImp(grupos[firma].impMap, "002", 0.00, base0, 0);
-  acumularImpuestoGlobal("002", 0.00, base0, 0);
+  addImp(grupos[firma].impMap, "002", 0.00, base0);
+  acumularImpuestoGlobal("002", 0.00, base0); // ← QUITAR 0
 }
 
 if (baseIEPS > 0 && ieps > 0) {
   addImp(grupos[firma].impMap, "003", 0.08, baseIEPS);
-  acumularImpuestoGlobal("003", 0.08, baseIEPS, ieps);
+  acumularImpuestoGlobal("003", 0.08, baseIEPS); // ← QUITAR ieps
 }
 
 });
@@ -283,19 +284,12 @@ if (baseIEPS > 0 && ieps > 0) {
   /* ===============================
      FUNCIÓN REGISTRO 04
      =============================== */
-function acumularImpuestoGlobal(impuesto, tasa, base, importe) {
+function acumularImpuestoGlobal(impuesto, tasa, base) {
   const key = impuesto + "_" + tasa;
-  if (!impuestosGlobales[key]) {
-    impuestosGlobales[key] = {
-      impuesto,
-      tasa,
-      base: 0,
-      importe: 0
-    };
-  }
-  impuestosGlobales[key].base += base;
-  impuestosGlobales[key].importe += importe;
+  if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa, base: 0 };
+  impuestosGlobales[key].base += Number(base) || 0;
 }
+ 
 
   /* ===============================
      FOLIO
@@ -365,11 +359,11 @@ lineas.push([
 Object.values(g.impMap).forEach(imp => {
   lineas.push([
     "03-IMP","TRASLADO",
-    r2(imp.base).toFixed(6),
+    r6(imp.base).toFixed(6),
     imp.impuesto,
     "Tasa",
     imp.tasa.toFixed(6),
-    r2(imp.importe).toFixed(6)
+    r6(imp.importe).toFixed(6)
   ].join("|"));
 });
 
@@ -432,6 +426,7 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
+
 
 
 
