@@ -124,13 +124,15 @@ const snap = await db.collection("ventas_rutav2")
   .where("rutaId", "==", CONFIG.rutaId)
   .where("fecha", ">=", Timestamp.fromDate(rango.inicio))
   .where("fecha", "<=", Timestamp.fromDate(rango.fin))
-  .where("facturada_global", "==", false)
   .get();
 
-
-  ventasCache = [];
-  snap.forEach(d => ventasCache.push({ id: d.id, ...d.data() }));
-  console.log("Ventas:", ventasCache);
+ventasCache = [];
+snap.forEach(d => {
+  const v = { id: d.id, ...d.data() };
+  if (v.facturada_global !== true) {
+    ventasCache.push(v);
+  }
+});
 
   pintarVentas(ventasCache);
 
@@ -479,4 +481,5 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
+
 
