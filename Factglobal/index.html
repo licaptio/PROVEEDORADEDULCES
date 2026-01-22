@@ -119,7 +119,7 @@ async function cargarVentas() {
   if (!rango) return alert("Selecciona fecha");
 
 const Timestamp = firebase.firestore.Timestamp;
-const snap = await db.collection("ventas")
+const snap = await db.collection("ventas_rutav2")
   .where("rutaId", "==", CONFIG.rutaId)
   .where("fecha", ">=", Timestamp.fromDate(rango.inicio))
   .where("fecha", "<=", Timestamp.fromDate(rango.fin))
@@ -208,4 +208,5 @@ function descargar(txt, nombre) {
 </script>
 </body>
 </html>
+
 
