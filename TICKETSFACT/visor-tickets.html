@@ -51,56 +51,64 @@ const firebaseConfig = {
   messagingSenderId: "96242533231",
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
-firebase.initializeApp(firebaseConfig); // 🔥 ESTA ERA LA CLAVE
 
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 function cargar() {
-const [y, m, d] = fecha.split('-').map(Number);
+  const fecha = document.getElementById('fecha').value;
+  if (!fecha) {
+    alert('Selecciona fecha');
+    return;
+  }
 
-// inicio del día EN UTC
-const inicio = firebase.firestore.Timestamp.fromDate(
-  new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
-);
+  const [y, m, d] = fecha.split('-').map(Number);
 
-// fin del día EN UTC
-const fin = firebase.firestore.Timestamp.fromDate(
-  new Date(Date.UTC(y, m - 1, d, 23, 59, 59))
-);
+  const inicio = firebase.firestore.Timestamp.fromDate(
+    new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
+  );
 
+  const fin = firebase.firestore.Timestamp.fromDate(
+    new Date(Date.UTC(y, m - 1, d, 23, 59, 59))
+  );
 
   const tbody = document.getElementById('tabla');
   tbody.innerHTML = '';
 
-db.collection('tickets')
-  .where('fecha', '>=', inicio)
-  .where('fecha', '<=', fin)
-  .where('facturada_global', '==', true)
-  .get()
-  .then(snapshot => {
-    console.log('docs:', snapshot.size);
+  db.collection('tickets')
+    .where('facturada_global', '==', true)
+    .where('fecha', '>=', inicio)
+    .where('fecha', '<=', fin)
+    .get()
+    .then(snapshot => {
+      console.log('docs:', snapshot.size);
 
-    snapshot.forEach(doc => {
-      const d = doc.data();
-      const tr = document.createElement('tr');
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        const tr = document.createElement('tr');
 
-      tr.innerHTML = `
-        <td>${d.folio}</td>
-        <td>$${d.resumen_financiero.total}</td>
-        <td>✅</td>
-        <td>
-          <input type="checkbox" checked
-            onchange="toggleFacturada('${doc.id}', this)">
-        </td>
-      `;
-      tbody.appendChild(tr);
+        tr.innerHTML = `
+          <td>${d.folio}</td>
+          <td>$${d.resumen_financiero.total}</td>
+          <td>✅</td>
+          <td>
+            <input type="checkbox" checked
+              onchange="toggleFacturada('${doc.id}', this)">
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    })
+    .catch(err => {
+      console.error('Error query:', err);
     });
-  });
-
 }
 
-function desmarcar(id) {
-  if (!confirm('⚠️ CONFIRMA que este ticket NO fue timbrado')) return;
+function toggleFacturada(id, checkbox) {
+  if (!confirm('⚠️ CONFIRMA que este ticket NO fue timbrado')) {
+    checkbox.checked = true;
+    return;
+  }
 
   db.collection('tickets').doc(id).update({
     facturada_global: false,
@@ -109,45 +117,19 @@ function desmarcar(id) {
     folio_fiscal: null,
     correccion_manual: true,
     correccion_at: new Date()
-  }).then(() => {
+  })
+  .then(() => {
     alert('✅ Ticket corregido');
     cargar();
+  })
+  .catch(err => {
+    console.error('Error update:', err);
+    checkbox.checked = true;
   });
 }
-function toggleFacturada(id, checkbox) {
-  if (!confirm('⚠️ CONFIRMA que este ticket NO fue timbrado')) {
-    checkbox.checked = true; // se regresa
-    return;
-  }
-
-db.collection('tickets')
-  .where('facturada_global', '==', true)
-  .where('fecha', '>=', inicio)
-  .where('fecha', '<=', fin)
-  .get()
-  .then(snapshot => {
-    console.log('docs:', snapshot.size);
-
-    snapshot.forEach(doc => {
-      const d = doc.data();
-      const tr = document.createElement('tr');
-
-      tr.innerHTML = `
-        <td>${d.folio}</td>
-        <td>$${d.resumen_financiero.total}</td>
-        <td>✅</td>
-        <td>
-          <input type="checkbox" checked
-            onchange="toggleFacturada('${doc.id}', this)">
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  });
-
 </script>
+
 
 </body>
 </html>
-
 
