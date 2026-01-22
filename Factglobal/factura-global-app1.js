@@ -80,6 +80,7 @@ if (!ventaSeleccionadaId) {
   try {
 
 window.cargarVentas = async function () {
+
   const rango = rangoDia();
   if (!rango) return alert("Selecciona fecha");
 
@@ -89,12 +90,19 @@ window.cargarVentas = async function () {
     rango.fin
   );
 
+  console.log("📦 Ventas cargadas:", ventas);
+
   pintarVentas(ventas);
+
+  document.getElementById("cnt").innerText = ventas.length;
+  document.getElementById("total").innerText =
+    ventas.reduce(
+      (s, v) => s + Number(v.resumen_financiero?.total || 0),
+      0
+    ).toFixed(2);
 };
 
-// 👇 ESTO FALTABA
-pintarVentas(ventas);
-    let ventasGlobal = ventas.filter(v =>
+   let ventasGlobal = ventas.filter(v =>
       v.estado !== "FACTURADA" &&
       !v.facturada_global
     );
@@ -253,4 +261,5 @@ function descargarTXT(txt, nombre) {
   a.click();
   URL.revokeObjectURL(a.href);
 }
+
 
