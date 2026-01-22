@@ -181,6 +181,19 @@ function extraerBasesYImpuestos(venta){
     const ivaRate  = Number(it.ivaTasa || 0);                 // 0.16 o 0
     const iepsRate = normRate(it.iepsTasa ?? it.ieps ?? 0);   // 0.08 si aplica
 
+    // IEPS + IVA juntos (CASO CRÍTICO)
+if (iepsRate > 0 && ivaRate > 0) {
+  const base = gross / (1 + iepsRate + ivaRate * (1 + iepsRate));
+  const iepsCalc = base * iepsRate;
+  const ivaCalc  = (base + iepsCalc) * ivaRate;
+
+  baseIEPS += base;
+  ieps     += iepsCalc;
+  base16   += (base + iepsCalc);
+  iva16    += ivaCalc;
+  return;
+}
+
     // IVA 16 (solo)
     if (ivaRate > 0 && iepsRate <= 0) {
       const base = gross / (1 + ivaRate);
@@ -447,6 +460,7 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
+
 
 
 
