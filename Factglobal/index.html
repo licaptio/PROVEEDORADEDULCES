@@ -81,13 +81,14 @@ const CONFIG = {
 };
 
 const FISCAL_EMISOR = {
-rfc: "PDD031204KL5",
-  razonSocial: "PROVEEDORA DE DULCES Y DESECHABLES",
-  regimenFiscal: "601",
+  rfc: "PDD031204KL5",
+  razon: "PROVEEDORA DE DULCES Y DESECHABLES",
+  regimen: "601",
   cpExpedicion: "67700",
-  numeroCertificado: "00001000000716399644",
+  certificado: "00001000000716399644",
   direccion: "MADERO 690 CENTRO LINARES NUEVO LEON MEXICO"
 };
+
 
 let ventasCache = [];
 let ventaSeleccionadaId = null;
@@ -117,6 +118,7 @@ async function cargarVentas() {
   const rango = rangoDia();
   if (!rango) return alert("Selecciona fecha");
 
+const Timestamp = firebase.firestore.Timestamp;
 const snap = await db.collection("ventas")
   .where("rutaId", "==", CONFIG.rutaId)
   .where("fecha", ">=", Timestamp.fromDate(rango.inicio))
@@ -126,6 +128,7 @@ const snap = await db.collection("ventas")
 
   ventasCache = [];
   snap.forEach(d => ventasCache.push({ id: d.id, ...d.data() }));
+  console.log("Ventas:", ventasCache);
 
   pintarVentas(ventasCache);
 
@@ -179,8 +182,7 @@ function generarTXT() {
 
   const txt = [
     [
-      "01","FA","4.0",CONFIG.serie,folio,"01",
-      FISCAL_EMISOR.certificado,"CONTADO",
+      "01","FA","4.0",CONFIG.serie,folio,"01","00001000000716399644","CONTADO",
       subtotal.toFixed(2),"0.00","MXN","1",
       total.toFixed(2),"Ingreso","PUE","67700","",
       "EMISOR",FISCAL_EMISOR.rfc,FISCAL_EMISOR.razon,FISCAL_EMISOR.regimen,
@@ -206,3 +208,4 @@ function descargar(txt, nombre) {
 </script>
 </body>
 </html>
+
