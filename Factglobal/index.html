@@ -446,6 +446,13 @@ async function marcarVentasComoFacturadas(ventas, serie, folio) {
 
   await batch.commit(); // 🔥 CLAVE
 }
+// ===============================
+// DESCARGAR TXT
+// ===============================
+descargar(
+  lineas.join("\n"),
+  `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`
+);
 
 // 👇 ejecutar marcado DESPUÉS de generar el TXT
 await marcarVentasComoFacturadas(
@@ -478,8 +485,26 @@ async function obtenerFolioSeguro(serie) {
     return siguiente;
   });
 }
+async function marcarVentasComoFacturadas(ventas, serie, folio) {
+  const batch = db.batch();
+  const ahora = firebase.firestore.FieldValue.serverTimestamp();
+
+  ventas.forEach(v => {
+    const ref = db.collection("ventas_rutav2").doc(v.id);
+    batch.update(ref, {
+      facturada_global: true,
+      facturada_at: ahora,
+      serie_fiscal: serie,
+      folio_fiscal: `${serie}-${folio}`
+    });
+  });
+
+  await batch.commit();
+}
+
 </script>
 </body>
 </html>
+
 
 
