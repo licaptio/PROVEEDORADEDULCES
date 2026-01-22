@@ -234,10 +234,21 @@ async function generarTXT() {
     if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa, base: 0 };
     impuestosGlobales[key].base += Number(base) || 0;
   }
+ /* ===============================
+     FILTRAR VENTAS (TICKET SELECCIONADO O TODOS)
+     =============================== */
+const ventasParaFactura = (ventaSeleccionadaId)
+  ? ventasCache.filter(v => v.id === ventaSeleccionadaId)
+  : ventasCache;
+
+  if (ventasParaFactura.length === 0) {
+    return alert("No hay ventas para procesar");
+  }
+
   /* ===============================
      RECORRER VENTAS
      =============================== */
-ventasCache.forEach(v => {
+  ventasParaFactura.forEach(v => {
  const { base16, iva16, base0, baseIEPS, ieps } = extraerBasesYImpuestos(v);
 
 const baseTotalVenta = r2(base16 + base0 + baseIEPS);
@@ -258,7 +269,7 @@ if (!grupos[firma]) {
     refFolio: (v.folio || "").replace(/^[^-]+-/, "")
   };
 }
-
+grupos[firma].baseTotal += baseTotalVenta; // ✅ esta es la clave
 if (base16 > 0 && iva16 > 0) {
   addImp(grupos[firma].impMap, "002", 0.16, base16);
   acumularImpuestoGlobal("002", 0.16, base16); // ← QUITAR iva16
@@ -426,5 +437,6 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
+
 
 
