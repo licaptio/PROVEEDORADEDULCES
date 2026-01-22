@@ -117,11 +117,12 @@ async function cargarVentas() {
   const rango = rangoDia();
   if (!rango) return alert("Selecciona fecha");
 
-  const snap = await db.collection("ventas")
-    .where("rutaId", "==", CONFIG.rutaId)
-    .where("fecha", ">=", rango.inicio)
-    .where("fecha", "<=", rango.fin)
-    .get();
+const snap = await db.collection("ventas")
+  .where("rutaId", "==", CONFIG.rutaId)
+  .where("fecha", ">=", Timestamp.fromDate(rango.inicio))
+  .where("fecha", "<=", Timestamp.fromDate(rango.fin))
+  .get();
+
 
   ventasCache = [];
   snap.forEach(d => ventasCache.push({ id: d.id, ...d.data() }));
@@ -206,6 +207,7 @@ function descargar(txt, nombre) {
 
 </body>
 </html>
+
 
 
 
