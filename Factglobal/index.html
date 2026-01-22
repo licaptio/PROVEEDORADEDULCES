@@ -160,6 +160,39 @@ function pintarVentas(ventas) {
     tbody.appendChild(tr);
   });
 }
+function extraerBasesYImpuestos(venta){
+  const det = Array.isArray(venta.detalle) ? venta.detalle : [];
+
+  let base16 = 0, iva16 = 0, base0 = 0, baseIEPS = 0, ieps = 0;
+
+  det.forEach(it => {
+    const importe = Number(it.importe || 0);
+    const ivaTasa = Number(it.ivaTasa || 0);
+    const ivaCalc = Number(it.iva_calculado || 0);
+    const iepsCalc = Number(it.ieps_calculado || 0);
+
+    // IVA 16% (tu ticket trae ivaTasa = 0.16 y el iva_calculado ya calculado)
+    if (ivaTasa > 0) {
+      const base = Math.max(0, importe - ivaCalc - iepsCalc);
+      base16 += base;
+      iva16  += ivaCalc;
+      return;
+    }
+
+    // IEPS (si viene calculado)
+    if (iepsCalc > 0) {
+      const base = Math.max(0, importe - iepsCalc);
+      baseIEPS += base;
+      ieps += iepsCalc;
+      return;
+    }
+
+    // Exento (IVA 0 e IEPS 0)
+    base0 += importe;
+  });
+
+  return { base16, iva16, base0, baseIEPS, ieps };
+}
 
 /* ======================================================
    GENERAR TXT GLOBAL (PRUEBA UNA VENTA)
@@ -190,74 +223,40 @@ function generarTXT() {
   /* ===============================
      RECORRER VENTAS
      =============================== */
-  ventasCache.forEach(v => {
+ventasCache.forEach(v => {
+ const { base16, iva16, base0, baseIEPS, ieps } = extraerBasesYImpuestos(v);
 
-    const rf = v.resumen_financiero || {};
+const baseTotalVenta = r2(base16 + base0 + baseIEPS);
+if (baseTotalVenta <= 0) return;
 
-    const base16   = r2(rf.base_iva_16   || 0);
-    const iva16    = r2(rf.iva_16        || 0);
-    const base0    = r2(rf.base_iva_0    || 0);
-    const baseIEPS = r2(rf.base_ieps_8   || 0);
-    const ieps     = r2(rf.ieps_8        || 0);
+subtotalGlobal += baseTotalVenta;
+impuestosGlobal += r2(iva16 + ieps);
 
-    const baseTotalVenta = base16 + base0 + baseIEPS;
+// firma fiscal
+let firma = "IVA0";
+if (base16 > 0 && baseIEPS > 0) firma = "IVA16+IEPS8";
+else if (base16 > 0) firma = "IVA16";
+else if (baseIEPS > 0) firma = "IEPS8";
 
-    if (baseTotalVenta <= 0) return;
+if (!grupos[firma]) grupos[firma] = { baseTotal: 0, impMap: {} };
+grupos[firma].baseTotal += baseTotalVenta;
 
-    subtotalGlobal += baseTotalVenta;
-    impuestosGlobal += iva16 + ieps;
+if (base16 > 0 && iva16 > 0) {
+  addImp(grupos[firma].impMap, "002", 0.16, base16, iva16);
+  acumularImpuestoGlobal("002", 0.16, base16, iva16);
+}
 
-    /* ===============================
-       FIRMA FISCAL
-       =============================== */
-    let firma = "IVA0";
-    if (base16 > 0 && baseIEPS > 0) firma = "IVA16+IEPS8";
-    else if (base16 > 0) firma = "IVA16";
-    else if (baseIEPS > 0) firma = "IEPS8";
+if (base0 > 0) {
+  addImp(grupos[firma].impMap, "002", 0.00, base0, 0);
+  acumularImpuestoGlobal("002", 0.00, base0, 0);
+}
 
-    if (!grupos[firma]) {
-      grupos[firma] = {
-        baseTotal: 0,
-        impuestos: []
-      };
-    }
+if (baseIEPS > 0 && ieps > 0) {
+  addImp(grupos[firma].impMap, "003", 0.08, baseIEPS, ieps);
+  acumularImpuestoGlobal("003", 0.08, baseIEPS, ieps);
+}
 
-    grupos[firma].baseTotal += baseTotalVenta;
-
-    /* ===============================
-       IMPUESTOS POR CONCEPTO (03-IMP)
-       =============================== */
-    if (base16 > 0) {
-      grupos[firma].impuestos.push({
-        impuesto: "002",
-        tasa: 0.16,
-        base: base16,
-        importe: iva16
-      });
-      acumularImpuestoGlobal("002", 0.16, base16, iva16);
-    }
-
-    if (base0 > 0) {
-      grupos[firma].impuestos.push({
-        impuesto: "002",
-        tasa: 0.00,
-        base: base0,
-        importe: 0
-      });
-      acumularImpuestoGlobal("002", 0.00, base0, 0);
-    }
-
-    if (baseIEPS > 0) {
-      grupos[firma].impuestos.push({
-        impuesto: "003",
-        tasa: 0.08,
-        base: baseIEPS,
-        importe: ieps
-      });
-      acumularImpuestoGlobal("003", 0.08, baseIEPS, ieps);
-    }
-
-  });
+});
 
   totalGlobal = r2(subtotalGlobal + impuestosGlobal);
 
@@ -314,16 +313,17 @@ function generarTXT() {
       "","02"
     ].join("|"));
 
-    g.impuestos.forEach(imp => {
-      lineas.push([
-        "03-IMP","TRASLADO",
-        r2(imp.base).toFixed(6),
-        imp.impuesto,
-        "Tasa",
-        imp.tasa.toFixed(6),
-        r2(imp.importe).toFixed(6)
-      ].join("|"));
-    });
+Object.values(g.impMap).forEach(imp => {
+  lineas.push([
+    "03-IMP","TRASLADO",
+    r2(imp.base).toFixed(6),
+    imp.impuesto,
+    "Tasa",
+    imp.tasa.toFixed(6),
+    r2(imp.importe).toFixed(6)
+  ].join("|"));
+});
+
     n++;
   }
 
@@ -362,6 +362,7 @@ function descargar(txt, nombre) {
 </script>
 </body>
 </html>
+
 
 
 
