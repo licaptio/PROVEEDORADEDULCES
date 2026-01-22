@@ -193,11 +193,12 @@ function extraerBasesYImpuestos(venta){
 
   return { base16, iva16, base0, baseIEPS, ieps };
 }
-function addImp(impMap, impuesto, tasa, base, importe) {
+function addImp(impMap, impuesto, tasa, base) {
   const key = `${impuesto}_${Number(tasa).toFixed(6)}`;
-  if (!impMap[key]) {
-    impMap[key] = { impuesto, tasa: Number(tasa), base: 0, importe: 0 };
-  }
+  if (!impMap[key]) impMap[key] = { impuesto, tasa: Number(tasa), base: 0, importe: 0 };
+  impMap[key].base += Number(base) || 0;
+}
+
   impMap[key].base += Number(base) || 0;
   impMap[key].importe += Number(importe) || 0;
 }
@@ -261,7 +262,7 @@ if (!grupos[firma]) grupos[firma] = { baseTotal: 0, impMap: {} };
 grupos[firma].baseTotal += baseTotalVenta;
 
 if (base16 > 0 && iva16 > 0) {
-  addImp(grupos[firma].impMap, "002", 0.16, base16, iva16);
+  addImp(grupos[firma].impMap, "002", 0.16, base16);
   acumularImpuestoGlobal("002", 0.16, base16, iva16);
 }
 
@@ -271,7 +272,7 @@ if (base0 > 0) {
 }
 
 if (baseIEPS > 0 && ieps > 0) {
-  addImp(grupos[firma].impMap, "003", 0.08, baseIEPS, ieps);
+  addImp(grupos[firma].impMap, "003", 0.08, baseIEPS);
   acumularImpuestoGlobal("003", 0.08, baseIEPS, ieps);
 }
 
@@ -282,19 +283,19 @@ if (baseIEPS > 0 && ieps > 0) {
   /* ===============================
      FUNCIÓN REGISTRO 04
      =============================== */
-  function acumularImpuestoGlobal(impuesto, tasa, base, importe) {
-    const key = impuesto + "_" + tasa;
-    if (!impuestosGlobales[key]) {
-      impuestosGlobales[key] = {
-        impuesto,
-        tasa,
-        base: 0,
-        importe: 0
-      };
-    }
-    impuestosGlobales[key].base += base;
-    impuestosGlobales[key].importe += importe;
+function acumularImpuestoGlobal(impuesto, tasa, base, importe) {
+  const key = impuesto + "_" + tasa;
+  if (!impuestosGlobales[key]) {
+    impuestosGlobales[key] = {
+      impuesto,
+      tasa,
+      base: 0,
+      importe: 0
+    };
   }
+  impuestosGlobales[key].base += base;
+  impuestosGlobales[key].importe += importe;
+}
 
   /* ===============================
      FOLIO
@@ -431,5 +432,6 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
+
 
 
