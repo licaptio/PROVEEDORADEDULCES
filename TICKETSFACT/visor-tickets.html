@@ -59,35 +59,42 @@ function cargar() {
   const fecha = document.getElementById('fecha').value;
   if (!fecha) return alert('Selecciona fecha');
 
-  const inicio = new Date(fecha + 'T00:00:00');
-  const fin = new Date(fecha + 'T23:59:59');
+const inicio = firebase.firestore.Timestamp.fromDate(
+  new Date(fecha + 'T00:00:00')
+);
+
+const fin = firebase.firestore.Timestamp.fromDate(
+  new Date(fecha + 'T23:59:59')
+);
 
   const tbody = document.getElementById('tabla');
   tbody.innerHTML = '';
 
-  db.collection('tickets')
-    .where('fecha', '>=', inicio)
-    .where('fecha', '<=', fin)
-    .where('facturada_global', '==', true)
-    .get()
-    .then(snapshot => {
-      snapshot.forEach(doc => {
-        const d = doc.data();
-        const tr = document.createElement('tr');
+db.collection('tickets')
+  .where('fecha', '>=', inicio)
+  .where('fecha', '<=', fin)
+  .where('facturada_global', '==', true)
+  .get()
+  .then(snapshot => {
+    console.log('docs:', snapshot.size);
 
-        tr.innerHTML = `
-          <td>${d.folio}</td>
-          <td>$${d.resumen_financiero.total}</td>
-          <td>✅</td>
-<td>
-  <input type="checkbox" checked
-    onchange="toggleFacturada('${doc.id}', this)">
-</td>
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      const tr = document.createElement('tr');
 
-        `;
-        tbody.appendChild(tr);
-      });
+      tr.innerHTML = `
+        <td>${d.folio}</td>
+        <td>$${d.resumen_financiero.total}</td>
+        <td>✅</td>
+        <td>
+          <input type="checkbox" checked
+            onchange="toggleFacturada('${doc.id}', this)">
+        </td>
+      `;
+      tbody.appendChild(tr);
     });
+  });
+
 }
 
 function desmarcar(id) {
@@ -128,3 +135,4 @@ function toggleFacturada(id, checkbox) {
 
 </body>
 </html>
+
