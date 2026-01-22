@@ -57,29 +57,21 @@ const db = firebase.firestore();
 
 function cargar() {
   const fecha = document.getElementById('fecha').value;
-  if (!fecha) {
-    alert('Selecciona fecha');
-    return;
-  }
+  if (!fecha) return alert('Selecciona fecha');
 
   const [y, m, d] = fecha.split('-').map(Number);
 
-const inicio = firebase.firestore.Timestamp.fromDate(
-  new Date(y, m - 1, d, 0, 0, 0)
-);
-
-const fin = firebase.firestore.Timestamp.fromDate(
-  new Date(y, m - 1, d, 23, 59, 59)
-);
+  const inicio = new Date(y, m - 1, d, 0, 0, 0);
+  const fin    = new Date(y, m - 1, d, 23, 59, 59);
 
   const tbody = document.getElementById('tabla');
   tbody.innerHTML = '';
 
   db.collection('tickets')
     .where('facturada_global', '==', true)
-    .where('fecha', '>=', inicio)
-    .where('fecha', '<=', fin)
-    .orderBy('fecha')   // 👈 ESTA LÍNEA ES LA CLAVE
+    .orderBy('fecha')          // 🔑 OBLIGATORIO
+    .startAt(inicio)           // 🔑 CLAVE
+    .endAt(fin)                // 🔑 CLAVE
     .get()
     .then(snapshot => {
       console.log('docs:', snapshot.size);
@@ -90,7 +82,7 @@ const fin = firebase.firestore.Timestamp.fromDate(
 
         tr.innerHTML = `
           <td>${d.folio}</td>
-          <td>$${d.resumen_financiero.total}</td>
+          <td>$${Number(d.resumen_financiero?.total || 0).toFixed(2)}</td>
           <td>✅</td>
           <td>
             <input type="checkbox" checked
@@ -101,7 +93,8 @@ const fin = firebase.firestore.Timestamp.fromDate(
       });
     })
     .catch(err => {
-      console.error('Error query:', err);
+      console.error(err);
+      alert(err.message || err);
     });
 }
 
@@ -133,6 +126,7 @@ function toggleFacturada(id, checkbox) {
 
 </body>
 </html>
+
 
 
 
