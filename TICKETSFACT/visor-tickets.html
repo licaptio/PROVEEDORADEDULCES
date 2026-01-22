@@ -79,6 +79,7 @@ const fin = firebase.firestore.Timestamp.fromDate(
     .where('facturada_global', '==', true)
     .where('fecha', '>=', inicio)
     .where('fecha', '<=', fin)
+    .orderBy('fecha')   // 👈 ESTA LÍNEA ES LA CLAVE
     .get()
     .then(snapshot => {
       console.log('docs:', snapshot.size);
@@ -132,6 +133,7 @@ function toggleFacturada(id, checkbox) {
 
 </body>
 </html>
+
 
 
 
