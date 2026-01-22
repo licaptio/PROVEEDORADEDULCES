@@ -72,15 +72,28 @@ window.generarTXTSifeiGlobal = async function () {
   if (!rango) return alert("Selecciona fecha");
 
   generandoGlobal = true;
+if (!ventaSeleccionadaId) {
+  alert("Selecciona una venta primero");
+  return;
+}
 
   try {
 
-    const ventas = await obtenerVentasRuta(
-      CONFIG.rutaId,
-      rango.inicio,
-      rango.fin
-    );
+window.cargarVentas = async function () {
+  const rango = rangoDia();
+  if (!rango) return alert("Selecciona fecha");
 
+  const ventas = await obtenerVentasRuta(
+    CONFIG.rutaId,
+    rango.inicio,
+    rango.fin
+  );
+
+  pintarVentas(ventas);
+};
+
+// 👇 ESTO FALTABA
+pintarVentas(ventas);
     let ventasGlobal = ventas.filter(v =>
       v.estado !== "FACTURADA" &&
       !v.facturada_global
@@ -240,3 +253,4 @@ function descargarTXT(txt, nombre) {
   a.click();
   URL.revokeObjectURL(a.href);
 }
+
