@@ -124,6 +124,7 @@ const snap = await db.collection("ventas_rutav2")
   .where("rutaId", "==", CONFIG.rutaId)
   .where("fecha", ">=", Timestamp.fromDate(rango.inicio))
   .where("fecha", "<=", Timestamp.fromDate(rango.fin))
+  .where("facturada_global", "==", false)
   .get();
 
 
@@ -423,8 +424,26 @@ for (const k in impuestosGlobales) {
      DESCARGA
      =============================== */
   descargar(lineas.join("\n"), `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`);
-  alert("✅ TXT GLOBAL SIFEI generado correctamente");
-}
+  async function marcarVentasComoFacturadas(ventas, serie, folio) {
+  const batch = db.batch();
+  const ahora = firebase.firestore.FieldValue.serverTimestamp();
+
+  ventas.forEach(v => {
+    const ref = db.collection("ventas_rutav2").doc(v.id);
+    batch.update(ref, {
+      facturada_global: true,
+      facturada_at: ahora,
+      serie_fiscal: serie,
+      folio_fiscal: `${serie}-${folio}`
+    });
+  });
+   await marcarVentasComoFacturadas(
+  ventasParaFactura,
+  CONFIG.serie,
+  folio
+);
+
+alert("✅ TXT GLOBAL generado y ventas marcadas como facturadas");
 
 
 /* ======================================================
@@ -460,6 +479,7 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
+
 
 
 
