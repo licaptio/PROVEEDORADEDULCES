@@ -199,12 +199,7 @@ function addImp(impMap, impuesto, tasa, base) {
   if (!impMap[key]) impMap[key] = { impuesto, tasa: Number(tasa), base: 0, importe: 0 };
   impMap[key].base += Number(base) || 0;
 }
-// AGREGA ESTA FUNCIÓN:
-function acumularImpuestoGlobal(impuesto, tasa, base) {
-  const key = impuesto + "_" + tasa;
-  if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa, base: 0 };
-  impuestosGlobales[key].base += Number(base) || 0;
-}
+
 /* ======================================================
    GENERAR TXT GLOBAL (PRUEBA UNA VENTA)
    ====================================================== */
@@ -231,6 +226,14 @@ async function generarTXT() {
   let totalGlobal = 0;
   let impuestosGlobal = 0;
 
+/* ===============================
+     FUNCIÓN REGISTRO 04 (DENTRO DE generarTXT)
+     =============================== */
+  function acumularImpuestoGlobal(impuesto, tasa, base) {
+    const key = impuesto + "_" + tasa;
+    if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa, base: 0 };
+    impuestosGlobales[key].base += Number(base) || 0;
+  }
   /* ===============================
      RECORRER VENTAS
      =============================== */
@@ -252,7 +255,7 @@ if (!grupos[firma]) {
   grupos[firma] = {
     baseTotal: 0,
     impMap: {},
-    refFolio: (v.folio || "").replace(/^[^-]+-/, "") || (folio + Object.keys(grupos).length + 1)
+    refFolio: (v.folio || "").replace(/^[^-]+-/, "")
   };
 }
 
@@ -423,4 +426,5 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
+
 
