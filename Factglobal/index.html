@@ -306,16 +306,45 @@ if (baseIEPS > 0 && ieps > 0) {
   /* ===============================
      REGISTRO 01
      =============================== */
-  lineas.push([
-    "01","FA","4.0",CONFIG.serie,folio,"01",
-    FISCAL_EMISOR.certificado,"CONTADO",
-    r2(subtotalGlobal).toFixed(2),"0.00","MXN","1",
-    r2(totalGlobal).toFixed(2),"Ingreso","PUE","67700","",
-    "EMISOR",FISCAL_EMISOR.rfc,FISCAL_EMISOR.razon,FISCAL_EMISOR.regimen,
-    "RECEPTOR","XAXX010101000","PUBLICO EN GENERAL","","","S01","","",
-    r2(impuestosGlobal).toFixed(2),
-    "INFO_ADIC","","","","","N"
-  ].join("|"));
+lineas.push([
+  "01","FA","4.0",
+  CONFIG.serie, folio, "01",
+  FISCAL_EMISOR.certificado,
+  "CONTADO",
+  r2(subtotalGlobal).toFixed(2),
+  "0.00",
+  "MXN","1",
+  r2(totalGlobal).toFixed(2),
+  "Ingreso",
+  "PUE",
+  "67700","",
+  "EMISOR",
+  FISCAL_EMISOR.rfc,
+  FISCAL_EMISOR.razon,
+  FISCAL_EMISOR.regimen,
+  "RECEPTOR",
+  "XAXX010101000",
+  "PUBLICO EN GENERAL",
+  "","",
+  "S01",
+  "admonproveedora@infinitummail.com",
+  "",
+  r2(impuestosGlobal).toFixed(2),
+  "INFO_ADIC",
+  "",
+  FISCAL_EMISOR.direccion,
+  FISCAL_EMISOR.direccion,
+  "CONOCIDO S/N CENTRO LINARES 67700 NUEVO LEON MEXICO",
+  "",
+  "N"
+].join("|"));
+lineas.push([
+  "01","CFDI40","01","INFO_GLOBAL",
+  "01","01", new Date().getFullYear(),
+  "EMISOR","",
+  "RECEPTOR","67700","616"
+].join("|"));
+
 
   /* ===============================
      REGISTROS 03 y 03-IMP
@@ -402,4 +431,5 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
+
 
