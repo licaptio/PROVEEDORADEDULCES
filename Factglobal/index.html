@@ -193,6 +193,14 @@ function extraerBasesYImpuestos(venta){
 
   return { base16, iva16, base0, baseIEPS, ieps };
 }
+function addImp(impMap, impuesto, tasa, base, importe) {
+  const key = `${impuesto}_${Number(tasa).toFixed(6)}`;
+  if (!impMap[key]) {
+    impMap[key] = { impuesto, tasa: Number(tasa), base: 0, importe: 0 };
+  }
+  impMap[key].base += Number(base) || 0;
+  impMap[key].importe += Number(importe) || 0;
+}
 
 /* ======================================================
    GENERAR TXT GLOBAL (PRUEBA UNA VENTA)
@@ -362,6 +370,7 @@ function descargar(txt, nombre) {
 </script>
 </body>
 </html>
+
 
 
 
