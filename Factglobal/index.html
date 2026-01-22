@@ -199,11 +199,12 @@ function addImp(impMap, impuesto, tasa, base) {
   if (!impMap[key]) impMap[key] = { impuesto, tasa: Number(tasa), base: 0, importe: 0 };
   impMap[key].base += Number(base) || 0;
 }
-
-  impMap[key].base += Number(base) || 0;
-  impMap[key].importe += Number(importe) || 0;
+// AGREGA ESTA FUNCIÓN:
+function acumularImpuestoGlobal(impuesto, tasa, base) {
+  const key = impuesto + "_" + tasa;
+  if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa, base: 0 };
+  impuestosGlobales[key].base += Number(base) || 0;
 }
-
 /* ======================================================
    GENERAR TXT GLOBAL (PRUEBA UNA VENTA)
    ====================================================== */
@@ -240,7 +241,6 @@ const baseTotalVenta = r2(base16 + base0 + baseIEPS);
 if (baseTotalVenta <= 0) return;
 
 subtotalGlobal += baseTotalVenta;
-impuestosGlobal += r2(iva16 + ieps);
 
 // firma fiscal
 let firma = "IVA0";
@@ -248,19 +248,13 @@ if (base16 > 0 && baseIEPS > 0) firma = "IVA16+IEPS8";
 else if (base16 > 0) firma = "IVA16";
 else if (baseIEPS > 0) firma = "IEPS8";
 
-// ⬇️ AQUÍ VA EL CÓDIGO QUE MENCIONAS ⬇️
-  if (!grupos[firma]) {
-    grupos[firma] = {
-      baseTotal: 0,
-      impMap: {},
-      refFolio: (v.folio || "").replace(/^[^-]+-/, "")
-    };
-  }
-  // ⬆️ FIN DEL CÓDIGO AGREGADO ⬆️
-
-  
-if (!grupos[firma]) grupos[firma] = { baseTotal: 0, impMap: {} };
-grupos[firma].baseTotal += baseTotalVenta;
+if (!grupos[firma]) {
+  grupos[firma] = {
+    baseTotal: 0,
+    impMap: {},
+    refFolio: (v.folio || "").replace(/^[^-]+-/, "") || (folio + Object.keys(grupos).length + 1)
+  };
+}
 
 if (base16 > 0 && iva16 > 0) {
   addImp(grupos[firma].impMap, "002", 0.16, base16);
@@ -278,18 +272,16 @@ if (baseIEPS > 0 && ieps > 0) {
 }
 
 });
-
-  totalGlobal = r2(subtotalGlobal + impuestosGlobal);
-
-  /* ===============================
-     FUNCIÓN REGISTRO 04
+ /* ===============================
+     CALCULAR IMPUESTOS DESDE impuestosGlobales
      =============================== */
-function acumularImpuestoGlobal(impuesto, tasa, base) {
-  const key = impuesto + "_" + tasa;
-  if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa, base: 0 };
-  impuestosGlobales[key].base += Number(base) || 0;
-}
- 
+  impuestosGlobal = 0;
+  for (const k in impuestosGlobales) {
+    const ig = impuestosGlobales[k];
+    if (ig.tasa > 0) impuestosGlobal += r2(ig.base * ig.tasa);
+  }
+  
+  totalGlobal = r2(subtotalGlobal + impuestosGlobal);
 
   /* ===============================
      FOLIO
@@ -357,13 +349,16 @@ lineas.push([
     ].join("|"));
 
 Object.values(g.impMap).forEach(imp => {
+  // Calcula el importe como base × tasa
+  const importeCalculado = imp.base * imp.tasa;
+  
   lineas.push([
     "03-IMP","TRASLADO",
     r6(imp.base).toFixed(6),
     imp.impuesto,
     "Tasa",
     imp.tasa.toFixed(6),
-    r6(imp.importe).toFixed(6)
+    r6(importeCalculado).toFixed(6)  // ← Usa el importe calculado
   ].join("|"));
 });
 
@@ -373,17 +368,19 @@ Object.values(g.impMap).forEach(imp => {
   /* ===============================
      REGISTROS 04
      =============================== */
-  for (const k in impuestosGlobales) {
-    const ig = impuestosGlobales[k];
-    lineas.push([
-      "04","TRASLADO",
-      ig.impuesto,
-      "Tasa",
-      ig.tasa.toFixed(6),
-      r2(ig.importe).toFixed(2),
-      r2(ig.base).toFixed(2)
-    ].join("|"));
-  }
+for (const k in impuestosGlobales) {
+  const ig = impuestosGlobales[k];
+  const imp2 = (ig.tasa === 0) ? 0 : r2(ig.base * ig.tasa);
+
+  lineas.push([
+    "04","TRASLADO",
+    ig.impuesto,
+    "Tasa",
+    ig.tasa.toFixed(6),
+    imp2.toFixed(2),
+    r2(ig.base).toFixed(2)
+  ].join("|"));
+}
 
   /* ===============================
      DESCARGA
@@ -426,7 +423,4 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
-
-
-
 
