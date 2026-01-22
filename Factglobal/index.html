@@ -1,79 +1,198 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Factura Global Diaria · PROVSOFT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<title>PROVSOFT · Factura Global Diaria</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+th { background: #f2f2f2; }
+button { padding: 10px 16px; font-size: 14px; cursor: pointer; }
+</style>
 </head>
 
 <body>
 
-  <h1>🧾 Factura Global Diaria</h1>
-  <p>PROVSOFT · Público en General · CFDI 4.0</p>
+<h2>🧾 PROVSOFT · Factura Global Diaria</h2>
 
-  <!-- ===============================
-       SELECCIÓN DE FECHA
-       =============================== -->
-  <label>📅 Fecha a cerrar:</label><br>
-  <input type="date" id="fecha" />
-  <br><br>
+<label>📅 Fecha:</label><br>
+<input type="date" id="fecha"><br><br>
 
-  <button id="btnCargar">
-    Cargar ventas del día
-  </button>
+<button onclick="cargarVentas()">Cargar ventas</button>
 
-  <hr>
+<p>
+  Tickets: <b id="cnt">0</b> |
+  Total: <b>$<span id="total">0.00</span></b>
+</p>
 
-  <!-- ===============================
-       RESUMEN
-       =============================== -->
-  <p>
-    Tickets encontrados:
-    <b id="cnt">0</b>
-  </p>
+<table>
+<thead>
+<tr>
+  <th>Hora</th>
+  <th>Cliente</th>
+  <th>Total</th>
+  <th>✔</th>
+</tr>
+</thead>
+<tbody id="ventas"></tbody>
+</table>
 
-  <p>
-    Total global estimado:
-    <b>$<span id="total">0.00</span></b>
-  </p>
+<br>
 
-  <!-- ===============================
-       TABLA DE VENTAS
-       =============================== -->
-  <table border="1" width="100%" cellpadding="6">
-    <thead>
-      <tr>
-        <th>Hora</th>
-        <th>Cliente</th>
-        <th>Total</th>
-        <th>✔</th>
-      </tr>
-    </thead>
-    <tbody id="ventas"></tbody>
-  </table>
+<input type="checkbox" id="confirmo">
+<label>Confirmo cierre fiscal</label>
 
-  <hr>
+<br><br>
 
-  <!-- ===============================
-       CONFIRMACIÓN FISCAL
-       =============================== -->
-  <input type="checkbox" id="confirmo" />
-  <label>
-    Entiendo que este cierre fiscal es definitivo
-  </label>
+<button onclick="generarTXT()">GENERAR TXT GLOBAL</button>
 
-  <br><br>
+<script>
+/* ======================================================
+   CONFIGURACIÓN FIREBASE (AJUSTA AQUÍ)
+   ====================================================== */
+firebase.initializeApp({
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH",
+  projectId: "TU_PROJECT_ID"
+});
+const db = firebase.firestore();
 
-  <button onclick="generarTXTSifeiGlobal(event)">
-    GENERAR TXT GLOBAL
-  </button>
+/* ======================================================
+   CONFIG PROVSOFT
+   ====================================================== */
+const CONFIG = {
+  rutaId: "Almacen_Ruta_1",
+  serie: "RM1"
+};
 
-  <!-- ===============================
-       APP PRINCIPAL
-       =============================== -->
-  <script type="module" src="./factura-global-app1.js"></script>
+const FISCAL_EMISOR = {
+  rfc: "PDD031204KL5",
+  razon: "PROVEEDORA DE DULCES Y DESECHABLES",
+  regimen: "601",
+  certificado: "00001000000500000000"
+};
+
+let ventasCache = [];
+let ventaSeleccionadaId = null;
+
+/* ======================================================
+   UTILIDADES
+   ====================================================== */
+const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+
+/* ======================================================
+   FECHA
+   ====================================================== */
+function rangoDia() {
+  const f = document.getElementById("fecha").value;
+  if (!f) return null;
+  return {
+    inicio: new Date(f + "T00:00:00"),
+    fin: new Date(f + "T23:59:59")
+  };
+}
+
+/* ======================================================
+   CARGAR VENTAS
+   ====================================================== */
+async function cargarVentas() {
+
+  const rango = rangoDia();
+  if (!rango) return alert("Selecciona fecha");
+
+  const snap = await db.collection("ventas")
+    .where("rutaId", "==", CONFIG.rutaId)
+    .where("fecha", ">=", rango.inicio)
+    .where("fecha", "<=", rango.fin)
+    .get();
+
+  ventasCache = [];
+  snap.forEach(d => ventasCache.push({ id: d.id, ...d.data() }));
+
+  pintarVentas(ventasCache);
+
+  document.getElementById("cnt").innerText = ventasCache.length;
+  document.getElementById("total").innerText =
+    ventasCache.reduce((s,v)=>s+Number(v.resumen_financiero?.total||0),0).toFixed(2);
+}
+
+/* ======================================================
+   PINTAR TABLA
+   ====================================================== */
+function pintarVentas(ventas) {
+
+  const tbody = document.getElementById("ventas");
+  tbody.innerHTML = "";
+
+  ventas.forEach(v => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${v.fecha.toDate().toLocaleTimeString()}</td>
+      <td>${v.cliente || "-"}</td>
+      <td>$${Number(v.resumen_financiero.total).toFixed(2)}</td>
+      <td><input type="radio" name="venta" value="${v.id}"></td>
+    `;
+    tr.querySelector("input").onchange = e => {
+      ventaSeleccionadaId = e.target.value;
+      console.log("✔ Venta:", ventaSeleccionadaId);
+    };
+    tbody.appendChild(tr);
+  });
+}
+
+/* ======================================================
+   GENERAR TXT GLOBAL (PRUEBA UNA VENTA)
+   ====================================================== */
+function generarTXT() {
+
+  if (!ventaSeleccionadaId)
+    return alert("Selecciona una venta");
+
+  if (!document.getElementById("confirmo").checked)
+    return alert("Confirma cierre fiscal");
+
+  const venta = ventasCache.find(v => v.id === ventaSeleccionadaId);
+  if (!venta) return alert("Venta no encontrada");
+
+  const subtotal = r2(venta.resumen_financiero.subtotal);
+  const total = r2(venta.resumen_financiero.total);
+
+  const folio = String(Date.now()).slice(-6);
+
+  const txt = [
+    [
+      "01","FA","4.0",CONFIG.serie,folio,"01",
+      FISCAL_EMISOR.certificado,"CONTADO",
+      subtotal.toFixed(2),"0.00","MXN","1",
+      total.toFixed(2),"Ingreso","PUE","67700","",
+      "EMISOR",FISCAL_EMISOR.rfc,FISCAL_EMISOR.razon,FISCAL_EMISOR.regimen,
+      "RECEPTOR","XAXX010101000","PUBLICO EN GENERAL","","","S01","","",
+      (total-subtotal).toFixed(2),
+      "INFO_ADIC","","","","","N"
+    ].join("|")
+  ].join("\n");
+
+  descargar(txt, `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`);
+  alert("✅ TXT generado");
+}
+
+/* ======================================================
+   DESCARGA
+   ====================================================== */
+function descargar(txt, nombre) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([txt], {type:"text/plain"}));
+  a.download = nombre;
+  a.click();
+}
+</script>
 
 </body>
 </html>
-
-
