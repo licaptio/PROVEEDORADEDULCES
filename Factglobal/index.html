@@ -65,6 +65,7 @@ const firebaseConfig = {
   messagingSenderId: "96242533231",
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 /* ======================================================
@@ -201,5 +202,6 @@ function descargar(txt, nombre) {
 
 </body>
 </html>
+
 
 
