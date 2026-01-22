@@ -1,41 +1,130 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Visor de Tickets – PROVSOFT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>PROVSOFT · Corrección Factura Global</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+body { font-family: Arial; background:#f5f6fa; padding:20px }
+table { width:100%; border-collapse:collapse; background:#fff }
+th,td { padding:8px; border:1px solid #ddd; text-align:center }
+th { background:#eee }
+button { padding:6px 10px; cursor:pointer }
+.danger { background:#c0392b; color:#fff; border:none }
+</style>
 </head>
 
 <body>
 
-<h2>📋 Visor de Tickets Fiscales</h2>
-
-<label>📍 Ruta:</label>
-<select id="ruta">
-  <option value="Almacen_Ruta_1">Ruta 1</option>
-  <option value="Almacen_Ruta_2">Ruta 2</option>
-  <option value="Almacen_Ruta_3">Ruta 3</option>
-</select>
+<h2>🧾 Corrección de Factura Global</h2>
 
 <label>📅 Fecha:</label>
 <input type="date" id="fecha">
+<button onclick="cargar()">Buscar</button>
 
-<button id="btnCargar">Cargar tickets</button>
-<hr>
+<br><br>
 
-<table border="1" width="100%">
-  <thead>
-    <tr>
-      <th>Hora</th>
-      <th>Folio</th>
-      <th>Total</th>
-      <th>Estado</th>
-      <th>Acción</th>
-    </tr>
-  </thead>
-  <tbody id="tabla"></tbody>
+<table>
+<thead>
+<tr>
+  <th>Folio</th>
+  <th>Total</th>
+  <th>Facturada</th>
+  <th>Acción</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
 </table>
 
-<script type="module" src="./visor-tickets.js"></script>
+<script>
+/* 🔐 Firebase */
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+firebase.initializeApp(firebaseConfig); // 🔥 ESTA ERA LA CLAVE
+
+const db = firebase.firestore();
+
+function cargar() {
+  const fecha = document.getElementById('fecha').value;
+  if (!fecha) return alert('Selecciona fecha');
+
+  const inicio = new Date(fecha + 'T00:00:00');
+  const fin = new Date(fecha + 'T23:59:59');
+
+  const tbody = document.getElementById('tabla');
+  tbody.innerHTML = '';
+
+  db.collection('tickets')
+    .where('fecha', '>=', inicio)
+    .where('fecha', '<=', fin)
+    .where('facturada_global', '==', true)
+    .get()
+    .then(snapshot => {
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+          <td>${d.folio}</td>
+          <td>$${d.resumen_financiero.total}</td>
+          <td>✅</td>
+<td>
+  <input type="checkbox" checked
+    onchange="toggleFacturada('${doc.id}', this)">
+</td>
+
+        `;
+        tbody.appendChild(tr);
+      });
+    });
+}
+
+function desmarcar(id) {
+  if (!confirm('⚠️ CONFIRMA que este ticket NO fue timbrado')) return;
+
+  db.collection('tickets').doc(id).update({
+    facturada_global: false,
+    facturada_at: null,
+    serie_fiscal: null,
+    folio_fiscal: null,
+    correccion_manual: true,
+    correccion_at: new Date()
+  }).then(() => {
+    alert('✅ Ticket corregido');
+    cargar();
+  });
+}
+function toggleFacturada(id, checkbox) {
+  if (!confirm('⚠️ CONFIRMA que este ticket NO fue timbrado')) {
+    checkbox.checked = true; // se regresa
+    return;
+  }
+
+  db.collection('tickets').doc(id).update({
+    facturada_global: false,
+    facturada_at: null,
+    serie_fiscal: null,
+    folio_fiscal: null,
+    correccion_manual: true,
+    correccion_at: new Date()
+  }).then(() => {
+    alert('✅ Ticket corregido');
+    cargar();
+  });
+}
+
+</script>
+
 </body>
 </html>
