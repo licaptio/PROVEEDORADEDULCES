@@ -422,30 +422,26 @@ for (const k in impuestosGlobales) {
   ].join("|"));
 }
 
-/* ===============================
-   MARCAR VENTAS COMO FACTURADAS
-   =============================== */
+ // ===============================
+  // DESCARGAR TXT (PRIMERO)
+  // ===============================
+  descargar(
+    lineas.join("\n"),
+    `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`
+  );
 
-  await batch.commit(); // 🔥 CLAVE
+  // ===============================
+  // MARCAR VENTAS COMO FACTURADAS (DESPUÉS)
+  // ===============================
+  await marcarVentasComoFacturadas(
+    ventasParaFactura,
+    CONFIG.serie,
+    folio
+  );
+
+  alert("✅ TXT GLOBAL generado y ventas marcadas como facturadas");
 }
-// ===============================
-// DESCARGAR TXT
-// ===============================
-descargar(
-  lineas.join("\n"),
-  `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`
-);
 
-// 👇 ejecutar marcado DESPUÉS de generar el TXT
-await marcarVentasComoFacturadas(
-  ventasParaFactura,
-  CONFIG.serie,
-  folio
-);
-
-alert("✅ TXT GLOBAL generado y ventas marcadas como facturadas");
-
-}
 /* ======================================================
    👉 AQUÍ PEGA obtenerFolioSeguro()
    ====================================================== */
@@ -484,10 +480,7 @@ async function marcarVentasComoFacturadas(ventas, serie, folio) {
   await batch.commit();
 }
 
+
 </script>
 </body>
 </html>
-
-
-
-
