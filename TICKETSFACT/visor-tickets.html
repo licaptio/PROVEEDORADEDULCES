@@ -64,13 +64,14 @@ function cargar() {
 
   const [y, m, d] = fecha.split('-').map(Number);
 
-  const inicio = firebase.firestore.Timestamp.fromDate(
-    new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
-  );
+const inicio = firebase.firestore.Timestamp.fromDate(
+  new Date(y, m - 1, d, 0, 0, 0)
+);
 
-  const fin = firebase.firestore.Timestamp.fromDate(
-    new Date(Date.UTC(y, m - 1, d, 23, 59, 59))
-  );
+const fin = firebase.firestore.Timestamp.fromDate(
+  new Date(y, m - 1, d, 23, 59, 59)
+);
+
 
   const tbody = document.getElementById('tabla');
   tbody.innerHTML = '';
@@ -132,4 +133,5 @@ function toggleFacturada(id, checkbox) {
 
 </body>
 </html>
+
 
