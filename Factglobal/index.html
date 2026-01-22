@@ -420,11 +420,15 @@ for (const k in impuestosGlobales) {
   ].join("|"));
 }
 
-  /* ===============================
-     DESCARGA
-     =============================== */
-  descargar(lineas.join("\n"), `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`);
-  async function marcarVentasComoFacturadas(ventas, serie, folio) {
+/* ===============================
+   DESCARGA
+   =============================== */
+descargar(lineas.join("\n"), `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`);
+
+/* ===============================
+   MARCAR VENTAS COMO FACTURADAS
+   =============================== */
+async function marcarVentasComoFacturadas(ventas, serie, folio) {
   const batch = db.batch();
   const ahora = firebase.firestore.FieldValue.serverTimestamp();
 
@@ -437,7 +441,12 @@ for (const k in impuestosGlobales) {
       folio_fiscal: `${serie}-${folio}`
     });
   });
-   await marcarVentasComoFacturadas(
+
+  await batch.commit(); // 🔥 CLAVE
+}
+
+// 👇 ejecutar marcado DESPUÉS de generar el TXT
+await marcarVentasComoFacturadas(
   ventasParaFactura,
   CONFIG.serie,
   folio
@@ -446,15 +455,6 @@ for (const k in impuestosGlobales) {
 alert("✅ TXT GLOBAL generado y ventas marcadas como facturadas");
 
 
-/* ======================================================
-   DESCARGA
-   ====================================================== */
-function descargar(txt, nombre) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([txt], {type:"text/plain"}));
-  a.download = nombre;
-  a.click();
-}
 /* ======================================================
    👉 AQUÍ PEGA obtenerFolioSeguro()
    ====================================================== */
@@ -479,9 +479,3 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
-
-
-
-
-
-
