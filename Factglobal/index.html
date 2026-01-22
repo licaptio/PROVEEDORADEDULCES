@@ -246,6 +246,17 @@ if (base16 > 0 && baseIEPS > 0) firma = "IVA16+IEPS8";
 else if (base16 > 0) firma = "IVA16";
 else if (baseIEPS > 0) firma = "IEPS8";
 
+// ⬇️ AQUÍ VA EL CÓDIGO QUE MENCIONAS ⬇️
+  if (!grupos[firma]) {
+    grupos[firma] = {
+      baseTotal: 0,
+      impMap: {},
+      refFolio: (v.folio || "").replace(/^[^-]+-/, "")
+    };
+  }
+  // ⬆️ FIN DEL CÓDIGO AGREGADO ⬆️
+
+  
 if (!grupos[firma]) grupos[firma] = { baseTotal: 0, impMap: {} };
 grupos[firma].baseTotal += baseTotalVenta;
 
@@ -314,7 +325,7 @@ if (baseIEPS > 0 && ieps > 0) {
     const g = grupos[firma];
     lineas.push([
       "03",n,"1.000","ACT","","01010101",
-      folio + n,"Venta",
+      g.refFolio || (folio + n),"Venta",
       r2(g.baseTotal).toFixed(6),
       "0.00",
       r2(g.baseTotal).toFixed(6),
@@ -391,3 +402,4 @@ async function obtenerFolioSeguro(serie) {
 </script>
 </body>
 </html>
+
