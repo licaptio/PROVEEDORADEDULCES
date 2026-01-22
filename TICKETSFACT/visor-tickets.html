@@ -56,16 +56,18 @@ firebase.initializeApp(firebaseConfig); // 🔥 ESTA ERA LA CLAVE
 const db = firebase.firestore();
 
 function cargar() {
-  const fecha = document.getElementById('fecha').value;
-  if (!fecha) return alert('Selecciona fecha');
+const [y, m, d] = fecha.split('-').map(Number);
 
+// inicio del día EN UTC
 const inicio = firebase.firestore.Timestamp.fromDate(
-  new Date(fecha + 'T00:00:00')
+  new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
 );
 
+// fin del día EN UTC
 const fin = firebase.firestore.Timestamp.fromDate(
-  new Date(fecha + 'T23:59:59')
+  new Date(Date.UTC(y, m - 1, d, 23, 59, 59))
 );
+
 
   const tbody = document.getElementById('tabla');
   tbody.innerHTML = '';
@@ -118,21 +120,34 @@ function toggleFacturada(id, checkbox) {
     return;
   }
 
-  db.collection('tickets').doc(id).update({
-    facturada_global: false,
-    facturada_at: null,
-    serie_fiscal: null,
-    folio_fiscal: null,
-    correccion_manual: true,
-    correccion_at: new Date()
-  }).then(() => {
-    alert('✅ Ticket corregido');
-    cargar();
+db.collection('tickets')
+  .where('facturada_global', '==', true)
+  .where('fecha', '>=', inicio)
+  .where('fecha', '<=', fin)
+  .get()
+  .then(snapshot => {
+    console.log('docs:', snapshot.size);
+
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      const tr = document.createElement('tr');
+
+      tr.innerHTML = `
+        <td>${d.folio}</td>
+        <td>$${d.resumen_financiero.total}</td>
+        <td>✅</td>
+        <td>
+          <input type="checkbox" checked
+            onchange="toggleFacturada('${doc.id}', this)">
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
   });
-}
 
 </script>
 
 </body>
 </html>
+
 
