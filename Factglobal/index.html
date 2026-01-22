@@ -166,35 +166,189 @@ function pintarVentas(ventas) {
    ====================================================== */
 function generarTXT() {
 
-  if (!ventaSeleccionadaId)
-    return alert("Selecciona una venta");
-
   if (!document.getElementById("confirmo").checked)
     return alert("Confirma cierre fiscal");
 
-  const venta = ventasCache.find(v => v.id === ventaSeleccionadaId);
-  if (!venta) return alert("Venta no encontrada");
+  if (!ventasCache.length)
+    return alert("No hay ventas cargadas");
 
-  const subtotal = r2(venta.resumen_financiero.subtotal);
-  const total = r2(venta.resumen_financiero.total);
+  /* ===============================
+     UTILIDADES
+     =============================== */
+  const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
+  /* ===============================
+     ACUMULADORES
+     =============================== */
+  const grupos = {};            // registros 03
+  const impuestosGlobales = {}; // registros 04
+
+  let subtotalGlobal = 0;
+  let totalGlobal = 0;
+  let impuestosGlobal = 0;
+
+  /* ===============================
+     RECORRER VENTAS
+     =============================== */
+  ventasCache.forEach(v => {
+
+    const rf = v.resumen_financiero || {};
+
+    const base16   = r2(rf.base_iva_16   || 0);
+    const iva16    = r2(rf.iva_16        || 0);
+    const base0    = r2(rf.base_iva_0    || 0);
+    const baseIEPS = r2(rf.base_ieps_8   || 0);
+    const ieps     = r2(rf.ieps_8        || 0);
+
+    const baseTotalVenta = base16 + base0 + baseIEPS;
+
+    if (baseTotalVenta <= 0) return;
+
+    subtotalGlobal += baseTotalVenta;
+    impuestosGlobal += iva16 + ieps;
+
+    /* ===============================
+       FIRMA FISCAL
+       =============================== */
+    let firma = "IVA0";
+    if (base16 > 0 && baseIEPS > 0) firma = "IVA16+IEPS8";
+    else if (base16 > 0) firma = "IVA16";
+    else if (baseIEPS > 0) firma = "IEPS8";
+
+    if (!grupos[firma]) {
+      grupos[firma] = {
+        baseTotal: 0,
+        impuestos: []
+      };
+    }
+
+    grupos[firma].baseTotal += baseTotalVenta;
+
+    /* ===============================
+       IMPUESTOS POR CONCEPTO (03-IMP)
+       =============================== */
+    if (base16 > 0) {
+      grupos[firma].impuestos.push({
+        impuesto: "002",
+        tasa: 0.16,
+        base: base16,
+        importe: iva16
+      });
+      acumularImpuestoGlobal("002", 0.16, base16, iva16);
+    }
+
+    if (base0 > 0) {
+      grupos[firma].impuestos.push({
+        impuesto: "002",
+        tasa: 0.00,
+        base: base0,
+        importe: 0
+      });
+      acumularImpuestoGlobal("002", 0.00, base0, 0);
+    }
+
+    if (baseIEPS > 0) {
+      grupos[firma].impuestos.push({
+        impuesto: "003",
+        tasa: 0.08,
+        base: baseIEPS,
+        importe: ieps
+      });
+      acumularImpuestoGlobal("003", 0.08, baseIEPS, ieps);
+    }
+
+  });
+
+  totalGlobal = r2(subtotalGlobal + impuestosGlobal);
+
+  /* ===============================
+     FUNCIÓN REGISTRO 04
+     =============================== */
+  function acumularImpuestoGlobal(impuesto, tasa, base, importe) {
+    const key = impuesto + "_" + tasa;
+    if (!impuestosGlobales[key]) {
+      impuestosGlobales[key] = {
+        impuesto,
+        tasa,
+        base: 0,
+        importe: 0
+      };
+    }
+    impuestosGlobales[key].base += base;
+    impuestosGlobales[key].importe += importe;
+  }
+
+  /* ===============================
+     FOLIO
+     =============================== */
   const folio = String(Date.now()).slice(-6);
 
-  const txt = [
-    [
-      "01","FA","4.0",CONFIG.serie,folio,"01","00001000000716399644","CONTADO",
-      subtotal.toFixed(2),"0.00","MXN","1",
-      total.toFixed(2),"Ingreso","PUE","67700","",
-      "EMISOR",FISCAL_EMISOR.rfc,FISCAL_EMISOR.razon,FISCAL_EMISOR.regimen,
-      "RECEPTOR","XAXX010101000","PUBLICO EN GENERAL","","","S01","","",
-      (total-subtotal).toFixed(2),
-      "INFO_ADIC","","","","","N"
-    ].join("|")
-  ].join("\n");
+  const lineas = [];
 
-  descargar(txt, `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`);
-  alert("✅ TXT generado");
+  /* ===============================
+     REGISTRO 01
+     =============================== */
+  lineas.push([
+    "01","FA","4.0",CONFIG.serie,folio,"01",
+    FISCAL_EMISOR.certificado,"CONTADO",
+    r2(subtotalGlobal).toFixed(2),"0.00","MXN","1",
+    r2(totalGlobal).toFixed(2),"Ingreso","PUE","67700","",
+    "EMISOR",FISCAL_EMISOR.rfc,FISCAL_EMISOR.razon,FISCAL_EMISOR.regimen,
+    "RECEPTOR","XAXX010101000","PUBLICO EN GENERAL","","","S01","","",
+    r2(impuestosGlobal).toFixed(2),
+    "INFO_ADIC","","","","","N"
+  ].join("|"));
+
+  /* ===============================
+     REGISTROS 03 y 03-IMP
+     =============================== */
+  let n = 1;
+  for (const firma in grupos) {
+    const g = grupos[firma];
+    lineas.push([
+      "03",n,"1.000","ACT","","01010101",
+      folio + n,"Venta",
+      r2(g.baseTotal).toFixed(6),
+      "0.00",
+      r2(g.baseTotal).toFixed(6),
+      "","02"
+    ].join("|"));
+
+    g.impuestos.forEach(imp => {
+      lineas.push([
+        "03-IMP","TRASLADO",
+        r2(imp.base).toFixed(6),
+        imp.impuesto,
+        "Tasa",
+        imp.tasa.toFixed(6),
+        r2(imp.importe).toFixed(6)
+      ].join("|"));
+    });
+    n++;
+  }
+
+  /* ===============================
+     REGISTROS 04
+     =============================== */
+  for (const k in impuestosGlobales) {
+    const ig = impuestosGlobales[k];
+    lineas.push([
+      "04","TRASLADO",
+      ig.impuesto,
+      "Tasa",
+      ig.tasa.toFixed(6),
+      r2(ig.importe).toFixed(2),
+      r2(ig.base).toFixed(2)
+    ].join("|"));
+  }
+
+  /* ===============================
+     DESCARGA
+     =============================== */
+  descargar(lineas.join("\n"), `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`);
+  alert("✅ TXT GLOBAL SIFEI generado correctamente");
 }
+
 
 /* ======================================================
    DESCARGA
@@ -208,5 +362,6 @@ function descargar(txt, nombre) {
 </script>
 </body>
 </html>
+
 
 
