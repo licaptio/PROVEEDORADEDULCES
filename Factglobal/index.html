@@ -92,13 +92,7 @@ const FISCAL_EMISOR = {
 
 let ventasCache = [];
 let ventaSeleccionadaId = null;
-
-/* ======================================================
-   UTILIDADES
-   ====================================================== */
-const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
-const r6 = n => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6; // <-- AQUÍ
-  
+ 
 /* ======================================================
    FECHA
    ====================================================== */
@@ -472,7 +466,3 @@ function descargar(contenido, nombreArchivo) {
 </script>
 </body>
 </html>
-
-
-
-
