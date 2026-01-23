@@ -362,7 +362,7 @@ row.innerHTML = `
 
     <button class="btn-undo"
       onclick="solicitarPwAccion('${doc.id}', '${data.facturada_global ? "desfacturar" : "facturar"}')">
-      ${data.facturada_global ? "Quitar Factura" : "Marcar Facturada"}
+      ${data.facturada_global ? "FACTURADO" : "NO FACT"}
     </button>
   </td>
 `;
@@ -377,7 +377,7 @@ if (data.facturada_global) {
 if (data.cortado) {
   row.style.backgroundColor = "#d1ffd6"; // cortada
 } else {
-  row.style.backgroundColor = "#ffe6e6"; // no cortada
+  row.style.borderLeft = "6px solid #e53935"; // no cortada
 }
 
 if (data.cortado) {
@@ -422,6 +422,8 @@ const textoDetalle =
   accion === "descortar" ? "Ingrese la contraseña para marcar la venta como NO cortada." :
   accion === "facturar" ? "Ingrese la contraseña para marcar la venta como FACTURADA." :
   "Ingrese la contraseña para quitar la facturación del ticket.";
+  // 🔐 ESTO ES LO QUE FALTABA
+  mostrarModal(textoAccion, textoDetalle);
 }
 
 // Mostrar modal dinámico
@@ -558,4 +560,5 @@ async function descortarVenta(id) {
   </script>
 </body>
 </html>
+
 
