@@ -352,26 +352,34 @@ row.innerHTML = `
   <td>$${total.toFixed(2)}</td>
   <td>${fechaStr}</td>
   <td>${horaStr}</td>
-<td>
-  <button class="btn-delete" onclick="solicitarPwYEliminar('${doc.id}')">Eliminar</button>
+  <td>
+    <button class="btn-delete" onclick="solicitarPwYEliminar('${doc.id}')">Eliminar</button>
 
-  <button class="btn-undo"
-    onclick="solicitarPwAccion('${doc.id}', '${data.cortado ? "descortar" : "cortar"}')">
-    ${data.cortado ? "Descortar" : "Cortar"}
-  </button>
+    <button class="btn-undo"
+      onclick="solicitarPwAccion('${doc.id}', '${data.cortado ? "descortar" : "cortar"}')">
+      ${data.cortado ? "Descortar" : "Cortar"}
+    </button>
 
-  <button class="btn-undo"
-    onclick="solicitarPwAccion('${doc.id}', '${data.facturada_global ? "desfacturar" : "facturar"}')">
-    ${data.facturada_global ? "Quitar Factura" : "Marcar Facturada"}
-  </button>
-</td>
-if (data.facturada_global) {
-  row.style.borderLeft = "6px solid #2ecc71"; // verde
-} else {
-  row.style.borderLeft = "6px solid #f1c40f"; // amarillo
-}
-  
+    <button class="btn-undo"
+      onclick="solicitarPwAccion('${doc.id}', '${data.facturada_global ? "desfacturar" : "facturar"}')">
+      ${data.facturada_global ? "Quitar Factura" : "Marcar Facturada"}
+    </button>
+  </td>
 `;
+// 🎨 BORDE POR FACTURACIÓN
+if (data.facturada_global) {
+  row.style.borderLeft = "6px solid #2ecc71"; // verde = facturada
+} else {
+  row.style.borderLeft = "6px solid #f1c40f"; // amarillo = no facturada
+}
+
+// 🎨 FONDO POR CORTE
+if (data.cortado) {
+  row.style.backgroundColor = "#d1ffd6"; // cortada
+} else {
+  row.style.backgroundColor = "#ffe6e6"; // no cortada
+}
+
 if (data.cortado) {
   row.style.backgroundColor = "#d1ffd6"; // verde claro para cortadas
 } else {
@@ -550,3 +558,4 @@ async function descortarVenta(id) {
   </script>
 </body>
 </html>
+
