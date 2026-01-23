@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PROVSOFT · Factura Global Diaria · RUTA 2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+th { background: #f2f2f2; }
+button { padding: 10px 16px; font-size: 14px; cursor: pointer; }
+</style>
+</head>
+
+<body>
+
+<h2>🧾 PROVSOFT · Factura Global Diaria</h2>
+
+<label>📅 Fecha:</label><br>
+<input type="date" id="fecha"><br><br>
+
+<button onclick="cargarVentas()">Cargar ventas</button>
+
+<p>
+  Tickets: <b id="cnt">0</b> |
+  Total: <b>$<span id="total">0.00</span></b>
+</p>
+
+<table>
+<thead>
+<tr>
+  <th>Hora</th>
+  <th>Cliente</th>
+  <th>Total</th>
+  <th>✔</th>
+</tr>
+</thead>
+<tbody id="ventas"></tbody>
+</table>
+
+<br>
+
+<input type="checkbox" id="confirmo">
+<label>Confirmo cierre fiscal</label>
+
+<br><br>
+
+<button onclick="generarTXT()">GENERAR TXT GLOBAL</button>
+
+<script>
+/* ======================================================
+   CONFIGURACIÓN FIREBASE (AJUSTA AQUÍ)
+   ====================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+// 🔥 ESTA LÍNEA ES OBLIGATORIA
+firebase.initializeApp(firebaseConfig);
+
+// 🔥 AHORA SÍ EXISTE EL APP [DEFAULT]
+const db = firebase.firestore();
+
+/* ======================================================
+   CONFIG PROVSOFT
+   ====================================================== */
+const CONFIG = {
+  rutaId: "Almacen_Ruta_2",  // 👈 RUTA 2
+  serie: "RM2"              // 👈 SERIE FISCAL NUEVA
+};
+
+const FISCAL_EMISOR = {
+  rfc: "PDD031204KL5",
+  razon: "PROVEEDORA DE DULCES Y DESECHABLES",
+  regimen: "601",
+  cpExpedicion: "67700",
+  certificado: "00001000000716399644",
+  direccion: "MADERO 690 CENTRO LINARES NUEVO LEON MEXICO"
+};
+
+
+let ventasCache = [];
+let ventaSeleccionadaId = null;
+ 
+/* ======================================================
+   FECHA
+   ====================================================== */
+function rangoDia() {
+  const f = document.getElementById("fecha").value;
+  if (!f) return null;
+  return {
+    inicio: new Date(f + "T00:00:00"),
+    fin: new Date(f + "T23:59:59")
+  };
+}
+
+/* ======================================================
+   CARGAR VENTAS
+   ====================================================== */
+async function cargarVentas() {
+
+  const rango = rangoDia();
+  if (!rango) return alert("Selecciona fecha");
+
+const Timestamp = firebase.firestore.Timestamp;
+const snap = await db.collection("ventas_rutav2")
+  .where("rutaId", "==", CONFIG.rutaId)
+  .where("fecha", ">=", Timestamp.fromDate(rango.inicio))
+  .where("fecha", "<=", Timestamp.fromDate(rango.fin))
+  .get();
+
+ventasCache = [];
+snap.forEach(d => {
+  const v = { id: d.id, ...d.data() };
+  if (v.facturada_global !== true) {
+    ventasCache.push(v);
+  }
+});
+
+  pintarVentas(ventasCache);
+
+  document.getElementById("cnt").innerText = ventasCache.length;
+  document.getElementById("total").innerText =
+    ventasCache.reduce((s,v)=>s+Number(v.resumen_financiero?.total||0),0).toFixed(2);
+}
+
+/* ======================================================
+   PINTAR TABLA
+   ====================================================== */
+function pintarVentas(ventas) {
+
+  const tbody = document.getElementById("ventas");
+  tbody.innerHTML = "";
+
+  ventas.forEach(v => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${v.fecha.toDate().toLocaleTimeString()}</td>
+      <td>${v.cliente || "-"}</td>
+      <td>$${Number(v.resumen_financiero.total).toFixed(2)}</td>
+      <td><input type="radio" name="venta" value="${v.id}"></td>
+    `;
+    tr.querySelector("input").onchange = e => {
+      ventaSeleccionadaId = e.target.value;
+      console.log("✔ Venta:", ventaSeleccionadaId);
+    };
+    tbody.appendChild(tr);
+  });
+}
+function normRate(raw){
+  raw = Number(raw || 0);
+  // acepta 0.08, 8, 800 (tu caso)
+  if (raw >= 100) return raw / 10000; // 800 -> 0.08
+  if (raw >= 1)   return raw / 100;   // 8   -> 0.08
+  return raw;                         // 0.08
+}
+
+function extraerBasesYImpuestos(venta){
+  const det = Array.isArray(venta.detalle) ? venta.detalle : [];
+
+  let base16 = 0, iva16 = 0, base0 = 0, baseIEPS = 0, ieps = 0;
+
+  det.forEach(it => {
+    const gross = Number(it.importe || 0);   // 👈 el precio FINAL
+    if (gross <= 0) return;
+
+    const ivaRate  = Number(it.ivaTasa || 0);                 // 0.16 o 0
+    const iepsRate = normRate(it.iepsTasa ?? it.ieps ?? 0);   // 0.08 si aplica
+
+    // IEPS + IVA juntos (CASO CRÍTICO)
+if (iepsRate > 0 && ivaRate > 0) {
+  const base = gross / (1 + iepsRate + ivaRate * (1 + iepsRate));
+  const iepsCalc = base * iepsRate;
+  const ivaCalc  = (base + iepsCalc) * ivaRate;
+
+  baseIEPS += base;
+  ieps     += iepsCalc;
+  base16   += (base + iepsCalc);
+  iva16    += ivaCalc;
+  return;
+}
+
+    // IVA 16 (solo)
+    if (ivaRate > 0 && iepsRate <= 0) {
+      const base = gross / (1 + ivaRate);
+      base16 += base;
+      iva16  += (gross - base);
+      return;
+    }
+
+    // IEPS (solo)
+    if (iepsRate > 0 && ivaRate <= 0) {
+      const base = gross / (1 + iepsRate);
+      baseIEPS += base;
+      ieps     += (gross - base);
+      return;
+    }
+
+    // Exento
+    base0 += gross;
+  });
+
+  return { base16, iva16, base0, baseIEPS, ieps };
+}
+
+  function addImp(impMap, impuesto, tasa, base) {
+  const key = `${impuesto}_${Number(tasa).toFixed(6)}`;
+  if (!impMap[key]) impMap[key] = { impuesto, tasa: Number(tasa), base: 0, importe: 0 };
+  impMap[key].base += Number(base) || 0;
+}
+
+/* ======================================================
+   UTILIDADES (YA LAS TIENES ARRIBA, NO LAS DUPLIQUES)
+   ====================================================== */
+// ✅ Deja estas SOLO una vez (arriba del todo, como ya las tienes)
+const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const r6 = n => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6;
+
+/* ======================================================
+   GENERAR TXT GLOBAL
+   ====================================================== */
+async function generarTXT() {
+  if (!document.getElementById("confirmo").checked)
+    return alert("Confirma cierre fiscal");
+
+  if (!ventasCache.length)
+    return alert("No hay ventas cargadas");
+
+  const grupos = [];            // 03 por ticket
+  const impuestosGlobales = {}; // 04 global
+
+  let subtotalGlobal = 0; // 6 dec
+  let impuestosGlobal = 0;
+
+  function acumularImpuestoGlobal(impuesto, tasa, base) {
+    const key = `${impuesto}_${Number(tasa).toFixed(6)}`;
+    if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa: Number(tasa), base: 0 };
+    impuestosGlobales[key].base += Number(base) || 0;
+  }
+
+  const ventasParaFactura = (ventaSeleccionadaId)
+    ? ventasCache.filter(v => v.id === ventaSeleccionadaId)
+    : ventasCache;
+
+  if (ventasParaFactura.length === 0) return alert("No hay ventas para procesar");
+
+  // ===============================
+  // RECORRER VENTAS (03 por ticket)
+  // ===============================
+  ventasParaFactura.forEach(v => {
+    const { base16, iva16, base0, baseIEPS, ieps } = extraerBasesYImpuestos(v);
+
+    const baseTotalVenta = r6(base16 + base0 + baseIEPS);
+    if (baseTotalVenta <= 0) return;
+
+    // acumula subtotal con precisión
+    subtotalGlobal = r6(subtotalGlobal + baseTotalVenta);
+
+    const grupo = {
+      baseTotal: baseTotalVenta,
+      impMap: {},
+      refFolio: (v.folio || "").replace(/^[^-]+-/, "")
+    };
+
+    if (base16 > 0 && iva16 > 0) {
+      addImp(grupo.impMap, "002", 0.16, base16);
+      acumularImpuestoGlobal("002", 0.16, base16);
+    }
+
+    if (base0 > 0) {
+      addImp(grupo.impMap, "002", 0.00, base0);
+      acumularImpuestoGlobal("002", 0.00, base0);
+    }
+
+    if (baseIEPS > 0 && ieps > 0) {
+      addImp(grupo.impMap, "003", 0.08, baseIEPS);
+      acumularImpuestoGlobal("003", 0.08, baseIEPS);
+    }
+
+    grupos.push(grupo);
+  });
+
+  // ===============================
+  // IMPUESTOS GLOBALES (01 y 04)
+  // ===============================
+  impuestosGlobal = 0;
+  for (const k in impuestosGlobales) {
+    const ig = impuestosGlobales[k];
+    if (ig.tasa > 0) impuestosGlobal = r2(impuestosGlobal + (ig.base * ig.tasa));
+  }
+
+  // 01 requiere 2 dec, SOLO al final
+  const subtotal01  = r2(subtotalGlobal);
+  const impuestos01 = r2(impuestosGlobal);
+  const total01     = r2(subtotal01 + impuestos01);
+
+  // ===============================
+  // FOLIO + LINEAS
+  // ===============================
+  const folio = await obtenerFolioSeguro(CONFIG.serie);
+  const lineas = [];
+
+  // 01 principal
+  lineas.push([
+    "01","FA","4.0",
+    CONFIG.serie, folio, "01",
+    FISCAL_EMISOR.certificado,
+    "CONTADO",
+    subtotal01.toFixed(2),
+    "0.00",
+    "MXN","1",
+    total01.toFixed(2),
+    "Ingreso",
+    "PUE",
+    "67700","",
+    "EMISOR",
+    FISCAL_EMISOR.rfc,
+    FISCAL_EMISOR.razon,
+    FISCAL_EMISOR.regimen,
+    "RECEPTOR",
+    "XAXX010101000",
+    "PUBLICO EN GENERAL",
+    "","",
+    "S01",
+    "admonproveedora@infinitummail.com",
+    "",
+    impuestos01.toFixed(2),
+    "INFO_ADIC",
+    "",
+    FISCAL_EMISOR.direccion,
+    FISCAL_EMISOR.direccion,
+    "CONOCIDO S/N CENTRO LINARES 67700 NUEVO LEON MEXICO",
+    "",
+    "N"
+  ].join("|"));
+
+  // 01 CFDI40
+  lineas.push([
+    "01","CFDI40","01","INFO_GLOBAL",
+    "01","01", new Date().getFullYear(),
+    "EMISOR","",
+    "RECEPTOR","67700","616"
+  ].join("|"));
+
+  // ===============================
+  // 03 y 03-IMP
+  // ===============================
+  let n = 1;
+  grupos.forEach(g => {
+
+    lineas.push([
+      "03", n, "1.000", "ACT", "", "01010101",
+      g.refFolio || (folio + "-" + n),
+      "Venta",
+      r6(g.baseTotal).toFixed(6),
+      "0.00",
+      r6(g.baseTotal).toFixed(6),
+      "", "02"
+    ].join("|"));
+
+    Object.values(g.impMap).forEach(imp => {
+      const importeCalculado = r6(imp.base * imp.tasa);
+
+      lineas.push([
+        "03-IMP","TRASLADO",
+        r6(imp.base).toFixed(6),
+        imp.impuesto,
+        "Tasa",
+        Number(imp.tasa).toFixed(6),
+        r6(importeCalculado).toFixed(6)
+      ].join("|"));
+    });
+
+    n++;
+  });
+
+  // ===============================
+  // 04
+  // ===============================
+  for (const k in impuestosGlobales) {
+    const ig = impuestosGlobales[k];
+    const imp2 = (ig.tasa === 0) ? 0 : r2(ig.base * ig.tasa);
+
+    lineas.push([
+      "04","TRASLADO",
+      ig.impuesto,
+      "Tasa",
+      Number(ig.tasa).toFixed(6),
+      imp2.toFixed(2),
+      r2(ig.base).toFixed(2)
+    ].join("|"));
+  }
+
+  // ===============================
+  // DESCARGAR + MARCAR
+  // ===============================
+  descargar(lineas.join("\n"), `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`);
+
+  await marcarVentasComoFacturadas(ventasParaFactura, CONFIG.serie, folio);
+
+  alert("✅ TXT GLOBAL generado y ventas marcadas como facturadas");
+}
+
+/* ======================================================
+   👉 AQUÍ PEGA obtenerFolioSeguro()
+   ====================================================== */
+async function obtenerFolioSeguro(serie) {
+  const ref = db.collection("series_fiscales").doc(serie);
+
+  return await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw "Serie fiscal no existe";
+
+    const actual = Number(snap.data().ultimo_folio || 0);
+    const siguiente = actual + 1;
+
+    tx.update(ref, {
+      ultimo_folio: siguiente,
+      updated_at: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    return siguiente;
+  });
+}
+async function marcarVentasComoFacturadas(ventas, serie, folio) {
+  const batch = db.batch();
+  const ahora = firebase.firestore.FieldValue.serverTimestamp();
+
+  ventas.forEach(v => {
+    const ref = db.collection("ventas_rutav2").doc(v.id);
+    batch.update(ref, {
+      facturada_global: true,
+      facturada_at: ahora,
+      serie_fiscal: serie,
+      folio_fiscal: `${serie}-${folio}`
+    });
+  });
+
+  await batch.commit();
+}
+
+function descargar(contenido, nombreArchivo) {
+  const blob = new Blob([contenido], { type: "text/plain;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
