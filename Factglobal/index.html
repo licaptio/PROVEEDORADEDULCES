@@ -227,7 +227,14 @@ if (iepsRate > 0 && ivaRate > 0) {
 }
 
 /* ======================================================
-   GENERAR TXT GLOBAL (PRUEBA UNA VENTA)
+   UTILIDADES (YA LAS TIENES ARRIBA, NO LAS DUPLIQUES)
+   ====================================================== */
+// ✅ Deja estas SOLO una vez (arriba del todo, como ya las tienes)
+const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const r6 = n => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6;
+
+/* ======================================================
+   GENERAR TXT GLOBAL
    ====================================================== */
 async function generarTXT() {
 
@@ -237,134 +244,126 @@ async function generarTXT() {
   if (!ventasCache.length)
     return alert("No hay ventas cargadas");
 
-  /* ===============================
-     UTILIDADES
-     =============================== */
-  const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  // ❌ QUITA esto (porque ya tienes r2 arriba):
+  // const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
-  /* ===============================
-     ACUMULADORES
-     =============================== */
-  const grupos = [];            // registros 03
-  const impuestosGlobales = {}; // registros 04
+  const grupos = [];
+  const impuestosGlobales = {};
 
+  // ✅ subtotalGlobal se mantiene en 6 decimales
   let subtotalGlobal = 0;
   let totalGlobal = 0;
   let impuestosGlobal = 0;
 
-/* ===============================
-     FUNCIÓN REGISTRO 04 (DENTRO DE generarTXT)
-     =============================== */
   function acumularImpuestoGlobal(impuesto, tasa, base) {
     const key = impuesto + "_" + tasa;
     if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa, base: 0 };
     impuestosGlobales[key].base += Number(base) || 0;
   }
- /* ===============================
-     FILTRAR VENTAS (TICKET SELECCIONADO O TODOS)
-     =============================== */
-const ventasParaFactura = (ventaSeleccionadaId)
-  ? ventasCache.filter(v => v.id === ventaSeleccionadaId)
-  : ventasCache;
 
-  if (ventasParaFactura.length === 0) {
-    return alert("No hay ventas para procesar");
-  }
+  const ventasParaFactura = (ventaSeleccionadaId)
+    ? ventasCache.filter(v => v.id === ventaSeleccionadaId)
+    : ventasCache;
 
-  /* ===============================
-     RECORRER VENTAS
-     =============================== */
+  if (ventasParaFactura.length === 0) return alert("No hay ventas para procesar");
+
+  // ===============================
+  // RECORRER VENTAS
+  // ===============================
   ventasParaFactura.forEach(v => {
- const { base16, iva16, base0, baseIEPS, ieps } = extraerBasesYImpuestos(v);
+    const { base16, iva16, base0, baseIEPS, ieps } = extraerBasesYImpuestos(v);
 
-const baseTotalVenta = r2(base16 + base0 + baseIEPS);
-if (baseTotalVenta <= 0) return;
+    const baseTotalVenta = r6(base16 + base0 + baseIEPS);
+    if (baseTotalVenta <= 0) return;
 
-subtotalGlobal += baseTotalVenta;
+    // ✅ AQUÍ VA LO QUE TE DIJE:
+    // en vez de: subtotalGlobal += baseTotalVenta;
+    // hazlo así para NO perder precisión (6 dec):
+    subtotalGlobal = r6(subtotalGlobal + baseTotalVenta);
 
-// firma fiscal
-let firma = "IVA0";
-if (base16 > 0 && baseIEPS > 0) firma = "IVA16+IEPS8";
-else if (base16 > 0) firma = "IVA16";
-else if (baseIEPS > 0) firma = "IEPS8";
+    const grupo = {
+      baseTotal: baseTotalVenta,
+      impMap: {},
+      refFolio: (v.folio || "").replace(/^[^-]+-/, "")
+    };
 
-const grupo = {
-  baseTotal: baseTotalVenta,
-  impMap: {},
-  refFolio: (v.folio || "").replace(/^[^-]+-/, "")
-};
+    if (base16 > 0 && iva16 > 0) {
+      addImp(grupo.impMap, "002", 0.16, base16);
+      acumularImpuestoGlobal("002", 0.16, base16);
+    }
 
-if (base16 > 0 && iva16 > 0) {
-  addImp(grupo.impMap, "002", 0.16, base16);
-  acumularImpuestoGlobal("002", 0.16, base16);
-}
+    if (base0 > 0) {
+      addImp(grupo.impMap, "002", 0.00, base0);
+      acumularImpuestoGlobal("002", 0.00, base0);
+    }
 
-if (base0 > 0) {
-  addImp(grupo.impMap, "002", 0.00, base0);
-  acumularImpuestoGlobal("002", 0.00, base0);
-}
+    if (baseIEPS > 0 && ieps > 0) {
+      addImp(grupo.impMap, "003", 0.08, baseIEPS);
+      acumularImpuestoGlobal("003", 0.08, baseIEPS);
+    }
 
-if (baseIEPS > 0 && ieps > 0) {
-  addImp(grupo.impMap, "003", 0.08, baseIEPS);
-  acumularImpuestoGlobal("003", 0.08, baseIEPS);
-}
+    grupos.push(grupo);
+  });
 
-grupos.push(grupo);
-
-});
- /* ===============================
-     CALCULAR IMPUESTOS DESDE impuestosGlobales
-     =============================== */
+  // ===============================
+  // CALCULAR IMPUESTOS (2 dec está OK aquí)
+  // ===============================
   impuestosGlobal = 0;
   for (const k in impuestosGlobales) {
     const ig = impuestosGlobales[k];
     if (ig.tasa > 0) impuestosGlobal += r2(ig.base * ig.tasa);
   }
-  
-  totalGlobal = r2(subtotalGlobal + impuestosGlobal);
 
-  /* ===============================
-     FOLIO
-     =============================== */
+  // ✅ AQUÍ VA LA SEGUNDA PARTE:
+  // convertir subtotalGlobal (6 dec) a subtotal01 (2 dec) SOLO AL FINAL
+  const subtotal01  = r2(subtotalGlobal);      // 01 requiere 2 dec
+  const impuestos01 = r2(impuestosGlobal);     // 01 requiere 2 dec
+  const total01     = r2(subtotal01 + impuestos01);
+
+  totalGlobal = total01; // (opcional, para que tu variable totalGlobal quede igual)
+
   const folio = await obtenerFolioSeguro(CONFIG.serie);
-
   const lineas = [];
 
-  /* ===============================
-     REGISTRO 01
-     =============================== */
-lineas.push([
-  "01","FA","4.0",
-  CONFIG.serie, folio, "01",
-  FISCAL_EMISOR.certificado,
-  "CONTADO",
-  r2(subtotalGlobal).toFixed(2),
-  "0.00",
-  "MXN","1",
-  r2(totalGlobal).toFixed(2),
-  "Ingreso",
-  "PUE",
-  "67700","",
-  "EMISOR",
-  FISCAL_EMISOR.rfc,
-  FISCAL_EMISOR.razon,
-  FISCAL_EMISOR.regimen,
-  "RECEPTOR",
-  "XAXX010101000",
-  "PUBLICO EN GENERAL",
-  "","",
-  "S01",
-  "admonproveedora@infinitummail.com",
-  "",
-  r2(impuestosGlobal).toFixed(2),
-  "INFO_ADIC",
-  "",
-  FISCAL_EMISOR.direccion,
-  FISCAL_EMISOR.direccion,
-  "CONOCIDO S/N CENTRO LINARES 67700 NUEVO LEON MEXICO",
-  "",
-  "N"
-].join("|"));
+  // ===============================
+  // REGISTRO 01 (USA subtotal01)
+  // ===============================
+  lineas.push([
+    "01","FA","4.0",
+    CONFIG.serie, folio, "01",
+    FISCAL_EMISOR.certificado,
+    "CONTADO",
+    subtotal01.toFixed(2),     // ✅ aquí
+    "0.00",
+    "MXN","1",
+    total01.toFixed(2),        // ✅ aquí
+    "Ingreso",
+    "PUE",
+    "67700","",
+    "EMISOR",
+    FISCAL_EMISOR.rfc,
+    FISCAL_EMISOR.razon,
+    FISCAL_EMISOR.regimen,
+    "RECEPTOR",
+    "XAXX010101000",
+    "PUBLICO EN GENERAL",
+    "","",
+    "S01",
+    "admonproveedora@infinitummail.com",
+    "",
+    impuestos01.toFixed(2),    // ✅ aquí
+    "INFO_ADIC",
+    "",
+    FISCAL_EMISOR.direccion,
+    FISCAL_EMISOR.direccion,
+    "CONOCIDO S/N CENTRO LINARES 67700 NUEVO LEON MEXICO",
+    "",
+    "N"
+  ].join("|"));
+
+  // ... lo demás igual
+}
+
 lineas.push([
   "01","CFDI40","01","INFO_GLOBAL",
   "01","01", new Date().getFullYear(),
@@ -495,5 +494,6 @@ function descargar(contenido, nombreArchivo) {
 </script>
 </body>
 </html>
+
 
 
