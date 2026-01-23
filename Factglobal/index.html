@@ -245,7 +245,7 @@ async function generarTXT() {
   /* ===============================
      ACUMULADORES
      =============================== */
-  const grupos = {};            // registros 03
+  const grupos = [];            // registros 03
   const impuestosGlobales = {}; // registros 04
 
   let subtotalGlobal = 0;
@@ -288,28 +288,28 @@ if (base16 > 0 && baseIEPS > 0) firma = "IVA16+IEPS8";
 else if (base16 > 0) firma = "IVA16";
 else if (baseIEPS > 0) firma = "IEPS8";
 
-if (!grupos[firma]) {
-  grupos[firma] = {
-    baseTotal: 0,
-    impMap: {},
-    refFolio: (v.folio || "").replace(/^[^-]+-/, "")
-  };
-}
-grupos[firma].baseTotal += baseTotalVenta; // ✅ esta es la clave
+const grupo = {
+  baseTotal: baseTotalVenta,
+  impMap: {},
+  refFolio: (v.folio || "").replace(/^[^-]+-/, "")
+};
+
 if (base16 > 0 && iva16 > 0) {
-  addImp(grupos[firma].impMap, "002", 0.16, base16);
-  acumularImpuestoGlobal("002", 0.16, base16); // ← QUITAR iva16
+  addImp(grupo.impMap, "002", 0.16, base16);
+  acumularImpuestoGlobal("002", 0.16, base16);
 }
 
 if (base0 > 0) {
-  addImp(grupos[firma].impMap, "002", 0.00, base0);
-  acumularImpuestoGlobal("002", 0.00, base0); // ← QUITAR 0
+  addImp(grupo.impMap, "002", 0.00, base0);
+  acumularImpuestoGlobal("002", 0.00, base0);
 }
 
 if (baseIEPS > 0 && ieps > 0) {
-  addImp(grupos[firma].impMap, "003", 0.08, baseIEPS);
-  acumularImpuestoGlobal("003", 0.08, baseIEPS); // ← QUITAR ieps
+  addImp(grupo.impMap, "003", 0.08, baseIEPS);
+  acumularImpuestoGlobal("003", 0.08, baseIEPS);
 }
+
+grupos.push(grupo);
 
 });
  /* ===============================
@@ -376,9 +376,8 @@ lineas.push([
   /* ===============================
      REGISTROS 03 y 03-IMP
      =============================== */
-  let n = 1;
-  for (const firma in grupos) {
-    const g = grupos[firma];
+let n = 1;
+grupos.forEach(g => {
     lineas.push([
       "03",n,"1.000","ACT","","01010101",
       g.refFolio || (folio + n),"Venta",
@@ -403,7 +402,7 @@ Object.values(g.impMap).forEach(imp => {
 });
 
     n++;
-  }
+});
 
   /* ===============================
      REGISTROS 04
@@ -496,4 +495,5 @@ function descargar(contenido, nombreArchivo) {
 </script>
 </body>
 </html>
+
 
