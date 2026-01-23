@@ -237,27 +237,21 @@ const r6 = n => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6;
    GENERAR TXT GLOBAL
    ====================================================== */
 async function generarTXT() {
-
   if (!document.getElementById("confirmo").checked)
     return alert("Confirma cierre fiscal");
 
   if (!ventasCache.length)
     return alert("No hay ventas cargadas");
 
-  // ❌ QUITA esto (porque ya tienes r2 arriba):
-  // const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+  const grupos = [];            // 03 por ticket
+  const impuestosGlobales = {}; // 04 global
 
-  const grupos = [];
-  const impuestosGlobales = {};
-
-  // ✅ subtotalGlobal se mantiene en 6 decimales
-  let subtotalGlobal = 0;
-  let totalGlobal = 0;
+  let subtotalGlobal = 0; // 6 dec
   let impuestosGlobal = 0;
 
   function acumularImpuestoGlobal(impuesto, tasa, base) {
-    const key = impuesto + "_" + tasa;
-    if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa, base: 0 };
+    const key = `${impuesto}_${Number(tasa).toFixed(6)}`;
+    if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa: Number(tasa), base: 0 };
     impuestosGlobales[key].base += Number(base) || 0;
   }
 
@@ -268,7 +262,7 @@ async function generarTXT() {
   if (ventasParaFactura.length === 0) return alert("No hay ventas para procesar");
 
   // ===============================
-  // RECORRER VENTAS
+  // RECORRER VENTAS (03 por ticket)
   // ===============================
   ventasParaFactura.forEach(v => {
     const { base16, iva16, base0, baseIEPS, ieps } = extraerBasesYImpuestos(v);
@@ -276,9 +270,7 @@ async function generarTXT() {
     const baseTotalVenta = r6(base16 + base0 + baseIEPS);
     if (baseTotalVenta <= 0) return;
 
-    // ✅ AQUÍ VA LO QUE TE DIJE:
-    // en vez de: subtotalGlobal += baseTotalVenta;
-    // hazlo así para NO perder precisión (6 dec):
+    // acumula subtotal con precisión
     subtotalGlobal = r6(subtotalGlobal + baseTotalVenta);
 
     const grupo = {
@@ -306,37 +298,35 @@ async function generarTXT() {
   });
 
   // ===============================
-  // CALCULAR IMPUESTOS (2 dec está OK aquí)
+  // IMPUESTOS GLOBALES (01 y 04)
   // ===============================
   impuestosGlobal = 0;
   for (const k in impuestosGlobales) {
     const ig = impuestosGlobales[k];
-    if (ig.tasa > 0) impuestosGlobal += r2(ig.base * ig.tasa);
+    if (ig.tasa > 0) impuestosGlobal = r2(impuestosGlobal + (ig.base * ig.tasa));
   }
 
-  // ✅ AQUÍ VA LA SEGUNDA PARTE:
-  // convertir subtotalGlobal (6 dec) a subtotal01 (2 dec) SOLO AL FINAL
-  const subtotal01  = r2(subtotalGlobal);      // 01 requiere 2 dec
-  const impuestos01 = r2(impuestosGlobal);     // 01 requiere 2 dec
+  // 01 requiere 2 dec, SOLO al final
+  const subtotal01  = r2(subtotalGlobal);
+  const impuestos01 = r2(impuestosGlobal);
   const total01     = r2(subtotal01 + impuestos01);
 
-  totalGlobal = total01; // (opcional, para que tu variable totalGlobal quede igual)
-
+  // ===============================
+  // FOLIO + LINEAS
+  // ===============================
   const folio = await obtenerFolioSeguro(CONFIG.serie);
   const lineas = [];
 
-  // ===============================
-  // REGISTRO 01 (USA subtotal01)
-  // ===============================
+  // 01 principal
   lineas.push([
     "01","FA","4.0",
     CONFIG.serie, folio, "01",
     FISCAL_EMISOR.certificado,
     "CONTADO",
-    subtotal01.toFixed(2),     // ✅ aquí
+    subtotal01.toFixed(2),
     "0.00",
     "MXN","1",
-    total01.toFixed(2),        // ✅ aquí
+    total01.toFixed(2),
     "Ingreso",
     "PUE",
     "67700","",
@@ -351,7 +341,7 @@ async function generarTXT() {
     "S01",
     "admonproveedora@infinitummail.com",
     "",
-    impuestos01.toFixed(2),    // ✅ aquí
+    impuestos01.toFixed(2),
     "INFO_ADIC",
     "",
     FISCAL_EMISOR.direccion,
@@ -361,81 +351,69 @@ async function generarTXT() {
     "N"
   ].join("|"));
 
-  // ... lo demás igual
-}
+  // 01 CFDI40
+  lineas.push([
+    "01","CFDI40","01","INFO_GLOBAL",
+    "01","01", new Date().getFullYear(),
+    "EMISOR","",
+    "RECEPTOR","67700","616"
+  ].join("|"));
 
-lineas.push([
-  "01","CFDI40","01","INFO_GLOBAL",
-  "01","01", new Date().getFullYear(),
-  "EMISOR","",
-  "RECEPTOR","67700","616"
-].join("|"));
+  // ===============================
+  // 03 y 03-IMP
+  // ===============================
+  let n = 1;
+  grupos.forEach(g => {
 
-
-  /* ===============================
-     REGISTROS 03 y 03-IMP
-     =============================== */
-let n = 1;
-grupos.forEach(g => {
     lineas.push([
-      "03",n,"1.000","ACT","","01010101",
-      g.refFolio || (folio + n),"Venta",
-      r2(g.baseTotal).toFixed(6),
+      "03", n, "1.000", "ACT", "", "01010101",
+      g.refFolio || (folio + "-" + n),
+      "Venta",
+      r6(g.baseTotal).toFixed(6),
       "0.00",
-      r2(g.baseTotal).toFixed(6),
-      "","02"
+      r6(g.baseTotal).toFixed(6),
+      "", "02"
     ].join("|"));
 
-Object.values(g.impMap).forEach(imp => {
-  // Calcula el importe como base × tasa
-  const importeCalculado = imp.base * imp.tasa;
-  
-  lineas.push([
-    "03-IMP","TRASLADO",
-    r6(imp.base).toFixed(6),
-    imp.impuesto,
-    "Tasa",
-    imp.tasa.toFixed(6),
-    r6(importeCalculado).toFixed(6)  // ← Usa el importe calculado
-  ].join("|"));
-});
+    Object.values(g.impMap).forEach(imp => {
+      const importeCalculado = r6(imp.base * imp.tasa);
+
+      lineas.push([
+        "03-IMP","TRASLADO",
+        r6(imp.base).toFixed(6),
+        imp.impuesto,
+        "Tasa",
+        Number(imp.tasa).toFixed(6),
+        r6(importeCalculado).toFixed(6)
+      ].join("|"));
+    });
 
     n++;
-});
-
-  /* ===============================
-     REGISTROS 04
-     =============================== */
-for (const k in impuestosGlobales) {
-  const ig = impuestosGlobales[k];
-  const imp2 = (ig.tasa === 0) ? 0 : r2(ig.base * ig.tasa);
-
-  lineas.push([
-    "04","TRASLADO",
-    ig.impuesto,
-    "Tasa",
-    ig.tasa.toFixed(6),
-    imp2.toFixed(2),
-    r2(ig.base).toFixed(2)
-  ].join("|"));
-}
-
- // ===============================
-  // DESCARGAR TXT (PRIMERO)
-  // ===============================
-  descargar(
-    lineas.join("\n"),
-    `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`
-  );
+  });
 
   // ===============================
-  // MARCAR VENTAS COMO FACTURADAS (DESPUÉS)
+  // 04
   // ===============================
-  await marcarVentasComoFacturadas(
-    ventasParaFactura,
-    CONFIG.serie,
-    folio
-  );
+  for (const k in impuestosGlobales) {
+    const ig = impuestosGlobales[k];
+    const imp2 = (ig.tasa === 0) ? 0 : r2(ig.base * ig.tasa);
+
+    lineas.push([
+      "04","TRASLADO",
+      ig.impuesto,
+      "Tasa",
+      Number(ig.tasa).toFixed(6),
+      imp2.toFixed(2),
+      r2(ig.base).toFixed(2)
+    ].join("|"));
+  }
+
+  // ===============================
+  // DESCARGAR + MARCAR
+  // ===============================
+  descargar(lineas.join("\n"), `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`);
+
+  await marcarVentasComoFacturadas(ventasParaFactura, CONFIG.serie, folio);
 
   alert("✅ TXT GLOBAL generado y ventas marcadas como facturadas");
 }
@@ -494,6 +472,7 @@ function descargar(contenido, nombreArchivo) {
 </script>
 </body>
 </html>
+
 
 
 
