@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Visor de Ingresos – PDD</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --azul:#00416A; --resalte:#0c6cbd; --bg:#f4f7fa;
+      --card:#ffffffcc; --radius:10px; --shadow:0 4px 14px rgba(0,0,0,0.1);
+    }
+    body {
+      font-family:'Poppins',sans-serif;
+      background:linear-gradient(to right,var(--azul),#E4E5E6);
+      margin:0; padding:20px; color:#111;
+    }
+    header {
+      display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;
+    }
+    header h1 { color:#fff; font-size:22px; font-weight:600; }
+    .filtros {
+      background:var(--card);
+      padding:12px;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    input,button {
+      font-family:'Poppins',sans-serif;
+      padding:6px 10px;
+      border-radius:6px;
+      border:1px solid #ccc;
+      font-size:14px;
+    }
+    button {
+      background:var(--resalte);
+      color:white;
+      border:none;
+      cursor:pointer;
+    }
+    button:hover { background:#0a5a9e; }
+    table {
+      width:100%; border-collapse:collapse; margin-top:20px;
+      background:white; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;
+    }
+    th,td {
+      padding:8px 10px; text-align:left; border-bottom:1px solid #ddd; font-size:13px;
+    }
+    th {
+      background:var(--resalte);
+      color:white;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+    tr:hover { background:#f0f6ff; }
+    .total {
+      margin-top:14px;
+      font-weight:600;
+      color:#00416A;
+      background:rgba(255,255,255,.9);
+      display:inline-block;
+      padding:6px 12px;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📊 Ingresos PDD – Visor</h1>
+    <button onclick="exportarExcel()">Exportar a Excel</button>
+  </header>
+
+  <div class="filtros">
+    <div>
+      <label>Desde:</label>
+      <input type="date" id="desde">
+    </div>
+    <div>
+      <label>Hasta:</label>
+      <input type="date" id="hasta">
+    </div>
+    <div style="flex:1;">
+      <input type="text" id="busqueda" placeholder="Buscar por RFC, nombre o UUID..." style="width:100%;">
+    </div>
+    <button onclick="cargarDatos()">Buscar</button>
+    <button onclick="mostrarTodo()">Mostrar Todo</button>
+  </div>
+
+  <div id="total" class="total">Total: $0.00</div>
+
+  <table id="tabla">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>UUID</th>
+        <th>Emisor</th>
+        <th>Receptor</th>
+        <th>Folio</th>
+        <th>Total</th>
+        <th>Moneda</th>
+        <th>Forma Pago</th>
+        <th>Uso CFDI</th>
+      </tr>
+    </thead>
+    <tbody>
+</tbody>
+  </table>
+
+<script>
+  const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
+  const API_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
+
+  async function cargarDatos() {
+    const desde = document.getElementById("desde").value;
+    const hasta = document.getElementById("hasta").value;
+    const busqueda = document.getElementById("busqueda").value.trim().toUpperCase();
+
+    let filtro = "";
+    if (desde && hasta)
+      filtro += `fecha=gte.${desde}T00:00:00&fecha=lte.${hasta}T23:59:59&`;
+    if (busqueda) {
+      filtro += `or=(uuid_cfdi.ilike.*${busqueda}*,rfc_emisor.ilike.*${busqueda}*,rfc_receptor.ilike.*${busqueda}*,razon_social_emisor.ilike.*${busqueda}*,razon_social_receptor.ilike.*${busqueda}*)&`;
+    }
+
+    const url = `${SUPABASE_URL}/rest/v1/ingresos_pdd?select=*&${filtro}order=fecha.desc`;
+    const res = await fetch(url, {
+      headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` },
+    });
+    const datos = await res.json();
+    renderTabla(datos);
+  }
+
+  async function mostrarTodo() {
+    const url = `${SUPABASE_URL}/rest/v1/ingresos_pdd?select=*&order=fecha.desc`;
+    const res = await fetch(url, {
+      headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` },
+    });
+    const datos = await res.json();
+    renderTabla(datos);
+  }
+
+  function renderTabla(datos) {
+    const tbody = document.querySelector("#tabla tbody");
+    tbody.innerHTML = "";
+    let suma = 0;
+
+    for (const r of datos) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.fecha ? r.fecha.split("T")[0] : ""}</td>
+        <td>${r.uuid_cfdi}</td>
+        <td>${r.razon_social_emisor || r.rfc_emisor || ""}</td>
+        <td>${r.razon_social_receptor || r.rfc_receptor || ""}</td>
+        <td>${r.factura || ""}</td>
+        <td>$${Number(r.total || 0).toFixed(2)}</td>
+        <td>${r.moneda || ""}</td>
+        <td>${r.forma_pago || ""}</td>
+        <td>${r.uso_cfdi || ""}</td>`;
+      tr.onclick = () => mostrarFactura(r);
+      tbody.appendChild(tr);
+      suma += Number(r.total || 0);
+    }
+
+    document.getElementById(
+      "total"
+    ).textContent = `Total: $${suma.toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+    })}`;
+  }
+
+  function mostrarFactura(data) {
+    const modal = document.getElementById("modal");
+    const contenido = document.getElementById("modal-content");
+    contenido.innerHTML = `
+      <h2>Factura ${data.serie || ""}${data.factura || ""}</h2>
+      <p><b>UUID:</b> ${data.uuid_cfdi}</p>
+      <p><b>Fecha:</b> ${data.fecha}</p>
+      <hr>
+      <p><b>Emisor:</b> ${data.razon_social_emisor || ""} (${data.rfc_emisor || ""})</p>
+      <p><b>Receptor:</b> ${data.razon_social_receptor || ""} (${data.rfc_receptor || ""})</p>
+      <hr>
+      <p><b>Subtotal:</b> $${(data.subtotal || 0).toFixed(2)}</p>
+      <p><b>Descuento:</b> $${(data.descuento || 0).toFixed(2)}</p>
+      <p><b>Total:</b> $${(data.total || 0).toFixed(2)}</p>
+      <p><b>Moneda:</b> ${data.moneda || ""}</p>
+      <p><b>Forma de Pago:</b> ${data.forma_pago || ""}</p>
+      <p><b>Uso CFDI:</b> ${data.uso_cfdi || ""}</p>
+      <hr>
+      <h3>Conceptos</h3>
+      <table class="detalle">
+        <thead>
+          <tr><th>Cantidad</th><th>Descripción</th><th>Unitario</th><th>Impuesto</th></tr>
+        </thead>
+<tbody>
+  ${
+    (() => {
+      // detecta la estructura real
+      const conceptosArray =
+        Array.isArray(data.conceptos_detalle)
+          ? Array.isArray(data.conceptos_detalle[0]?.conceptos_detalle)
+            ? data.conceptos_detalle[0].conceptos_detalle
+            : data.conceptos_detalle
+          : [];
+
+      if (!conceptosArray.length) {
+        return "<tr><td colspan='5'>Sin detalle</td></tr>";
+      }
+
+      return conceptosArray
+        .map((c) => {
+          const impuesto = c.impuestos?.[0] || {};
+          const tasa = (impuesto.tasaOCuota || 0) * 100;
+          const tipoImp =
+            impuesto.impuesto === "002"
+              ? "IVA"
+              : impuesto.impuesto === "003"
+              ? "IEPS"
+              : "";
+          return `
+            <tr>
+              <td>${c.cantidad || 0}</td>
+              <td>${c.descripcion || ""}</td>
+              <td>$${(c.valorUnitario || 0).toFixed(2)}</td>
+              <td>$${(c.importe || 0).toFixed(2)}</td>
+              <td>${tipoImp} ${tasa.toFixed(2)}%</td>
+            </tr>`;
+        })
+        .join("");
+    })()
+  }
+</tbody>
+      </table>
+      <button onclick="cerrarModal()">Cerrar</button>
+    `;
+    modal.style.display = "flex";
+  }
+
+  function cerrarModal() {
+    document.getElementById("modal").style.display = "none";
+  }
+
+  function exportarExcel() {
+    const tabla = document.querySelector("#tabla");
+    const wb = XLSX.utils.table_to_book(tabla, { sheet: "Ingresos" });
+    XLSX.writeFile(wb, "Ingresos_PDD.xlsx");
+  }
+</script>
+
+
+
+  <footer style="margin-top:30px;text-align:center;font-size:13px;color:#333;">
+    ©️ 2025 PROVSOFT – Visor de Ingresos PDD
+  </footer>
+<!-- Modal para factura -->
+<div id="modal" style="
+  display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,.6); align-items:center; justify-content:center; z-index:1000;">
+  <div id="modal-content" style="
+    background:white; padding:20px; border-radius:10px; max-width:800px;
+    width:90%; max-height:90vh; overflow:auto; font-family:'Poppins',sans-serif;">
+  </div>
+</div>
+
+<style>
+  #modal-content h2 { margin-top:0; color:#00416A; }
+  #modal-content table.detalle {
+    width:100%; border-collapse:collapse; margin-top:10px;
+  }
+  #modal-content table.detalle th, 
+  #modal-content table.detalle td {
+    border:1px solid #ccc; padding:6px 8px; font-size:13px;
+  }
+  #modal-content table.detalle th {
+    background:#0c6cbd; color:white; text-align:left;
+  }
+  #modal-content button {
+    background:#00416A; color:white; border:none;
+    padding:8px 14px; border-radius:6px; cursor:pointer; margin-top:12px;
+  }
+  #modal-content button:hover { background:#0c6cbd; }
+</style>
+
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Ingresos SAT – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  body {
+    font-family: Poppins, Arial, sans-serif;
+    background: #f3f5f7;
+    margin: 20px;
+  }
+
+  h2 {
+    text-align: center;
+  }
+
+  .filtros {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 15px;
+  }
+
+  select {
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+  }
+
+  .alerta {
+    background: #c62828;
+    color: white;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    display: none;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  }
+
+  th, td {
+    padding: 10px;
+    text-align: left;
+    font-size: 14px;
+  }
+
+  th {
+    background: #00416A;
+    color: white;
+  }
+
+  tr:nth-child(even) {
+    background: #f2f2f2;
+  }
+
+  .vigente {
+    color: #1e8e3e;
+    font-weight: bold;
+  }
+
+  .cancelado {
+    color: #c62828;
+    font-weight: bold;
+  }
+
+  .no {
+    color: #f9a825;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h2>📊 Ingresos SAT – PROVSOFT</h2>
+
+<div class="filtros">
+  <select id="anio"></select>
+  <select id="mes"></select>
+</div>
+
+<div id="alertaCancelados" class="alerta">
+  ⚠️ ATENCIÓN: Existen CFDI CANCELADOS por el SAT
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>UUID CFDI</th>
+      <th>Fecha</th>
+      <th>Total</th>
+      <th>Estado SAT</th>
+    </tr>
+  </thead>
+  <tbody id="tablaIngresos"></tbody>
+</table>
+
+<script>
+/* =============================
+   🔌 SUPABASE CONFIG
+============================= */
+const supabaseClient = supabase.createClient(
+  'https://cvpbtjlupswbyxenugpz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+);
+
+/* =============================
+   📅 FILTROS
+============================= */
+const selectAnio = document.getElementById('anio');
+const selectMes = document.getElementById('mes');
+const tabla = document.getElementById('tablaIngresos');
+const alerta = document.getElementById('alertaCancelados');
+
+const hoy = new Date();
+const anioActual = hoy.getFullYear();
+
+for (let a = anioActual; a >= anioActual - 5; a--) {
+  selectAnio.innerHTML += `<option value="${a}">${a}</option>`;
+}
+
+for (let m = 1; m <= 12; m++) {
+  selectMes.innerHTML += `<option value="${m}">${m.toString().padStart(2,'0')}</option>`;
+}
+
+selectAnio.value = anioActual;
+selectMes.value = hoy.getMonth() + 1;
+
+/* =============================
+   📊 CARGAR DATOS
+============================= */
+async function cargarIngresos() {
+  tabla.innerHTML = '';
+  alerta.style.display = 'none';
+
+const { data, error } = await supabaseClient
+  .from('ingresos_sat_api')
+  .select('uuid_cfdi, fecha, total, estado_sat')
+  .eq('periodo_anio', selectAnio.value)
+  .eq('periodo_mes', selectMes.value)
+  .order('fecha', { ascending: false })
+  .limit(100);
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  let hayCancelados = false;
+
+  data.forEach(i => {
+    let clase = 'no';
+    if (i.estado_sat === 'VIGENTE') clase = 'vigente';
+    if (i.estado_sat === 'CANCELADO') {
+      clase = 'cancelado';
+      hayCancelados = true;
+    }
+
+    tabla.innerHTML += `
+      <tr>
+        <td>${i.uuid_cfdi}</td>
+        <td>${new Date(i.fecha).toLocaleDateString()}</td>
+        <td>$${Number(i.total).toLocaleString()}</td>
+        <td class="${clase}">${i.estado_sat}</td>
+      </tr>
+    `;
+  });
+
+  if (hayCancelados) {
+    alerta.style.display = 'block';
+  }
+}
+
+selectAnio.onchange = cargarIngresos;
+selectMes.onchange = cargarIngresos;
+
+cargarIngresos();
+</script>
+
+</body>
+</html>

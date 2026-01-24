@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Representación CFDI – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#e5e5e5;
+  padding:30px;
+}
+
+.cfdi{
+  background:#fff;
+  max-width:980px;
+  margin:auto;
+  padding:30px;
+  border:1px solid #999;
+}
+
+/* ===== HEADER ===== */
+.header{
+  display:grid;
+  grid-template-columns: 220px 1fr;
+  gap:20px;
+  border-bottom:2px solid #000;
+  padding-bottom:12px;
+}
+
+.logo{
+  max-width:180px;
+  margin-bottom:10px;
+}
+
+.box{
+  font-size:13px;
+}
+
+.box strong{
+  font-size:14px;
+}
+
+.header-right{
+  text-align:right;
+  font-size:13px;
+}
+
+.header-right strong{
+  font-size:15px;
+}
+
+/* ===== SECCIONES ===== */
+.section{
+  margin-top:20px;
+}
+
+.section h3{
+  margin:6px 0 8px;
+  font-size:14px;
+  border-bottom:1px solid #000;
+  padding-bottom:4px;
+}
+
+/* ===== TABLAS ===== */
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+
+th,td{
+  border:1px solid #000;
+  padding:6px;
+}
+
+th{
+  background:#f2f2f2;
+}
+
+.right-txt{
+  text-align:right;
+}
+
+/* ===== TOTALES ===== */
+.totales{
+  width:340px;
+  margin-left:auto;
+  margin-top:16px;
+}
+
+/* ===== FOOTER ===== */
+.footer{
+  margin-top:40px;
+  font-size:11px;
+  text-align:center;
+  border-top:1px solid #999;
+  padding-top:10px;
+  color:#333;
+}
+
+/* ===== PRINT ===== */
+@media print{
+  body{
+    background:#fff;
+    padding:0;
+  }
+  .cfdi{
+    border:none;
+    margin:0;
+    max-width:100%;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="cfdi" id="cfdi">Cargando CFDI…</div>
+
+<script>
+/* ===== SUPABASE ===== */
+const db = supabase.createClient(
+  'https://cvpbtjlupswbyxenugpz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+);
+
+const uuid = new URLSearchParams(location.search).get('uuid');
+
+/* ===== SUCURSAL POR SERIE ===== */
+function sucursalPorSerie(serie){
+  if(!serie) return 'SIN SUCURSAL';
+
+  const mapa = {
+    'LMN': 'MATRIZ',
+    'GM':  'BODEGA 41',
+    'SAN': 'ALLENDE II',
+    'AM':  'ALLENDE I',
+    'MM':  'MONTEMORELOS',
+    'LO':  'OSITO',
+    'LP':  'CENTRAL',
+    'RVN': 'RIO VERDE',
+    'LV':  'PROVILEON'
+  };
+
+  const s = serie.toUpperCase();
+  return mapa[s] ? `${s} - ${mapa[s]}` : `${s} - DESCONOCIDA`;
+}
+
+/* ===== LOAD ===== */
+async function cargar(){
+  const { data, error } = await db
+    .from('ingresos_pdd')
+    .select('*')
+    .eq('uuid_cfdi', uuid)
+    .single();
+
+  if(error){
+    document.getElementById('cfdi').innerHTML = 'CFDI no encontrado';
+    return;
+  }
+
+  render(data);
+}
+
+/* ===== RENDER ===== */
+function render(f){
+  document.getElementById('cfdi').innerHTML = `
+  
+  <!-- HEADER -->
+  <div class="header">
+
+    <!-- EMISOR -->
+    <div class="box">
+      <img src="logo_pdd_2026.png" class="logo" alt="Proveedora de Dulces y Desechables 2026">
+
+      <strong>${f.razon_social_emisor}</strong><br>
+      <strong>RFC:</strong> ${f.rfc_emisor}<br>
+      <strong>Régimen Fiscal:</strong> 601 - General de Ley Personas Morales<br>
+      <strong>Sucursal:</strong> ${sucursalPorSerie(f.serie)}<br>
+      <strong>Domicilio Fiscal:</strong><br>
+      Madero 690, Centro<br>
+      Linares, Nuevo León, C.P. 67700
+    </div>
+
+    <!-- DATOS CFDI -->
+    <div class="box header-right">
+      <strong>FACTURA</strong><br><br>
+      Serie / Folio: <strong>${f.serie} ${f.folio}</strong><br>
+      UUID: ${f.uuid_cfdi}<br>
+      Fecha de emisión:<br>
+      ${f.fecha.replace('T',' ').replace('+00:00','')}<br>
+      Tipo CFDI: Ingreso<br>
+      Moneda: MXN
+    </div>
+
+  </div>
+
+  <!-- RECEPTOR -->
+  <div class="section">
+    <h3>Datos del Receptor</h3>
+    <strong>${f.razon_social_receptor}</strong><br>
+    RFC: ${f.rfc_receptor}<br>
+    Uso CFDI: ${f.uso_cfdi}
+  </div>
+
+  <!-- CONCEPTOS -->
+  <div class="section">
+    <h3>Conceptos</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Cant.</th>
+          <th>Descripción</th>
+          <th class="right-txt">Importe</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(f.conceptos ?? []).map(c=>`
+          <tr>
+            <td>${c.cantidad}</td>
+            <td>${c.descripcion}</td>
+            <td class="right-txt">$ ${fmt(c.importe)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TOTALES -->
+  <table class="totales">
+    <tr><td>Subtotal</td><td class="right-txt">$ ${fmt(f.subtotal)}</td></tr>
+    <tr><td>IVA</td><td class="right-txt">$ ${fmt(f.total_iva)}</td></tr>
+    <tr><td>IEPS</td><td class="right-txt">$ ${fmt(f.total_ieps)}</td></tr>
+    <tr><th>Total</th><th class="right-txt">$ ${fmt(f.total)}</th></tr>
+  </table>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <strong>Este documento es una representación impresa de un CFDI</strong><br>
+    Powered by <strong>PROVSOFT</strong> © 2026
+  </div>
+  `;
+}
+
+/* ===== FORMAT ===== */
+function fmt(n){
+  return Number(n ?? 0).toLocaleString('es-MX',{
+    minimumFractionDigits:2
+  });
+}
+
+cargar();
+</script>
+
+</body>
+</html>
