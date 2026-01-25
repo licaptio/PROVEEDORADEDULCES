@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PROVSOFT – Revisión Física de Facturas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#eef2f7;
+  padding:15px;
+}
+
+h2{ margin:0 0 8px 0; }
+
+#rangoActual{
+  font-weight:bold;
+  margin-bottom:10px;
+  font-size:14px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+}
+
+th, td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+  font-size:13px;
+  text-align:left;
+  white-space:nowrap;
+}
+
+th{
+  background:#0c6cbd;
+  color:#fff;
+  position:sticky;
+  top:0;
+}
+
+.btn{
+  padding:4px 10px;
+  border-radius:6px;
+  border:none;
+  cursor:pointer;
+  font-weight:bold;
+  font-size:12px;
+}
+
+.verde{ background:#2ecc71; color:#fff; }
+.rojo{ background:#e74c3c; color:#fff; }
+
+.paginacion{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+button.nav{
+  padding:6px 12px;
+  border-radius:6px;
+  border:none;
+  background:#0c6cbd;
+  color:#fff;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Revisión Física de Facturas</h2>
+
+<div id="rangoActual"></div>
+
+<table>
+<thead>
+<tr>
+  <th>Fecha</th>
+  <th>UUID</th>
+  <th>RFC</th>
+  <th>Proveedor</th>
+  <th>Factura</th>
+  <th>Total</th>
+  <th>Física</th>
+  <th>Pagada</th>
+  <th>📷</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
+</table>
+
+<div class="paginacion">
+  <button class="nav" onclick="prev()">⬅️</button>
+  <span id="pagina"></span>
+  <button class="nav" onclick="next()">➡️</button>
+</div>
+
+<script>
+// 🔐 SUPABASE
+const supabase = supabase.createClient(
+  'TU_URL',
+  'TU_ANON_KEY'
+);
+
+// ⚙️ CONFIG
+let page = 0;
+const limit = 100;
+
+const hoy = new Date();
+const desde = new Date();
+desde.setDate(hoy.getDate() - 60);
+
+const tabla = document.getElementById('tabla');
+const paginaLbl = document.getElementById('pagina');
+const rangoLbl = document.getElementById('rangoActual');
+
+// 📥 CARGA PRINCIPAL
+async function load(){
+  tabla.innerHTML = '<tr><td colspan="9">Cargando…</td></tr>';
+  paginaLbl.textContent = `Página ${page + 1}`;
+
+  const { data, error } = await supabase
+    .from('deuda_limpia_pdd')
+    .select(`
+      id,
+      fecha,
+      uuid_cfdi,
+      rfc_emisor,
+      razon_social_emisor,
+      serie,
+      folio,
+      total,
+      factura_fisicamente,
+      factura_pagada
+    `)
+    .gte('fecha', desde.toISOString())
+    .order('razon_social_emisor', { ascending: true })
+    .order('fecha', { ascending: true })
+    .range(page * limit, page * limit + limit - 1);
+
+  if(error){
+    tabla.innerHTML = '<tr><td colspan="9">Error al cargar</td></tr>';
+    console.error(error);
+    return;
+  }
+
+  render(data || []);
+}
+
+// 🖨️ RENDER
+function render(rows){
+  tabla.innerHTML = '';
+
+  // 🔠 letras visibles reales
+  const letrasSet = new Set();
+
+  rows.forEach(r=>{
+    const prov = (r.razon_social_emisor || '').trim();
+    if(prov){
+      let l = prov.charAt(0).toUpperCase();
+      if(!/[A-Z]/.test(l)) l = '#';
+      letrasSet.add(l);
+    }
+  });
+
+  const letras = Array.from(letrasSet).sort();
+  rangoLbl.textContent = letras.length
+    ? `ESTÁS EN: ${letras.join(' ')}`
+    : '';
+
+  // 🧾 filas
+  rows.forEach(r=>{
+    const provCompleto = r.razon_social_emisor || '';
+    const provCorto = cortarTexto(provCompleto, 25);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+<td>${fmtFecha(r.fecha)}</td>
+<td>${r.uuid_cfdi ? r.uuid_cfdi.slice(0,18) : ''}</td>
+<td>${r.rfc_emisor || ''}</td>
+<td title="${escapeHtml(provCompleto)}">${provCorto}</td>
+<td>${(r.serie || '')}-${(r.folio || '')}</td>
+<td>$${Number(r.total || 0).toFixed(2)}</td>
+<td>
+  <button class="btn ${r.factura_fisicamente === 'SI' ? 'verde' : 'rojo'}"
+    onclick="toggle('${r.id}','factura_fisicamente','${r.factura_fisicamente}')">
+    ${r.factura_fisicamente || 'NO'}
+  </button>
+</td>
+<td>
+  <button class="btn ${r.factura_pagada === 'SI' ? 'verde' : 'rojo'}"
+    onclick="toggle('${r.id}','factura_pagada','${r.factura_pagada}')">
+    ${r.factura_pagada || 'NO'}
+  </button>
+</td>
+<td>📷</td>
+`;
+    tabla.appendChild(tr);
+  });
+}
+
+// 🔁 TOGGLE SI / NO
+async function toggle(id, col, val){
+  const nuevo = val === 'SI' ? 'NO' : 'SI';
+  await supabase
+    .from('deuda_limpia_pdd')
+    .update({ [col]: nuevo })
+    .eq('id', id);
+  load();
+}
+
+// 📆 HELPERS
+function fmtFecha(f){
+  const d = new Date(f);
+  return d.toLocaleDateString('es-MX', {
+    day:'2-digit',
+    month:'2-digit',
+    year:'2-digit'
+  });
+}
+
+function cortarTexto(txt, max){
+  if(!txt) return '';
+  return txt.length > max ? txt.slice(0, max - 1) + '…' : txt;
+}
+
+// evitar romper HTML en title
+function escapeHtml(str){
+  return str.replace(/[&<>"']/g, m => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  })[m]);
+}
+
+function next(){ page++; load(); }
+function prev(){ if(page > 0){ page--; load(); } }
+
+// 🚀 INIT
+load();
+</script>
+
+</body>
+</html>
