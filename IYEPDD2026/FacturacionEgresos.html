@@ -225,7 +225,7 @@ function render(rows){
 <td>${r.rfc_emisor || ''}</td>
 <td title="${escapeHtml(provCompleto)}">${provCorto}</td>
 <td>${(r.serie || '')}-${(r.folio || '')}</td>
-<td>$${Number(r.total || 0).toFixed(2)}</td>
+<td class="total-mx">${fmtMXN(r.total)}</td>
 <td>
   <button class="btn ${r.factura_fisicamente === 'SI' ? 'verde' : 'rojo'}"
     onclick="toggle('${r.id}','factura_fisicamente','${r.factura_fisicamente}')">
@@ -264,6 +264,14 @@ function fmtFecha(f){
     day:'2-digit',
     month:'2-digit',
     year:'2-digit'
+  });
+}
+function fmtMXN(valor){
+  return Number(valor || 0).toLocaleString('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
 }
 
