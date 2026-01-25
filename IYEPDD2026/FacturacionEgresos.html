@@ -174,7 +174,14 @@ const { data, error } = await db
     return;
   }
 
-  render(data || []);
+  const ordenado = (data || []).sort((a, b) => {
+  const pa = (a.nombre_emisor || a.razon_social_emisor || '').toUpperCase();
+  const pb = (b.nombre_emisor || b.razon_social_emisor || '').toUpperCase();
+  return pa.localeCompare(pb, 'es');
+});
+
+render(ordenado);
+
 }
 
 // 🖨️ RENDER
