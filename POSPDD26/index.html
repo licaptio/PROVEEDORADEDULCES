@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PROVSOFT – POS PDD 2026</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0c6cbd">
+
+<style>
+body{
+  margin:0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: linear-gradient(135deg,#0c6cbd,#003b70);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.card{
+  background:#fff;
+  width:100%;
+  max-width:420px;
+  border-radius:18px;
+  padding:25px;
+  box-shadow:0 12px 30px rgba(0,0,0,.35);
+}
+
+.logo{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.logo img{
+  max-width:160px;
+}
+
+h2{
+  text-align:center;
+  margin:10px 0 20px;
+  color:#00416A;
+}
+
+.menu{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+}
+
+.menu a{
+  text-decoration:none;
+  background:#0c6cbd;
+  color:#fff;
+  padding:14px;
+  border-radius:12px;
+  font-size:15px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  transition:.2s;
+}
+
+.menu a:hover{
+  background:#094f91;
+  transform:translateY(-2px);
+}
+
+.menu a span{
+  font-size:18px;
+}
+
+.footer{
+  margin-top:18px;
+  text-align:center;
+  font-size:12px;
+  color:#666;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <div class="logo">
+    <img src="./logo_proveedora.webp" alt="Proveedora de Dulces">
+  </div>
+
+  <h2>POS PDD 2026</h2>
+
+  <div class="menu">
+    <a href="./POSPDD2026V1.html">
+      <span>🧾</span> Punto de Venta
+    </a>
+
+    <a href="./POSPCPROV.html">
+      <span>🚚</span> Compras a Proveedor
+    </a>
+
+    <a href="./DEPTOACTIVO.html">
+      <span>🏬</span> Departamentos Activos
+    </a>
+
+    <a href="./productos_por_departamento_control.html">
+      <span>📦</span> Control por Departamento
+    </a>
+  </div>
+
+  <div class="footer">
+    PROVSOFT · Sistema Interno · 2026
+  </div>
+
+</div>
+
+</body>
+</html>
