@@ -236,14 +236,14 @@ function render(rows){
 <td>${(r.serie || '')}-${(r.folio || '')}</td>
 <td class="total-mx">${fmtMXN(r.total)}</td>
 <td>
-  <button class="btn ${r.factura_fisicamente === 'SI' ? 'verde' : 'rojo'}"
-    onclick="toggle('${r.id}','factura_fisicamente','${r.factura_fisicamente}')">
-    ${r.factura_fisicamente || 'NO'}
-  </button>
+<button class="btn ${r.factura_pagada === 'SI' ? 'verde' : 'rojo'}"
+  onclick="toggle(this,'${r.id}','factura_pagada')">
+  ${r.factura_pagada || 'NO'}
+</button>
 </td>
 <td>
-  <button class="btn ${r.factura_pagada === 'SI' ? 'verde' : 'rojo'}"
-    onclick="toggle('${r.id}','factura_pagada','${r.factura_pagada}')">
+<button class="btn ${r.factura_pagada === 'SI' ? 'verde' : 'rojo'}"
+  onclick="toggle((this,'${r.id}','factura_pagada','${r.factura_pagada}')">
     ${r.factura_pagada || 'NO'}
   </button>
 </td>
@@ -254,15 +254,29 @@ function render(rows){
 }
 
 // 🔁 TOGGLE SI / NO
-async function toggle(id, col, val){
-  const nuevo = val === 'SI' ? 'NO' : 'SI';
+async function toggle(btn, id, col){
+  const actual = btn.textContent.trim();
+  const nuevo = actual === 'SI' ? 'NO' : 'SI';
 
-  await db
+  // 🔁 UX inmediata (optimista)
+  btn.textContent = nuevo;
+  btn.classList.toggle('verde', nuevo === 'SI');
+  btn.classList.toggle('rojo', nuevo === 'NO');
+
+  // 🧠 Persistencia
+  const { error } = await db
     .from('deuda_limpia_pdd')
     .update({ [col]: nuevo })
     .eq('id', id);
 
-  load();
+  // 🔴 rollback si falla
+  if(error){
+    console.error(error);
+    btn.textContent = actual;
+    btn.classList.toggle('verde', actual === 'SI');
+    btn.classList.toggle('rojo', actual === 'NO');
+    alert('Error al actualizar');
+  }
 }
 
 
