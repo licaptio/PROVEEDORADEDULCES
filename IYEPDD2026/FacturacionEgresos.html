@@ -108,6 +108,11 @@ button.nav{
 <script>
 
 const db = window.db;
+if (!db) {
+  tabla.innerHTML = '<tr><td colspan="9">No cargó db (runtime.js/client.js). Revisa rutas /js/</td></tr>';
+  throw new Error('db no inicializada: runtime.js/client.js no cargaron');
+}
+
 
 // ⚙️ CONFIG
 let page = 0;
