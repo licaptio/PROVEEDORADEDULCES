@@ -121,7 +121,7 @@ tbody tr:hover{
 </div>
 
 <script>
-
+const tabla = document.getElementById('tabla');
 const db = window.db;
 if (!db) {
   tabla.innerHTML = '<tr><td colspan="9">No cargó db (runtime.js/client.js). Revisa rutas /js/</td></tr>';
@@ -137,7 +137,7 @@ const hoy = new Date();
 const desde = new Date();
 desde.setDate(hoy.getDate() - 60);
 
-const tabla = document.getElementById('tabla');
+
 const paginaLbl = document.getElementById('pagina');
 const rangoLbl = document.getElementById('rangoActual');
 
@@ -162,10 +162,11 @@ const { data, error } = await db
   factura_pagada
 `)
 
-  .gte('fecha', desde.toISOString())
-  .order('razon_social_emisor', { ascending: true })
-  .order('fecha', { ascending: true })
-  .range(page * limit, page * limit + limit - 1);
+.gte('fecha', desde.toISOString())
+.lte('fecha', hoy.toISOString()) // opcional pero correcto
+.order('nombre_emisor', { ascending: true, nullsFirst: false })
+.order('fecha', { ascending: true })
+.order('id', { ascending: true })
 
 
   if(error){
