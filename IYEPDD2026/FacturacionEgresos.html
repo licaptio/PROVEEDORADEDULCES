@@ -25,12 +25,6 @@ h2{ margin:0 0 8px 0; }
   font-size:14px;
 }
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:#fff;
-}
-
 th, td{
   padding:8px;
   border-bottom:1px solid #ddd;
@@ -44,6 +38,8 @@ th{
   color:#fff;
   position:sticky;
   top:0;
+  font-size:12px;
+  letter-spacing:.5px;
 }
 
 .btn{
@@ -73,6 +69,25 @@ button.nav{
   color:#fff;
   cursor:pointer;
 }
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+  table-layout:fixed;
+}
+th:nth-child(1), td:nth-child(1){ width:70px; }   /* Fecha */
+th:nth-child(2), td:nth-child(2){ width:140px; }  /* UUID */
+th:nth-child(3), td:nth-child(3){ width:120px; }  /* RFC */
+th:nth-child(4), td:nth-child(4){ width:220px; }  /* Proveedor */
+th:nth-child(5), td:nth-child(5){ width:140px; }  /* Factura */
+th:nth-child(6), td:nth-child(6){ width:110px; }  /* Total */
+th:nth-child(7), td:nth-child(7){ width:80px; }   /* Física */
+th:nth-child(8), td:nth-child(8){ width:80px; }   /* Pagada */
+th:nth-child(9), td:nth-child(9){ width:50px; }   /* Foto */
+tbody tr:hover{
+  background:#f3f6fb;
+}
+
 </style>
 </head>
 
