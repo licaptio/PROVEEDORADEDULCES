@@ -148,38 +148,31 @@ async function load(){
 
 const { data, error } = await db
   .from('deuda_limpia_pdd')
-.select(`
-  id,
-  fecha,
-  uuid_cfdi,
-  rfc_emisor,
-  nombre_emisor,
-  razon_social_emisor,
-  serie,
-  folio,
-  total,
-  factura_fisicamente,
-  factura_pagada
-`)
-
-.gte('fecha', desde.toISOString())
-.lte('fecha', hoy.toISOString()) // opcional pero correcto
-.order('nombre_emisor', { ascending: true, nullsFirst: false })
-.order('fecha', { ascending: true })
-.order('id', { ascending: true })
-
+  .select(`
+    id,
+    fecha,
+    uuid_cfdi,
+    rfc_emisor,
+    nombre_emisor,
+    razon_social_emisor,
+    serie,
+    folio,
+    total,
+    factura_fisicamente,
+    factura_pagada
+  `)
+  .gte('fecha', desde.toISOString())
+  .lte('fecha', hoy.toISOString())
+  .order('nombre_emisor', { ascending: true })
+  .order('fecha', { ascending: true })
+  .order('id', { ascending: true })
+  .range(page * limit, page * limit + limit - 1);  // ← ESTO FALTABA
 
   if(error){
     tabla.innerHTML = '<tr><td colspan="9">Error al cargar</td></tr>';
     console.error(error);
     return;
   }
-
-  const ordenado = (data || []).sort((a, b) => {
-  const pa = (a.nombre_emisor || a.razon_social_emisor || '').toUpperCase();
-  const pb = (b.nombre_emisor || b.razon_social_emisor || '').toUpperCase();
-  return pa.localeCompare(pb, 'es');
-});
 
 render(ordenado);
 
