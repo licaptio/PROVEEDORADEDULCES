@@ -169,9 +169,15 @@ font-size:14px!important;line-height:1.45;
   to{
     background-position: 0 600px;
   }
+
+.pos-layout {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr; /* carrito | totales */
+  gap: 12px;
+  height: calc(100vh - 120px);
 }
 
-
+}
 </style>
 </head>
 <body>
@@ -208,55 +214,55 @@ font-size:14px!important;line-height:1.45;
 </div>
 
 <!-- 🧩 CUERPO PRINCIPAL -->
-<div class="main-content">
+<!-- 🧩 CUERPO PRINCIPAL -->
+<div class="main-content pos-layout">
+    <div id="zonaCarrito">
+        <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
+        <section id="pantallaVenta" class="controls">
+            <!-- 🧍‍♂️ CAMPO CLIENTE -->
+            <div class="field">
+                <label>Cliente</label>
+                <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
+                <datalist id="clientesList"></datalist>
+            </div>
 
-  <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
-  <section id="pantallaVenta" class="controls">
-    <!-- 🧍‍♂️ CAMPO CLIENTE -->
-    <div class="field">
-      <label>Cliente</label>
-      <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
-      <datalist id="clientesList"></datalist>
+            <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
+            <div class="field searchbox">
+                <label>Buscar</label>
+                <input id="buscador" type="text" placeholder="Escribe o escanea código…">
+                <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
+                <div id="resultados" class="search-results"></div>
+            </div>
+        </section>
+
+        <!-- 🧾 BLOQUE NUEVO — CARRITO FIJO -->
+        <div id="carrito-container">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Cant.</th>
+                            <th>Importe</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
-    <div class="field searchbox">
-      <label>Buscar</label>
-      <input id="buscador" type="text" placeholder="Escribe o escanea código…">
-      <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
-      <div id="resultados" class="search-results"></div>
+    <div id="zonaTotales">
+        <div class="totals">
+            <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
+            <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
+            <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
+            <div class="actions">
+                <button class="btn" id="btnCobrar">Cobrar</button>
+            </div>
+        </div>
     </div>
-  </section>
-
-</div>
-
-<!-- 🧾 BLOQUE NUEVO — CARRITO FIJO -->
-<div id="carrito-container">
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Producto</th>
-          <th>Cant.</th>
-          <th>Importe</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-</div>
-
-
-  <div class="totals">
-    <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
-    <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
-    <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
-      <div class="actions">
-    <button class="btn" id="btnCobrar">Cobrar</button>
-  </div>
-
-  </div>
 </div>
 
 <div id="bottomBar">
@@ -2220,6 +2226,7 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
 
 
