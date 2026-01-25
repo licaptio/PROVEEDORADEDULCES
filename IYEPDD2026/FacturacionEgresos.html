@@ -148,18 +148,20 @@ async function load(){
 
 const { data, error } = await db
   .from('deuda_limpia_pdd')
-  .select(`
-    id,
-    fecha,
-    uuid_cfdi,
-    rfc_emisor,
-    razon_social_emisor,
-    serie,
-    folio,
-    total,
-    factura_fisicamente,
-    factura_pagada
-  `)
+.select(`
+  id,
+  fecha,
+  uuid_cfdi,
+  rfc_emisor,
+  nombre_emisor,
+  razon_social_emisor,
+  serie,
+  folio,
+  total,
+  factura_fisicamente,
+  factura_pagada
+`)
+
   .gte('fecha', desde.toISOString())
   .order('razon_social_emisor', { ascending: true })
   .order('fecha', { ascending: true })
@@ -183,7 +185,12 @@ function render(rows){
   const letrasSet = new Set();
 
   rows.forEach(r=>{
-    const prov = (r.razon_social_emisor || '').trim();
+    const prov = (
+  r.nombre_emisor ||
+  r.razon_social_emisor ||
+  ''
+).trim();
+
     if(prov){
       let l = prov.charAt(0).toUpperCase();
       if(!/[A-Z]/.test(l)) l = '#';
@@ -198,7 +205,11 @@ function render(rows){
 
   // 🧾 filas
   rows.forEach(r=>{
-    const provCompleto = r.razon_social_emisor || '';
+    const provCompleto =
+  r.nombre_emisor ||
+  r.razon_social_emisor ||
+  'SIN PROVEEDOR';
+
     const provCorto = cortarTexto(provCompleto, 25);
 
     const tr = document.createElement('tr');
