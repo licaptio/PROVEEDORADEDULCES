@@ -79,12 +79,12 @@ th:nth-child(1), td:nth-child(1){ width:70px; }   /* Fecha */
 th:nth-child(2), td:nth-child(2){ width:140px; }  /* UUID */
 th:nth-child(3), td:nth-child(3){ width:120px; }  /* RFC */
 th:nth-child(4), td:nth-child(4){ width:220px; }  /* Proveedor */
-th:nth-child(5), td:nth-child(5){ width:140px; }  /* Factura */
+th:nth-child(5), td:nth-child(5){ width:110px; }  /* Factura (más compacta) */
 th:nth-child(6){
   text-align: right;
-  padding-right: 10px;
+  padding-right: 8px;
+  padding-left: 2px;
 }
-
 th:nth-child(7), td:nth-child(7){ width:80px; }   /* Física */
 th:nth-child(8), td:nth-child(8){ width:80px; }   /* Pagada */
 th:nth-child(9), td:nth-child(9){ width:50px; }   /* Foto */
@@ -93,14 +93,16 @@ tbody tr:hover{
 }
 td.total-mx{
   text-align: right;
-  padding-right: 10px;        /* pegado a la derecha */
-  padding-top: 4px;           /* más cerca del header */
-  padding-bottom: 4px;
-  font-size: 135%;            /* +35% */
+  padding-right: 6px;
+  padding-left: 2px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  font-size: 135%;
   font-weight: 600;
+  line-height: 1.05;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
 }
+
 
 
 </style>
