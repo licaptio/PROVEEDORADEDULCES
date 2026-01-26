@@ -88,14 +88,28 @@ tr:nth-child(even){
   <input type="date" id="fechaFin">
 
   <button onclick="generarListado()">Generar Listado</button>
+  <button id="btnGuardarComision"
+        style="margin-top:10px;background:#1e8e3e;"
+        onclick="guardarComision()">
+  💾 Guardar Comisión y Generar PDF
+</button>
+
 </div>
 
 <div id="resultado"></div>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  where,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -108,9 +122,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+let resumenActual = null;
 
 window.generarListado = async function(){
-
   const ruta = document.getElementById("ruta").value;
   const f1 = document.getElementById("fechaInicio").value;
   const f2 = document.getElementById("fechaFin").value;
@@ -175,7 +189,9 @@ const cantidad =
         cantidad: cantidad,                 // ✅ YA NO ES undefined
         precio: Number(item.precio_unit) || 0,
         importe: importe,
-        comisionValor: item.comision_valor || 0,
+       comisionValor: depto.toUpperCase().includes("CIGARRO")
+  ? "$0.50 / 10 pzs"
+  : (item.comision_valor || 0) + "%",
         comisionMonto: comision
       });
 
@@ -237,7 +253,7 @@ const cantidad =
           <td>${f.cantidad}</td> <!-- 👈 NUEVO -->
           <td>$${f.precio.toFixed(2)}</td>
           <td>$${f.importe.toFixed(2)}</td>
-          <td>${f.comisionValor}%</td>
+          <td>${f.comisionValor}</td>
           <td>$${f.comisionMonto.toFixed(2)}</td>
         </tr>
       `;
@@ -257,8 +273,80 @@ const cantidad =
   });
 
   html += `</table>`;
+resumenActual = {
+  ruta,
+  periodo: { inicio: f1, fin: f2 },
+  totalVentas: totalGeneralVentas,
+  totalComisiones: totalGeneral,
+  departamentos: Object.keys(dataPorDepto).map(d => ({
+    nombre: d,
+    totalVentas: dataPorDepto[d].totalVentas,
+    totalComision: dataPorDepto[d].totalComision
+  })),
+  fechaGeneracion: new Date()
+};
 
   document.getElementById("resultado").innerHTML = html;
+};
+  
+  function generarPDFComision(data) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+
+  let y = 15;
+
+  pdf.setFontSize(14);
+  pdf.text("REPORTE DE COMISIONES", 105, y, { align: "center" });
+  y += 10;
+
+  pdf.setFontSize(11);
+  pdf.text(`Ruta: ${data.ruta}`, 10, y); y += 7;
+  pdf.text(`Periodo: ${data.periodo.inicio} al ${data.periodo.fin}`, 10, y); y += 7;
+
+  pdf.text(`Total General de Ventas: $${data.totalVentas.toFixed(2)}`, 10, y); y += 7;
+  pdf.text(`Total General de Comisiones: $${data.totalComisiones.toFixed(2)}`, 10, y); y += 10;
+
+  pdf.setFontSize(12);
+  pdf.text("Comisiones por Departamento", 10, y);
+  y += 8;
+
+  pdf.setFontSize(10);
+  data.departamentos.forEach(d => {
+    pdf.text(
+      `• ${d.nombre} — Ventas: $${d.totalVentas.toFixed(2)} | Comisión: $${d.totalComision.toFixed(2)}`,
+      10,
+      y
+    );
+    y += 6;
+    if (y > 270) { pdf.addPage(); y = 15; }
+  });
+
+  pdf.save(`Comisiones_${data.ruta}_${data.periodo.inicio}_${data.periodo.fin}.pdf`);
+}
+window.guardarComision = async function () {
+  if (!resumenActual) {
+    alert("Primero genera el listado");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "comisiones_generadas"), {
+      ruta: resumenActual.ruta,
+      periodo: resumenActual.periodo,
+      total_vendido: resumenActual.totalVentas,
+      total_comisiones: resumenActual.totalComisiones,
+      departamentos: resumenActual.departamentos,
+      fecha: new Date()
+    });
+
+    generarPDFComision(resumenActual);
+
+    alert("✅ Comisión guardada correctamente");
+
+  } catch (e) {
+    console.error(e);
+    alert("❌ Error al guardar la comisión");
+  }
 };
 </script>
 </body>
