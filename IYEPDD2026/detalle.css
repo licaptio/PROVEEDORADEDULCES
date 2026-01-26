@@ -1,0 +1,518 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f3f6fa;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: #00416A;
+  color: #fff;
+  padding: 15px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.btn-back {
+  display: inline-block;
+  background: #002740;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: .9rem;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  margin-right: 10px;
+}
+.btn-back:hover { background: #00182b; }
+
+.tarjeta-principal {
+  background: #fff;
+  max-width: 900px;
+  margin: auto;
+  padding: 12px 18px;   /* MENOS padding */
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0,0,0,.08);
+}
+
+h2, h3 { color: #00416A; }
+
+.campo { margin-bottom: 10px; font-size: 15px; }
+.campo span.titulo { font-weight: 700; color: #00345a; margin-right: 6px; }
+
+.tabla-wrapper { overflow-x: auto; margin-top: 20px; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  min-width: 720px;
+}
+
+/* CABECERA */
+th {
+  background: #dbe5f1;
+  color: #00345a;
+  padding: 6px;
+  font-size: 14px;
+}
+
+/* CELDAS */
+td {
+  border: 1px solid #ddd;
+  padding: 6px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* DESCUENTO AMARILLO */
+.descuento-cell {
+  background: #fff7c2;
+  font-weight: bold;
+}
+
+/* FOOTER */
+tfoot td {
+  font-weight: bold;
+  background: #eef0f4;
+}
+
+tfoot td.desc-total {
+  background: #fff7c2 !important;
+  color: #5b4500;
+}
+
+/* FOLIO */
+.folio-seccion {
+  background: #f7faff;
+  border: 1px solid #c8d8ee;
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 12px;
+}
+
+.folio-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.folio-row input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #9bb6d3;
+  border-radius: 6px;
+  font-size: 16px;
+}
+.folio-row button {
+  background: #0c6cbd;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+.folio-row button:hover { background: #004c8f; }
+
+/* FOTOS */
+.panel-fotos {
+  max-width: 900px;
+  margin: 30px auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(0,0,0,.12);
+}
+
+#galeriaFotos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.foto-item {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+  width: 110px;
+  text-align: center;
+}
+.foto-item img {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+.foto-item button {
+  background: #c62828;
+  color: #fff;
+  border: none;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+/* TOAST */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  padding: 10px 14px;
+  background: #00416A;
+  color: #fff;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s;
+  z-index: 999;
+}
+.toast.show { opacity: 1; }
+
+/* GRID 2 COLUMNAS */
+.datos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;          /* MENOS espacio */
+  margin-bottom: 15px;
+}
+
+.datos-box h2 { margin-top: 0; }
+.datos-box p { margin: 6px 0; font-size: 15px; }
+
+.seccion-seriefolio {
+  margin: 10px 0;       /* MENOS separación vertical */
+  padding: 12px;        /* MENOS padding */
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #c8d8ee;
+}
+
+.seriefolio-grid {
+  display: flex;
+  gap: 20px;       /* MENOS espacio entre Serie y Folio */
+  padding-top: 5px;
+}
+
+.btn-copiar {
+  background: #0c6cbd;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn-copiar:hover {
+  background: #004c8f;
+}
+
+.footer-regresar {
+  background: #00416A;
+  color: white;
+  text-align: center;
+  padding: 20px;
+  margin-top: 40px;
+}
+
+.footer-regresar h2 {
+  margin: 10px 0 0 0;
+  color: #fff;
+}
+
+.footer-regresar .btn-back {
+  background: #002740;
+  padding: 10px 18px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+/* --- Caja compacta para Folio Tecnopro --- */
+.seccion-folio.compacto {
+  margin-top: 5px;
+  padding: 8px 0;
+}
+
+.compacto-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folio-input {
+  width: 150px !important;   /* 🔥 Más chico, como lo quieres */
+  padding: 6px 10px;
+  border: 1px solid #b2c4dd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.btn-guardar-folio {
+  background: #0066cc;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-guardar-folio:hover {
+  background: #004d99;
+}
+
+/* Quitamos espacio extra */
+.folio-hint {
+  display: none !important;
+}
+
+.seriefolio-grid-master {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin: 15px 0;
+}
+
+/* ============================================
+   🔥 Sección Serie / Folio / UUID ULTRA COMPACTA
+   ============================================ */
+
+.seccion-seriefolio {
+  margin: 6px 0 !important;      /* menos separación */
+  padding: 8px 12px !important;  /* menos padding interno */
+  background: #f3f5f8;
+  border-radius: 8px;
+  border: 1px solid #c8d8ee;
+}
+
+.seccion-seriefolio h3 {
+  margin: 0 0 6px 0 !important;   /* más pegado */
+  font-size: 17px;
+}
+
+.seriefolio-grid {
+  display: flex;
+  gap: 12px !important;          /* antes 20–40px, ahora compacto */
+  margin: 2px 0 !important;
+  padding: 0 !important;
+  align-items: center;
+}
+
+.seriefolio-grid p {
+  margin: 0 !important;
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+#btnCopiarUUID {
+  padding: 4px 10px !important;
+  font-size: 13px !important;
+  margin-left: 10px;
+}
+
+.timbre-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.timbre-col p {
+  margin: 6px 0;
+}
+
+.fila-botones {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.btn-capturar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  background: #22c55e;
+  color: white;
+  font-size: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-subir {
+  flex: 1;
+  padding: 15px;
+  border: none;
+  border-radius: 10px;
+  background: #0d6efd;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.barra-cargando {
+  background: #222;
+  color: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.oculto {
+  display: none;
+}
+/* Botón circular para capturar */
+.btn-capturar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #0a67b4;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.btn-capturar img {
+  width: 36px;
+  height: 36px;
+}
+
+/* Botón upload estilo nube */
+.btn-upload {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0a7adb;
+  border: none;
+  padding: 12px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.btn-upload img {
+  width: 40px;
+}
+
+/* Contenedor de botones */
+.foto-botones {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+/* Barra pequeña */
+#barraCargando {
+  width: 100%;
+  height: 4px;
+  background: #bde0ff;
+  border-radius: 4px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+#barraCargando span {
+  display: block;
+  width: 0%;
+  height: 100%;
+  background: #0a7adb;
+  animation: carga 2s infinite;
+}
+
+@keyframes carga {
+  0% { width: 0%; }
+  50% { width: 70%; }
+  100% { width: 0%; }
+}
+/* ============================
+   BOTONES DE FOTOS
+   ============================ */
+
+.foto-botones {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* Botón verde circular (cámara) */
+.btn-capturar {
+  width: 60px;
+  height: 60px;
+  background: #1eb640;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,.2);
+  cursor: pointer;
+}
+.btn-capturar img {
+  width: 30px;
+}
+
+/* Botón azul subir foto */
+.btn-upload {
+  background: #0c6cbd;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: none;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.btn-upload img {
+  width: 22px;
+}
+
+/* Barra de carga */
+#barraCargando {
+  margin-top: 10px;
+  padding: 8px;
+  background: #003366;
+  color: white;
+  border-radius: 6px;
+  text-align: center;
+}
+.oculto {
+  display: none;
+}
+
+/* Galería */
+.foto-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.foto-item img {
+  width: 100%;
+  border-radius: 10px;
+}
+.foto-item button {
+  background: #b91c1c;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
