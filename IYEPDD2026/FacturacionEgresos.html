@@ -235,19 +235,21 @@ function render(rows){
 <td title="${escapeHtml(provCompleto)}">${provCorto}</td>
 <td>${(r.serie || '')}-${(r.folio || '')}</td>
 <td class="total-mx">${fmtMXN(r.total)}</td>
+
 <td>
-<button class="btn ${r.factura_fisicamente === 'SI' ? 'verde' : 'rojo'}"
-  onclick="toggle(this,'${r.id}','factura_fisicamente')">
-  ${r.factura_fisicamente || 'NO'}
-</button>
+  <button class="btn ${r.factura_fisicamente === 'SI' ? 'verde' : 'rojo'}"
+    onclick="toggle(this,'${r.id}','factura_fisicamente')">
+    ${r.factura_fisicamente || 'NO'}
+  </button>
 </td>
+
 <td>
-<td>
-<button class="btn ${r.factura_pagada === 'SI' ? 'verde' : 'rojo'}"
-  onclick="toggle(this,'${r.id}','factura_pagada')">
-  ${r.factura_pagada || 'NO'}
-</button>
+  <button class="btn ${r.factura_pagada === 'SI' ? 'verde' : 'rojo'}"
+    onclick="toggle(this,'${r.id}','factura_pagada')">
+    ${r.factura_pagada || 'NO'}
+  </button>
 </td>
+
 <td>📷</td>
 `;
     tabla.appendChild(tr);
