@@ -289,39 +289,107 @@ resumenActual = {
   document.getElementById("resultado").innerHTML = html;
 };
   
-  function generarPDFComision(data) {
+function generarPDFComision(data) {
   const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
+  const pdf = new jsPDF("p", "mm", "a4");
 
   let y = 15;
 
-  pdf.setFontSize(14);
+  /* ====== ENCABEZADO ====== */
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(16);
   pdf.text("REPORTE DE COMISIONES", 105, y, { align: "center" });
   y += 10;
 
-  pdf.setFontSize(11);
-  pdf.text(`Ruta: ${data.ruta}`, 10, y); y += 7;
-  pdf.text(`Periodo: ${data.periodo.inicio} al ${data.periodo.fin}`, 10, y); y += 7;
-
-  pdf.text(`Total General de Ventas: $${data.totalVentas.toFixed(2)}`, 10, y); y += 7;
-  pdf.text(`Total General de Comisiones: $${data.totalComisiones.toFixed(2)}`, 10, y); y += 10;
-
-  pdf.setFontSize(12);
-  pdf.text("Comisiones por Departamento", 10, y);
+  pdf.setDrawColor(0);
+  pdf.line(10, y, 200, y);
   y += 8;
 
+  /* ====== DATOS GENERALES ====== */
+  pdf.setFontSize(11);
+  pdf.setFont("helvetica", "normal");
+
+  pdf.text(`Ruta: ${data.ruta}`, 10, y); y += 6;
+  pdf.text(
+    `Periodo: ${data.periodo.inicio} al ${data.periodo.fin}`,
+    10,
+    y
+  );
+  y += 8;
+
+  pdf.text(
+    `Total General de Ventas: $${data.totalVentas.toFixed(2)}`,
+    10,
+    y
+  );
+  y += 6;
+
+  pdf.setFont("helvetica", "bold");
+  pdf.text(
+    `Total General de Comisiones: $${data.totalComisiones.toFixed(2)}`,
+    10,
+    y
+  );
+  y += 10;
+
+  /* ====== TABLA: COMISIONES POR DEPARTAMENTO ====== */
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(12);
+  pdf.text("Comisiones por Departamento", 10, y);
+  y += 6;
+
+  // Encabezados de tabla
   pdf.setFontSize(10);
+  pdf.setFillColor(230, 230, 230);
+  pdf.rect(10, y, 190, 8, "F");
+
+  pdf.text("Departamento", 12, y + 5);
+  pdf.text("Ventas ($)", 120, y + 5, { align: "right" });
+  pdf.text("Comisión ($)", 190, y + 5, { align: "right" });
+
+  y += 8;
+
+  pdf.setFont("helvetica", "normal");
+
   data.departamentos.forEach(d => {
+    if (y > 270) {
+      pdf.addPage();
+      y = 15;
+    }
+
+    pdf.rect(10, y, 190, 8);
+
+    pdf.text(d.nombre, 12, y + 5);
     pdf.text(
-      `• ${d.nombre} — Ventas: $${d.totalVentas.toFixed(2)} | Comisión: $${d.totalComision.toFixed(2)}`,
-      10,
-      y
+      d.totalVentas.toFixed(2),
+      120,
+      y + 5,
+      { align: "right" }
     );
-    y += 6;
-    if (y > 270) { pdf.addPage(); y = 15; }
+    pdf.text(
+      d.totalComision.toFixed(2),
+      190,
+      y + 5,
+      { align: "right" }
+    );
+
+    y += 8;
   });
 
-  pdf.save(`Comisiones_${data.ruta}_${data.periodo.inicio}_${data.periodo.fin}.pdf`);
+  /* ====== PIE ====== */
+  y += 8;
+  pdf.setFontSize(9);
+  pdf.setFont("helvetica", "italic");
+  pdf.text(
+    `Documento generado el ${new Date().toLocaleString()}`,
+    105,
+    y,
+    { align: "center" }
+  );
+
+  pdf.save(
+    `Comisiones_${data.ruta}_${data.periodo.inicio}_${data.periodo.fin}.pdf`
+  );
 }
 window.guardarComision = async function () {
   if (!resumenActual) {
