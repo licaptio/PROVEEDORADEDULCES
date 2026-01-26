@@ -169,13 +169,16 @@ font-size:14px!important;line-height:1.45;
   to{
     background-position: 0 600px;
   }
+}
 
+/* ⬇️ AHORA SÍ, FUERA DEL KEYFRAMES */
 .pos-layout {
   display: grid;
-  grid-template-columns: 2.2fr 1fr; /* carrito | totales */
+  grid-template-columns: 2.2fr 1fr;
   gap: 12px;
   height: calc(100vh - 120px);
 }
+
 #zonaCarrito {
     background: #f8fafc;
     border-radius: 14px;
@@ -378,15 +381,29 @@ font-size:14px!important;line-height:1.45;
     </div>
 
     <div id="zonaTotales">
-        <div class="totals" style="border-radius: 14px; box-shadow: var(--shadow); padding: 16px;">
-            <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
-            <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
-            <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
-            <div class="actions">
-                <button class="btn" id="btnCobrar">Cobrar</button>
-            </div>
-        </div>
-    </div>
+    <div class="panel-cobro">
+
+  <div class="box-total">
+    <span class="label">TOTAL</span>
+    <span class="amount" id="lblTotal">$0.00</span>
+  </div>
+
+  <div class="box-sec">
+    <span>Subtotal</span>
+    <span id="lblSubtotal">$0.00</span>
+  </div>
+
+  <div class="box-sec">
+    <span>Impuestos</span>
+    <span id="lblImpuestos">$0.00</span>
+  </div>
+
+  <button class="btn-cobro-grande" id="btnCobrar">
+    💳 COBRAR
+  </button>
+
+</div>
+
 </div>
 
 <div id="bottomBar">
@@ -1061,7 +1078,11 @@ function mostrarConfirmacionProducto(prod, cant, precioUnit) {
 }
   
   
-function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
+function delItem(id){
+  carrito = carrito.filter(x => x.id !== id);
+  renderDebounced();
+}
+
 window.delItem=delItem;
 
 /* ===========================================================
@@ -1125,8 +1146,12 @@ carrito.forEach(it => {
 function acortarNombre(nombre) {
   if (!nombre) return "";
   const max = 10; // cámbialo a 7 si quieres más compacto
-  return nombre.length > max
-    ? nombre.substring(0, max) + "…"
+
+  function acortarNombre(nombre) {
+  if (!nombre) return "";
+  const max = 10;
+  return [...nombre].length > max
+    ? [...nombre].slice(0, max).join("") + "…"
     : nombre;
 }
   /* ===========================================================
@@ -1160,14 +1185,17 @@ function render() {
   $("#lblImpuestos").textContent = money(impuestos);
   $("#lblTotal").textContent = money(total);
 
-if (descuento > 0) {
-  descuentoInfo.textContent = `Descuento aplicado: ${money(descuento)}`;
-  descuentoInfo.style.display = "block";
-} else {
-  descuentoInfo.textContent = "Descuento aplicado: $0.00";
-  descuentoInfo.style.display = "block";
+if (descuentoInfo) {
+  if (descuento > 0) {
+    descuentoInfo.textContent = `Descuento aplicado: ${money(descuento)}`;
+    descuentoInfo.style.display = "block";
+  } else {
+    descuentoInfo.textContent = "Descuento aplicado: $0.00";
+    descuentoInfo.style.display = "block";
+  }
 }
-} // 👈 CIERRA function render()
+} // 👈 CIERRE REAL DE render()
+
 /* ===========================================================
    ⚙️ SECCIÓN 9.1: Nueva función para manejar los spinners
    =========================================================== */  
@@ -1183,7 +1211,9 @@ function actualizarCantidad(id, nuevaCant) {
   item.cantidad = cant;
 item.precio_unit = obtenerPrecioSegunCantidad(item, cant);
 item.importe = item.cantidad * item.precio_unit;
-  if (productosMayoreo.includes(String(item.codigo))) {
+item.permite_descuento = permiteDescuentoPorCodigo(item);
+
+  if (productosMayoreo.includes(String(item.codigo || "").trim())) {
     if (cant >= 5 && item.precio_unit !== precioAnterior) {
       beep(600, 0.15);
       toast(`💸 Mayoreo aplicado a ${item.nombre}`, "#1e8e3e");
@@ -1203,7 +1233,9 @@ let renderTimer;
 
 function renderDebounced() {
   clearTimeout(renderTimer);
-  renderTimer = setTimeout(render, 100);
+  renderTimer = setTimeout(() => {
+    if (typeof render === "function") render();
+  }, 100);
 }
 
 /* ===========================================================
@@ -1563,15 +1595,13 @@ const montoCambio = $("#montoCambio");
 const descuentoInfo = $("#descuentoInfo");
 
 
-let descuentoAutorizado = 0;
-// 🎯 Fuente única de verdad para descuento activo (FIX ERROR 4)
+  let descuentoAutorizado = 0;
+
+// 🎯 Fuente ÚNICA de verdad para descuento activo
 function getDescuentoActivo() {
-  return Number(
-    localStorage.getItem("desc_porcentaje") ||
-    descuentoAutorizado ||
-    0
-  );
+  return Number(descuentoAutorizado || 0);
 }
+
 
 function abrirCobro() {
   if (carrito.length === 0) {
@@ -1579,7 +1609,7 @@ function abrirCobro() {
     return;
   }
 
-  localStorage.removeItem("desc_porcentaje"); // 🔥 AÑADIR
+  
   descuentoAutorizado = 0;
 
   const tot = calcularTotales(0);
@@ -1596,7 +1626,7 @@ function abrirCobro() {
 function cerrarCobro() {
   modalCobro.style.display = "none";
   descuentoAutorizado = 0;
-  localStorage.removeItem("desc_porcentaje"); // 🔥 AÑADIR
+  
 }
 
 
@@ -1622,7 +1652,7 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
   }
 
   descuentoAutorizado = porc;
-  localStorage.setItem("desc_porcentaje", porc);
+  
 
   const tot = calcularTotales(porc);
   descuentoInfo.textContent = `Descuento aplicado: ${money(tot.descuento)}`;
@@ -1914,7 +1944,8 @@ v.detalle.forEach(p => {
 const cantidad = p.cantidad ?? 0;
 const precioUnit = Number(p.precio_unit || p.precioUnit || 0);
 
-// 💸 Calcular precio unitario con descuento prorrateado
+
+  // 💸 Calcular precio unitario con descuento prorrateado
 let precioConDesc = precioUnit;
 if (v.descuento_porcentaje > 0) {
   const descFactor = (100 - v.descuento_porcentaje) / 100;
@@ -1922,8 +1953,8 @@ if (v.descuento_porcentaje > 0) {
 }
 
 // 💲 Importe correcto
-const importe = cantidad * precioConDesc;
-
+const importe = Number(p.importe || 0);
+  
   tr.innerHTML = `
     <td>${p.nombre}</td>
     <td style="text-align:center">${cantidad.toFixed(2)}</td>
@@ -2174,29 +2205,6 @@ function toast(msg, color = "#0c6cbd") {
     <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
     <div style="text-align:center;font-size:13px;">¡Gracias por su compra!</div>
   </div>
-</div>
-<div id="zonaTotales" class="panel-cobro">
-
-  <div class="box-total">
-    TOTAL<br>
-    <span id="lblTotal">$0.00</span>
-  </div>
-
-  <div class="box-sec">
-    ENTREGADO<br>
-    <span id="lblEntregado">$0.00</span>
-  </div>
-
-  <div class="box-ok">
-    CAMBIO<br>
-    <span id="lblCambio">$0.00</span>
-  </div>
-
-  <button class="btn" style="font-size:22px;height:60px;">
-    💳 COBRAR
-  </button>
-
-</div>
 
 <!-- 🔹 BLOQUE 8: SERVICE WORKER Y LOGOUT -->
 <script>
@@ -2372,8 +2380,3 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
-
-
-
-
-
