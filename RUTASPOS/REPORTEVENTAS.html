@@ -149,10 +149,13 @@ window.generarListado = async function(){
   let dataPorDepto = {};
   let totalGeneral = 0;
   let totalGeneralVentas = 0;
+  let encargadoRuta = "NO DEFINIDO";
 
   snap.forEach(doc=>{
     const v = doc.data();
-
+    if (encargadoRuta === "NO DEFINIDO" && v.usuarioNombre) {
+  encargadoRuta = v.usuarioNombre;
+}
     if(!Array.isArray(v.detalle)) return;
 
     v.detalle.forEach(item=>{
@@ -275,6 +278,7 @@ const cantidad =
   html += `</table>`;
 resumenActual = {
   ruta,
+  encargado: encargadoRuta, // 👈 ESTA LÍNEA FALTABA
   periodo: { inicio: f1, fin: f2 },
   totalVentas: totalGeneralVentas,
   totalComisiones: totalGeneral,
@@ -309,13 +313,15 @@ function generarPDFComision(data) {
   pdf.setFontSize(11);
   pdf.setFont("helvetica", "normal");
 
-  pdf.text(`Ruta: ${data.ruta}`, 10, y); y += 6;
-  pdf.text(
-    `Periodo: ${data.periodo.inicio} al ${data.periodo.fin}`,
-    10,
-    y
-  );
-  y += 8;
+ pdf.text(`Ruta: ${data.ruta}`, 10, y); y += 6;
+pdf.text(`Encargado de Ruta: ${data.encargado}`, 10, y); y += 6;
+pdf.text(
+  `Periodo: ${data.periodo.inicio} al ${data.periodo.fin}`,
+  10,
+  y
+);
+y += 8;
+
 
   pdf.text(
     `Total General de Ventas: $${data.totalVentas.toFixed(2)}`,
@@ -419,3 +425,4 @@ window.guardarComision = async function () {
 </script>
 </body>
 </html>
+
