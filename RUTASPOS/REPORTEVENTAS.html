@@ -364,30 +364,33 @@ y += 10;
 
   pdf.setFont("helvetica", "normal");
 
-  data.departamentos.forEach(d => {
-    if (y > 270) {
-      pdf.addPage();
-      y = 15;
-    }
+data.departamentos.forEach(d => {
+  if (y > 270) {
+    pdf.addPage();
+    y = 15;
+  }
 
-    pdf.rect(10, y, 190, 8);
+  pdf.rect(10, y, 190, 8);
 
-pdf.text(
-  formatoMoneda(d.totalVentas),
-  120,
-  y + 5,
-  { align: "right" }
-);
+  // 👇 ESTA LÍNEA ES LA QUE FALTABA
+  pdf.text(d.nombre, 12, y + 5);
 
-pdf.text(
-  formatoMoneda(d.totalComision),
-  190,
-  y + 5,
-  { align: "right" }
-);
+  pdf.text(
+    formatoMoneda(d.totalVentas),
+    120,
+    y + 5,
+    { align: "right" }
+  );
 
-    y += 8;
-  });
+  pdf.text(
+    formatoMoneda(d.totalComision),
+    190,
+    y + 5,
+    { align: "right" }
+  );
+
+  y += 8;
+});
 
   /* ====== PIE ====== */
   y += 8;
