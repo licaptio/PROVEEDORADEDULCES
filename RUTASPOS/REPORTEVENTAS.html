@@ -146,7 +146,12 @@ window.generarListado = async function(){
       const depto = item.departamento_info?.nombre || "SIN DEPTO";
       const comision = Number(item.comision_monto) || 0;
       const importe = Number(item.importe) || 0;
+const precioUnit = Number(item.precio_unit) || 0;
 
+const cantidad =
+  Number(item.cantidad) ||
+  Number(item.qty) ||
+  (precioUnit > 0 ? importe / precioUnit : 0);
       if(!dataPorDepto[depto]){
         dataPorDepto[depto] = {
           filas: [],
@@ -160,6 +165,7 @@ window.generarListado = async function(){
         fecha: v.fecha_txt || "-",
         codigo: item.codigo || "-",
         nombre: item.nombre || "-",
+        cantidad: cantidad,                 // ✅ YA NO ES undefined
         precio: Number(item.precio_unit) || 0,
         importe: importe,
         comisionValor: item.comision_valor || 0,
