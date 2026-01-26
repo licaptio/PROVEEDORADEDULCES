@@ -230,7 +230,23 @@ function render(rows){
     const tr = document.createElement('tr');
     tr.innerHTML = `
 <td>${fmtFecha(r.fecha)}</td>
-<td>${r.uuid_cfdi ? r.uuid_cfdi.slice(0,18) : ''}</td>
+<td>
+  ${r.uuid_cfdi ? `
+    <a
+      href="./detalle.html?uuid=${r.uuid_cfdi}"
+      target="_blank"
+      style="
+        color:#0c6cbd;
+        font-weight:bold;
+        text-decoration:none;
+      "
+      title="Ver factura CFDI"
+    >
+      ${r.uuid_cfdi.slice(0,18)}
+    </a>
+  ` : ''}
+</td>
+
 <td>${r.rfc_emisor || ''}</td>
 <td title="${escapeHtml(provCompleto)}">${provCorto}</td>
 <td>${(r.serie || '')}-${(r.folio || '')}</td>
