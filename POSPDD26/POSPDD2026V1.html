@@ -176,8 +176,130 @@ font-size:14px!important;line-height:1.45;
   gap: 12px;
   height: calc(100vh - 120px);
 }
-
+#zonaCarrito {
+    background: #f8fafc;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
+
+#zonaCarrito header {
+    background: #00416A;  /* Cambié a azul para que coincida con tu tema */
+    color: #fff;
+    padding: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    text-align: center;
+    margin: 0;
+    border-radius: 14px 14px 0 0;
+}
+#zonaTotales .totals {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+}
+ /* 🎯 PANEL DE COBRO PROFESIONAL */
+.panel-cobro {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+}
+
+.box-total {
+    background: #00416A; /* Azul principal de tu tema */
+    color: #fff;
+    padding: 20px;
+    border-radius: 14px;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 65, 106, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.box-total .label {
+    font-size: 14px;
+    opacity: 0.9;
+    font-weight: 600;
+}
+
+.box-total .amount {
+    font-size: 32px;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.box-sec {
+    background: #0c6cbd; /* Azul secundario */
+    color: #fff;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 18px;
+    text-align: right;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.box-ok {
+    background: #1e8e3e; /* Verde de éxito */
+    color: #fff;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 18px;
+    text-align: right;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-cobro-grande {
+    flex: 1;
+    background: linear-gradient(180deg, #1e8e3e, #166b2d);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 18px;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(30, 142, 62, 0.3);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-cobro-grande:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 6px rgba(30, 142, 62, 0.3);
+}
+
+/* 📱 Adaptación responsive */
+@media (max-width: 768px) {
+    .box-total {
+        padding: 16px;
+        font-size: 20px;
+    }
+    
+    .box-total .amount {
+        font-size: 28px;
+    }
+    
+    .btn-cobro-grande {
+        padding: 16px;
+        font-size: 18px;
+    }
+} 
 </style>
 </head>
 <body>
@@ -217,8 +339,10 @@ font-size:14px!important;line-height:1.45;
 <!-- 🧩 CUERPO PRINCIPAL -->
 <div class="main-content pos-layout">
     <div id="zonaCarrito">
-        <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
-        <section id="pantallaVenta" class="controls">
+        <header>Venta de productos</header>
+        
+        <!-- 🎯 BLOQUE DE CONTROLES -->
+        <section id="pantallaVenta" class="controls" style="padding: 12px;">
             <!-- 🧍‍♂️ CAMPO CLIENTE -->
             <div class="field">
                 <label>Cliente</label>
@@ -235,8 +359,8 @@ font-size:14px!important;line-height:1.45;
             </div>
         </section>
 
-        <!-- 🧾 BLOQUE NUEVO — CARRITO FIJO -->
-        <div id="carrito-container">
+        <!-- 🧾 CARRITO DE COMPRAS -->
+        <div id="carrito-container" style="flex: 1; margin: 0 12px 12px 12px; border-radius: 10px;">
             <div class="table-wrap">
                 <table>
                     <thead>
@@ -254,7 +378,7 @@ font-size:14px!important;line-height:1.45;
     </div>
 
     <div id="zonaTotales">
-        <div class="totals">
+        <div class="totals" style="border-radius: 14px; box-shadow: var(--shadow); padding: 16px;">
             <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
             <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
             <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
@@ -2051,6 +2175,28 @@ function toast(msg, color = "#0c6cbd") {
     <div style="text-align:center;font-size:13px;">¡Gracias por su compra!</div>
   </div>
 </div>
+<div id="zonaTotales" class="panel-cobro">
+
+  <div class="box-total">
+    TOTAL<br>
+    <span id="lblTotal">$0.00</span>
+  </div>
+
+  <div class="box-sec">
+    ENTREGADO<br>
+    <span id="lblEntregado">$0.00</span>
+  </div>
+
+  <div class="box-ok">
+    CAMBIO<br>
+    <span id="lblCambio">$0.00</span>
+  </div>
+
+  <button class="btn" style="font-size:22px;height:60px;">
+    💳 COBRAR
+  </button>
+
+</div>
 
 <!-- 🔹 BLOQUE 8: SERVICE WORKER Y LOGOUT -->
 <script>
@@ -2226,6 +2372,7 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
+
 
 
 
