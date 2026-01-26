@@ -279,14 +279,17 @@ function render(rows){
   </button>
 </td>
 
-<td>
+<td class="fotos">
   ${
-    Array.isArray(r.fotos) && r.fotos.length > 0 && r.fotos[0]
-      ? `<a
-           href="${r.fotos[0]}"
-           target="_blank"
-           title="Ver factura física"
-         >📷</a>`
+    Array.isArray(r.fotos) && r.fotos.length
+      ? r.fotos.map((url, i) => `
+          <a
+            href="${url}"
+            target="_blank"
+            title="Foto ${i + 1}"
+            style="margin-right:4px;text-decoration:none;"
+          >📷</a>
+        `).join('')
       : ''
   }
 </td>
