@@ -197,6 +197,7 @@ window.generarListado = async function(){
         <th>Código</th>
         <th>Descripción</th>
         <th>Departamento</th>
+        <th>Cantidad</th>     
         <th>Precio Unit.</th>
         <th>Total</th>
         <th>% Comisión</th>
@@ -220,6 +221,7 @@ window.generarListado = async function(){
           <td>${f.codigo}</td>
           <td>${f.nombre}</td>
           <td>${depto}</td>
+          <td>${f.cantidad}</td> <!-- 👈 NUEVO -->
           <td>$${f.precio.toFixed(2)}</td>
           <td>$${f.importe.toFixed(2)}</td>
           <td>${f.comisionValor}%</td>
