@@ -173,7 +173,8 @@ const { data, error } = await db
     folio,
     total,
     factura_fisicamente,
-    factura_pagada
+    factura_pagada,
+    fotos
   `)
   .gte('fecha', desde.toISOString())
   .lte('fecha', hoy.toISOString())
@@ -266,7 +267,18 @@ function render(rows){
   </button>
 </td>
 
-<td>📷</td>
+<td>
+  ${
+    Array.isArray(r.fotos) && r.fotos.length > 0 && r.fotos[0]
+      ? `<a
+           href="${r.fotos[0]}"
+           target="_blank"
+           title="Ver factura física"
+         >📷</a>`
+      : ''
+  }
+</td>
+
 `;
     tabla.appendChild(tr);
   });
