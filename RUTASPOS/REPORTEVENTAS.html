@@ -143,8 +143,15 @@ window.generarListado = async function(){
 
     v.detalle.forEach(item=>{
 
-      const depto = item.departamento_info?.nombre || "SIN DEPTO";
-      const comision = Number(item.comision_monto) || 0;
+     const depto = item.departamento_info?.nombre || "SIN DEPTO";
+
+let comision = Number(item.comision_monto) || 0;
+
+// 🔥 AJUSTE EXCLUSIVO PARA CIGARROS (50 centavos por paquete)
+if (depto.toUpperCase().includes("CIGARRO")) {
+  comision = +(comision / 10).toFixed(2);
+}
+
       const importe = Number(item.importe) || 0;
 const precioUnit = Number(item.precio_unit) || 0;
 
