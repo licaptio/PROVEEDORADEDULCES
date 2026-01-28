@@ -90,7 +90,6 @@ const FISCAL_EMISOR = {
 
 
 let ventasCache = [];
-let ventaSeleccionadaId = null;
  
 /* ======================================================
    FECHA
@@ -149,10 +148,6 @@ function pintarVentas(ventas) {
       <td>${v.cliente || "-"}</td>
       <td>$${Number(v.resumen_financiero.total).toFixed(2)}</td>
     `;
-    tr.querySelector("input").onchange = e => {
-      ventaSeleccionadaId = e.target.value;
-      console.log("✔ Venta:", ventaSeleccionadaId);
-    };
     tbody.appendChild(tr);
   });
 }
@@ -234,6 +229,7 @@ async function generarTXT() {
 
   if (!ventasCache.length)
     return alert("No hay ventas cargadas");
+  const ventasParaFactura = ventasCache;
 
   const grupos = [];            // 03 por ticket
   const impuestosGlobales = {}; // 04 global
@@ -246,10 +242,6 @@ async function generarTXT() {
     if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa: Number(tasa), base: 0 };
     impuestosGlobales[key].base += Number(base) || 0;
   }
-
-  const ventasParaFactura = (ventaSeleccionadaId)
-    ? ventasCache.filter(v => v.id === ventaSeleccionadaId)
-    : ventasCache;
 
   if (ventasParaFactura.length === 0) return alert("No hay ventas para procesar");
 
@@ -464,4 +456,5 @@ function descargar(contenido, nombreArchivo) {
 </script>
 </body>
 </html>
+
 
