@@ -310,7 +310,7 @@ const clase30 = dias >= 30 ? "dias-30-morado" : "";
 
 html += `
 <tr class="${clase30}">
-  <td>${f.fecha}</td>
+  <td>${formatearFecha(f.fecha)}</td>
   <td>${dias}</td>
   <td>
     <a href="detalle.html?uuid=${f.uuid_cfdi}" target="_blank">
@@ -399,9 +399,16 @@ async function marcarPagada(uuid_cfdi, boton) {
     setTimeout(() => fila.remove(), 1200);
   }, 5000);
 }
+function formatearFecha(fecha) {
+  if (!fecha) return "";
 
-document.addEventListener("DOMContentLoaded", cargar);
-      
+  // Si viene Date o string ISO, nos quedamos con YYYY-MM-DD
+  return fecha.toString().split("T")[0];
+}
+
+
+    
+document.addEventListener("DOMContentLoaded", cargar);   
 </script>
 </body>
 </html>
