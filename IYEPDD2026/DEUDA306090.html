@@ -122,7 +122,16 @@
   text-overflow: ellipsis;
   display: inline-block;
   vertical-align: middle;
-}    
+}  
+.col-fecha {
+  white-space: nowrap;   /* ❌ no salto de línea */
+  font-size: 0.85em;     /* 👌 más compacta */
+  width: 90px;           /* ancho controlado */
+  max-width: 90px;
+  text-align: center;
+}
+
+    
 </style>
 </head>
 <body>
@@ -318,7 +327,7 @@ const clase30 = dias >= 30 ? "dias-30-morado" : "";
 
 html += `
 <tr class="${clase30}">
-  <td>${formatearFecha(f.fecha)}</td>
+  <td class="col-fecha">${formatearFecha(f.fecha)}</td>
   <td>${dias}</td>
 <td>
   <a
@@ -419,6 +428,12 @@ function formatearFecha(fecha) {
   return fecha.toString().split("T")[0];
 }
 
+function formatearFecha(fechaStr) {
+  if (!fechaStr) return "";
+
+  // Si viene tipo: 2026-01-06T21:11:20+00:00
+  return fechaStr.split("T")[0]; // → 2026-01-06
+}
 
     
 document.addEventListener("DOMContentLoaded", cargar);   
