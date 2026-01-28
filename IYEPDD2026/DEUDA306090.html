@@ -85,7 +85,29 @@
   opacity: 0;
   transition: opacity 1.2s ease;
 }
-  </style>
+.btn-pagar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background-color: #28a745; /* verde */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s;
+}
+
+.btn-pagar:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 4px rgba(40,167,69,0.25);
+}
+
+.btn-pagar:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+</style>
 </head>
 <body>
   <h2>📌 Facturas Pendientes</h2>
@@ -298,11 +320,10 @@ html += `
   </tr>
   <td style="text-align:center">
   <button
-  style="background:#dc3545;padding:6px 10px;border-radius:6px;font-size:12px"
-  onclick="marcarPagada('${f.uuid_cfdi}', this)">
-  💰 Pagada
-</button>
-
+    class="btn-pagar"
+    title="Marcar como pagada"
+    onclick="marcarPagada('${f.uuid_cfdi}', this)">
+  </button>
 </td>
 `;
 
@@ -338,7 +359,10 @@ function calcularDias(fechaStr) {
     }
 
 async function marcarPagada(uuid_cfdi, boton) {
-  if (!confirm("¿Marcar esta factura como PAGADA?")) return;
+  const fila = boton.closest("tr");
+
+  boton.disabled = true;
+  boton.style.backgroundColor = "#6c757d"; // gris mientras procesa
 
   const { error } = await _supabase
     .from("deuda_limpia_pdd")
@@ -348,14 +372,19 @@ async function marcarPagada(uuid_cfdi, boton) {
   if (error) {
     alert("❌ Error al marcar como pagada");
     console.error(error);
+    boton.disabled = false;
+    boton.style.backgroundColor = "#28a745";
     return;
   }
 
-  // Quitar la fila visualmente (sin recargar)
-  const fila = boton.closest("tr");
-  fila.style.transition = "opacity .3s";
-  fila.style.opacity = "0";
-  setTimeout(() => fila.remove(), 300);
+  // feedback suave
+  fila.style.background = "#e8f5e9";
+
+  // efecto Thanos (5s)
+  setTimeout(() => {
+    fila.classList.add("desintegrando");
+    setTimeout(() => fila.remove(), 1200);
+  }, 5000);
 }
 async function marcarPagada(uuid_cfdi, boton) {
   const fila = boton.closest("tr");
