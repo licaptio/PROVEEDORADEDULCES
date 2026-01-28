@@ -189,7 +189,7 @@ const { data, error } = await db
   `)
   .gte('fecha', desde.toISOString())
   .lte('fecha', hoy.toISOString())
-  .order('nombre_emisor', { ascending: true })
+  .order('razon_social_emisor', { ascending: true })
   .order('fecha', { ascending: true })
   .order('id', { ascending: true })
   .range(page * limit, page * limit + limit - 1);  // ← ESTO FALTABA
