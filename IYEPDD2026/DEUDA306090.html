@@ -260,18 +260,14 @@ function mostrarTabla(data) {
 
     const dias = calcularDias(f.fecha);
 
-    // === PROVEEDOR REAL ===
-    let proveedor = f.proveedor_unificado;
+ // === PROVEEDOR REAL (v2) ===
+let proveedor =
+  (f.proveedor && f.proveedor.trim() !== "")
+    ? f.proveedor
+    : (f.razon_social_emisor && f.razon_social_emisor.trim() !== "")
+      ? f.razon_social_emisor
+      : f.rfc_emisor;
 
-    if (f.razon_social_emisor && f.razon_social_emisor.trim() !== "") {
-      proveedor = f.razon_social_emisor;
-    }
-    else if (f.nombre_emisor && f.nombre_emisor.trim() !== "") {
-      proveedor = f.nombre_emisor;
-    }
-    else {
-      proveedor = f.rfc_emisor;
-    }
 
     // === FOLIO REAL ===
     const folioFinal = f.serie_folio || "—";
