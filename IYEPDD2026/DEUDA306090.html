@@ -86,16 +86,24 @@
   transition: opacity 1.2s ease;
 }
 .btn-pagar {
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
   background-color: #28a745; /* verde */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s;
+  display: inline-block;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s;
+}
+
+.btn-pagar:hover {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 3px rgba(40,167,69,0.25);
+}
+
+.btn-pagar:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .btn-pagar:hover {
