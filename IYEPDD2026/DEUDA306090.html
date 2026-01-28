@@ -115,6 +115,14 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+.uuid-corto {
+  max-width: 180px;          /* ajusta a tu gusto */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  vertical-align: middle;
+}    
 </style>
 </head>
 <body>
@@ -312,11 +320,16 @@ html += `
 <tr class="${clase30}">
   <td>${formatearFecha(f.fecha)}</td>
   <td>${dias}</td>
-  <td>
-    <a href="detalle.html?uuid=${f.uuid_cfdi}" target="_blank">
-      ${f.uuid_cfdi}
-    </a>
-  </td>
+<td>
+  <a
+    href="detalle.html?uuid=${f.uuid_cfdi}"
+    target="_blank"
+    class="uuid-corto"
+    title="${f.uuid_cfdi}"
+  >
+    ${f.uuid_cfdi}
+  </a>
+</td>
   <td>${f.rfc_emisor}</td>
   <td class="proveedor-destacado">${proveedor}</td>
   <td>${folioFinal}</td>
