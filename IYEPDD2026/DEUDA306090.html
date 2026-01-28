@@ -86,7 +86,6 @@
 </head>
 <body>
   <h2>📌 Facturas Pendientes</h2>
-  <button onclick="enviarTelegram()">📤 Enviar resumen por Telegram</button>
   <div id="tabla"></div>
 
   <script>
@@ -136,9 +135,6 @@ const proveedoresContado = [
   "DOLORES BRISEÑO MANCHA",
   "COMISION FEDERAL DE ELECTRICIDAD"
 ];
-
-    const tabla = "deuda_limpia_pdd";
-    let resumenTelegram = "";
 
     async function cargar() {
 const { data, error } = await _supabase
@@ -244,35 +240,6 @@ document.getElementById("tabla").insertAdjacentHTML("beforebegin", `
 
 mostrarTabla(ordenadosFinal);
 
-// =========================
-// FACTURAS VENCIDAS 30+
-// =========================
-const vencidas30 = ordenadosFinal.filter(f => calcularDias(f.fecha) > 30);
-
-// =========================
-// ESPECIALES QUE YA VENCIERON
-// =========================
-const vencidasEspeciales = ordenadosFinal.filter(f => {
-  const razon = (f.razon_social_emisor || "").toUpperCase().trim();
-  const dias = calcularDias(f.fecha);
-  return proveedoresEspeciales[razon] && dias > proveedoresEspeciales[razon];
-});
-
-const especialesUnicas = vencidasEspeciales.filter(esp => {
-  const diasEsp = calcularDias(esp.fecha);
-  return diasEsp <= 30;
-});
-
-// TEXTO PARA TELEGRAM
-resumenTelegram =
-  generarResumenTextoEspeciales(especialesUnicas) +
-  "\n\n" +
-  generarResumenTexto(vencidas30) +
-  "\n\n" +
-  generarResumenTextoContado(ordenadosFinal) +
-  "\n\n📩 Reporte generado por *Loba | IA y BOT de Operaciones*";
-
-}
 
 function mostrarTabla(data) {
 
@@ -354,7 +321,6 @@ function calcularDias(fechaStr) {
   return Math.floor(diff / 86400000);
 }
 
-
     function obtenerClaseVencimiento(d) {
       if (d > 90) return "vencida-mas";
       if (d > 60) return "vencida-90";
@@ -362,150 +328,6 @@ function calcularDias(fechaStr) {
       return "vencida-30";
     }
 
-function generarResumenTexto(facturas) {
-  if (facturas.length === 0) return "✅ No hay facturas vencidas mayores a 30 días.";
-
-  const frasesMotivacionales = [
-    "⚔️ *Con fuerza, como Loba. Cada deuda es una batalla ganada.*",
-    "🛡️ *Hoy no retrocedas. Acomoda la armadura y sigue firme.*",
-    "🔥 *Lo que no se paga, se enfrenta. Y tú no le huyes a nada.*",
-    "🐺 *Una loba no duda, actúa. Tú ya sabes qué hacer.*",
-    "🏹 *Hoy es el día de marcar territorio. ¡Hazlo con estilo!*",
-    "💼 *Hoy cobramos. No es presión, es misión.*",
-    "🧭 *La deuda no se pierde, solo espera que la señales.*",
-    "🪓 *Un tajo a tiempo es mejor que mil excusas.*",
-    "🩸 *Deja que Loba marque el camino, pero tú ejecuta sin temblar.*",
-    "📢 *Lo que se calla, se acumula. Cuando actúas, te liberas. ¡Hazlo ya!*",
-    "🏰 *No hay castillo sin contabilidad. Y tú ya estás tomando el trono.*"
-  ];
-  const fraseAleatoria = frasesMotivacionales[Math.floor(Math.random() * frasesMotivacionales.length)];
-let texto = `${fraseAleatoria}\n\n📌 *Resumen de Facturas Pendientes:*\n`;
-for (const f of facturas) {
-  const dias = calcularDias(f.fecha);
-  const fisica = (f.factura_fisicamente || '').toUpperCase() === 'SI' ? '✅' : '❌';
-  const fuego = dias > 34 ? "🔥🔥🔥" : "";
-texto += `\n${fuego} • *${f.razon_social_emisor}* - ${f.factura || '-'}\n  $${parseFloat(f.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })} - ${dias} días ${fuego} - Física: ${fisica}\n\n`;
-}
- return texto; // <- Cierre correcto aquí
-}
-  function generarResumenTextoEspeciales(facturas) {
-  if (facturas.length === 0) return "✅ No hay vencimientos especiales fuera de plazo.";
-
-  let texto = "📌 *Vencimientos según plazo acordado:*\n";
-
-  for (const f of facturas) {
-    const razon = (f.razon_social_emisor || "").toUpperCase().trim();
-    const dias = calcularDias(f.fecha);
-    const fisica = (f.factura_fisicamente || '').toUpperCase() === 'SI' ? '✅' : '❌';
-    const plazo = proveedoresEspeciales[razon] || '?';
-    texto += `\n• *${f.razon_social_emisor}* - ${f.factura || '-'}\n  $${parseFloat(f.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })} - ${dias} días (Plazo: ${plazo}) - Física: ${fisica}`;
-  }
-
-   return texto;
-}
-function generarResumenTextoContado(facturas) {
-  const encontrados = facturas.filter(f => {
-    const razon = (f.razon_social_emisor || "").toUpperCase().trim();
-    return proveedoresContado.includes(razon);
-  });
-
-  if (encontrados.length === 0) return "";
-
-  let texto = "📌 *Proveedores sin crédito (facturan contado o ya pagado):*\n";
-  texto += "🧹 Favor de depurar si no deben considerarse deuda.\n";
-
-  for (const f of encontrados) {
-    const dias = calcularDias(f.fecha);
-    texto += `\n• ${f.razon_social_emisor} - ${f.factura || '-'} - ${dias} días`;
-  }
-
-  return texto;
-}
-
-
-async function enviarTelegram() {
-  const telegramToken = "7349070760:AAHYA8YPoDWfUuLMjgUDubRi9CSYZi4Oirg";
-  const chatId = "6617988297";
-  if (!telegramToken || !chatId) return alert("Falta configurar el TOKEN o el CHAT ID.");
-
-  // 1) Escapar para MarkdownV2
-  let texto = escapeMarkdownV2(resumenTelegram).trim();
-
-  // ✅ Rehabilita negritas para segmentos *...* que pusiste en tus generadores
-texto = texto.replace(/\\\*(.+?)\\\*/g, '*$1*');
-  
-  // 2) Partir por BYTES UTF-8 (no por caracteres)
-  const partes = splitByUtf8Bytes(texto, 4000); // margen bajo 4096
-
-  try {
-for (let parte of partes) {
-  // Balancear negritas antes de enviar
-  parte = balanceMarkdownBold(parte);
-
-  const res = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: parte,
-      parse_mode: "MarkdownV2",
-      disable_web_page_preview: true
-    })
-  });
-
-      const body = await res.json();
-      if (!body.ok) {
-        console.error("❌ Telegram error:", body);
-        alert("Error al enviar: " + (body.description || "desconocido"));
-        return;
-      }
-    }
-    alert("Resumen enviado por Telegram ✅");
-  } catch (err) {
-    console.error("❌ Error en el envío:", err);
-    alert("Hubo un error al enviar el resumen");
-  }
-}
-
-// Escapa caracteres reservados para MarkdownV2
-function escapeMarkdownV2(text) {
-  return text
-    .replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1')
-    .replace(/</g, '\\<')
-    .replace(/>/g, '\\>');
-}
-
-// Corta por BYTES UTF-8 sin romper emojis
-function splitByUtf8Bytes(str, maxBytes) {
-  const enc = new TextEncoder();
-  const partes = [];
-  let actual = '';
-  let bytesActual = 0;
-
-  for (const ch of str) { // recorre por code points
-    const b = enc.encode(ch).length;
-    if (bytesActual + b > maxBytes) {
-      partes.push(actual);
-      actual = ch;
-      bytesActual = b;
-    } else {
-      actual += ch;
-      bytesActual += b;
-    }
-  }
-  if (actual) partes.push(actual);
-  return partes;
-}
-
-    // Balancea negritas en MarkdownV2
-function balanceMarkdownBold(str) {
-  const count = (str.match(/\*/g) || []).length;
-  if (count % 2 !== 0) {
-    // Si hay un número impar de asteriscos, cerramos con uno más
-    str += "*";
-  }
-  return str;
-}
 
     document.addEventListener("DOMContentLoaded", cargar);
   </script>
