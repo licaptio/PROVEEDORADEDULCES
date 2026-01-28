@@ -81,7 +81,10 @@
   font-weight: bold;
   color: #4a148c;
 }
-
+.desintegrando {
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
   </style>
 </head>
 <body>
@@ -244,17 +247,18 @@ mostrarTabla(ordenadosFinal);
 
 function mostrarTabla(data) {
 
-  let html = `<table><thead><tr>
-    <th>Fecha</th>
-    <th>Días</th>
-    <th>UUID</th>
-    <th>RFC</th>
-    <th>Proveedor</th>
-    <th>Serie/Folio</th>
-    <th>Total</th>
-    <th>Física</th>
-    <th>Fotos</th>
-  </tr></thead><tbody>`;
+let html = `<table><thead><tr>
+  <th>Fecha</th>
+  <th>Días</th>
+  <th>UUID</th>
+  <th>RFC</th>
+  <th>Proveedor</th>
+  <th>Serie/Folio</th>
+  <th>Total</th>
+  <th>Física</th>
+  <th>Fotos</th>
+  <th>Acción</th>
+</tr></thead><tbody>`;
 
   for (const f of data) {
 
@@ -292,6 +296,14 @@ html += `
       }
     </td>
   </tr>
+  <td style="text-align:center">
+  <button
+  style="background:#dc3545;padding:6px 10px;border-radius:6px;font-size:12px"
+  onclick="marcarPagada('${f.uuid_cfdi}', this)">
+  💰 Pagada
+</button>
+
+</td>
 `;
 
   }
@@ -325,6 +337,57 @@ function calcularDias(fechaStr) {
       return "vencida-30";
     }
 
+async function marcarPagada(uuid_cfdi, boton) {
+  if (!confirm("¿Marcar esta factura como PAGADA?")) return;
+
+  const { error } = await _supabase
+    .from("deuda_limpia_pdd")
+    .update({ factura_pagada: "SI" })
+    .eq("uuid_cfdi", uuid_cfdi);
+
+  if (error) {
+    alert("❌ Error al marcar como pagada");
+    console.error(error);
+    return;
+  }
+
+  // Quitar la fila visualmente (sin recargar)
+  const fila = boton.closest("tr");
+  fila.style.transition = "opacity .3s";
+  fila.style.opacity = "0";
+  setTimeout(() => fila.remove(), 300);
+}
+async function marcarPagada(uuid_cfdi, boton) {
+  const fila = boton.closest("tr");
+
+  // Desactivar botón para que no lo piquen dos veces
+  boton.disabled = true;
+  boton.textContent = "⌛ Procesando";
+
+  // 1️⃣ Guardar INMEDIATO en BD
+  const { error } = await _supabase
+    .from("deuda_limpia_pdd")
+    .update({ factura_pagada: "SI" })
+    .eq("uuid_cfdi", uuid_cfdi);
+
+  if (error) {
+    alert("❌ Error al marcar como pagada");
+    console.error(error);
+    boton.disabled = false;
+    boton.textContent = "💰 Pagada";
+    return;
+  }
+
+  // 2️⃣ Feedback visual inmediato
+  fila.style.background = "#e8f5e9"; // verde suave
+  boton.textContent = "✔ Pagada";
+
+  // 3️⃣ Delay tipo Thanos (5 segundos)
+  setTimeout(() => {
+    fila.classList.add("desintegrando");
+    setTimeout(() => fila.remove(), 1200);
+  }, 5000);
+}
 
 document.addEventListener("DOMContentLoaded", cargar);
       
