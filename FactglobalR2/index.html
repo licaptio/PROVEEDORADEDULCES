@@ -38,7 +38,6 @@ button { padding: 10px 16px; font-size: 14px; cursor: pointer; }
   <th>Hora</th>
   <th>Cliente</th>
   <th>Total</th>
-  <th>✔</th>
 </tr>
 </thead>
 <tbody id="ventas"></tbody>
@@ -91,7 +90,7 @@ const FISCAL_EMISOR = {
 
 
 let ventasCache = [];
-let ventaSeleccionadaId = null;
+
  
 /* ======================================================
    FECHA
@@ -149,12 +148,7 @@ function pintarVentas(ventas) {
       <td>${v.fecha.toDate().toLocaleTimeString()}</td>
       <td>${v.cliente || "-"}</td>
       <td>$${Number(v.resumen_financiero.total).toFixed(2)}</td>
-      <td><input type="radio" name="venta" value="${v.id}"></td>
     `;
-    tr.querySelector("input").onchange = e => {
-      ventaSeleccionadaId = e.target.value;
-      console.log("✔ Venta:", ventaSeleccionadaId);
-    };
     tbody.appendChild(tr);
   });
 }
@@ -249,9 +243,7 @@ async function generarTXT() {
     impuestosGlobales[key].base += Number(base) || 0;
   }
 
-  const ventasParaFactura = (ventaSeleccionadaId)
-    ? ventasCache.filter(v => v.id === ventaSeleccionadaId)
-    : ventasCache;
+const ventasParaFactura = ventasCache;
 
   if (ventasParaFactura.length === 0) return alert("No hay ventas para procesar");
 
@@ -465,4 +457,5 @@ function descargar(contenido, nombreArchivo) {
 }
 </script>
 </body>
+
 </html>
