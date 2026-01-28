@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resumen Deudas No Pagadas</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      font-size: 0.9em;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+      position: sticky;
+      top: 0;
+    }
+    .vencida-30 { background: #fff8e1; }
+    .vencida-60 { background: #ffe082; }
+    .vencida-90 { background: #ffca28; }
+    .vencida-mas { background: #ff7043; color: white; }
+    .proveedor-destacado { font-weight: bold; color: #2c3e50; }
+    button {
+      margin: 1rem 0;
+      padding: 10px 20px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover { background: #218838; }
+    td.numero { text-align: right; }
+.proveedor-especial {
+  background-color: #d0ecff !important; /* azul claro */
+  animation: parpadeo 1.6s infinite;
+}
+@keyframes parpadeo {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+.proveedor-especial-vencido {
+  background-color: #ede7f6 !important; /* Morado claro */
+  animation: parpadeo-morado 1.6s infinite;
+}
+
+@keyframes parpadeo-morado {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+.proveedor-contado {
+  background-color: #d0f0ff !important; /* celeste claro */
+  animation: parpadeo-celeste 1.5s infinite;
+  color: #003344;
+  font-weight: bold;
+}
+
+@keyframes parpadeo-celeste {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+.dias-30-morado {
+  background-color: #ede7f6 !important; /* Morado claro */
+  animation: parpadeo-morado 1.6s infinite;
+  font-weight: bold;
+  color: #4a148c;
+}
+
+  </style>
+</head>
+<body>
+  <h2>📌 Facturas Pendientes</h2>
+  <button onclick="enviarTelegram()">📤 Enviar resumen por Telegram</button>
+  <div id="tabla"></div>
+
+  <script>
+const _supabase = window.supabase.createClient(
+  'https://cvpbtjlupswbyxenugpz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+);
+const proveedoresEspeciales = {
+  "ROBERTO CANTU OZUNA": 12,
+  "DECASA DEL CENTRO": 20,
+  "DULCES LAS DELICIAS": 28,
+  "GUSTAVO MARTINEZ PLATAS": 10,
+  "EDDY HERNANDEZ VILLARREAL": 7,
+  "DISTRIBUIDORA DE DULCES DEL NORTE": 27,
+  "INOCENCIO DELGADO MARQUEZ": 15,
+  "DUL-TAM PAVITO": 7,
+  "LOCALIZACION ESPECIALIZADA GPS": 2,
+  "LUIS FERNANDO KARR GARCIA": 2, 
+  "DISTRIBUIDORA DE PRODUCTOS DESHIDRATADOS": 28,
+  "DETALLE Y DISTRIBUCIONES": 20,
+  "PRODUCTOS VIGAR": 15,
+  "DISTRIBUIDORA DE LA ROSA": 15,
+  "COMERCIALIZADORA INDUSTRIAL IDALI": 15,
+  "MAXILUM": 15,
+  "DESFICO": 7,
+  "GRUPO CHI-SO": 15,
+  "ABARROTES": 25
+};
+const proveedoresContado = [
+  "BBVA MEXICO, S.A., INSTITUCION DE BANCA MULTIPLE, GRUPO FINANCIERO BBVA MEXICO",
+  "BANCO SANTANDER MEXICO S.A., INSTITUCION DE BANCA MULTIPLE, GRUPO FINANCIERO SANTANDER MEXICO",
+  "MARIA IMELDA CHAPA PARAS",
+  "JOSE ANTONIO PEÑA MARTINEZ",
+  "COMERCIALIZADORA PEPSICO MEXICO",
+  "DISTRIBUIDORA ARCA CONTINENTAL",
+  "WINETPC",
+  "GASNGO MEXICO",
+  "RADIOMOVIL DIPSA",	
+  "SERVICIOS GASOLINEROS DE MEXICO",	
+  "PEÑAFIEL BEBIDAS",
+  "DELIA EUSTOLIA TORRES GARCIA",
+  "BONAFONT",
+  "BOTANAS Y DERIVADOS",
+  "ANDRES EULALIO RAMIREZ CRUZ",
+  "TELEFONOS DE MEXICO",
+  "LA CACHOTA",
+  "DOLORES BRISEÑO MANCHA",
+  "COMISION FEDERAL DE ELECTRICIDAD"
+];
+
+    const tabla = "deuda_limpia_pdd";
+    let resumenTelegram = "";
+
+    async function cargar() {
+const { data, error } = await _supabase
+  .from("v_deuda_proveedores")
+  .select("*")
+  .neq("factura_pagada", "SI");
+      if (error) return alert("Error cargando datos");
+
+      //-------------------------------------------------------
+// 1) PÉGAS AQUÍ TU ARREGLO VIEJO (DE PRECIOS, FACTURAS, ETC.)
+//-------------------------------------------------------
+const datosViejos = [
+  // Ejemplo:
+  // {fecha:"2024-06-10", total:"1200", razon_social_emisor:"ALGO", uuid_cfdi:"---", ...}
+  // PÉGAME AQUÍ TODO TU ARREGLO VIEJO
+];
+
+
+//-------------------------------------------------------
+// 2) NORMALIZADOR UNIVERSAL PARA UNIR VIEJO + NUEVO
+//-------------------------------------------------------
+function normalizarFactura(f) {
+  return {
+    uuid_cfdi: (f.uuid_cfdi || f.uuid || "").trim(),
+    fecha: f.fecha ? new Date(f.fecha) : null,
+    rfc_emisor: f.rfc_emisor || "",
+    razon_social_emisor: f.razon_social_emisor || "",
+    factura: f.factura || "",
+    serie: f.serie || "",
+    total: parseFloat(f.total || 0),
+    factura_pagada: (f.factura_pagada || "").toUpperCase().trim(),
+    factura_fisicamente: (f.factura_fisicamente || "").toUpperCase().trim(),
+    fotos: Array.isArray(f.fotos) ? f.fotos : [],
+    // mantener el resto sin afectar
+    ...f
+  };
+}
+
+
+//-------------------------------------------------------
+// 3) FILTRO DE NO PAGADAS DEL SUPABASE (NUEVO)
+//-------------------------------------------------------
+const noPagadasSupabase = data.filter(f =>
+  (f.factura_pagada || "NO").toUpperCase().trim() !== "SI"
+);
+
+
+//-------------------------------------------------------
+// 4) UNIR AMBAS FUENTES (VIEJO + NUEVO) NORMALIZADAS
+//-------------------------------------------------------
+const unidas = [
+  ...datosViejos.map(normalizarFactura),
+  ...noPagadasSupabase.map(normalizarFactura)
+];
+
+
+//-------------------------------------------------------
+// 5) QUITAR DUPLICADOS POR uuid_cfdi
+//-------------------------------------------------------
+const unicas = Object.values(
+  unidas.reduce((acc, f) => {
+    const key = f.uuid_cfdi || crypto.randomUUID();
+    if (!acc[key]) acc[key] = f;
+    return acc;
+  }, {})
+);
+
+
+//-------------------------------------------------------
+// 6) ORDENAR POR RFC → FECHA
+//-------------------------------------------------------
+const ordenadosFinal = unicas.sort((a, b) => {
+  const rfcA = (a.rfc_emisor || "").toLowerCase();
+  const rfcB = (b.rfc_emisor || "").toLowerCase();
+  if (rfcA !== rfcB) return rfcA.localeCompare(rfcB);
+  return new Date(a.fecha) - new Date(b.fecha);
+});
+
+
+//-------------------------------------------------------
+// 7) YA PUEDES USAR ESTE: ordenadosFinal
+//-------------------------------------------------------
+mostrarTabla(ordenadosFinal);
+
+// SUMA GLOBAL FINAL
+const sumaGlobal = ordenadosFinal.reduce((acc, f) => acc + (parseFloat(f.total) || 0), 0);
+
+// Insertar el total arriba
+document.getElementById("tabla").insertAdjacentHTML("beforebegin", `
+  <div style="
+    background:#fff;
+    padding:15px;
+    margin-bottom:12px;
+    border-radius:8px;
+    box-shadow:0 2px 4px rgba(0,0,0,0.15);
+  ">
+    <strong style="font-size:1.1em;">💰 TOTAL GLOBAL PENDIENTE:</strong><br>
+    <span style="font-size:1.6em; font-weight:bold; color:#0a6c21;">
+      $${sumaGlobal.toLocaleString("es-MX",{ minimumFractionDigits:2 })}
+    </span>
+  </div>
+`);
+
+mostrarTabla(ordenadosFinal);
+
+// =========================
+// FACTURAS VENCIDAS 30+
+// =========================
+const vencidas30 = ordenadosFinal.filter(f => calcularDias(f.fecha) > 30);
+
+// =========================
+// ESPECIALES QUE YA VENCIERON
+// =========================
+const vencidasEspeciales = ordenadosFinal.filter(f => {
+  const razon = (f.razon_social_emisor || "").toUpperCase().trim();
+  const dias = calcularDias(f.fecha);
+  return proveedoresEspeciales[razon] && dias > proveedoresEspeciales[razon];
+});
+
+const especialesUnicas = vencidasEspeciales.filter(esp => {
+  const diasEsp = calcularDias(esp.fecha);
+  return diasEsp <= 30;
+});
+
+// TEXTO PARA TELEGRAM
+resumenTelegram =
+  generarResumenTextoEspeciales(especialesUnicas) +
+  "\n\n" +
+  generarResumenTexto(vencidas30) +
+  "\n\n" +
+  generarResumenTextoContado(ordenadosFinal) +
+  "\n\n📩 Reporte generado por *Loba | IA y BOT de Operaciones*";
+
+}
+
+function mostrarTabla(data) {
+
+  let html = `<table><thead><tr>
+    <th>Fecha</th>
+    <th>Días</th>
+    <th>UUID</th>
+    <th>RFC</th>
+    <th>Proveedor</th>
+    <th>Serie/Folio</th>
+    <th>Total</th>
+    <th>Física</th>
+    <th>Fotos</th>
+  </tr></thead><tbody>`;
+
+  for (const f of data) {
+
+    const dias = calcularDias(f.fecha);
+
+    // === PROVEEDOR REAL ===
+    let proveedor = f.proveedor_unificado;
+
+    if (f.razon_social_emisor && f.razon_social_emisor.trim() !== "") {
+      proveedor = f.razon_social_emisor;
+    }
+    else if (f.nombre_emisor && f.nombre_emisor.trim() !== "") {
+      proveedor = f.nombre_emisor;
+    }
+    else {
+      proveedor = f.rfc_emisor;
+    }
+
+    // === FOLIO REAL ===
+    const folioFinal = f.serie_folio || "—";
+
+const clase30 = dias >= 30 ? "dias-30-morado" : "";
+
+html += `
+  <tr class="${clase30}">
+    <td>${f.fecha}</td>
+    <td>${dias}</td>
+    <td><a href="detalle.html?uuid=${f.uuid_cfdi}" target="_blank">${f.uuid_cfdi}</a></td>
+    <td>${f.rfc_emisor}</td>
+    <td class="proveedor-destacado">${proveedor}</td>
+    <td>${folioFinal}</td>
+    <td class="numero">${Number(f.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}</td>
+    <td style="text-align:center">${(f.factura_fisicamente || "") === "SI" ? "✅" : ""}</td>
+    <td style="text-align:center">
+      ${
+        (f.fotos && f.fotos.length > 0)
+        ? f.fotos.map(url => `<a href="${url}" target="_blank">📷</a>`).join("")
+        : ""
+      }
+    </td>
+  </tr>
+`;
+
+  }
+
+  html += "</tbody></table>";
+  document.getElementById("tabla").innerHTML = html;
+}
+
+function calcularDias(fechaStr) {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0); // normalizar a medianoche local
+
+  if (!fechaStr) return 0;
+
+  // Si Supabase manda "2024-12-08" o "2024-12-08T00:00:00+00:00"
+  const fechaLimpia = fechaStr.split("T")[0]; // nos quedamos solo con YYYY-MM-DD
+  const [y, m, d] = fechaLimpia.split("-").map(Number);
+
+  // Crear fecha EN HORA LOCAL (Linares, UTC-6)
+  const f = new Date(y, m - 1, d);
+  f.setHours(0, 0, 0, 0);
+
+  const diff = hoy - f;
+  return Math.floor(diff / 86400000);
+}
+
+
+    function obtenerClaseVencimiento(d) {
+      if (d > 90) return "vencida-mas";
+      if (d > 60) return "vencida-90";
+      if (d > 30) return "vencida-60";
+      return "vencida-30";
+    }
+
+function generarResumenTexto(facturas) {
+  if (facturas.length === 0) return "✅ No hay facturas vencidas mayores a 30 días.";
+
+  const frasesMotivacionales = [
+    "⚔️ *Con fuerza, como Loba. Cada deuda es una batalla ganada.*",
+    "🛡️ *Hoy no retrocedas. Acomoda la armadura y sigue firme.*",
+    "🔥 *Lo que no se paga, se enfrenta. Y tú no le huyes a nada.*",
+    "🐺 *Una loba no duda, actúa. Tú ya sabes qué hacer.*",
+    "🏹 *Hoy es el día de marcar territorio. ¡Hazlo con estilo!*",
+    "💼 *Hoy cobramos. No es presión, es misión.*",
+    "🧭 *La deuda no se pierde, solo espera que la señales.*",
+    "🪓 *Un tajo a tiempo es mejor que mil excusas.*",
+    "🩸 *Deja que Loba marque el camino, pero tú ejecuta sin temblar.*",
+    "📢 *Lo que se calla, se acumula. Cuando actúas, te liberas. ¡Hazlo ya!*",
+    "🏰 *No hay castillo sin contabilidad. Y tú ya estás tomando el trono.*"
+  ];
+  const fraseAleatoria = frasesMotivacionales[Math.floor(Math.random() * frasesMotivacionales.length)];
+let texto = `${fraseAleatoria}\n\n📌 *Resumen de Facturas Pendientes:*\n`;
+for (const f of facturas) {
+  const dias = calcularDias(f.fecha);
+  const fisica = (f.factura_fisicamente || '').toUpperCase() === 'SI' ? '✅' : '❌';
+  const fuego = dias > 34 ? "🔥🔥🔥" : "";
+texto += `\n${fuego} • *${f.razon_social_emisor}* - ${f.factura || '-'}\n  $${parseFloat(f.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })} - ${dias} días ${fuego} - Física: ${fisica}\n\n`;
+}
+ return texto; // <- Cierre correcto aquí
+}
+  function generarResumenTextoEspeciales(facturas) {
+  if (facturas.length === 0) return "✅ No hay vencimientos especiales fuera de plazo.";
+
+  let texto = "📌 *Vencimientos según plazo acordado:*\n";
+
+  for (const f of facturas) {
+    const razon = (f.razon_social_emisor || "").toUpperCase().trim();
+    const dias = calcularDias(f.fecha);
+    const fisica = (f.factura_fisicamente || '').toUpperCase() === 'SI' ? '✅' : '❌';
+    const plazo = proveedoresEspeciales[razon] || '?';
+    texto += `\n• *${f.razon_social_emisor}* - ${f.factura || '-'}\n  $${parseFloat(f.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })} - ${dias} días (Plazo: ${plazo}) - Física: ${fisica}`;
+  }
+
+   return texto;
+}
+function generarResumenTextoContado(facturas) {
+  const encontrados = facturas.filter(f => {
+    const razon = (f.razon_social_emisor || "").toUpperCase().trim();
+    return proveedoresContado.includes(razon);
+  });
+
+  if (encontrados.length === 0) return "";
+
+  let texto = "📌 *Proveedores sin crédito (facturan contado o ya pagado):*\n";
+  texto += "🧹 Favor de depurar si no deben considerarse deuda.\n";
+
+  for (const f of encontrados) {
+    const dias = calcularDias(f.fecha);
+    texto += `\n• ${f.razon_social_emisor} - ${f.factura || '-'} - ${dias} días`;
+  }
+
+  return texto;
+}
+
+
+async function enviarTelegram() {
+  const telegramToken = "7349070760:AAHYA8YPoDWfUuLMjgUDubRi9CSYZi4Oirg";
+  const chatId = "6617988297";
+  if (!telegramToken || !chatId) return alert("Falta configurar el TOKEN o el CHAT ID.");
+
+  // 1) Escapar para MarkdownV2
+  let texto = escapeMarkdownV2(resumenTelegram).trim();
+
+  // ✅ Rehabilita negritas para segmentos *...* que pusiste en tus generadores
+texto = texto.replace(/\\\*(.+?)\\\*/g, '*$1*');
+  
+  // 2) Partir por BYTES UTF-8 (no por caracteres)
+  const partes = splitByUtf8Bytes(texto, 4000); // margen bajo 4096
+
+  try {
+for (let parte of partes) {
+  // Balancear negritas antes de enviar
+  parte = balanceMarkdownBold(parte);
+
+  const res = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: parte,
+      parse_mode: "MarkdownV2",
+      disable_web_page_preview: true
+    })
+  });
+
+      const body = await res.json();
+      if (!body.ok) {
+        console.error("❌ Telegram error:", body);
+        alert("Error al enviar: " + (body.description || "desconocido"));
+        return;
+      }
+    }
+    alert("Resumen enviado por Telegram ✅");
+  } catch (err) {
+    console.error("❌ Error en el envío:", err);
+    alert("Hubo un error al enviar el resumen");
+  }
+}
+
+// Escapa caracteres reservados para MarkdownV2
+function escapeMarkdownV2(text) {
+  return text
+    .replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1')
+    .replace(/</g, '\\<')
+    .replace(/>/g, '\\>');
+}
+
+// Corta por BYTES UTF-8 sin romper emojis
+function splitByUtf8Bytes(str, maxBytes) {
+  const enc = new TextEncoder();
+  const partes = [];
+  let actual = '';
+  let bytesActual = 0;
+
+  for (const ch of str) { // recorre por code points
+    const b = enc.encode(ch).length;
+    if (bytesActual + b > maxBytes) {
+      partes.push(actual);
+      actual = ch;
+      bytesActual = b;
+    } else {
+      actual += ch;
+      bytesActual += b;
+    }
+  }
+  if (actual) partes.push(actual);
+  return partes;
+}
+
+    // Balancea negritas en MarkdownV2
+function balanceMarkdownBold(str) {
+  const count = (str.match(/\*/g) || []).length;
+  if (count % 2 !== 0) {
+    // Si hay un número impar de asteriscos, cerramos con uno más
+    str += "*";
+  }
+  return str;
+}
+
+    document.addEventListener("DOMContentLoaded", cargar);
+  </script>
+</body>
+</html>
