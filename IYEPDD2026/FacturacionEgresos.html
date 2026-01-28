@@ -179,7 +179,6 @@ const { data, error } = await db
     fecha,
     uuid_cfdi,
     rfc_emisor,
-    nombre_emisor,
     razon_social_emisor,
     serie,
     folio,
@@ -213,11 +212,7 @@ function render(rows){
   const letrasSet = new Set();
 
   rows.forEach(r=>{
-    const prov = (
-  r.nombre_emisor ||
-  r.razon_social_emisor ||
-  ''
-).trim();
+const prov = (r.razon_social_emisor || '').trim();
 
     if(prov){
       let l = prov.charAt(0).toUpperCase();
@@ -233,10 +228,8 @@ function render(rows){
 
   // 🧾 filas
   rows.forEach(r=>{
-    const provCompleto =
-  r.nombre_emisor ||
-  r.razon_social_emisor ||
-  'SIN PROVEEDOR';
+const provCompleto =
+  r.razon_social_emisor || 'SIN PROVEEDOR';
 
     const provCorto = cortarTexto(provCompleto, 25);
 
