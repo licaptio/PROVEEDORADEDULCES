@@ -39,47 +39,46 @@
       margin-top: 10px;
     }
 
-    #btnCancelar { background: #e3342f; color: white; }
-    #btnSalir {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: #b00020;
-      color: #fff;
-      padding: 14px 18px;
-      border-radius: 12px;
-      font-size: 1rem;
-      z-index: 9999;
-    }
+
+#btnSalir {
+  background: #b00020;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 1rem;
+  margin-bottom: 12px;   /* separación del escáner */
+}
 
     /* TOAST */
-    #toastOk {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #28a745;
-      color: white;
-      padding: 14px 26px;
-      border-radius: 12px;
-      font-size: 1.1rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-      opacity: 0;
-      transition: opacity .35s ease;
-      z-index: 9999;
-    }
-    #toastOk.show { opacity: 1; }
+#toastOk {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #28a745;
+  color: white;
+  padding: 14px 26px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  opacity: 0;
+  transition: opacity .35s ease;
+  z-index: 9999;
+}
+#toastOk.show { opacity: 1; }
+
   </style>
 </head>
 <body>
 
-  <h2>📷 Escaneando Facturas…</h2>
-  <div id="lector"></div>
+<h2>📷 Escaneando Facturas…</h2>
 
-  <button id="btnSalir" onclick="finalizarApp()">⛔ Finalizar</button>
+<button id="btnSalir" onclick="finalizarApp()">⛔ Finalizar</button>
+
+<div id="lector"></div>
 
   <!-- Toast -->
-  <div id="toastOk"></div>
+<div id="toastOk"></div>
 
   <script>
   // 🔊 Beep
