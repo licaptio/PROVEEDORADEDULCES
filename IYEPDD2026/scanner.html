@@ -4,9 +4,11 @@
   <meta charset="UTF-8">
   <title>Escáner de Factura – PROVSOFT</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="supabase.js"></script>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
 
   <style>
     body {
@@ -83,10 +85,7 @@
 
   <script>
     // Supabase
-    const supabase = window.supabase.createClient(
-      "https://cvpbtjlupswbyxenugpz.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY"
-    );
+
 
     // Beep
     function beep() {
