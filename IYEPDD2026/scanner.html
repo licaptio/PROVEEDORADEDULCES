@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <title>Escáner de Factura – PROVSOFT</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="supabase.js"></script>
-
+  
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
@@ -77,7 +76,6 @@
   <h2>📷 Escaneando Facturas…</h2>
   <div id="lector"></div>
 
-  <button id="btnCancelar" onclick="cancelar()">❌ Cancelar</button>
   <button id="btnSalir" onclick="finalizarApp()">⛔ Finalizar</button>
 
   <!-- Toast -->
@@ -152,17 +150,21 @@
       }
     });
 
-    function cancelar() {
-      lector.stop().catch(()=>{}).finally(()=>{
-        window.location.href = "iniciacam.html";
-      });
+<script>
+  function finalizarApp() {
+    try {
+      if (lector && lector.getState() === Html5QrcodeScannerState.SCANNING) {
+        lector.stop().finally(() => {
+          window.location.href = "index.html";
+        });
+      } else {
+        window.location.href = "index.html";
+      }
+    } catch (e) {
+      window.location.href = "index.html";
     }
+  }
+</script>
 
-    function finalizarApp() {
-      lector.stop().catch(()=>{}).finally(()=>{
-        window.location.href = "iniciacam.html";
-      });
-    }
-  </script>
 </body>
 </html>
