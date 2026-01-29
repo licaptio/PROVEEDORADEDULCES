@@ -133,21 +133,16 @@
         bloqueado = true;
         beep();
 
-const { data, error } = await supabase
+const { error } = await supabase
   .from("deuda_limpia_pdd")
   .update({ factura_fisicamente: "SI" })
-  .eq("uuid_cfdi", uuid)
-  .select("uuid_cfdi");
+  .eq("uuid_cfdi", uuid);
 
-if (error) {
-  console.error(error);
-}
-else if (data && data.length > 0) {
+if (!error) {
   showToast("Éxito, encontrada y registrada");
 }
 
-
-        // ⏳ 2 segundos para siguiente escaneo
+       // ⏳ 2 segundos para siguiente escaneo
         setTimeout(() => {
           bloqueado = false;
         }, 2000);
