@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Escáner de Factura – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #f7f9fc;
+      color: #222;
+    }
+
+    h2 { margin-bottom: 15px; }
+
+    #lector {
+      width: 300px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    #btnCancelar { background: #e3342f; color: white; }
+    #btnSalir {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #b00020;
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 1rem;
+      z-index: 9999;
+    }
+
+    /* TOAST */
+    #toastOk {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #28a745;
+      color: white;
+      padding: 14px 26px;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      opacity: 0;
+      transition: opacity .35s ease;
+      z-index: 9999;
+    }
+    #toastOk.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <h2>📷 Escaneando Facturas…</h2>
+  <div id="lector"></div>
+
+  <button id="btnCancelar" onclick="cancelar()">❌ Cancelar</button>
+  <button id="btnSalir" onclick="finalizarApp()">⛔ Finalizar</button>
+
+  <!-- Toast -->
+  <div id="toastOk">✔ Registrado</div>
+
+  <script>
+    // Supabase
+    const supabase = window.supabase.createClient(
+      "https://cvpbtjlupswbyxenugpz.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY"
+    );
+
+    // Beep
+    function beep() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = 850;
+      osc.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    }
+
+    // EXTRAER UUID
+    function extraeUUID(raw) {
+      try {
+        const url = new URL(raw);
+        const uuid = url.searchParams.get("id");
+        if (uuid && /^[A-F0-9\-]{36}$/i.test(uuid)) return uuid.toUpperCase();
+      } catch(e) {
+        let m = raw.match(/[A-F0-9\-]{36}/i);
+        if (m) return m[0].toUpperCase();
+      }
+      return null;
+    }
+
+    // TOAST
+    function showToast() {
+      const t = document.getElementById("toastOk");
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2000);  // visible 2 segundos
+    }
+
+    const lector = new Html5Qrcode("lector");
+    let bloqueado = false;
+
+    Html5Qrcode.getCameras().then(cameras => {
+      if (cameras.length) {
+        lector.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: 250 },
+          async (msg) => {
+
+            if (bloqueado) return;
+            const uuid = extraeUUID(msg);
+            if (!uuid) return;
+
+            bloqueado = true;
+            beep();
+
+            // ACTUALIZAR EN SUPABASE
+            await supabase
+              .from("deuda_limpia_pdd")
+              .update({ factura_fisicamente: "SI" })   // 👈 CAMBIO CORRECTO
+              .eq("uuid_cfdi", uuid);
+
+            showToast();
+
+            // ESPERAR 3 SEGUNDOS ANTES DE VOLVER A ESCANEAR
+            setTimeout(() => bloqueado = false, 3000);
+
+          },
+          err => {}
+        );
+      }
+    });
+
+    function cancelar() {
+      lector.stop().catch(()=>{}).finally(()=>{
+        window.location.href = "iniciacam.html";
+      });
+    }
+
+    function finalizarApp() {
+      lector.stop().catch(()=>{}).finally(()=>{
+        window.location.href = "iniciacam.html";
+      });
+    }
+  </script>
+</body>
+</html>
