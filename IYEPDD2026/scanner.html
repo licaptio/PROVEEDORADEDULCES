@@ -20,9 +20,7 @@
       background:#f7f9fc;
       color:#222;
     }
-
     h2{ margin-bottom:10px }
-
     input{
       width:320px;
       padding:14px;
@@ -32,7 +30,6 @@
       outline:none;
       text-align:center;
     }
-
     #btnSalir{
       margin-top:20px;
       background:#b00020;
@@ -43,20 +40,22 @@
       font-size:1rem;
       cursor:pointer;
     }
-
     #toastOk{
       position:fixed;
       bottom:20px;
       left:50%;
       transform:translateX(-50%);
-      background:#28a745;
+      background:#333;
       color:#fff;
       padding:14px 26px;
       border-radius:12px;
-      font-size:1.1rem;
+      font-size:1.05rem;
       opacity:0;
       transition:.35s;
       z-index:9999;
+      max-width: 92vw;
+      text-align:center;
+      word-break:break-word;
     }
     #toastOk.show{ opacity:1 }
   </style>
@@ -76,21 +75,58 @@
 <script>
   const input = document.getElementById("scanInput");
   const toast = document.getElementById("toastOk");
+
   let bloqueado = false;
   let scanTimer = null;
   const SCAN_DELAY = 300;
 
-  // 🔊 Beep
-  function beep(){
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    osc.frequency.value = 850;
-    osc.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.12);
+  // ✅ Capturar errores y mostrarlos (para que no “parezca” que no hace nada)
+  window.addEventListener("error", (e) => {
+    showToast("JS ERROR: " + (e.message || "desconocido"), "err");
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    const msg = e.reason?.message || String(e.reason || "desconocido");
+    showToast("PROM ERROR: " + msg, "err");
+  });
+
+  // ✅ Cliente supabase real (desde supabase.js)
+  const db = window.db;
+  if (!db || typeof db.from !== "function") {
+    // si esto sale, tu supabase.js no está bien o no cargó
+    showToast("Falta inicializar Supabase (window.db). Revisa supabase.js", "err");
   }
 
-  // 🔍 Extraer UUID SAT
+  // 🔊 Audio context (en móvil necesita interacción)
+  let audioCtx = null;
+  function initAudio(){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === "suspended") audioCtx.resume();
+    }catch{}
+  }
+  document.addEventListener("click", initAudio, { once:true });
+
+  function beep(){
+    initAudio();
+    try{
+      const osc = audioCtx.createOscillator();
+      osc.frequency.value = 850;
+      osc.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.12);
+    }catch{}
+    // 📳 vibración en móvil (si existe)
+    try{ navigator.vibrate?.(60); }catch{}
+  }
+
+  function showToast(txt, tipo="ok"){
+    toast.textContent = txt;
+    toast.style.background = (tipo === "ok") ? "#28a745" : "#b00020";
+    toast.classList.add("show");
+    setTimeout(()=>toast.classList.remove("show"), 2200);
+  }
+
+  // 🔍 Extraer UUID SAT (ID=...)
   function extraeUUID(raw){
     try{
       const url = new URL(raw);
@@ -103,18 +139,12 @@
     return null;
   }
 
-  function showToast(txt){
-    toast.textContent = txt;
-    toast.classList.add("show");
-    setTimeout(()=>toast.classList.remove("show"),2000);
-  }
-
   function liberar(){
     setTimeout(()=>{
       bloqueado = false;
       input.value = "";
       input.focus();
-    },1200);
+    }, 900);
   }
 
   // 📥 Detectar fin de escaneo (sin ENTER)
@@ -122,52 +152,64 @@
     if(bloqueado) return;
 
     clearTimeout(scanTimer);
-
     scanTimer = setTimeout(async ()=>{
-      const raw = input.value.trim();
-      input.value = "";
+      try{
+        const raw = input.value.trim();
+        input.value = "";
+        if(!raw) return;
 
-      if(!raw) return;
+        const uuid = extraeUUID(raw);
+        bloqueado = true;
+        beep();
 
-      const uuid = extraeUUID(raw);
-      bloqueado = true;
-      beep();
+        if(!uuid){
+          showToast("Factura no encontrada", "err");
+          liberar();
+          return;
+        }
 
-      if(!uuid){
-        showToast("Factura no encontrada");
+        // 🔥 Si no hay db, aquí se notifica
+        if(!db){
+          showToast("Supabase no inicializado (window.db)", "err");
+          liberar();
+          return;
+        }
+
+        // 🔍 Buscar
+        const { data, error } = await db
+          .from("deuda_limpia_pdd")
+          .select("uuid_cfdi")
+          .eq("uuid_cfdi", uuid)
+          .maybeSingle();
+
+        if(error || !data){
+          showToast("Factura no encontrada", "err");
+          liberar();
+          return;
+        }
+
+        // ✅ Marcar
+        const { error: updErr } = await db
+          .from("deuda_limpia_pdd")
+          .update({ factura_fisicamente: "SI" })
+          .eq("uuid_cfdi", uuid);
+
+        if(!updErr){
+          showToast("Factura Encontrada Marcada Físicamente", "ok");
+        }else{
+          showToast("Error al marcar factura", "err");
+        }
+
         liberar();
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("deuda_limpia_pdd")
-        .select("uuid_cfdi")
-        .eq("uuid_cfdi", uuid)
-        .maybeSingle();
-
-      if(error || !data){
-        showToast("Factura no encontrada");
+      }catch(ex){
+        showToast("ERROR: " + (ex?.message || ex), "err");
         liberar();
-        return;
       }
-
-      const { error:updErr } = await supabase
-        .from("deuda_limpia_pdd")
-        .update({ factura_fisicamente: "SI" })
-        .eq("uuid_cfdi", uuid);
-
-      if(!updErr){
-        showToast("Factura Encontrada Marcada Físicamente");
-      }else{
-        showToast("Error al marcar factura");
-      }
-
-      liberar();
     }, SCAN_DELAY);
   });
 
   // 🔒 Mantener foco siempre
-  setInterval(()=>input.focus(),500);
+  setInterval(()=>input.focus(), 500);
 </script>
 
 </body>
