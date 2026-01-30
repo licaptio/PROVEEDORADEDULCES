@@ -90,7 +90,7 @@
   });
 
   // ✅ Cliente supabase real (desde supabase.js)
-  const db = window.db;
+  const db = window.supabaseClient;
   if (!db || typeof db.from !== "function") {
     // si esto sale, tu supabase.js no está bien o no cargó
     showToast("Falta inicializar Supabase (window.db). Revisa supabase.js", "err");
