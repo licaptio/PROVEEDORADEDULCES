@@ -139,20 +139,30 @@ async function procesarArchivos(){
       const c = linea.split("~");
       if (c.length < 12) continue;
 
-      const row = {
-        uuid_cfdi: c[0],
-        rfc_emisor: c[1],
-        nombre_emisor: c[2],
-        rfc_receptor: c[3],
-        nombre_receptor: c[4],
-        rfc_pac: c[5],
-        monto: parseFloat(c[8] || "0"),
-        efecto_comprobante: c[9],
-        estatus: Number(c[10]),
-        fuente: file.name,
-        cargado_en: new Date().toISOString(),
-        raw_line: linea
-      };
+const row = {
+  uuid_cfdi: c[0],
+  rfc_emisor: c[1],
+  nombre_emisor: c[2],
+  rfc_receptor: c[3],
+  nombre_receptor: c[4],
+  rfc_pac: c[5],
+
+  fecha_emision: c[6] || null,
+  fecha_certificacion: c[7] || null,
+  fecha_cancelacion: c[11] || null,
+
+  monto: parseFloat(c[8] || "0"),
+  efecto_comprobante: c[9],
+  estatus: Number(c[10]),
+
+  periodo_anio: c[6] ? new Date(c[6]).getFullYear() : null,
+  periodo_mes: c[6] ? new Date(c[6]).getMonth() + 1 : null,
+
+  fuente: file.name,
+  cargado_en: new Date().toISOString(),
+  raw_line: linea
+};
+
 
       if (c[6]) {
         row.fecha_emision = c[6];
