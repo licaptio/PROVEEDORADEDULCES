@@ -67,11 +67,7 @@
 <h2>📦 Escaneo con lector QR</h2>
 <p>Escanea la factura con el lector EYOYO</p>
 
-<input
-  id="scanInput"
-  placeholder="Escaneando..."
-  autofocus
-/>
+<input id="scanInput" placeholder="Escaneando..." autofocus />
 
 <button id="btnSalir" onclick="location.href='index.html'">⛔ Finalizar</button>
 
@@ -81,6 +77,8 @@
   const input = document.getElementById("scanInput");
   const toast = document.getElementById("toastOk");
   let bloqueado = false;
+  let scanTimer = null;
+  const SCAN_DELAY = 300;
 
   // 🔊 Beep
   function beep(){
@@ -92,13 +90,13 @@
     osc.stop(ctx.currentTime + 0.12);
   }
 
-  // 🔍 Extraer UUID
+  // 🔍 Extraer UUID SAT
   function extraeUUID(raw){
     try{
       const url = new URL(raw);
-      const uuid = url.searchParams.get("id");
+      const uuid = url.searchParams.get("ID") || url.searchParams.get("id");
       if(uuid && /^[A-F0-9\-]{36}$/i.test(uuid)) return uuid.toUpperCase();
-    }catch(e){
+    }catch{
       const m = raw.match(/[A-F0-9\-]{36}/i);
       if(m) return m[0].toUpperCase();
     }
@@ -111,80 +109,65 @@
     setTimeout(()=>toast.classList.remove("show"),2000);
   }
 
-  // 🧠 El lector manda ENTER → usamos keydown
-  input.addEventListener("keydown", async (e)=>{
-    if(e.key !== "Enter") return;
+  function liberar(){
+    setTimeout(()=>{
+      bloqueado = false;
+      input.value = "";
+      input.focus();
+    },1200);
+  }
+
+  // 📥 Detectar fin de escaneo (sin ENTER)
+  input.addEventListener("input", ()=>{
     if(bloqueado) return;
 
-    const raw = input.value.trim();
-    input.value = "";
+    clearTimeout(scanTimer);
 
-const uuid = extraeUUID(raw);
-if (!uuid) {
-  showToast("Factura no encontrada");
-  beep();
-  return;
-}
+    scanTimer = setTimeout(async ()=>{
+      const raw = input.value.trim();
+      input.value = "";
 
-bloqueado = true;
-beep();
+      if(!raw) return;
 
-// ----------------------------
-// ✨ Búsqueda + actualización
-// ----------------------------
-const { data, error } = await supabase
-  .from("deuda_limpia_pdd")
-  .select("uuid_cfdi")
-  .eq("uuid_cfdi", uuid)
-  .maybeSingle();
+      const uuid = extraeUUID(raw);
+      bloqueado = true;
+      beep();
 
-if (error) {
-  showToast("Error de consulta");
-  console.error(error);
-} else if (!data) {
-  // ❌ Si no existe
-  showToast("Factura no encontrada");
-} else {
-  // ✅ Si existe: actualiza
-  const { error:updateErr } = await supabase
-    .from("deuda_limpia_pdd")
-    .update({ factura_fisicamente: "SI" })
-    .eq("uuid_cfdi", uuid);
+      if(!uuid){
+        showToast("Factura no encontrada");
+        liberar();
+        return;
+      }
 
-  if (!updateErr) {
-    showToast("Factura Encontrada Marcada Físicamente");
-  } else {
-    console.error(updateErr);
-    showToast("Error al marcar factura");
-  }
-}
+      const { data, error } = await supabase
+        .from("deuda_limpia_pdd")
+        .select("uuid_cfdi")
+        .eq("uuid_cfdi", uuid)
+        .maybeSingle();
 
-setTimeout(()=>{
-  bloqueado = false;
-  input.focus();
-},1500);
+      if(error || !data){
+        showToast("Factura no encontrada");
+        liberar();
+        return;
+      }
 
-setTimeout(() => {
-  bloqueado = false;
-  input.select();   // ← selecciona todo el texto
-  input.focus();    // ← vuelve a poner foco
-}, 1500);
-});
+      const { error:updErr } = await supabase
+        .from("deuda_limpia_pdd")
+        .update({ factura_fisicamente: "SI" })
+        .eq("uuid_cfdi", uuid);
 
-  // Siempre mantener foco (importante en POS)
+      if(!updErr){
+        showToast("Factura Encontrada Marcada Físicamente");
+      }else{
+        showToast("Error al marcar factura");
+      }
+
+      liberar();
+    }, SCAN_DELAY);
+  });
+
+  // 🔒 Mantener foco siempre
   setInterval(()=>input.focus(),500);
-function extraeUUID(raw) {
-  try {
-    const url = new URL(raw);
-    const uuid = url.searchParams.get("ID") || url.searchParams.get("id");
-    if (uuid && /^[A-F0-9\-]{36}$/i.test(uuid)) return uuid.toUpperCase();
-  } catch (e) {
-    const m = raw.match(/[A-F0-9\-]{36}/i);
-    if (m) return m[0].toUpperCase();
-  }
-  return null;
-}
-
 </script>
 
 </body>
