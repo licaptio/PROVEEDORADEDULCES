@@ -2,90 +2,90 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Escáner de Factura – PROVSOFT</title>
+  <title>Escáner QR – PROVSOFT</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <script src="https://unpkg.com/html5-qrcode"></script>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
 
   <style>
-    body {
+    body{
       font-family: Arial, sans-serif;
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: #f7f9fc;
-      color: #222;
+      margin:0;
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      background:#f7f9fc;
+      color:#222;
     }
 
-    h2 { margin-bottom: 15px; }
+    h2{ margin-bottom:10px }
 
-    #lector {
-      width: 300px;
-      margin-bottom: 20px;
+    input{
+      width:320px;
+      padding:14px;
+      font-size:18px;
+      border-radius:10px;
+      border:2px solid #0c6cbd;
+      outline:none;
+      text-align:center;
     }
 
-    button {
-      padding: 12px 20px;
-      font-size: 16px;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-top: 10px;
+    #btnSalir{
+      margin-top:20px;
+      background:#b00020;
+      color:#fff;
+      padding:12px 20px;
+      border-radius:10px;
+      border:none;
+      font-size:1rem;
+      cursor:pointer;
     }
 
-
-#btnSalir {
-  background: #b00020;
-  color: #fff;
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-size: 1rem;
-  margin-bottom: 12px;   /* separación del escáner */
-}
-
-    /* TOAST */
-#toastOk {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #28a745;
-  color: white;
-  padding: 14px 26px;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  opacity: 0;
-  transition: opacity .35s ease;
-  z-index: 9999;
-}
-#toastOk.show { opacity: 1; }
-
+    #toastOk{
+      position:fixed;
+      bottom:20px;
+      left:50%;
+      transform:translateX(-50%);
+      background:#28a745;
+      color:#fff;
+      padding:14px 26px;
+      border-radius:12px;
+      font-size:1.1rem;
+      opacity:0;
+      transition:.35s;
+      z-index:9999;
+    }
+    #toastOk.show{ opacity:1 }
   </style>
 </head>
+
 <body>
 
-<h2>📷 Escaneando Facturas…</h2>
+<h2>📦 Escaneo con lector QR</h2>
+<p>Escanea la factura con el lector EYOYO</p>
 
-<button id="btnSalir" onclick="finalizarApp()">⛔ Finalizar</button>
+<input
+  id="scanInput"
+  placeholder="Escaneando..."
+  autofocus
+/>
 
-<div id="lector"></div>
+<button id="btnSalir" onclick="location.href='index.html'">⛔ Finalizar</button>
 
-  <!-- Toast -->
 <div id="toastOk"></div>
 
-  <script>
+<script>
+  const input = document.getElementById("scanInput");
+  const toast = document.getElementById("toastOk");
+  let bloqueado = false;
+
   // 🔊 Beep
-  function beep() {
+  function beep(){
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
-    osc.type = "sine";
     osc.frequency.value = 850;
     osc.connect(ctx.destination);
     osc.start();
@@ -93,70 +93,60 @@
   }
 
   // 🔍 Extraer UUID
-  function extraeUUID(raw) {
-    try {
+  function extraeUUID(raw){
+    try{
       const url = new URL(raw);
       const uuid = url.searchParams.get("id");
-      if (uuid && /^[A-F0-9\-]{36}$/i.test(uuid)) return uuid.toUpperCase();
-    } catch (e) {
+      if(uuid && /^[A-F0-9\-]{36}$/i.test(uuid)) return uuid.toUpperCase();
+    }catch(e){
       const m = raw.match(/[A-F0-9\-]{36}/i);
-      if (m) return m[0].toUpperCase();
+      if(m) return m[0].toUpperCase();
     }
     return null;
   }
 
-  // ✅ Toast único
-  function showToast(texto) {
-    const t = document.getElementById("toastOk");
-    t.textContent = texto;
-    t.style.background = "#28a745";
-    t.classList.add("show");
-    setTimeout(() => t.classList.remove("show"), 2000);
+  function showToast(txt){
+    toast.textContent = txt;
+    toast.classList.add("show");
+    setTimeout(()=>toast.classList.remove("show"),2000);
   }
 
-  const lector = new Html5Qrcode("lector");
-  let bloqueado = false;
+  // 🧠 El lector manda ENTER → usamos keydown
+  input.addEventListener("keydown", async (e)=>{
+    if(e.key !== "Enter") return;
+    if(bloqueado) return;
 
-  Html5Qrcode.getCameras().then(cameras => {
-    if (!cameras.length) return;
+    const raw = input.value.trim();
+    input.value = "";
 
-    lector.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      async (msg) => {
+    const uuid = extraeUUID(raw);
+    if(!uuid){
+      showToast("QR no válido");
+      return;
+    }
 
-        if (bloqueado) return;
+    bloqueado = true;
+    beep();
 
-        const uuid = extraeUUID(msg);
-        if (!uuid) return;
+    const { error } = await supabase
+      .from("deuda_limpia_pdd")
+      .update({ factura_fisicamente: "SI" })
+      .eq("uuid_cfdi", uuid);
 
-        bloqueado = true;
-        beep();
+    if(!error){
+      showToast("✔ Factura registrada");
+    }else{
+      showToast("❌ No encontrada");
+    }
 
-const { error } = await supabase
-  .from("deuda_limpia_pdd")
-  .update({ factura_fisicamente: "SI" })
-  .eq("uuid_cfdi", uuid);
-
-if (!error) {
-  showToast("Éxito, encontrada y registrada");
-}
-
-       // ⏳ 2 segundos para siguiente escaneo
-        setTimeout(() => {
-          bloqueado = false;
-        }, 2000);
-      },
-      err => {}
-    );
+    setTimeout(()=>{
+      bloqueado = false;
+      input.focus();
+    },1500);
   });
 
-  // ⛔ Finalizar: cierra cámara y vuelve a index
-  function finalizarApp() {
-    lector.stop().catch(()=>{}).finally(()=>{
-      window.location.href = "index.html";
-    });
-  }
+  // Siempre mantener foco (importante en POS)
+  setInterval(()=>input.focus(),500);
 </script>
 
 </body>
