@@ -119,34 +119,72 @@
     const raw = input.value.trim();
     input.value = "";
 
-    const uuid = extraeUUID(raw);
-    if(!uuid){
-      showToast("QR no válido");
-      return;
-    }
+const uuid = extraeUUID(raw);
+if (!uuid) {
+  showToast("Factura no encontrada");
+  beep();
+  return;
+}
 
-    bloqueado = true;
-    beep();
+bloqueado = true;
+beep();
 
-    const { error } = await supabase
-      .from("deuda_limpia_pdd")
-      .update({ factura_fisicamente: "SI" })
-      .eq("uuid_cfdi", uuid);
+// ----------------------------
+// ✨ Búsqueda + actualización
+// ----------------------------
+const { data, error } = await supabase
+  .from("deuda_limpia_pdd")
+  .select("uuid_cfdi")
+  .eq("uuid_cfdi", uuid)
+  .maybeSingle();
 
-    if(!error){
-      showToast("✔ Factura registrada");
-    }else{
-      showToast("❌ No encontrada");
-    }
+if (error) {
+  showToast("Error de consulta");
+  console.error(error);
+} else if (!data) {
+  // ❌ Si no existe
+  showToast("Factura no encontrada");
+} else {
+  // ✅ Si existe: actualiza
+  const { error:updateErr } = await supabase
+    .from("deuda_limpia_pdd")
+    .update({ factura_fisicamente: "SI" })
+    .eq("uuid_cfdi", uuid);
 
-    setTimeout(()=>{
-      bloqueado = false;
-      input.focus();
-    },1500);
-  });
+  if (!updateErr) {
+    showToast("Factura Encontrada Marcada Físicamente");
+  } else {
+    console.error(updateErr);
+    showToast("Error al marcar factura");
+  }
+}
+
+setTimeout(()=>{
+  bloqueado = false;
+  input.focus();
+},1500);
+
+setTimeout(() => {
+  bloqueado = false;
+  input.select();   // ← selecciona todo el texto
+  input.focus();    // ← vuelve a poner foco
+}, 1500);
+});
 
   // Siempre mantener foco (importante en POS)
   setInterval(()=>input.focus(),500);
+function extraeUUID(raw) {
+  try {
+    const url = new URL(raw);
+    const uuid = url.searchParams.get("ID") || url.searchParams.get("id");
+    if (uuid && /^[A-F0-9\-]{36}$/i.test(uuid)) return uuid.toUpperCase();
+  } catch (e) {
+    const m = raw.match(/[A-F0-9\-]{36}/i);
+    if (m) return m[0].toUpperCase();
+  }
+  return null;
+}
+
 </script>
 
 </body>
