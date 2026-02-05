@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Impresión Traspaso – PROVSOFT</title>
+
+<style>
+  :root{
+    --paper: 80mm;  /* 80mm para TM-T20III */
+    --font: 12px;   /* tamaño base térmico */
+  }
+
+  /* Vista en pantalla */
+  body{
+    margin:0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    background:#f2f2f2;
+    padding:14px;
+  }
+
+  .ticket{
+    width: var(--paper);
+    background:#fff;
+    color:#000;
+    margin: 0 auto;
+    padding: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  }
+
+  .center{ text-align:center; }
+  .right{ text-align:right; }
+  .muted{ color:#444; }
+
+  .h1{ font-size: 14px; font-weight:700; }
+  .h2{ font-size: 12px; font-weight:700; margin-top:6px; }
+
+  .hr{
+    border-top: 1px dashed #000;
+    margin: 10px 0;
+  }
+
+  .row{
+    display:flex;
+    gap:8px;
+    justify-content:space-between;
+    align-items:flex-start;
+    font-size: var(--font);
+    line-height: 1.2;
+  }
+
+  .kv{
+    font-size: var(--font);
+    line-height: 1.25;
+    margin: 4px 0;
+    word-break: break-word;
+  }
+  .kv b{ font-weight:700; }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size: var(--font);
+    line-height:1.2;
+  }
+  th, td{
+    padding: 4px 0;
+    vertical-align:top;
+  }
+  th{
+    font-weight:700;
+    border-bottom:1px solid #000;
+  }
+  td{
+    border-bottom: 1px dotted #aaa;
+  }
+
+  .col-cant{ width: 14%; text-align:right; padding-right:6px; }
+  .col-cod{ width: 30%; }
+  .col-desc{ width: 56%; }
+
+  .sigWrap{
+    margin-top: 10px;
+    font-size: var(--font);
+  }
+  .sigBox{
+    border-top: 1px solid #000;
+    margin-top: 36px;
+    padding-top: 6px;
+  }
+  .sigImg{
+    display:block;
+    width: 100%;
+    max-height: 120px;
+    object-fit: contain;
+    margin: 6px 0 0 0;
+  }
+
+  .btns{
+    margin: 14px auto 0;
+    width: var(--paper);
+    display:flex;
+    gap:10px;
+    justify-content:center;
+  }
+  button{
+    padding:10px 14px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .print{ background:#0c6cbd; color:#fff; }
+  .close{ background:#ddd; color:#111; }
+
+  /* MODO IMPRESIÓN REAL TÉRMICA */
+  @media print {
+    @page{
+      size: var(--paper) auto;
+      margin: 0;
+    }
+    body{
+      background:#fff;
+      padding:0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .ticket{
+      width: var(--paper);
+      margin:0;
+      box-shadow:none;
+      padding: 6mm 4mm; /* margen interno, no del page */
+    }
+    .btns{ display:none !important; }
+  }
+</style>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.appspot.com",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  function qs(name){
+    return new URLSearchParams(location.search).get(name);
+  }
+
+  function fmtFecha(iso){
+    try{
+      const d = new Date(iso);
+      return d.toLocaleString("es-MX", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+    }catch{
+      return iso || "";
+    }
+  }
+
+  function esc(s){
+    return String(s ?? "").replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  async function cargar(){
+    const id = qs("id");
+    const ruta = qs("ruta");
+    if(!id || !ruta){
+      document.getElementById("err").textContent = "Faltan parámetros: id y ruta.";
+      return;
+    }
+
+    // /almacenes/{rutaId}/entradas/{idTraspaso}
+    const ref = doc(db, "almacenes", ruta, "entradas", id);
+    const snap = await getDoc(ref);
+    if(!snap.exists()){
+      document.getElementById("err").textContent = "No se encontró el traspaso.";
+      return;
+    }
+
+    const data = snap.data();
+
+    // Encabezado
+    document.getElementById("folio").textContent = id;
+    document.getElementById("rutaId").textContent = data.rutaId || ruta;
+    document.getElementById("vendedorId").textContent = data.vendedorId || "";
+    document.getElementById("fecha").textContent = fmtFecha(data.fecha);
+
+    // Nombres
+    document.getElementById("entregaNombre").textContent = data.firmas?.entrega?.nombre || "(sin nombre)";
+    document.getElementById("recibeNombre").textContent  = data.firmas?.recibe?.nombre  || "(sin nombre)";
+
+    // Tabla items
+    const tbody = document.getElementById("items");
+    tbody.innerHTML = "";
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    items.forEach(it => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="col-cant right">${esc(it.cantidad)}</td>
+        <td class="col-cod">${esc(it.codigo)}</td>
+        <td class="col-desc">${esc(it.concepto)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Firmas (base64 PNG)
+    const f1 = data.firmas?.entrega?.pngBase64 || "";
+    const f2 = data.firmas?.recibe?.pngBase64 || "";
+
+    const img1 = document.getElementById("sigEntrega");
+    const img2 = document.getElementById("sigRecibe");
+
+    if(f1) img1.src = f1; else img1.style.display="none";
+    if(f2) img2.src = f2; else img2.style.display="none";
+
+    // Auto-imprimir opcional:
+    // setTimeout(()=>window.print(), 300);
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("btnPrint").addEventListener("click", () => window.print());
+    document.getElementById("btnClose").addEventListener("click", () => window.close());
+    cargar().catch(err=>{
+      console.error(err);
+      document.getElementById("err").textContent = "Error cargando impresión: " + err.message;
+    });
+  });
+</script>
+</head>
+
+<body>
+  <div class="ticket">
+    <div id="err" style="color:#b00020; font-weight:700;"></div>
+
+    <div class="center h1">PROVSOFT</div>
+    <div class="center">TRASPASO ENTRE ALMACENES</div>
+
+    <div class="hr"></div>
+
+    <div class="kv"><b>Folio:</b> <span id="folio"></span></div>
+    <div class="kv"><b>RutaId:</b> <span id="rutaId"></span></div>
+    <div class="kv"><b>VendedorId:</b> <span id="vendedorId"></span></div>
+    <div class="kv"><b>Fecha:</b> <span id="fecha"></span></div>
+
+    <div class="hr"></div>
+
+    <div class="h2">Detalle</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-cant right">Cant</th>
+          <th class="col-cod">Código</th>
+          <th class="col-desc">Producto</th>
+        </tr>
+      </thead>
+      <tbody id="items"></tbody>
+    </table>
+
+    <div class="hr"></div>
+
+    <div class="sigWrap">
+      <div class="sigBox">
+        <div><b>Entrega:</b> <span id="entregaNombre"></span></div>
+        <img id="sigEntrega" class="sigImg" alt="Firma entrega">
+      </div>
+
+      <div class="sigBox">
+        <div><b>Recibe:</b> <span id="recibeNombre"></span></div>
+        <img id="sigRecibe" class="sigImg" alt="Firma recibe">
+      </div>
+    </div>
+
+    <div class="center muted" style="margin-top:10px;">
+      — Fin del ticket —
+    </div>
+  </div>
+
+  <div class="btns">
+    <button id="btnPrint" class="print">Imprimir</button>
+    <button id="btnClose" class="close">Cerrar</button>
+  </div>
+</body>
+</html>
