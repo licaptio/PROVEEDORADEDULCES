@@ -1,234 +1,295 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Impresión de Traspaso – PROVSOFT</title>
-
-<!-- LIBRERÍA QRCODE -->
-<script src="qr_lib.js"></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Impresión Traspaso – PROVSOFT</title>
 
 <style>
-  body {
-    font-family: 'Poppins', sans-serif;
-    margin: 0;
-    padding: 20px;
-    background: white;
-    color: #333;
+  :root{
+    /* TM-T20III normalmente es 80mm */
+    --paper: 80mm;
+    --font: 12px;
   }
 
-  .carta {
-    width: 21.59cm;
-    min-height: 27.94cm;
-    margin: auto;
-    padding: 25px;
-    border: 1px solid #ddd;
-    box-sizing: border-box;
+  /* ====== Pantalla (preview) ====== */
+  body{
+    margin:0;
+    padding:14px;
+    background:#f1f1f1;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    color:#000;
   }
 
-  h1 {
-    text-align: center;
-    margin: 0;
-    font-size: 26px;
-    color: #00416A;
-    font-weight: 700;
+  .ticket{
+    width: var(--paper);
+    background:#fff;
+    margin: 0 auto;
+    padding: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
   }
 
-  .encabezado {
-    margin-top: 10px;
-    display: flex;
-    justify-content: space-between;
-    font-size: 15px;
+  .center{ text-align:center; }
+  .right{ text-align:right; }
+  .muted{ color:#444; }
+
+  .h1{ font-size: 14px; font-weight: 800; letter-spacing: .3px; }
+  .h2{ font-size: 12px; font-weight: 800; margin-top: 6px; }
+
+  .hr{
+    border-top: 1px dashed #000;
+    margin: 10px 0;
   }
 
-  table {
+  .kv{
+    font-size: var(--font);
+    line-height: 1.25;
+    margin: 4px 0;
+    word-break: break-word;
+  }
+  .kv b{ font-weight:800; }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size: var(--font);
+    line-height:1.2;
+  }
+  th, td{ padding: 4px 0; vertical-align:top; }
+  th{
+    font-weight:800;
+    border-bottom:1px solid #000;
+  }
+  td{
+    border-bottom: 1px dotted #aaa;
+  }
+
+  .col-cant{ width: 16%; text-align:right; padding-right:6px; }
+  .col-cod { width: 30%; }
+  .col-desc{ width: 54%; }
+
+  .sigWrap{ margin-top: 10px; font-size: var(--font); }
+  .sigBox{
+    border-top: 1px solid #000;
+    margin-top: 30px;
+    padding-top: 6px;
+  }
+  .sigImg{
+    display:block;
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-  }
-
-  th {
-    background: #00416A;
-    color: #fff;
-    padding: 8px;
-    font-weight: 600;
-    border: 1px solid #ddd;
-  }
-
-  td {
-    padding: 8px;
-    border: 1px solid #ddd;
-    font-size: 14px;
-  }
-
-  .firmas {
-    margin-top: 40px;
-    display: flex;
-    justify-content: space-between;
-  }
-
-  .firmaBox {
-    width: 45%;
-    text-align: center;
-  }
-
-  .firmaImg {
-    width: 100%;
-    max-height: 140px;
+    max-height: 120px;
     object-fit: contain;
-    margin-bottom: 8px;
+    margin-top: 6px;
   }
 
-  #qr {
-    margin-top: 10px;
-    text-align: right;
+  /* Botones solo en pantalla */
+  .btns{
+    width: var(--paper);
+    margin: 12px auto 0;
+    display:flex;
+    gap:10px;
+    justify-content:center;
   }
+  button{
+    padding:10px 14px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .print{ background:#0c6cbd; color:#fff; }
+  .close{ background:#ddd; color:#111; }
 
+  /* ====== IMPRESIÓN TÉRMICA REAL ====== */
   @media print {
-    #btnImprimir { display: none; }
-  }
+    /* MUY IMPORTANTE para ticket:
+       - margin 0 para que Windows/Chrome no meta márgenes
+       - size 80mm auto
+    */
+    @page{
+      size: 80mm auto;
+      margin: 0;
+    }
 
-  #btnImprimir {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    background: #00416A;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
+    body{
+      padding:0;
+      margin:0;
+      background:#fff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .ticket{
+      width: 80mm;
+      margin:0;
+      padding: 6mm 4mm; /* margen interno del ticket */
+      box-shadow:none;
+    }
+
+    .btns{ display:none !important; }
   }
 </style>
-</head>
-<body>
-
-<div class="carta">
-  <h1>TRASPASO ENTRE ALMACENES</h1>
-<h2 id="nombreVendedorTitulo" style="text-align:center; margin:0; font-size:18px; color:#444;"></h2>
-
-  <div class="encabezado">
-    <div>
-      <b>ID Traspaso:</b> <span id="idPrint"></span><br>
-      <b>Fecha:</b> <span id="fechaPrint"></span><br>
-      <b>Ruta:</b> <span id="rutaPrint"></span>
-    </div>
-
-    <div id="qr"></div>
-  </div>
-
-  <table>
-<thead>
-  <tr>
-    <th>Código</th>
-    <th>Producto</th>
-    <th>Cantidad</th>
-    <th>Precio Público</th>   <!-- NUEVO -->
-  </tr>
-</thead>
-
-    <tbody id="tablaPrint"></tbody>
-  </table>
-
-  <div class="firmas">
-    <div class="firmaBox">
-      <img id="firmaEntrega" class="firmaImg">
-      <hr>
-      <b>Entrega almacén</b>
-    </div>
-
-    <div class="firmaBox">
-      <img id="firmaRecibe" class="firmaImg">
-      <hr>
-      <b id="nombreVendedorFirma"></b>
-    </div>
-  </div>
-</div>
-
-<button id="btnImprimir" onclick="window.print()">Imprimir</button>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-  authDomain: "inventariopv-643f1.firebaseapp.com",
-  projectId: "inventariopv-643f1"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.appspot.com",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-// LEER ID DE URL
-const params = new URLSearchParams(window.location.search);
-const id = params.get("id");
+  const qs = (name) => new URLSearchParams(location.search).get(name);
 
-// MOSTRAR ID
-document.getElementById("idPrint").innerText = id;
-const ruta = params.get("ruta");
+  function fmtFecha(iso){
+    try{
+      const d = new Date(iso);
+      return d.toLocaleString("es-MX", {
+        year:"numeric", month:"2-digit", day:"2-digit",
+        hour:"2-digit", minute:"2-digit"
+      });
+    }catch{
+      return iso || "";
+    }
+  }
 
-// CARGAR DATOS
-async function cargar() {
-const ref = doc(db, "almacenes", ruta, "entradas", id);
-const snap = await getDoc(ref);
+  function esc(s){
+    return String(s ?? "").replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
 
-if (!snap.exists()) {
-  alert("No se encontró el traspaso en la ruta: " + ruta);
-  return;
-}
+  async function cargar(){
+    const id = qs("id");
+    const ruta = qs("ruta");
 
-const data = snap.data();
+    if(!id || !ruta){
+      document.getElementById("err").textContent = "Faltan parámetros: id y ruta.";
+      return;
+    }
 
-  if (!data) return alert("No encontrado");
+    // /almacenes/{rutaId}/entradas/{idTraspaso}
+    const ref = doc(db, "almacenes", ruta, "entradas", id);
+    const snap = await getDoc(ref);
 
-  document.getElementById("fechaPrint").innerText = data.fecha.substring(0, 10);
-  document.getElementById("rutaPrint").innerText = data.rutaId;
+    if(!snap.exists()){
+      document.getElementById("err").textContent = "No se encontró el traspaso.";
+      return;
+    }
 
-  // tabla
-  const tabla = document.getElementById("tablaPrint");
-  data.items.forEach(it => {
-tabla.innerHTML += `
-  <tr>
-    <td>${it.codigo}</td>
-    <td>${it.concepto}</td>
-    <td>${it.cantidad}</td>
-    <td>$${Number(it.precio || 0).toLocaleString("es-MX", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}</td>
-  </tr>
-`;
+    const data = snap.data();
+
+    // Encabezado
+    document.getElementById("folio").textContent = id;
+    document.getElementById("rutaId").textContent = data.rutaId || ruta;
+    document.getElementById("vendedorId").textContent = data.vendedorId || "";
+    document.getElementById("vendedorNombre").textContent = data.vendedorNombre || "";
+    document.getElementById("fecha").textContent = fmtFecha(data.fecha);
+
+    // Tabla items
+    const tbody = document.getElementById("items");
+    tbody.innerHTML = "";
+    const items = Array.isArray(data.items) ? data.items : [];
+
+    items.forEach(it => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="col-cant right">${esc(it.cantidad)}</td>
+        <td class="col-cod">${esc(it.codigo)}</td>
+        <td class="col-desc">${esc(it.concepto)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Firmas
+    const entregaNombre = data.firmas?.entrega?.nombre || "(sin nombre)";
+    const recibeNombre  = data.firmas?.recibe?.nombre  || "(sin nombre)";
+    document.getElementById("entregaNombre").textContent = entregaNombre;
+    document.getElementById("recibeNombre").textContent  = recibeNombre;
+
+    const f1 = data.firmas?.entrega?.pngBase64 || "";
+    const f2 = data.firmas?.recibe?.pngBase64 || "";
+
+    const img1 = document.getElementById("sigEntrega");
+    const img2 = document.getElementById("sigRecibe");
+
+    if (f1) img1.src = f1; else img1.style.display = "none";
+    if (f2) img2.src = f2; else img2.style.display = "none";
+
+    // TIP: si quieres auto-imprimir al abrir:
+    // setTimeout(() => window.print(), 350);
+  }
+
+  window.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("btnPrint").addEventListener("click", () => window.print());
+    document.getElementById("btnClose").addEventListener("click", () => window.close());
+
+    cargar().catch(err=>{
+      console.error(err);
+      document.getElementById("err").textContent = "Error cargando impresión: " + err.message;
+    });
   });
-// =============================
-// CARGAR NOMBRE DEL VENDEDOR
-// =============================
-const vendedorRef = doc(db, "usuarios_ruta", data.vendedorId);
-const vendedorSnap = await getDoc(vendedorRef);
-
-let nombreVendedor = "Vendedor";
-
-if (vendedorSnap.exists()) {
-  nombreVendedor = vendedorSnap.data().nombre || "Vendedor";
-}
-
-// poner nombre en título y firma
-document.getElementById("nombreVendedorTitulo").innerText =
-  "Vendedor: " + nombreVendedor;
-
-document.getElementById("nombreVendedorFirma").innerText =
-  nombreVendedor;
-  // firmas si existen
-  if (data.firmaEntregaURL) document.getElementById("firmaEntrega").src = data.firmaEntregaURL;
-  if (data.firmaRecibeURL) document.getElementById("firmaRecibe").src = data.firmaRecibeURL;
-
-  // generar QR
-  new QRCode(document.getElementById("qr"), "https://tuservidor.com/firmar.html?id=" + id);
-}
-
-cargar();
-
 </script>
+</head>
 
+<body>
+  <div class="ticket">
+    <div id="err" style="color:#b00020; font-weight:800;"></div>
+
+    <div class="center h1">PROVSOFT</div>
+    <div class="center">TRASPASO ENTRE ALMACENES</div>
+
+    <div class="hr"></div>
+
+    <div class="kv"><b>Folio:</b> <span id="folio"></span></div>
+    <div class="kv"><b>Ruta:</b> <span id="rutaId"></span></div>
+    <div class="kv"><b>VendedorId:</b> <span id="vendedorId"></span></div>
+    <div class="kv"><b>Vendedor:</b> <span id="vendedorNombre"></span></div>
+    <div class="kv"><b>Fecha:</b> <span id="fecha"></span></div>
+
+    <div class="hr"></div>
+
+    <div class="h2">Detalle</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-cant right">Cant</th>
+          <th class="col-cod">Código</th>
+          <th class="col-desc">Producto</th>
+        </tr>
+      </thead>
+      <tbody id="items"></tbody>
+    </table>
+
+    <div class="hr"></div>
+
+    <div class="sigWrap">
+      <div class="sigBox">
+        <div><b>Entrega:</b> <span id="entregaNombre"></span></div>
+        <img id="sigEntrega" class="sigImg" alt="Firma entrega">
+      </div>
+
+      <div class="sigBox">
+        <div><b>Recibe:</b> <span id="recibeNombre"></span></div>
+        <img id="sigRecibe" class="sigImg" alt="Firma recibe">
+      </div>
+    </div>
+
+    <div class="center muted" style="margin-top:10px;">
+      — Fin del ticket —
+    </div>
+  </div>
+
+  <div class="btns">
+    <button id="btnPrint" class="print">Imprimir</button>
+    <button id="btnClose" class="close">Cerrar</button>
+  </div>
 </body>
 </html>
