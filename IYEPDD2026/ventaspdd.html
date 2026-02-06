@@ -60,7 +60,7 @@
 /* ============================
    CONFIG SUPABASE
    ============================ */
-const supabase = supabasejs.createClient(
+const db = supabasejs.createClient(
   'https://cvpbtjlupswbyxenugpz.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
 );
@@ -79,7 +79,7 @@ const meses = [
    CARGAR DATOS
    ============================ */
 async function cargarDatos() {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('v_ingresos_estado_resultados_base')
     .select(`
       serie,
@@ -87,7 +87,7 @@ async function cargarDatos() {
       periodo_mes,
       venta_neta
     `)
-    .eq('cfdi_activo_sat', true)
+.eq('cfdi_activo_sat', true)
 .gte('periodo_anio', '2025')
 .lte('periodo_anio', '2026');
 
