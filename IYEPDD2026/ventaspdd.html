@@ -42,14 +42,13 @@
       '2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'
     ];
 
-    async function cargarDatos() {
-      const { data, error } = await db
-        .from('v_ingresos_estado_resultados_base')
-        .select('serie,periodo_anio,periodo_mes,venta_neta')
-        .eq('cfdi_activo_sat', true)
-        .gte('periodo_anio', '2025')
-        .lte('periodo_anio', '2026')
-        .limit(100000); // por si tienes muchos registros
+async function cargarDatos() {
+const { data, error } = await db
+  .from('v_ingresos_estado_resultados_base')
+  .select('serie,periodo_anio,periodo_mes,venta_neta')
+  .gte('periodo_anio', 2025)
+  .lte('periodo_anio', 2026)
+  .limit(100000);
 
       if (error) {
         console.error(error);
