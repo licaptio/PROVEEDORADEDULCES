@@ -5,138 +5,91 @@
   <title>Resumen de Ingresos Vigentes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Supabase JS -->
+  <!-- Supabase JS (UMD global = supabase) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- (opcional) quita el 404 del favicon -->
+  <link rel="icon" href="data:,">
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      padding: 20px;
-    }
-
-    h2 {
-      margin-bottom: 10px;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      background: white;
-      font-size: 13px;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 6px 8px;
-      text-align: right;
-      white-space: nowrap;
-    }
-
-    th {
-      background: #0c6cbd;
-      color: white;
-      text-align: center;
-    }
-
-    td:first-child, th:first-child {
-      text-align: left;
-      font-weight: bold;
-      background: #eef2f6;
-    }
-
-    .total {
-      font-weight: bold;
-      background: #f0f9ff;
-    }
+    body { font-family: Arial, sans-serif; background:#f4f6f8; padding:20px; }
+    h2 { margin-bottom: 10px; }
+    table { border-collapse: collapse; width:100%; background:#fff; font-size:13px; }
+    th, td { border:1px solid #ccc; padding:6px 8px; text-align:right; white-space:nowrap; }
+    th { background:#0c6cbd; color:#fff; text-align:center; }
+    td:first-child, th:first-child { text-align:left; font-weight:bold; background:#eef2f6; }
   </style>
 </head>
+
 <body>
+  <h2>Ingresos vigentes SAT (2025–2026)</h2>
+  <div id="tabla">Cargando...</div>
 
-<h2>Ingresos vigentes SAT (2025–2026)</h2>
-<div id="tabla"></div>
+  <script>
+    // ✅ En este CDN, el global es: window.supabase
+    const { createClient } = window.supabase;
 
-<script>
-/* ============================
-   CONFIG SUPABASE
-   ============================ */
-const db = supabasejs.createClient(
-  'https://cvpbtjlupswbyxenugpz.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
-);
+    // ✅ Usa "db" para no chocar con el global "supabase"
+    const db = createClient(
+      'https://cvpbtjlupswbyxenugpz.supabase.co',
+      'TU_PUBLIC_ANON_KEY_AQUI'
+    );
 
-/* ============================
-   MESES DEFINIDOS
-   ============================ */
-const meses = [
-  '2025-01','2025-02','2025-03','2025-04','2025-05','2025-06',
-  '2025-07','2025-08','2025-09','2025-10','2025-11','2025-12',
-  '2026-01','2026-02','2026-03','2026-04','2026-05','2026-06',
-  '2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'
-];
+    const meses = [
+      '2025-01','2025-02','2025-03','2025-04','2025-05','2025-06',
+      '2025-07','2025-08','2025-09','2025-10','2025-11','2025-12',
+      '2026-01','2026-02','2026-03','2026-04','2026-05','2026-06',
+      '2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'
+    ];
 
-/* ============================
-   CARGAR DATOS
-   ============================ */
-async function cargarDatos() {
-  const { data, error } = await db
-    .from('v_ingresos_estado_resultados_base')
-    .select(`
-      serie,
-      periodo_anio,
-      periodo_mes,
-      venta_neta
-    `)
-.eq('cfdi_activo_sat', true)
-.gte('periodo_anio', '2025')
-.lte('periodo_anio', '2026');
+    async function cargarDatos() {
+      const { data, error } = await db
+        .from('v_ingresos_estado_resultados_base')
+        .select('serie,periodo_anio,periodo_mes,venta_neta')
+        .eq('cfdi_activo_sat', true)
+        .gte('periodo_anio', '2025')
+        .lte('periodo_anio', '2026')
+        .limit(100000); // por si tienes muchos registros
 
-  if (error) {
-    console.error(error);
-    alert('Error cargando datos');
-    return;
-  }
+      if (error) {
+        console.error(error);
+        document.getElementById('tabla').innerHTML =
+          '<b>Error:</b> ' + (error.message || 'No se pudo cargar');
+        return;
+      }
 
-  construirTabla(data);
-}
+      construirTabla(data || []);
+    }
 
-/* ============================
-   CONSTRUIR TABLA
-   ============================ */
-function construirTabla(rows) {
-  const resumen = {};
-  const series = new Set();
+    function construirTabla(rows) {
+      const resumen = {};
+      const series = new Set();
 
-  rows.forEach(r => {
-    const keyMes = `${r.periodo_anio}-${String(r.periodo_mes).padStart(2,'0')}`;
-    series.add(r.serie);
+      rows.forEach(r => {
+        const keyMes = `${r.periodo_anio}-${String(r.periodo_mes).padStart(2,'0')}`;
+        series.add(r.serie);
+        resumen[r.serie] ??= {};
+        resumen[r.serie][keyMes] = (resumen[r.serie][keyMes] || 0) + Number(r.venta_neta || 0);
+      });
 
-    resumen[r.serie] ??= {};
-    resumen[r.serie][keyMes] = (resumen[r.serie][keyMes] || 0) + Number(r.venta_neta);
-  });
+      let html = '<table><thead><tr><th>Serie</th>';
+      meses.forEach(m => html += `<th>${m}</th>`);
+      html += '</tr></thead><tbody>';
 
-  let html = '<table><thead><tr><th>Serie</th>';
-  meses.forEach(m => html += `<th>${m}</th>`);
-  html += '</tr></thead><tbody>';
+      [...series].sort().forEach(serie => {
+        html += `<tr><td>${serie}</td>`;
+        meses.forEach(m => {
+          const val = resumen[serie]?.[m] || 0;
+          html += `<td>${val ? val.toLocaleString('es-MX',{minimumFractionDigits:2}) : ''}</td>`;
+        });
+        html += '</tr>';
+      });
 
-  [...series].sort().forEach(serie => {
-    html += `<tr><td>${serie}</td>`;
-    meses.forEach(m => {
-      const val = resumen[serie]?.[m] || 0;
-      html += `<td>${val ? val.toLocaleString('es-MX',{minimumFractionDigits:2}) : ''}</td>`;
-    });
-    html += '</tr>';
-  });
+      html += '</tbody></table>';
+      document.getElementById('tabla').innerHTML = html || 'Sin datos';
+    }
 
-  html += '</tbody></table>';
-  document.getElementById('tabla').innerHTML = html;
-}
-
-/* ============================
-   INIT
-   ============================ */
-cargarDatos();
-</script>
-
+    cargarDatos();
+  </script>
 </body>
 </html>
