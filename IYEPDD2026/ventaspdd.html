@@ -1,94 +1,137 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Resumen de Ingresos Vigentes</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<title>Ingresos por Serie – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Supabase JS (UMD global = supabase) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- (opcional) quita el 404 del favicon -->
-  <link rel="icon" href="data:,">
+<style>
+  body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f8;
+    padding:20px;
+  }
+  h2{ margin-bottom:10px; }
 
-  <style>
-    body { font-family: Arial, sans-serif; background:#f4f6f8; padding:20px; }
-    h2 { margin-bottom: 10px; }
-    table { border-collapse: collapse; width:100%; background:#fff; font-size:13px; }
-    th, td { border:1px solid #ccc; padding:6px 8px; text-align:right; white-space:nowrap; }
-    th { background:#0c6cbd; color:#fff; text-align:center; }
-    td:first-child, th:first-child { text-align:left; font-weight:bold; background:#eef2f6; }
-  </style>
+  table{
+    border-collapse: collapse;
+    width:100%;
+    background:#fff;
+    font-size:14px;
+  }
+  th, td{
+    border:1px solid #ccc;
+    padding:6px 8px;
+    text-align:right;
+    white-space: nowrap;
+  }
+  th{
+    background:#0c6cbd;
+    color:#fff;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  th:first-child,
+  td:first-child{
+    text-align:left;
+    font-weight:bold;
+    position: sticky;
+    left: 0;
+    background:#e9eef5;
+    z-index: 3;
+  }
+</style>
 </head>
 
 <body>
-  <h2>Ingresos vigentes SAT (2025–2026)</h2>
-  <div id="tabla">Cargando...</div>
 
-  <script>
-    // ✅ En este CDN, el global es: window.supabase
-    const { createClient } = window.supabase;
+<h2>Ingresos por Serie (Histórico)</h2>
 
-    // ✅ Usa "db" para no chocar con el global "supabase"
+<table id="tabla">
+  <thead></thead>
+  <tbody></tbody>
+</table>
+
+<script>
+const supabase = supabase.createClient(
     const db = createClient(
       'https://cvpbtjlupswbyxenugpz.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
-    );
+);
+// 🔹 1. Cargar datos base
+async function cargarDatos(){
+  const { data, error } = await supabase
+    .from('ingresos_pdd')
+    .select('serie, fecha, total');
 
-    const meses = [
-      '2025-01','2025-02','2025-03','2025-04','2025-05','2025-06',
-      '2025-07','2025-08','2025-09','2025-10','2025-11','2025-12',
-      '2026-01','2026-02','2026-03','2026-04','2026-05','2026-06',
-      '2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'
-    ];
+  if(error){
+    console.error(error);
+    alert('Error cargando datos');
+    return;
+  }
 
-async function cargarDatos() {
-const { data, error } = await db
-  .from('v_ingresos_estado_resultados_base')
-  .select('serie,periodo_anio,periodo_mes,venta_neta')
-  .gte('periodo_anio', 2025)
-  .lte('periodo_anio', 2026)
-  .limit(100000);
+  construirTabla(data);
+}
 
-      if (error) {
-        console.error(error);
-        document.getElementById('tabla').innerHTML =
-          '<b>Error:</b> ' + (error.message || 'No se pudo cargar');
-        return;
-      }
+// 🔹 2. Construir tabla tipo Excel
+function construirTabla(rows){
+  const mapa = {};        // { serie: { periodo: total } }
+  const periodos = new Set();
 
-      construirTabla(data || []);
-    }
+  rows.forEach(r=>{
+    if(!r.fecha || !r.total) return;
 
-    function construirTabla(rows) {
-      const resumen = {};
-      const series = new Set();
+    const periodo = r.fecha.slice(0,7); // YYYY-MM
+    periodos.add(periodo);
 
-      rows.forEach(r => {
-        const keyMes = `${r.periodo_anio}-${String(r.periodo_mes).padStart(2,'0')}`;
-        series.add(r.serie);
-        resumen[r.serie] ??= {};
-        resumen[r.serie][keyMes] = (resumen[r.serie][keyMes] || 0) + Number(r.venta_neta || 0);
-      });
+    if(!mapa[r.serie]) mapa[r.serie] = {};
+    if(!mapa[r.serie][periodo]) mapa[r.serie][periodo] = 0;
 
-      let html = '<table><thead><tr><th>Serie</th>';
-      meses.forEach(m => html += `<th>${m}</th>`);
-      html += '</tr></thead><tbody>';
+    mapa[r.serie][periodo] += Number(r.total);
+  });
 
-      [...series].sort().forEach(serie => {
-        html += `<tr><td>${serie}</td>`;
-        meses.forEach(m => {
-          const val = resumen[serie]?.[m] || 0;
-          html += `<td>${val ? val.toLocaleString('es-MX',{minimumFractionDigits:2}) : ''}</td>`;
-        });
-        html += '</tr>';
-      });
+  const periodosOrdenados = Array.from(periodos).sort();
+  const series = Object.keys(mapa).sort();
 
-      html += '</tbody></table>';
-      document.getElementById('tabla').innerHTML = html || 'Sin datos';
-    }
+  // 🔹 Header
+  const thead = document.querySelector('#tabla thead');
+  thead.innerHTML = '';
+  const trh = document.createElement('tr');
+  trh.innerHTML = `<th>serie</th>` +
+    periodosOrdenados.map(p=>`<th>${p}</th>`).join('');
+  thead.appendChild(trh);
 
-    cargarDatos();
-  </script>
+  // 🔹 Body
+  const tbody = document.querySelector('#tabla tbody');
+  tbody.innerHTML = '';
+
+  series.forEach(serie=>{
+    const tr = document.createElement('tr');
+    let html = `<td>${serie}</td>`;
+
+    periodosOrdenados.forEach(p=>{
+      const val = mapa[serie][p];
+      html += `<td>${val ? formato(val) : ''}</td>`;
+    });
+
+    tr.innerHTML = html;
+    tbody.appendChild(tr);
+  });
+}
+
+// 🔹 Formato moneda
+function formato(n){
+  return n.toLocaleString('es-MX',{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+cargarDatos();
+</script>
+
 </body>
 </html>
