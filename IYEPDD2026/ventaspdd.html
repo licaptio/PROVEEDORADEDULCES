@@ -1,143 +1,142 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Estado de Resultados – PDD 2026</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>Resumen de Ingresos Vigentes</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<style>
-  body {
-    font-family: Poppins, Arial, sans-serif;
-    background: #eef1f5;
-    padding: 30px;
-  }
-  h2 { margin-bottom: 15px; }
-  .box {
-    background: #fff;
-    padding: 20px;
-    border-radius: 14px;
-    box-shadow: 0 8px 20px rgba(0,0,0,.1);
-    max-width: 900px;
-    margin: auto;
-  }
-  .controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-  }
-  input, button {
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-  }
-  button {
-    background: #0c6cbd;
-    color: white;
-    cursor: pointer;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-  }
-  th, td {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-    text-align: right;
-  }
-  th:first-child, td:first-child {
-    text-align: left;
-  }
-  th {
-    background: #f3f6fb;
-  }
-</style>
-</head>
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<body>
-
-<div class="box">
-  <h2>📊 Ventas PDD 2026 – Estado de Resultados</h2>
-
-  <div class="controls">
-    <input type="date" id="fecha_inicio">
-    <input type="date" id="fecha_fin">
-    <button onclick="consultar()">Consultar</button>
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Sucursal</th>
-        <th>Ventas 0%</th>
-        <th>Ventas 16%</th>
-        <th>Ventas 8%</th>
-        <th>Otras</th>
-        <th>Total</th>
-      </tr>
-    </thead>
-    <tbody id="resultado"></tbody>
-  </table>
-</div>
-<!-- Supabase SDK (OBLIGATORIO PRIMERO) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<!-- 🔌 Supabase -->
-<script src="./supabase.js"></script>
-
-<script>
-async function consultar() {
-  const fi = document.getElementById('fecha_inicio').value;
-  const ff = document.getElementById('fecha_fin').value;
-  if (!fi || !ff) {
-    alert('Selecciona ambas fechas');
-    return;
-  }
-
-const { data, error } = await supabaseClient
-  .rpc('rpc_estado_resultados_por_sucursal', {
-    f_inicio: fi,
-    f_fin: ff
-  });
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-  
-  const resumen = {};
-
-  data.forEach(r => {
-    if (!resumen[r.sucursal]) {
-      resumen[r.sucursal] = { v0: 0, v16: 0, v8: 0, otras: 0, total: 0 };
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 20px;
     }
 
-    if (r.tasa_iva == 0) resumen[r.sucursal].v0 += r.venta_neta;
-    else if (r.tasa_iva == 0.16) resumen[r.sucursal].v16 += r.venta_neta;
-    else if (r.tasa_iva == 0.08) resumen[r.sucursal].v8 += r.venta_neta;
-    else resumen[r.sucursal].otras += r.venta_neta;
+    h2 {
+      margin-bottom: 10px;
+    }
 
-    resumen[r.sucursal].total += r.venta_neta;
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background: white;
+      font-size: 13px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 8px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #0c6cbd;
+      color: white;
+      text-align: center;
+    }
+
+    td:first-child, th:first-child {
+      text-align: left;
+      font-weight: bold;
+      background: #eef2f6;
+    }
+
+    .total {
+      font-weight: bold;
+      background: #f0f9ff;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Ingresos vigentes SAT (2025–2026)</h2>
+<div id="tabla"></div>
+
+<script>
+/* ============================
+   CONFIG SUPABASE
+   ============================ */
+const supabase = supabasejs.createClient(
+  'https://cvpbtjlupswbyxenugpz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+);
+
+/* ============================
+   MESES DEFINIDOS
+   ============================ */
+const meses = [
+  '2025-01','2025-02','2025-03','2025-04','2025-05','2025-06',
+  '2025-07','2025-08','2025-09','2025-10','2025-11','2025-12',
+  '2026-01','2026-02','2026-03','2026-04','2026-05','2026-06',
+  '2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'
+];
+
+/* ============================
+   CARGAR DATOS
+   ============================ */
+async function cargarDatos() {
+  const { data, error } = await supabase
+    .from('v_ingresos_estado_resultados_base')
+    .select(`
+      serie,
+      periodo_anio,
+      periodo_mes,
+      venta_neta
+    `)
+    .eq('cfdi_activo_sat', true)
+.gte('periodo_anio', '2025')
+.lte('periodo_anio', '2026');
+
+  if (error) {
+    console.error(error);
+    alert('Error cargando datos');
+    return;
+  }
+
+  construirTabla(data);
+}
+
+/* ============================
+   CONSTRUIR TABLA
+   ============================ */
+function construirTabla(rows) {
+  const resumen = {};
+  const series = new Set();
+
+  rows.forEach(r => {
+    const keyMes = `${r.periodo_anio}-${String(r.periodo_mes).padStart(2,'0')}`;
+    series.add(r.serie);
+
+    resumen[r.serie] ??= {};
+    resumen[r.serie][keyMes] = (resumen[r.serie][keyMes] || 0) + Number(r.venta_neta);
   });
 
-const tbody = document.getElementById('resultado');
-tbody.innerHTML = '';
+  let html = '<table><thead><tr><th>Serie</th>';
+  meses.forEach(m => html += `<th>${m}</th>`);
+  html += '</tr></thead><tbody>';
 
-data.forEach(r => {
-  tbody.innerHTML += `
-    <tr>
-      <td>${r.sucursal}</td>
-      <td>${Number(r.ventas_0).toFixed(2)}</td>
-      <td>${Number(r.ventas_16).toFixed(2)}</td>
-      <td>${Number(r.ventas_8).toFixed(2)}</td>
-      <td>${Number(r.ventas_otras).toFixed(2)}</td>
-      <td><b>${Number(r.ventas_totales).toFixed(2)}</b></td>
-    </tr>`;
-});
+  [...series].sort().forEach(serie => {
+    html += `<tr><td>${serie}</td>`;
+    meses.forEach(m => {
+      const val = resumen[serie]?.[m] || 0;
+      html += `<td>${val ? val.toLocaleString('es-MX',{minimumFractionDigits:2}) : ''}</td>`;
+    });
+    html += '</tr>';
+  });
 
+  html += '</tbody></table>';
+  document.getElementById('tabla').innerHTML = html;
 }
+
+/* ============================
+   INIT
+   ============================ */
+cargarDatos();
 </script>
+
 </body>
 </html>
-
