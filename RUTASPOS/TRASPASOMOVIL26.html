@@ -320,6 +320,7 @@ async function buscarPorCodigo() {
 let carrito = [];
 let productoSeleccionadoPorNombre = null;
 window.cantidadManual = null;
+let indiceEdicionCantidad = null;
 
 function seleccionarProducto(data) {
   document.getElementById("codigoSel").value = data.codigoBarra;
@@ -363,7 +364,14 @@ function renderTabla() {
     tr.innerHTML = `
       <td>${it.codigo}</td>
       <td>${it.concepto}</td>
-      <td>${it.cantidad}</td>
+      <td>
+  ${it.cantidad}
+  <button onclick="editarCantidad(${i})"
+    style="margin-left:6px; background:#eee; color:#333;">
+    ✏️
+  </button>
+</td>
+
       <td>$${it.precio.toFixed(2)}</td>
       <td><button onclick="eliminarItem(${i})">❌</button></td>
     `;
@@ -381,6 +389,27 @@ window.eliminarItem = i => {
   renderTabla();
   localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
 };
+window.editarCantidad = (index) => {
+  const item = carrito[index];
+
+  // 🧠 EXTRA PRO — bloquear si viene de balanza (decimal)
+  if (item.cantidad % 1 !== 0) {
+    alert("Cantidad por balanza, no editable");
+    return;
+  }
+
+  indiceEdicionCantidad = index;
+
+  document.getElementById("inputCantidadNombre").value = item.cantidad;
+  document.getElementById("modalCantidad").style.display = "flex";
+
+  setTimeout(() => {
+    const input = document.getElementById("inputCantidadNombre");
+    input.focus();
+    input.select();
+  }, 50);
+};
+
 
 /* ==========================================================
    🟦 CARGAR LISTA DE VENDEDORES
@@ -719,26 +748,38 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 200);
   });
 
-  document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
-    const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
+ document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
+  const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
 
-    if (!cant || cant <= 0) {
-      alert("Escriba una cantidad válida");
-      return;
-    }
+  if (!cant || cant <= 0) {
+    alert("Escriba una cantidad válida");
+    return;
+  }
 
-    document.getElementById("modalCantidad").style.display = "none";
+  document.getElementById("modalCantidad").style.display = "none";
 
-    seleccionarProducto(productoSeleccionadoPorNombre);
-    window.cantidadManual = cant;
+  // 🔁 MODO EDICIÓN DESDE LA TABLA
+  if (indiceEdicionCantidad !== null) {
+    carrito[indiceEdicionCantidad].cantidad = cant;
+    indiceEdicionCantidad = null;
 
-    agregarItem();
     renderTabla();
     localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
+    return;
+  }
 
-    document.getElementById("preview").innerText = "";
-    document.getElementById("buscador").focus();
-  });
+  // ➕ MODO AGREGAR DESDE BUSCAR NOMBRE
+  seleccionarProducto(productoSeleccionadoPorNombre);
+  window.cantidadManual = cant;
+
+  agregarItem();
+  renderTabla();
+  localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
+
+  document.getElementById("preview").innerText = "";
+  document.getElementById("buscador").focus();
+});
+
 });
 
 </script>
