@@ -15,6 +15,11 @@
   }
   h2{ margin-bottom:10px; }
 
+  #estado{
+    margin-bottom:10px;
+    font-weight:bold;
+  }
+
   table{
     border-collapse: collapse;
     width:100%;
@@ -50,76 +55,125 @@
 
 <h2>Ingresos por Serie (Histórico)</h2>
 
+<div id="estado">Cargando datos…</div>
+
 <table id="tabla">
   <thead></thead>
   <tbody></tbody>
 </table>
 
 <script>
-const supabase = window.supabase.createClient(
+// ===============================
+// 🔹 CLIENTE SUPABASE
+// ===============================
+const sb = window.supabase.createClient(
   'https://cvpbtjlupswbyxenugpz.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
 );
 
-// 🔹 1. Cargar datos base
-async function cargarDatos(){
-  const { data, error } = await supabase
-    .from('ingresos_pdd')
-    .select('serie, fecha, total');
 
-  if(error){
-    console.error(error);
-    alert('Error cargando datos');
-    return;
+// ===============================
+// 🔹 CARGA PAGINADA
+// ===============================
+async function cargarDatos(){
+  const estado = document.getElementById('estado');
+  let todos = [];
+  let desde = 0;
+  const paso = 1000;
+
+  while (true) {
+    estado.innerText = `Cargando filas ${desde + 1} a ${desde + paso}…`;
+
+    const { data, error } = await sb
+      .from('ingresos_pdd')
+      .select('id, serie, fecha, total')
+      .order('id', { ascending: true })
+      .range(desde, desde + paso - 1);
+
+    if (error) {
+      console.error(error);
+      estado.innerText = '❌ Error cargando datos';
+      return;
+    }
+
+    if (!data || data.length === 0) break;
+
+    todos = todos.concat(data);
+    desde += paso;
   }
 
-  construirTabla(data);
+  estado.innerText = `Procesando ${todos.length.toLocaleString()} registros…`;
+  construirTabla(todos);
+  estado.innerText = `Listo (${todos.length.toLocaleString()} registros)`;
 }
 
-// 🔹 2. Construir tabla tipo Excel
+// ===============================
+// 🔹 CONSTRUCCIÓN TABLA + TOTAL
+// ===============================
 function construirTabla(rows){
   const mapa = {};
   const periodos = new Set();
 
   rows.forEach(r=>{
-    if(!r.fecha || !r.total) return;
+    if(!r.fecha) return;
+    if(r.total == null) return;
 
-    const periodo = r.fecha.slice(0,7);
+    const serie = r.serie || '(SIN SERIE)';
+    const periodo = String(r.fecha).slice(0,7);
+
     periodos.add(periodo);
 
-    if(!mapa[r.serie]) mapa[r.serie] = {};
-    if(!mapa[r.serie][periodo]) mapa[r.serie][periodo] = 0;
+    if(!mapa[serie]) mapa[serie] = {};
+    if(!mapa[serie][periodo]) mapa[serie][periodo] = 0;
 
-    mapa[r.serie][periodo] += Number(r.total);
+    mapa[serie][periodo] += Number(r.total);
   });
 
   const periodosOrdenados = Array.from(periodos).sort();
   const series = Object.keys(mapa).sort();
 
   const thead = document.querySelector('#tabla thead');
-  thead.innerHTML = '';
-  const trh = document.createElement('tr');
-  trh.innerHTML = `<th>serie</th>` +
-    periodosOrdenados.map(p=>`<th>${p}</th>`).join('');
-  thead.appendChild(trh);
-
   const tbody = document.querySelector('#tabla tbody');
+
+  thead.innerHTML =
+    `<tr><th>serie</th>` +
+    periodosOrdenados.map(p=>`<th>${p}</th>`).join('') +
+    `</tr>`;
+
   tbody.innerHTML = '';
 
+  const totalesPorPeriodo = {};
+
+  // 🔹 Filas por serie
   series.forEach(serie=>{
-    const tr = document.createElement('tr');
-    let html = `<td>${serie}</td>`;
-
+    let fila = `<tr><td>${serie}</td>`;
     periodosOrdenados.forEach(p=>{
-      const val = mapa[serie][p];
-      html += `<td>${val ? formato(val) : ''}</td>`;
-    });
+      const val = mapa[serie][p] || 0;
 
-    tr.innerHTML = html;
-    tbody.appendChild(tr);
+      if(!totalesPorPeriodo[p]) totalesPorPeriodo[p] = 0;
+      totalesPorPeriodo[p] += val;
+
+      fila += `<td>${val ? formato(val) : ''}</td>`;
+    });
+    fila += `</tr>`;
+    tbody.insertAdjacentHTML('beforeend', fila);
   });
+
+  // 🔹 FILA TOTAL INGRESOS
+  let filaTotal = `<tr style="font-weight:bold;background:#dfe9f7;">
+    <td>TOTAL INGRESOS</td>`;
+
+  periodosOrdenados.forEach(p=>{
+    filaTotal += `<td>${formato(totalesPorPeriodo[p] || 0)}</td>`;
+  });
+
+  filaTotal += `</tr>`;
+  tbody.insertAdjacentHTML('beforeend', filaTotal);
 }
 
+// ===============================
+// 🔹 FORMATO MONEDA
+// ===============================
 function formato(n){
   return n.toLocaleString('es-MX',{
     minimumFractionDigits:2,
@@ -127,7 +181,9 @@ function formato(n){
   });
 }
 
+// ===============================
 cargarDatos();
+// ===============================
 </script>
 
 </body>
