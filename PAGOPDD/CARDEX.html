@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
@@ -39,23 +41,10 @@ body{
   margin-bottom:20px;
 }
 
-.header img{
-  max-height:70px;
-}
-
-.header .title{
-  flex:1;
-}
-
-.header h2{
-  margin:0;
-  color:var(--rojo);
-}
-
-.header .sub{
-  font-size:13px;
-  color:var(--muted);
-}
+.header img{ max-height:70px; }
+.header .title{ flex:1; }
+.header h2{ margin:0; color:var(--rojo); }
+.header .sub{ font-size:13px; color:var(--muted); }
 
 .card{
   background:var(--card);
@@ -65,10 +54,7 @@ body{
   margin-bottom:18px;
 }
 
-h3{
-  margin:0 0 10px;
-  color:var(--verde);
-}
+h3{ margin:0 0 10px; color:var(--verde); }
 
 .grid{
   display:grid;
@@ -76,14 +62,8 @@ h3{
   gap:12px;
 }
 
-.label{
-  font-size:12px;
-  color:var(--muted);
-}
-.value{
-  font-size:14px;
-  font-weight:600;
-}
+.label{ font-size:12px; color:var(--muted); }
+.value{ font-size:14px; font-weight:600; }
 
 table{
   width:100%;
@@ -122,32 +102,146 @@ pre{
   margin-top:30px;
 }
 
+/* Botones */
+.actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:18px;
+}
+button{
+  border:none;
+  border-radius:12px;
+  padding:12px 14px;
+  font-family:'Poppins',sans-serif;
+  font-weight:600;
+  cursor:pointer;
+  box-shadow:var(--shadow);
+}
+.btn-primary{ background:var(--rojo); color:#fff; }
+.btn-secondary{ background:#111827; color:#fff; }
+.smallhint{ font-size:12px; color:var(--muted); margin-top:6px; }
+
+/* Tarjeta especial para imagen */
+.share-card{
+  background:#ffffff;
+  border-radius:16px;
+  padding:18px;
+  border:1px solid #e5e7eb;
+}
+.share-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.badge{
+  background:#dcfce7;
+  color:#166534;
+  font-weight:700;
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+}
+.brand{
+  font-weight:800;
+  color:var(--rojo);
+  font-size:14px;
+}
+.share-title{
+  margin:0;
+  font-size:16px;
+  color:#111827;
+}
+.mono{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12px;
+}
+hr{
+  border:none;
+  border-top:1px solid #e5e7eb;
+  margin:12px 0;
+}
+
+/* EXTRA PARA IMAGEN (COMPROBANTE + FACTURAS) */
+.twocol{
+  display:grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap:12px;
+  margin-top:12px;
+}
+@media (max-width: 900px){
+  .twocol{ grid-template-columns:1fr; }
+}
+
+.bankpre{
+  background:#0b1220;
+  color:#e5e7eb;
+  padding:10px 12px;
+  border-radius:12px;
+  font-size:11px;
+  line-height:1.35;
+  white-space:pre-wrap;
+  word-break:break-word;
+  border:1px solid #1118271a;
+}
+
+.fact-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  overflow:hidden;
+}
+.fact-table th,.fact-table td{
+  padding:7px 8px;
+  border-bottom:1px solid #e5e7eb;
+  vertical-align:top;
+}
+.fact-table th{
+  background:#f9fafb;
+  font-size:11px;
+  color:#6b7280;
+  letter-spacing:.02em;
+}
+.uuid{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:11px;
+}
+.mutedline{
+  font-size:11px;
+  color:#6b7280;
+  margin-top:6px;
+}
+
 /* 🖨️ MODO IMPRESIÓN */
 @media print{
-  body{
-    background:#fff;
-    padding:0;
-  }
-  .card, .header{
-    box-shadow:none;
-    border-radius:0;
-  }
-  .footer{
-    margin-top:15px;
-  }
+  body{ background:#fff; padding:0; }
+  .card, .header{ box-shadow:none; border-radius:0; }
+  .actions{ display:none; }
+  .footer{ margin-top:15px; }
 }
 </style>
 </head>
 
 <body>
 
-<!-- 🔴 HEADER CORPORATIVO -->
+<!-- HEADER -->
 <div class="header">
   <img src="proveedora_logo.jpg" alt="La Proveedora">
   <div class="title">
     <h2>Comprobante de Pago</h2>
     <div class="sub">Documento informativo de pago a proveedor</div>
   </div>
+</div>
+
+<!-- Acciones -->
+<div class="actions">
+  <button class="btn-primary" onclick="generarImagenResumen()">📸 Generar imagen (Resumen)</button>
+  <button class="btn-secondary" onclick="window.print()">🖨️ Imprimir</button>
+  <div class="smallhint">Tip: si no copia al portapapeles, se descargará el PNG.</div>
 </div>
 
 <div class="card">
@@ -168,14 +262,14 @@ pre{
 <div class="card">
   <h3>Facturas Pagadas</h3>
   <table>
-<thead>
-  <tr>
-    <th>Fecha</th>
-    <th>Serie / Folio</th>
-    <th>UUID CFDI</th>
-    <th>Importe</th>
-  </tr>
-</thead>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Serie / Folio</th>
+        <th>UUID CFDI</th>
+        <th>Importe</th>
+      </tr>
+    </thead>
     <tbody id="facturas"></tbody>
   </table>
 </div>
@@ -187,6 +281,67 @@ pre{
     <div><div class="label">Ajustes</div><div class="value" id="totalAjustes"></div></div>
     <div><div class="label">Importe Pagado</div><div class="value total" id="importe"></div></div>
   </div>
+</div>
+
+<!-- TARJETA A IMAGEN -->
+<div class="card" id="resumenImagenWrap">
+  <h3>Resumen para Proveedor (Imagen)</h3>
+
+  <div id="resumenImagen" class="share-card">
+    <div class="share-top">
+      <div>
+        <div class="brand">LA PROVEEDORA · PROVSOFT</div>
+        <h4 class="share-title">Confirmación de pago</h4>
+      </div>
+      <div class="badge">PAGO REGISTRADO</div>
+    </div>
+
+    <div class="grid">
+      <div><div class="label">ID Pago</div><div class="value mono" id="img_pagoId">—</div></div>
+      <div><div class="label">Fecha</div><div class="value" id="img_fecha">—</div></div>
+      <div><div class="label">Proveedor</div><div class="value" id="img_proveedor">—</div></div>
+      <div><div class="label">RFC</div><div class="value mono" id="img_rfc">—</div></div>
+      <div><div class="label">Banco</div><div class="value" id="img_banco">—</div></div>
+      <div><div class="label">Importe Pagado</div><div class="value total" id="img_importe">—</div></div>
+    </div>
+
+    <hr>
+
+    <div class="grid">
+      <div><div class="label">Total Facturas</div><div class="value" id="img_totalFacturas">—</div></div>
+      <div><div class="label">Ajustes</div><div class="value" id="img_totalAjustes">—</div></div>
+      <div><div class="label">Facturas Incluidas</div><div class="value" id="img_numFacturas">—</div></div>
+    </div>
+
+    <div class="twocol">
+      <div>
+        <div class="label" style="margin-bottom:6px">Comprobante Bancario (extracto)</div>
+        <div id="img_comprobante" class="bankpre">—</div>
+        <div id="img_comprobante_extra" class="mutedline"></div>
+      </div>
+
+      <div>
+        <div class="label" style="margin-bottom:6px">Relación de Facturas</div>
+        <table class="fact-table">
+          <thead>
+            <tr>
+              <th>Serie/Folio</th>
+              <th>UUID</th>
+              <th style="text-align:right">Importe</th>
+            </tr>
+          </thead>
+          <tbody id="img_facturas"></tbody>
+        </table>
+        <div id="img_facturas_extra" class="mutedline"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px" class="label">
+      Documento informativo. Para detalle completo, revisar el visor del pago.
+    </div>
+  </div>
+
+  <div class="smallhint">Esto es lo que se convierte a PNG cuando picas “Generar imagen”.</div>
 </div>
 
 <div class="card">
@@ -209,19 +364,45 @@ const sb = window.supabase.createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
 );
 
-// obtener id del pago desde URL
 const params = new URLSearchParams(window.location.search);
 const pagoId = params.get('id');
 
-// formato pesos mexicanos
 function mxn(n){
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN'
-  }).format(Number(n || 0));
+  return new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN' })
+    .format(Number(n || 0));
+}
+
+function fechaMx(v){
+  if(!v) return '—';
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('es-MX', { year:'numeric', month:'2-digit', day:'2-digit' });
+}
+
+function shortUuid(u){
+  if(!u) return '—';
+  const s = String(u);
+  if(s.length <= 16) return s;
+  return s.slice(0, 8) + '…' + s.slice(-4);
+}
+
+function recortarComprobante(raw, maxLineas = 14){
+  const lines = (raw || '')
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(Boolean);
+
+  const shown = lines.slice(0, maxLineas).join('\n');
+  const extra = lines.length > maxLineas ? `… y ${lines.length - maxLineas} líneas más` : '';
+  return { shown, extra, total: lines.length };
 }
 
 async function cargarPago(){
+  if(!pagoId){
+    alert('Falta parámetro ?id= en la URL');
+    return;
+  }
+
   const { data, error } = await sb
     .from('pagos_proveedor')
     .select('*')
@@ -233,11 +414,12 @@ async function cargarPago(){
     return;
   }
 
-  document.getElementById('pagoId').innerText = data.id;
-  document.getElementById('proveedor').innerText = data.proveedor_nombre;
-  document.getElementById('rfc').innerText = data.rfc_emisor;
-  document.getElementById('banco').innerText = data.banco;
-  document.getElementById('fecha').innerText = data.fecha_pago;
+  // ===== VISOR NORMAL =====
+  document.getElementById('pagoId').innerText = data.id ?? '—';
+  document.getElementById('proveedor').innerText = data.proveedor_nombre ?? '—';
+  document.getElementById('rfc').innerText = data.rfc_emisor ?? '—';
+  document.getElementById('banco').innerText = data.banco ?? '—';
+  document.getElementById('fecha').innerText = fechaMx(data.fecha_pago);
 
   document.getElementById('totalFacturas').innerText = mxn(data.total_facturas);
   document.getElementById('totalAjustes').innerText = mxn(data.total_ajustes);
@@ -246,26 +428,102 @@ async function cargarPago(){
   document.getElementById('comprobante').innerText = data.comprobante_raw || '';
   document.getElementById('notas').innerText = data.notas || '';
 
+  // tabla facturas normal
   const tbody = document.getElementById('facturas');
   tbody.innerHTML = '';
+  (data.facturas_info || []).forEach(f=>{
+    tbody.innerHTML += `
+      <tr>
+        <td>${fechaMx(f.fecha)}</td>
+        <td>${(f.serie || '')} ${(f.folio || '')}</td>
+        <td style="font-family:monospace;font-size:12px">${f.uuid_cfdi || '—'}</td>
+        <td>${mxn(f.importe)}</td>
+      </tr>
+    `;
+  });
 
-(data.facturas_info || []).forEach(f=>{
-  tbody.innerHTML += `
-    <tr>
-      <td>${new Date(f.fecha).toLocaleDateString()}</td>
-      <td>${f.serie || ''} ${f.folio || ''}</td>
-      <td style="font-family:monospace;font-size:12px">
-        ${f.uuid_cfdi || '—'}
-      </td>
-      <td>${mxn(f.importe)}</td>
-    </tr>
-  `;
-});
+  // ===== DATOS PARA IMAGEN =====
+  document.getElementById('img_pagoId').innerText = data.id ?? '—';
+  document.getElementById('img_fecha').innerText = fechaMx(data.fecha_pago);
+  document.getElementById('img_proveedor').innerText = data.proveedor_nombre ?? '—';
+  document.getElementById('img_rfc').innerText = data.rfc_emisor ?? '—';
+  document.getElementById('img_banco').innerText = data.banco ?? '—';
+  document.getElementById('img_importe').innerText = mxn(data.importe_pagado);
+  document.getElementById('img_totalFacturas').innerText = mxn(data.total_facturas);
+  document.getElementById('img_totalAjustes').innerText = mxn(data.total_ajustes);
+  document.getElementById('img_numFacturas').innerText = (data.facturas_info || []).length;
+
+  // comprobante en imagen
+  const { shown, extra } = recortarComprobante(data.comprobante_raw, 14);
+  document.getElementById('img_comprobante').innerText = shown || '—';
+  document.getElementById('img_comprobante_extra').innerText = extra || '';
+
+  // facturas en imagen
+  const factList = (data.facturas_info || []);
+  const tbodyImg = document.getElementById('img_facturas');
+  tbodyImg.innerHTML = '';
+
+  const MAX_FACT_IMG = 10;
+  factList.slice(0, MAX_FACT_IMG).forEach(f => {
+    const serie = (f.serie || '').trim();
+    const folio = (f.folio || '').trim();
+    const sf = `${serie}${serie && folio ? ' ' : ''}${folio}`.trim() || '—';
+
+    tbodyImg.innerHTML += `
+      <tr>
+        <td>${sf}</td>
+        <td class="uuid">${shortUuid(f.uuid_cfdi)}</td>
+        <td style="text-align:right;font-weight:700">${mxn(f.importe)}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('img_facturas_extra').innerText =
+    factList.length > MAX_FACT_IMG ? `Mostrando ${MAX_FACT_IMG} de ${factList.length} facturas.` : '';
+}
+
+async function generarImagenResumen(){
+  const nodo = document.getElementById('resumenImagen');
+
+  if (document.fonts && document.fonts.ready) {
+    try { await document.fonts.ready; } catch(e){}
+  }
+
+  const canvas = await html2canvas(nodo, {
+    backgroundColor: '#ffffff',
+    scale: 2,
+    useCORS: true
+  });
+
+  canvas.toBlob(async (blob) => {
+    if(!blob){
+      alert('No se pudo generar la imagen.');
+      return;
+    }
+
+    // intentar copiar
+    try{
+      if (navigator.clipboard && window.ClipboardItem) {
+        const item = new ClipboardItem({ "image/png": blob });
+        await navigator.clipboard.write([item]);
+        alert('✅ Imagen copiada. Pégala en WhatsApp/Telegram con Ctrl+V');
+        return;
+      }
+    }catch(err){
+      console.warn('Clipboard falló:', err);
+    }
+
+    // fallback descargar
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `resumen_pago_${pagoId || 'sin_id'}.png`;
+    link.click();
+    setTimeout(()=>URL.revokeObjectURL(link.href), 2000);
+  }, 'image/png');
 }
 
 cargarPago();
 </script>
-
 
 </body>
 </html>
