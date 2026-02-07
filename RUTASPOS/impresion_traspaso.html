@@ -11,7 +11,9 @@
   --font: 17px;
 }
 
-/* ====== PANTALLA ====== */
+/* ======================
+   PANTALLA (NORMAL)
+====================== */
 body{
   margin:0;
   padding:20px;
@@ -32,7 +34,6 @@ body{
 .right{ text-align:right; }
 .muted{ color:#444; }
 
-/* ====== TITULOS ====== */
 .h1{
   font-size: 22px;
   font-weight: 900;
@@ -44,13 +45,11 @@ body{
   margin-top: 6px;
 }
 
-/* ====== SEPARADORES ====== */
 .hr{
   border-top: 2px dashed #000;
   margin: 16px 0;
 }
 
-/* ====== DATOS ====== */
 .kv{
   font-size: var(--font);
   line-height: 1.6;
@@ -59,7 +58,6 @@ body{
 }
 .kv b{ font-weight:900; }
 
-/* ====== TABLA ====== */
 table{
   width:100%;
   border-collapse:collapse;
@@ -83,18 +81,16 @@ td{
 .col-desc{ width: 40%; }
 .col-precio{ width: 22%; text-align:right; font-weight:900; }
 
-/* ====== FIRMAS ====== */
+/* FIRMAS (pantalla) */
 .sigWrap{
   margin-top: 45px;
   font-size: var(--font);
 }
-
 .sigBox{
   border-top: 2px solid #000;
   margin-top: 55px;
   padding-top: 14px;
 }
-
 .sigImg{
   display:block;
   width: 100%;
@@ -103,7 +99,7 @@ td{
   margin-top: 12px;
 }
 
-/* ====== BOTONES (SOLO PANTALLA) ====== */
+/* BOTONES */
 .btns{
   width: var(--paper);
   margin: 18px auto 0;
@@ -121,10 +117,13 @@ button{
 .print{ background:#0c6cbd; color:#fff; }
 .close{ background:#ddd; color:#111; }
 
-/* ====== IMPRESIÓN REAL ====== */
+/* ===============================
+   🖨️ IMPRESIÓN GENERIC / EPSON
+=============================== */
 @media print {
+
   @page{
-    size: 80mm auto;
+    size: auto;
     margin: 0;
   }
 
@@ -132,22 +131,48 @@ button{
     margin:0;
     padding:0;
     background:#fff;
-    font-size: 17px;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    color:#000;
   }
 
-  /* 🚀 ZOOM REAL +40% */
   .ticket{
-    width: 80mm;
-    margin: 0 auto;
+    width: 40ch;          /* 🔑 CLAVE PARA GENERIC */
+    margin: 0;
     padding: 0;
-    transform: scale(1.4);
-    transform-origin: top center;
     box-shadow:none;
+    transform:none;       /* ❌ fuera scale */
   }
 
-  .btns{ display:none !important; }
+  .h1, .h2{
+    font-size: 14px;
+    letter-spacing: 0;
+  }
+
+  table{
+    font-size: 12px;
+  }
+
+  th, td{
+    padding: 2px 0;
+    border: none;
+  }
+
+  .hr{
+    border-top: 1px dashed #000;
+    margin: 6px 0;
+  }
+
+  /* ❌ firmas NO se imprimen en Generic */
+  .sigWrap,
+  .sigBox,
+  .sigImg{
+    display:none !important;
+  }
+
+  .btns{
+    display:none !important;
+  }
 }
 </style>
 
@@ -166,7 +191,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
 const qs = (n) => new URLSearchParams(location.search).get(n);
 
 function fmtFecha(iso){
@@ -187,6 +211,14 @@ async function cargar(){
   document.getElementById("vendedorId").textContent = data.vendedorId;
   document.getElementById("vendedorNombre").textContent = data.vendedorNombre;
   document.getElementById("fecha").textContent = fmtFecha(data.fecha);
+// ===============================
+// FIRMAS TEXTO (GENERIC / TEXTO)
+// ===============================
+document.getElementById("entregaNombreTxt").textContent =
+  data?.firmas?.entrega?.nombre || "—";
+
+document.getElementById("recibeNombreTxt").textContent =
+  data?.firmas?.recibe?.nombre || "—";
 
   const tbody = document.getElementById("items");
   tbody.innerHTML = "";
@@ -195,18 +227,13 @@ async function cargar(){
     const precio = Number(it.precioUnitario ?? it.precio ?? 0);
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td class="col-cant right">${it.cantidad}</td>
-      <td class="col-cod">${it.codigo}</td>
-      <td class="col-desc">${it.concepto}</td>
-      <td class="col-precio right">$${precio.toFixed(2)}</td>
+      <td class="right">${it.cantidad}</td>
+      <td>${it.codigo}</td>
+      <td>${it.concepto}</td>
+      <td class="right">$${precio.toFixed(2)}</td>
     `;
     tbody.appendChild(tr);
   });
-
-  document.getElementById("entregaNombre").textContent = data.firmas.entrega.nombre;
-  document.getElementById("recibeNombre").textContent  = data.firmas.recibe.nombre;
-  document.getElementById("sigEntrega").src = data.firmas.entrega.pngBase64;
-  document.getElementById("sigRecibe").src  = data.firmas.recibe.pngBase64;
 }
 
 window.addEventListener("DOMContentLoaded",()=>{
@@ -233,36 +260,37 @@ window.addEventListener("DOMContentLoaded",()=>{
 
   <div class="hr"></div>
 
-  <div class="h2 center">DETALLE</div>
+  <div class="center h2">DETALLE</div>
   <table>
     <thead>
       <tr>
-        <th class="col-cant right">Cant</th>
-        <th class="col-cod">Código</th>
-        <th class="col-desc">Producto</th>
-        <th class="col-precio right">P.U.</th>
+        <th class="right">Cant</th>
+        <th>Código</th>
+        <th>Producto</th>
+        <th class="right">P.U.</th>
       </tr>
     </thead>
     <tbody id="items"></tbody>
   </table>
 
-  <div class="hr"></div>
+<div class="hr"></div>
 
-  <div class="sigWrap">
-    <div class="sigBox">
-      <b>ENTREGA:</b> <span id="entregaNombre"></span>
-      <img id="sigEntrega" class="sigImg">
-    </div>
+<!-- ===== FIRMAS TEXTO (PARA GENERIC) ===== -->
+<div class="kv">
+  <b>ENTREGA:</b> <span id="entregaNombreTxt"></span>
+</div>
+<div class="kv">
+  <b>RECIBE:</b> <span id="recibeNombreTxt"></span>
+</div>
 
-    <div class="sigBox">
-      <b>RECIBE:</b> <span id="recibeNombre"></span>
-      <img id="sigRecibe" class="sigImg">
-    </div>
-  </div>
+<div class="center muted" style="margin-top:10px;">
+  FIRMA INGRESADA EN LA BASE DE DATOS
+</div>
 
-  <div class="center muted" style="margin-top:26px;">
-    — FIN DEL TICKET —
-  </div>
+<div class="hr"></div>
+
+<div class="center muted">
+  — FIN DEL TICKET —
 </div>
 
 <div class="btns">
