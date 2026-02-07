@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PROVSOFT – Pagos a Proveedores</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  margin:0;
+  font-family:Poppins, Arial, sans-serif;
+  background:linear-gradient(135deg,#00416A,#0c6cbd);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.panel{
+  background:#ffffff;
+  width:100%;
+  max-width:420px;
+  padding:22px;
+  border-radius:20px;
+  box-shadow:0 12px 30px rgba(0,0,0,.25);
+}
+
+h1{
+  text-align:center;
+  margin:5px 0;
+  font-size:22px;
+  color:#003a5c;
+}
+
+.sub{
+  text-align:center;
+  color:#777;
+  margin-bottom:18px;
+  font-size:13px;
+}
+
+/* GRID TIPO CATALOGO */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px;
+}
+
+.card{
+  background:#f6f9fd;
+  border:1px solid #dde5ef;
+  border-radius:16px;
+  padding:16px 12px;
+  text-decoration:none;
+  color:#003a5c;
+  text-align:center;
+  transition:.2s;
+}
+
+.card:hover{
+  background:#eaf2ff;
+  transform:translateY(-2px);
+}
+
+.icon{
+  font-size:28px;
+  margin-bottom:8px;
+}
+
+.title{
+  font-weight:600;
+  font-size:14px;
+}
+
+.desc{
+  font-size:12px;
+  color:#666;
+  margin-top:4px;
+}
+
+.footer{
+  text-align:center;
+  margin-top:18px;
+  font-size:11px;
+  color:#888;
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+
+  <h1>💸 Pagos</h1>
+  <div class="sub">PROVSOFT · Proveedores</div>
+
+  <div class="grid">
+
+    <a class="card" href="APPPAYEGRESOSPDD26.html">
+      <div class="icon">✍️</div>
+      <div class="title">Capturar pago</div>
+      </a>
+
+    <a class="card" href="VISORPAGOSPDD26.html">
+      <div class="icon">📑</div>
+      <div class="title">Consultar Pagos</div>
+      <div class="desc">Análisis completo</div>
+    </a>
+
+  </div>
+
+  <div class="footer">
+    PROVSOFT © 2026 · Egresos
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Pagos a Proveedores – Consulta</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:Poppins,Arial,sans-serif;
+  background:#eef1f5;
+  padding:25px;
+}
+h2{margin-bottom:15px}
+.card{
+  background:#fff;
+  padding:18px;
+  border-radius:14px;
+  box-shadow:0 6px 18px rgba(0,0,0,.15);
+  margin-bottom:18px;
+}
+.row{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+input,select,button{
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+button{cursor:pointer}
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+th,td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+  text-align:left;
+  font-size:14px;
+}
+th{background:#f3f4f6}
+.total{
+  font-weight:700;
+  font-size:18px;
+}
+.id{
+  font-family:monospace;
+  font-size:12px;
+  color:#555;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🏦 Pagos a Proveedores</h2>
+
+<div class="card">
+  <div class="row">
+    <div>
+      Desde<br>
+      <input type="date" id="desde">
+    </div>
+    <div>
+      Hasta<br>
+      <input type="date" id="hasta">
+    </div>
+    <div>
+      Banco<br>
+      <select id="banco">
+        <option value="">Todos</option>
+        <option>BBVA</option>
+        <option>BANORTE</option>
+        <option>BANREGIO</option>
+        <option>OTRO</option>
+      </select>
+    </div>
+    <div>
+      Proveedor<br>
+      <input id="proveedor" placeholder="Nombre o RFC">
+    </div>
+    <div style="align-self:flex-end">
+      <button onclick="buscar()">🔍 Buscar</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>ID PAGO</th>
+        <th>Fecha</th>
+        <th>Banco</th>
+        <th>Proveedor</th>
+        <th>Importe</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <br>
+  <div class="total">Total listado: $<span id="total">0.00</span></div>
+</div>
+
+<script>
+const sb = window.supabase.createClient(
+  'https://cvpbtjlupswbyxenugpz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+);
+
+async function buscar(){
+  let q = sb
+    .from('pagos_proveedor')
+    .select('id,fecha_pago,banco,proveedor_nombre,importe_pagado')
+    .order('fecha_pago',{ascending:true});
+
+  const desde = document.getElementById('desde').value;
+  const hasta = document.getElementById('hasta').value;
+  const banco = document.getElementById('banco').value;
+  const proveedor = document.getElementById('proveedor').value.trim();
+
+  if(desde) q = q.gte('fecha_pago', desde);
+  if(hasta) q = q.lte('fecha_pago', hasta);
+  if(banco) q = q.eq('banco', banco);
+  if(proveedor) q = q.ilike('proveedor_nombre', `%${proveedor}%`);
+
+  const { data, error } = await q;
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+
+  let total = 0;
+
+  data.forEach(p=>{
+    total += Number(p.importe_pagado||0);
+    tbody.innerHTML += `
+      <tr>
+        <td class="id">
+  <a href="CARDEX.html?id=${p.id}" target="_blank">
+    ${p.id}
+  </a>
+</td>
+        <td>${p.fecha_pago}</td>
+        <td>${p.banco}</td>
+        <td>${p.proveedor_nombre}</td>
+        <td>$${Number(p.importe_pagado).toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('total').innerText = total.toFixed(2);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pago a Proveedores – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Fuente (opcional, pero se ve PRO) -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body{font-family:'Poppins',Arial,sans-serif;background:#eef1f5;padding:20px}
+    .card{background:#fff;padding:18px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.15);margin-bottom:16px}
+    h2,h3{margin:0 0 10px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #ddd}
+    input,select,textarea,button{padding:8px;border-radius:6px;border:1px solid #ccc}
+    button{cursor:pointer}
+    .total{font-size:20px;font-weight:700}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .muted{opacity:.7}
+    .btn{padding:10px 14px;font-weight:600}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+  </style>
+</head>
+
+<body>
+
+  <!--
+    ✅ Este HTML guarda TODO en UNA sola tabla: pagos_proveedor
+    Requiere columnas en pagos_proveedor:
+      - facturas_info (jsonb)
+      - ajustes (jsonb)
+    (además de las que ya tienes: rfc_emisor, proveedor_nombre, banco, fecha_pago, total_facturas, total_ajustes, importe_pagado, comprobante_raw, notas)
+  -->
+
+  <h2>💸 Pago a Proveedores</h2>
+
+  <div class="card">
+    <label>Proveedor</label><br>
+    <select id="proveedorSelect"></select>
+  </div>
+
+  <div class="card">
+    <h3>Facturas pendientes</h3>
+    <table>
+      <thead>
+        <tr>
+          <th></th><th>Fecha</th><th>Folio</th><th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyFacturas"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Ajustes / Descuentos (globales)</h3>
+    <div id="ajustes"></div>
+    <button class="btn" type="button" onclick="agregarAjuste()">+ Agregar ajuste</button>
+  </div>
+
+  <div class="card">
+    <div>Total facturas: <b id="totalFacturas">$0.00</b></div>
+    <div>Total ajustes: <b id="totalAjustes">$0.00</b></div>
+    <div class="total">Total a pagar: <span id="totalPagar">$0.00</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Datos del pago</h3>
+    <div class="row">
+      <div>
+        Banco<br>
+        <select id="banco">
+          <option>BBVA</option><option>BANORTE</option><option>BANREGIO</option><option>OTRO</option>
+        </select>
+      </div>
+      <div>
+        Fecha pago<br>
+        <input type="date" id="fechaPago">
+      </div>
+      <div>
+        Importe<br>
+        <input type="number" id="importePago" step="0.01">
+      </div>
+    </div>
+    <br>
+    Comprobante bancario (texto crudo)<br>
+    <textarea id="comprobante" rows="6" style="width:100%"></textarea><br><br>
+    Notas<br>
+    <textarea id="notas" rows="4" style="width:100%"></textarea>
+  </div>
+
+  <button id="btnGuardar" class="btn" type="button" onclick="guardarPago()">💾 Guardar pago</button>
+  <div id="msg" class="muted" style="margin-top:10px"></div>
+
+<script>
+  const sb = window.supabase.createClient(
+    'https://cvpbtjlupswbyxenugpz.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+  );
+
+  let facturas = [];
+  let ajustes = [];
+
+  const proveedorSelect = document.getElementById('proveedorSelect');
+  const tbody = document.getElementById('tbodyFacturas');
+  const msg = document.getElementById('msg');
+  const btnGuardar = document.getElementById('btnGuardar');
+
+  // Fecha por defecto: hoy
+  (function setFechaHoy(){
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    document.getElementById('fechaPago').value = `${yyyy}-${mm}-${dd}`;
+  })();
+
+  function money(n){
+    const x = Number(n||0);
+    return `$${x.toFixed(2)}`;
+  }
+
+  async function cargarProveedores(){
+    const { data, error } = await sb
+      .from('deuda_limpia_pdd')
+      .select('rfc_emisor, razon_social_emisor')
+      .eq('factura_pagada','NO');
+
+    if (error) { alert(error.message); return; }
+
+    // Dedup por RFC y ordenado por nombre
+    const map = new Map();
+    (data||[]).forEach(r=>{
+      const rfc = r.rfc_emisor;
+      const name = (r.razon_social_emisor || r.rfc_emisor || '').trim();
+      if(rfc) map.set(rfc, name || rfc);
+    });
+
+    const items = [...map.entries()].sort((a,b)=> (a[1]||'').localeCompare(b[1]||'', 'es'));
+
+    proveedorSelect.innerHTML = '<option value="">Seleccione</option>';
+    items.forEach(([rfc,name])=>{
+      proveedorSelect.innerHTML += `<option value="${rfc}">${name}</option>`;
+    });
+
+    proveedorSelect.onchange = cargarFacturas;
+  }
+
+  async function cargarFacturas(){
+    const rfc = proveedorSelect.value;
+    if(!rfc){ tbody.innerHTML=''; facturas=[]; calcularTotales(); return; }
+
+    const { data, error } = await sb
+      .from('deuda_limpia_pdd')
+      .select('id,fecha,folio,total')
+      .eq('rfc_emisor', rfc)
+      .eq('factura_pagada','NO')
+      .order('fecha',{ascending:true});
+
+    if(error){ alert(error.message); return; }
+
+    facturas = data || [];
+    tbody.innerHTML = '';
+
+    facturas.forEach(f=>{
+      const fechaTxt = f.fecha ? String(f.fecha) : '';
+      const folioTxt = f.folio || '';
+      const totalNum = Number(f.total||0);
+
+      tbody.innerHTML += `
+        <tr>
+          <td><input type="checkbox" data-id="${f.id}" data-total="${totalNum}" onchange="calcularTotales()"></td>
+          <td>${fechaTxt}</td>
+          <td>${folioTxt}</td>
+          <td>${money(totalNum)}</td>
+        </tr>
+      `;
+    });
+
+    calcularTotales();
+  }
+
+  function agregarAjuste(){
+    ajustes.push({concepto:'', monto:0});
+    renderAjustes();
+  }
+
+  function renderAjustes(){
+    const div = document.getElementById('ajustes');
+    div.innerHTML = '';
+    ajustes.forEach((a,i)=>{
+      div.innerHTML += `
+        <div class="row" style="margin-bottom:8px">
+          <input placeholder="Concepto" value="${a.concepto}"
+            oninput="ajustes[${i}].concepto=this.value">
+          <input type="number" step="0.01" placeholder="Monto (+/-)" value="${a.monto}"
+            oninput="ajustes[${i}].monto=parseFloat(this.value||0); calcularTotales()">
+          <button type="button" onclick="quitarAjuste(${i})">Quitar</button>
+        </div>
+      `;
+    });
+  }
+
+  function quitarAjuste(i){
+    ajustes.splice(i,1);
+    renderAjustes();
+    calcularTotales();
+  }
+
+  function calcularTotales(){
+    let totalFact = 0;
+    document.querySelectorAll('#tbodyFacturas input[type=checkbox]:checked')
+      .forEach(cb => totalFact += Number(cb.dataset.total||0));
+
+    let totalAj = ajustes.reduce((s,a)=> s + Number(a.monto||0), 0);
+
+    document.getElementById('totalFacturas').innerText = money(totalFact);
+    document.getElementById('totalAjustes').innerText = money(totalAj);
+
+    const total = totalFact + totalAj;
+    document.getElementById('totalPagar').innerText = money(total);
+
+    // auto-llenado del importe
+    document.getElementById('importePago').value = total.toFixed(2);
+  }
+
+  async function guardarPago(){
+    const rfc = proveedorSelect.value;
+    if(!rfc){ alert('Seleccione proveedor'); return; }
+
+    const seleccionadas = [...document.querySelectorAll('#tbodyFacturas input[type=checkbox]:checked')];
+    if(!seleccionadas.length){ alert('Seleccione al menos una factura'); return; }
+
+    const banco = document.getElementById('banco').value;
+    const fechaPago = document.getElementById('fechaPago').value;
+    const comprobante = document.getElementById('comprobante').value.trim();
+    const notas = document.getElementById('notas').value;
+
+    if(!fechaPago || !comprobante){
+      alert('Fecha y comprobante son obligatorios');
+      return;
+    }
+
+    // Totales
+    const totalFact = seleccionadas.reduce((s,cb)=> s + Number(cb.dataset.total||0), 0);
+    const totalAj = ajustes.reduce((s,a)=> s + Number(a.monto||0), 0);
+    const importe = Number(document.getElementById('importePago').value||0);
+
+    // JSON de facturas
+    const facturasInfo = seleccionadas.map(cb=>{
+      const idSel = String(cb.dataset.id);
+      const f = facturas.find(x => String(x.id) === idSel);
+      return {
+        id: f?.id ?? idSel,
+        folio: f?.folio ?? null,
+        fecha: f?.fecha ?? null,
+        total: Number(f?.total ?? cb.dataset.total ?? 0)
+      };
+    });
+
+    // JSON de ajustes
+    const ajustesInfo = ajustes
+      .filter(a => (a.concepto||'').trim() && Number(a.monto))
+      .map(a => ({ concepto: String(a.concepto).trim(), monto: Number(a.monto) }));
+
+    btnGuardar.disabled = true;
+    msg.innerText = 'Guardando pago...';
+
+    // 1) Insert pago completo (UNA sola tabla)
+    const { error: e1 } = await sb
+      .from('pagos_proveedor')
+      .insert({
+        rfc_emisor: rfc,
+        proveedor_nombre: proveedorSelect.options[proveedorSelect.selectedIndex].text,
+        banco,
+        fecha_pago: fechaPago,
+        total_facturas: totalFact,
+        total_ajustes: totalAj,
+        importe_pagado: importe,
+        facturas_info: facturasInfo,
+        ajustes: ajustesInfo,
+        comprobante_raw: comprobante,
+        notas
+      });
+
+    if(e1){
+      alert(JSON.stringify(e1, null, 2));
+      msg.innerText = '';
+      btnGuardar.disabled = false;
+      return;
+    }
+
+    // 2) Marcar facturas como pagadas (en deuda_limpia_pdd)
+    msg.innerText = 'Pago guardado. Marcando facturas como pagadas...';
+    const ids = facturasInfo.map(f => f.id);
+
+    const { error: e2 } = await sb
+      .from('deuda_limpia_pdd')
+      .update({ factura_pagada: 'SI' })
+      .in('id', ids);
+
+    if(e2){
+      // Pago quedó guardado, pero no se marcaron facturas (te avisamos)
+      alert('Pago guardado, pero NO se pudieron marcar las facturas como pagadas:\n\n' + JSON.stringify(e2, null, 2));
+      msg.innerText = '⚠ Pago guardado, pero faltó marcar facturas como pagadas.';
+      btnGuardar.disabled = false;
+      return;
+    }
+
+    msg.innerText = '✔ Pago guardado correctamente';
+    ajustes = [];
+    renderAjustes();
+    document.getElementById('comprobante').value = '';
+    document.getElementById('notas').value = '';
+
+    btnGuardar.disabled = false;
+    cargarFacturas();
+  }
+
+  cargarProveedores();
+</script>
+
+</body>
+</html>

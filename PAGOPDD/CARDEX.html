@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Visor de Pago – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --azul:#00416A;
+  --gris:#eef1f5;
+  --card:#ffffff;
+  --muted:#666;
+  --shadow:0 6px 18px rgba(0,0,0,.15);
+  --r:14px;
+}
+
+body{
+  margin:0;
+  padding:30px;
+  font-family:'Poppins',sans-serif;
+  background:var(--gris);
+}
+
+h2{margin:0 0 10px}
+h3{margin:0 0 8px;color:var(--azul)}
+
+.card{
+  background:var(--card);
+  padding:20px;
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+  margin-bottom:18px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:12px;
+}
+
+.label{
+  font-size:12px;
+  color:var(--muted);
+}
+.value{
+  font-size:14px;
+  font-weight:600;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+th,td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+}
+th{
+  background:#f4f6f8;
+  text-align:left;
+}
+
+pre{
+  background:#0f172a;
+  color:#e5e7eb;
+  padding:15px;
+  border-radius:10px;
+  font-size:12px;
+  overflow:auto;
+}
+.id{
+  font-family:monospace;
+  font-size:13px;
+  color:#333;
+}
+.total{
+  font-size:18px;
+  font-weight:700;
+  text-align:right;
+}
+.id a{
+  color:#00416A;
+  text-decoration:none;
+  font-weight:600;
+}
+.id a:hover{
+  text-decoration:underline;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>💳 Comprobante de Pago</h2>
+  <div class="label">ID del pago</div>
+  <div class="value id" id="pagoId">—</div>
+</div>
+
+<div class="card">
+  <h3>Datos Generales</h3>
+  <div class="grid">
+    <div>
+      <div class="label">Proveedor</div>
+      <div class="value" id="proveedor"></div>
+    </div>
+    <div>
+      <div class="label">RFC</div>
+      <div class="value" id="rfc"></div>
+    </div>
+    <div>
+      <div class="label">Banco</div>
+      <div class="value" id="banco"></div>
+    </div>
+    <div>
+      <div class="label">Fecha de Pago</div>
+      <div class="value" id="fecha"></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Facturas Pagadas</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Folio</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody id="facturas"></tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Resumen</h3>
+  <div class="grid">
+    <div>
+      <div class="label">Total Facturas</div>
+      <div class="value" id="totalFacturas"></div>
+    </div>
+    <div>
+      <div class="label">Ajustes</div>
+      <div class="value" id="totalAjustes"></div>
+    </div>
+    <div>
+      <div class="label">Importe Pagado</div>
+      <div class="value total" id="importe"></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Comprobante Bancario</h3>
+  <pre id="comprobante"></pre>
+</div>
+
+<div class="card">
+  <h3>Notas</h3>
+  <div id="notas"></div>
+</div>
+
+<script>
+const sb = window.supabase.createClient(
+  'https://cvpbtjlupswbyxenugpz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+);
+
+// obtener id del pago desde URL
+const params = new URLSearchParams(window.location.search);
+const pagoId = params.get('id');
+
+if(!pagoId){
+  alert('No se proporcionó ID del pago');
+}
+
+async function cargarPago(){
+  const { data, error } = await sb
+    .from('pagos_proveedor')
+    .select('*')
+    .eq('id', pagoId)
+    .single();
+
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  document.getElementById('pagoId').innerText = data.id;
+  document.getElementById('proveedor').innerText = data.proveedor_nombre;
+  document.getElementById('rfc').innerText = data.rfc_emisor;
+  document.getElementById('banco').innerText = data.banco;
+  document.getElementById('fecha').innerText = data.fecha_pago;
+
+  document.getElementById('totalFacturas').innerText = `$${Number(data.total_facturas).toFixed(2)}`;
+  document.getElementById('totalAjustes').innerText = `$${Number(data.total_ajustes).toFixed(2)}`;
+  document.getElementById('importe').innerText = `$${Number(data.importe_pagado).toFixed(2)}`;
+
+  document.getElementById('comprobante').innerText = data.comprobante_raw || '';
+  document.getElementById('notas').innerText = data.notas || '';
+
+  const facturas = JSON.parse(data.facturas_info || '[]');
+  const tbody = document.getElementById('facturas');
+
+  facturas.forEach(f=>{
+    tbody.innerHTML += `
+      <tr>
+        <td>${new Date(f.fecha).toLocaleDateString()}</td>
+        <td>${f.folio}</td>
+        <td>$${Number(f.total).toFixed(2)}</td>
+      </tr>
+    `;
+  });
+}
+
+cargarPago();
+</script>
+
+</body>
+</html>
