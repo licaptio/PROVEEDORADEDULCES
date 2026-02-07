@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CFDI BOLSAS TAURO - Comparador</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    body { font-family: sans-serif; }
+    #dropZone {
+      border: 2px dashed #0077cc;
+      border-radius: 10px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 20px;
+      color: #0077cc;
+      font-weight: bold;
+    }
+    #dropZone.hover { background-color: #eef; }
+    table, th, td {
+      border: 1px solid #ccc;
+      border-collapse: collapse;
+      padding: 4px;
+    }
+    table { width: 100%; margin-top: 20px; }
+    td { text-align: left; }
+    .paso {
+      font-weight: bold;
+      color: #444;
+      margin: 20px 0 10px;
+    }
+    .impacto-col {
+      max-width: 90px;
+      width: 90px;
+      text-align: right;
+      color: red;
+    }
+    .impacto-total-label {
+      text-align: right;
+      font-weight: bold;
+      color: red;
+      padding-right: 10px;
+    }
+    #printBtn {
+      margin-top: 20px;
+      padding: 8px 16px;
+      font-size: 16px;
+      background-color: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #printBtn:hover {
+      background-color: #005fa3;
+    }
+    .fila-error {
+      background-color: #fff3cd;
+    }
+  </style>
+</head>
+<body>
+  <h2>Comparador CFDI BOLSAS TAURO</h2>
+
+  <p class="paso">Paso 1: Cargar lista de precios (.xlsx)</p>
+  <input type="file" id="excelInput" accept=".xlsx, .xls">
+
+  <p class="paso">Paso 2: Arrastrar uno o más archivos XML de BOLSAS TAURO</p>
+  <div id="dropZone">🗂️ Suelta aquí tus archivos XML</div>
+
+  <p id="msg" style="color: red;"></p>
+
+  <div class="impacto-total-label">Total Impacto: <span id="impactoTotal">$0.00</span></div>
+
+  <button id="printBtn">📄 Imprimir en PDF</button>
+
+  <table id="tablaCFDI">
+    <thead>
+      <tr>
+        <th>Folio</th>
+        <th>Fecha</th>
+        <th>NoIdentificacion</th>
+        <th>Cantidad</th>
+        <th>Descripcion</th>
+        <th>ValorUnitario</th>
+        <th>TasaOCuota</th>
+        <th>TotalConIVA</th>
+        <th>PrecioLista</th>
+        <th>Diferencia</th>
+        <th class="impacto-col">Impacto</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const msg = document.getElementById('msg');
+    const tbody = document.querySelector('#tablaCFDI tbody');
+    const impactoTotalSpan = document.getElementById('impactoTotal');
+    let listaPrecios = {};
+    let impactoTotalGlobal = 0;
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('hover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('hover');
+    });
+
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('hover');
+
+  const files = [...e.dataTransfer.files].filter(f => f.name.endsWith('.xml'));
+  if (files.length === 0) {
+    msg.textContent = '⚠️ Solo se permiten archivos .xml';
+    return;
+  }
+
+  msg.textContent = '';
+
+  // 🔥 RESET CORRECTO
+  impactoTotalGlobal = 0;
+  impactoTotalSpan.textContent = '$0.00';
+  tbody.innerHTML = '';
+
+  files.forEach(file => procesarXML(file));
+});
+
+    document.getElementById('excelInput').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function (event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+
+        listaPrecios = {};
+        const headers = json[0];
+        const idxId = headers.findIndex(h => h.toString().toLowerCase().trim() === "noidentificacion");
+        const idxPrecio = headers.findIndex(h => h.toString().toLowerCase().trim() === "precio");
+
+        for (let i = 1; i < json.length; i++) {
+          const row = json[i];
+          const clave = row[idxId]?.toString().trim();
+          const precio = parseFloat(row[idxPrecio]);
+          if (clave && !isNaN(precio)) {
+            listaPrecios[clave] = precio;
+          }
+        }
+
+        msg.textContent = '✅ Lista de precios cargada correctamente.';
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+
+function procesarXML(file) {
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+
+  // ===============================
+  // 🔥 LIMPIEZA XML CRÍTICA
+  // ===============================
+  let xmlText = e.target.result;
+
+  // Quitar espacios, BOM, basura antes del <
+  xmlText = xmlText.trim();
+  xmlText = xmlText.replace(/^[^\<]*/, '');
+
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(xmlText, 'application/xml');
+
+  // ===============================
+  // 🚨 VALIDACIÓN XML
+  // ===============================
+  if (xml.getElementsByTagName('parsererror').length > 0) {
+    msg.textContent = `❌ XML inválido o corrupto: ${file.name}`;
+    return;
+  }
+
+        const emisor = xml.getElementsByTagNameNS('http://www.sat.gob.mx/cfd/4', 'Emisor')[0];
+        const rfc = emisor?.getAttribute('Rfc') || '';
+        if (rfc !== 'BTA010327AD3') {
+          msg.textContent = '⚠️ Un archivo no es del RFC BTA010327AD3 (BOLSAS TAURO).';
+          return;
+        }
+
+        const comprobante = xml.getElementsByTagNameNS('http://www.sat.gob.mx/cfd/4', 'Comprobante')[0];
+        const folio = comprobante?.getAttribute('Folio') || '';
+        const fecha = comprobante?.getAttribute('Fecha')?.substring(0, 10) || '';
+        const conceptos = xml.getElementsByTagNameNS('http://www.sat.gob.mx/cfd/4', 'Concepto');
+
+        for (let concepto of conceptos) {
+          const noId = concepto.getAttribute('NoIdentificacion') || '';
+          const cantidad = parseFloat(concepto.getAttribute('Cantidad') || '0');
+          const descripcion = concepto.getAttribute('Descripcion') || '';
+          const valorUnitario = parseFloat(concepto.getAttribute('ValorUnitario') || '0');
+
+          const traslado = concepto.getElementsByTagNameNS('http://www.sat.gob.mx/cfd/4', 'Traslado')[0];
+          const tasa = parseFloat(traslado?.getAttribute('TasaOCuota') || '0');
+
+          const totalConIVA = valorUnitario * (1 + tasa);
+          const precioListaValido = listaPrecios.hasOwnProperty(noId.trim());
+          const precioLista = precioListaValido ? listaPrecios[noId.trim()] : null;
+          const diferencia = precioListaValido ? precioLista - totalConIVA : null;
+          const impacto = precioListaValido ? diferencia * cantidad : null;
+          if (impacto !== null) impactoTotalGlobal += impacto;
+
+          const row = document.createElement('tr');
+          if (!precioListaValido) row.classList.add('fila-error');
+
+          row.innerHTML = `
+            <td>${folio}</td>
+            <td>${fecha}</td>
+            <td>${noId}</td>
+            <td style="text-align: right;">${Math.round(cantidad)}</td>
+            <td>${descripcion}</td>
+            <td style="text-align: right;">${valorUnitario.toFixed(2)}</td>
+            <td style="text-align: right;">${(tasa * 100).toFixed(2)}%</td>
+            <td style="text-align: right;">${totalConIVA.toFixed(2)}</td>
+            <td style="text-align: right; ${!precioListaValido ? 'color:red;' : ''}">
+              ${precioListaValido ? precioLista.toFixed(2) : 'NO ENCONTRADO'}</td>
+            <td style="text-align: right; color: red;">
+              ${precioListaValido ? diferencia.toFixed(2) : 'SIN PRECIO'}</td>
+            <td class="impacto-col" style="color:red;">
+              ${impacto !== null ? impacto.toFixed(2) : '--'}</td>
+          `;
+          tbody.appendChild(row);
+        }
+
+        impactoTotalSpan.textContent = `$${impactoTotalGlobal.toFixed(2)}`;
+      };
+      reader.readAsText(file);
+    }
+
+    document.getElementById('printBtn').addEventListener('click', () => {
+      const { jsPDF } = window.jspdf;
+      html2canvas(document.body).then(canvas => {
+        const pdf = new jsPDF('l', 'pt', 'a4');
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 820;
+        const imgHeight = canvas.height * imgWidth / canvas.width;
+        pdf.addImage(imgData, 'PNG', 20, 20, imgWidth, imgHeight);
+
+        const fecha = new Date().toISOString().split('T')[0];
+        pdf.save(`comparador_cfdi_tauro_${fecha}.pdf`);
+      });
+    });
+  </script>
+</body>
+</html>
+

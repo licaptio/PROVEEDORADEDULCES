@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Visor CFDI XML + Lista de Precios</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 6px;
+      text-align: left;
+    }
+    th {
+      background-color: #e0e0e0;
+    }
+    .rojo {
+      background-color: #ffd6d6;
+      color: red;
+    }
+    .verde {
+      background-color: #d6ffd6;
+      color: green;
+    }
+    .sin-concordancia {
+      background-color: #fff6b0;
+    }
+    .paso {
+      margin: 1rem 0;
+      padding: 1rem;
+      border: 2px dashed #ccc;
+      background-color: #f9f9f9;
+    }
+    .paso h3 {
+      margin-top: 0;
+    }
+    .desactivado {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .impacto-header {
+      text-align: center;
+      font-weight: bold;
+      background-color: #e6f7ff;
+      color: #0077b6;
+    }
+  </style>
+</head>
+<body>
+  <h2>Visor CFDI + Lista de Precios</h2>
+
+  <div class="paso">
+    <h3>PASO 1: Cargar Lista de Precios (.xlsx)</h3>
+    <input type="file" id="excelFile" accept=".xlsx" />
+    <p id="estadoExcel">⏳ Esperando archivo...</p>
+  </div>
+
+  <div class="paso desactivado" id="paso2">
+    <h3>PASO 2: Cargar uno o varios CFDI XML</h3>
+    <input type="file" id="xmlFile" accept=".xml" multiple disabled />
+    <p id="estadoXml">⏳ Esperando archivo(s) XML...</p>
+  </div>
+
+  <table id="tablaDatos">
+    <thead>
+      <tr id="impactoTotalFila">
+        <th colspan="12"></th>
+        <th id="impactoTotalTexto" class="impacto-header">Impacto total: $0.00</th>
+      </tr>
+      <tr>
+        <th>Folio</th>
+        <th>Fecha</th>
+        <th>Descuento</th>
+        <th>Total</th>
+        <th>Cantidad</th>
+        <th>Descripción</th>
+        <th>Valor Unitario</th>
+        <th>Descuento4</th>
+        <th>TasaOCuota</th>
+        <th>GRAN COSTO</th>
+        <th>Precio Lista</th>
+        <th>Diferencia</th>
+        <th>Impacto</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    let preciosLista = [];
+    let impactoAcumulado = 0;
+
+    const formatFecha = (iso) => {
+      const date = new Date(iso);
+      const dia = String(date.getDate()).padStart(2, '0');
+      const mes = String(date.getMonth() + 1).padStart(2, '0');
+      const anio = date.getFullYear();
+      return `${dia}/${mes}/${anio}`;
+    };
+
+    document.getElementById('excelFile').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        preciosLista = rows.map(row => ({
+          descripcion: row[0] ? row[0].toString().trim().toLowerCase() : "",
+          precioJ: parseFloat(row[9])
+        }));
+
+        document.getElementById('estadoExcel').textContent = "✅ Lista de precios cargada correctamente.";
+        document.getElementById('paso2').classList.remove("desactivado");
+        document.getElementById('xmlFile').disabled = false;
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    document.getElementById('xmlFile').addEventListener('change', function (e) {
+      const files = e.target.files;
+      if (!files.length || preciosLista.length === 0) {
+        alert("Primero debes cargar la lista de precios (PASO 1)");
+        return;
+      }
+
+      const tbody = document.querySelector("#tablaDatos tbody");
+
+      let filesProcessed = 0;
+
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(evt.target.result, "text/xml");
+
+          const comprobante = xml.querySelector("cfdi\\:Comprobante, Comprobante");
+          const conceptos = xml.querySelectorAll("cfdi\\:Concepto, Concepto");
+
+          const folio = comprobante.getAttribute("Folio");
+          const fechaRaw = comprobante.getAttribute("Fecha");
+          const fecha = formatFecha(fechaRaw);
+          const descuento = comprobante.getAttribute("Descuento");
+          const total = comprobante.getAttribute("Total");
+
+          conceptos.forEach(concepto => {
+            const cantidad = concepto.getAttribute("Cantidad");
+            const descripcion = concepto.getAttribute("Descripcion")?.trim();
+            const valorUnitario = parseFloat(concepto.getAttribute("ValorUnitario"));
+            const descuento4 = concepto.getAttribute("Descuento");
+            const traslado = concepto.querySelector("cfdi\\:Traslado, Traslado");
+            const tasaOCuota = traslado ? traslado.getAttribute("TasaOCuota") : "";
+
+            const cantidadNum = parseFloat(cantidad);
+            const descuentoNum = parseFloat(descuento4) || 0; // 👈 corrección aquí
+            const tasaNum = parseFloat(tasaOCuota) || 0;
+
+            const match = preciosLista.find(p => p.descripcion === descripcion.toLowerCase());
+            const precioJ = match ? match.precioJ : null;
+
+            let granCosto = "N/D";
+            let granCostoNum = NaN;
+            if (!isNaN(cantidadNum) && cantidadNum !== 0) {
+              const descUnitario = descuentoNum / cantidadNum;
+              const netoSinIVA = valorUnitario - descUnitario;
+              const iva = netoSinIVA * tasaNum;
+              granCostoNum = netoSinIVA + iva;
+              granCosto = granCostoNum.toFixed(2);
+            }
+
+            const diferenciaGC = (precioJ !== null && !isNaN(granCostoNum))
+              ? (granCostoNum - precioJ).toFixed(2)
+              : "N/D";
+
+            const impacto = (precioJ !== null && !isNaN(granCostoNum) && !isNaN(cantidadNum))
+              ? ((granCostoNum - precioJ) * cantidadNum)
+              : 0;
+
+            if (!isNaN(impacto)) {
+              impactoAcumulado += impacto;
+            }
+
+            const diffClass = (precioJ !== null && !isNaN(granCostoNum))
+              ? (granCostoNum > precioJ ? "rojo" : "verde")
+              : "";
+
+            const fila = document.createElement("tr");
+            if (!match) fila.classList.add("sin-concordancia");
+
+            fila.innerHTML = `
+              <td>${folio}</td>
+              <td>${fecha}</td>
+              <td>${descuento}</td>
+              <td>${total}</td>
+              <td>${cantidad}</td>
+              <td>${descripcion}</td>
+              <td>${valorUnitario.toFixed(2)}</td>
+              <td>${descuento4 ?? "0.00"}</td>
+              <td>${tasaOCuota}</td>
+              <td class="${diffClass}">${granCosto}</td>
+              <td>${precioJ !== null ? precioJ.toFixed(2) : "N/D"}</td>
+              <td>${diferenciaGC}</td>
+              <td>$${impacto.toFixed(2)}</td>
+            `;
+            tbody.appendChild(fila);
+          });
+
+          filesProcessed++;
+          if (filesProcessed === files.length) {
+            document.getElementById('impactoTotalTexto').textContent = `Impacto total: $${impactoAcumulado.toFixed(2)}`;
+            document.getElementById('estadoXml').textContent = "✅ Todos los CFDI procesados.";
+          }
+        };
+        reader.readAsText(file);
+      });
+    });
+  </script>
+</body>
+</html>
