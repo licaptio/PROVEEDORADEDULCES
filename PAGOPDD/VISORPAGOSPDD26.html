@@ -61,14 +61,11 @@ th{background:#f3f4f6}
 
 <div class="card">
   <div class="row">
-    <div>
-      Desde<br>
-      <input type="date" id="desde">
-    </div>
-    <div>
-      Hasta<br>
-      <input type="date" id="hasta">
-    </div>
+<div>
+  Día<br>
+  <input type="date" id="dia">
+</div>
+
     <div>
       Banco<br>
       <select id="banco">
@@ -119,13 +116,13 @@ async function buscar(){
     .select('id,fecha_pago,banco,proveedor_nombre,importe_pagado')
     .order('fecha_pago',{ascending:true});
 
-  const desde = document.getElementById('desde').value;
-  const hasta = document.getElementById('hasta').value;
   const banco = document.getElementById('banco').value;
   const proveedor = document.getElementById('proveedor').value.trim();
+  const dia = document.getElementById('dia').value;
 
-  if(desde) q = q.gte('fecha_pago', desde);
-  if(hasta) q = q.lte('fecha_pago', hasta);
+if(dia){
+  q = q.eq('fecha_pago', dia);
+}
   if(banco) q = q.eq('banco', banco);
   if(proveedor) q = q.ilike('proveedor_nombre', `%${proveedor}%`);
 
@@ -159,6 +156,7 @@ async function buscar(){
 
   document.getElementById('total').innerText = total.toFixed(2);
 }
+
 </script>
 
 </body>
