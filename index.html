@@ -2,48 +2,118 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>PROVSOFT | Index rápido</title>
+<title>PROVEEDORA | Accesos</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
+:root{
+  --rojo:#c4161c;
+  --verde:#0a7d3b;
+  --bg:#f3f5f7;
+  --shadow:0 8px 20px rgba(0,0,0,.12);
+}
+
+*{
+  box-sizing:border-box;
+  font-family:'Segoe UI', Arial, sans-serif;
+}
+
 body{
-  font-family:Arial, sans-serif;
-  background:#f4f4f4;
   margin:0;
-  padding:20px;
+  background:var(--bg);
+  padding:24px;
 }
+
 h1{
-  margin-top:0;
+  margin:0;
+  color:var(--rojo);
+  font-size:26px;
+  font-weight:700;
 }
-a{
-  display:block;
-  padding:8px 10px;
-  margin-bottom:6px;
-  background:#fff;
-  border-left:4px solid #00416A;
-  color:#000;
-  text-decoration:none;
+
+.sub{
+  margin:6px 0 24px;
+  color:#555;
   font-size:14px;
 }
-a:hover{
-  background:#e8f0f8;
+
+/* GRID */
+.dashboard{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:16px;
+}
+
+/* TARJETA MINIMAL */
+.card{
+  background:#fff;
+  border-radius:14px;
+  padding:22px;
+  box-shadow:var(--shadow);
+  cursor:pointer;
+  transition:.25s;
+  border-left:5px solid var(--rojo);
+}
+
+.card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 14px 28px rgba(0,0,0,.18);
+  border-left-color:var(--verde);
+}
+
+/* TEXTO */
+.title{
+  font-size:16px;
+  font-weight:700;
+  color:#111;
 }
 </style>
 </head>
 
 <body>
 
-<h1>PROVSOFT – Índice</h1>
+<h1>PROVEEDORA</h1>
+<div class="sub">Dulces · Desechables · Abarrotes · Materias primas</div>
 
-<!-- AGREGA SOLO LINKS -->
-<a href="RUTASPOS/index.html">Traspaso rutas venta</a>
-<a href="GIBRAN/index.html">Menú PROVSOFT</a>
-<a href="POSPDD26/productos_por_departamento_control.html">Clasificación productos</a>
-<a href="POSPDD26/index.html">POS PC 2026 PDD</a>  
-<a href="TICKETSFACT/visor-tickets.html">TICKTS FACTURADOS</a>  
-<a href="TICKETSFACT/visor-detalle-articulos.html">TICKTS VISIONADOS</a>
-<a href="Factglobal/index.html">Global ruta 1 V2</a>  
-<a href="FactglobalR2/index.html">Global ruta 2 V2</a>
-<a href="IYEPDD2026/index.html">INGRESOS PDD 2026</a>  
+<div class="dashboard">
+
+  <div class="card" onclick="location.href='RUTASPOS/index.html'">
+    <div class="title">Rutas de Venta</div>
+  </div>
+
+  <div class="card" onclick="location.href='GIBRAN/index.html'">
+    <div class="title">Menú PROVSOFT</div>
+  </div>
+
+  <div class="card" onclick="location.href='POSPDD26/productos_por_departamento_control.html'">
+    <div class="title">Clasificación de Productos</div>
+  </div>
+
+  <div class="card" onclick="location.href='POSPDD26/index.html'">
+    <div class="title">POS PC 2026</div>
+  </div>
+
+  <div class="card" onclick="location.href='TICKETSFACT/visor-tickets.html'">
+    <div class="title">Tickets Facturados</div>
+  </div>
+
+  <div class="card" onclick="location.href='TICKETSFACT/visor-detalle-articulos.html'">
+    <div class="title">Detalle de Tickets</div>
+  </div>
+
+  <div class="card" onclick="location.href='Factglobal/index.html'">
+    <div class="title">Facturación Global Ruta 1</div>
+  </div>
+
+  <div class="card" onclick="location.href='FactglobalR2/index.html'">
+    <div class="title">Facturación Global Ruta 2</div>
+  </div>
+
+  <div class="card" onclick="location.href='IYEPDD2026/index.html'">
+    <div class="title">Ingresos PDD 2026</div>
+  </div>
+
+</div>
+
 </body>
 </html>
