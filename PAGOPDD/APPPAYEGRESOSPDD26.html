@@ -156,7 +156,7 @@
 
     const { data, error } = await sb
       .from('deuda_limpia_pdd')
-      .select('id,fecha,folio,total')
+      .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor')
       .eq('rfc_emisor', rfc)
       .eq('factura_pagada','NO')
       .order('fecha',{ascending:true});
@@ -251,16 +251,21 @@
     const importe = Number(document.getElementById('importePago').value||0);
 
     // JSON de facturas
-    const facturasInfo = seleccionadas.map(cb=>{
-      const idSel = String(cb.dataset.id);
-      const f = facturas.find(x => String(x.id) === idSel);
-      return {
-        id: f?.id ?? idSel,
-        folio: f?.folio ?? null,
-        fecha: f?.fecha ?? null,
-        total: Number(f?.total ?? cb.dataset.total ?? 0)
-      };
-    });
+const facturasInfo = seleccionadas.map(cb => {
+  const idSel = String(cb.dataset.id);
+  const f = facturas.find(x => String(x.id) === idSel);
+
+  return {
+    deuda_id: f.id,                 // PK interna
+    uuid_cfdi: f.uuid_cfdi,         // UUID SAT
+    fecha: f.fecha,                 // timestamp
+    proveedor: f.razon_social_emisor,
+    serie: f.serie,
+    folio: f.folio,
+    importe: Number(f.total)
+  };
+});
+
 
     // JSON de ajustes
     const ajustesInfo = ajustes
@@ -296,7 +301,13 @@
 
     // 2) Marcar facturas como pagadas (en deuda_limpia_pdd)
     msg.innerText = 'Pago guardado. Marcando facturas como pagadas...';
-    const ids = facturasInfo.map(f => f.id);
+    const ids = facturasInfo.map(f => f.deuda_id);
+
+await sb
+  .from('deuda_limpia_pdd')
+  .update({ factura_pagada: 'SI' })
+  .in('id', ids);
+
 
     const { error: e2 } = await sb
       .from('deuda_limpia_pdd')
