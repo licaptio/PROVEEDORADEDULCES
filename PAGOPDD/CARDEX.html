@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Visor de Pago – PROVSOFT</title>
+<title>Comprobante de Pago – Proveedora</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -10,11 +10,13 @@
 
 <style>
 :root{
-  --azul:#00416A;
+  --rojo:#C4161C;
+  --verde:#2E7D32;
   --gris:#eef1f5;
   --card:#ffffff;
+  --texto:#222;
   --muted:#666;
-  --shadow:0 6px 18px rgba(0,0,0,.15);
+  --shadow:0 6px 18px rgba(0,0,0,.12);
   --r:14px;
 }
 
@@ -23,10 +25,37 @@ body{
   padding:30px;
   font-family:'Poppins',sans-serif;
   background:var(--gris);
+  color:var(--texto);
 }
 
-h2{margin:0 0 10px}
-h3{margin:0 0 8px;color:var(--azul)}
+.header{
+  background:#fff;
+  padding:20px;
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+  display:flex;
+  align-items:center;
+  gap:20px;
+  margin-bottom:20px;
+}
+
+.header img{
+  max-height:70px;
+}
+
+.header .title{
+  flex:1;
+}
+
+.header h2{
+  margin:0;
+  color:var(--rojo);
+}
+
+.header .sub{
+  font-size:13px;
+  color:var(--muted);
+}
 
 .card{
   background:var(--card);
@@ -34,6 +63,11 @@ h3{margin:0 0 8px;color:var(--azul)}
   border-radius:var(--r);
   box-shadow:var(--shadow);
   margin-bottom:18px;
+}
+
+h3{
+  margin:0 0 10px;
+  color:var(--verde);
 }
 
 .grid{
@@ -57,12 +91,19 @@ table{
   font-size:14px;
 }
 th,td{
-  padding:8px;
+  padding:10px;
   border-bottom:1px solid #ddd;
 }
 th{
-  background:#f4f6f8;
+  background:#f9fafb;
   text-align:left;
+}
+
+.total{
+  font-size:20px;
+  font-weight:700;
+  color:var(--rojo);
+  text-align:right;
 }
 
 pre{
@@ -73,68 +114,68 @@ pre{
   font-size:12px;
   overflow:auto;
 }
-.id{
-  font-family:monospace;
-  font-size:13px;
-  color:#333;
-}
-.total{
-  font-size:18px;
-  font-weight:700;
-  text-align:right;
-}
-.id a{
-  color:#00416A;
-  text-decoration:none;
-  font-weight:600;
-}
-.id a:hover{
-  text-decoration:underline;
+
+.footer{
+  text-align:center;
+  font-size:11px;
+  color:#777;
+  margin-top:30px;
 }
 
+/* 🖨️ MODO IMPRESIÓN */
+@media print{
+  body{
+    background:#fff;
+    padding:0;
+  }
+  .card, .header{
+    box-shadow:none;
+    border-radius:0;
+  }
+  .footer{
+    margin-top:15px;
+  }
+}
 </style>
 </head>
 
 <body>
 
+<!-- 🔴 HEADER CORPORATIVO -->
+<div class="header">
+  <img src="proveedora_logo.jpg" alt="La Proveedora">
+  <div class="title">
+    <h2>Comprobante de Pago</h2>
+    <div class="sub">Documento informativo de pago a proveedor</div>
+  </div>
+</div>
+
 <div class="card">
-  <h2>💳 Comprobante de Pago</h2>
-  <div class="label">ID del pago</div>
-  <div class="value id" id="pagoId">—</div>
+  <div class="label">ID del Pago</div>
+  <div class="value" id="pagoId">—</div>
 </div>
 
 <div class="card">
   <h3>Datos Generales</h3>
   <div class="grid">
-    <div>
-      <div class="label">Proveedor</div>
-      <div class="value" id="proveedor"></div>
-    </div>
-    <div>
-      <div class="label">RFC</div>
-      <div class="value" id="rfc"></div>
-    </div>
-    <div>
-      <div class="label">Banco</div>
-      <div class="value" id="banco"></div>
-    </div>
-    <div>
-      <div class="label">Fecha de Pago</div>
-      <div class="value" id="fecha"></div>
-    </div>
+    <div><div class="label">Proveedor</div><div class="value" id="proveedor"></div></div>
+    <div><div class="label">RFC</div><div class="value" id="rfc"></div></div>
+    <div><div class="label">Banco</div><div class="value" id="banco"></div></div>
+    <div><div class="label">Fecha de Pago</div><div class="value" id="fecha"></div></div>
   </div>
 </div>
 
 <div class="card">
   <h3>Facturas Pagadas</h3>
   <table>
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Folio</th>
-        <th>Total</th>
-      </tr>
-    </thead>
+<thead>
+  <tr>
+    <th>Fecha</th>
+    <th>Serie / Folio</th>
+    <th>UUID CFDI</th>
+    <th>Importe</th>
+  </tr>
+</thead>
     <tbody id="facturas"></tbody>
   </table>
 </div>
@@ -142,18 +183,9 @@ pre{
 <div class="card">
   <h3>Resumen</h3>
   <div class="grid">
-    <div>
-      <div class="label">Total Facturas</div>
-      <div class="value" id="totalFacturas"></div>
-    </div>
-    <div>
-      <div class="label">Ajustes</div>
-      <div class="value" id="totalAjustes"></div>
-    </div>
-    <div>
-      <div class="label">Importe Pagado</div>
-      <div class="value total" id="importe"></div>
-    </div>
+    <div><div class="label">Total Facturas</div><div class="value" id="totalFacturas"></div></div>
+    <div><div class="label">Ajustes</div><div class="value" id="totalAjustes"></div></div>
+    <div><div class="label">Importe Pagado</div><div class="value total" id="importe"></div></div>
   </div>
 </div>
 
@@ -167,6 +199,10 @@ pre{
   <div id="notas"></div>
 </div>
 
+<div class="footer">
+  Documento generado por PROVSOFT · Uso informativo
+</div>
+
 <script>
 const sb = window.supabase.createClient(
   'https://cvpbtjlupswbyxenugpz.supabase.co',
@@ -177,8 +213,12 @@ const sb = window.supabase.createClient(
 const params = new URLSearchParams(window.location.search);
 const pagoId = params.get('id');
 
-if(!pagoId){
-  alert('No se proporcionó ID del pago');
+// formato pesos mexicanos
+function mxn(n){
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN'
+  }).format(Number(n || 0));
 }
 
 async function cargarPago(){
@@ -199,29 +239,33 @@ async function cargarPago(){
   document.getElementById('banco').innerText = data.banco;
   document.getElementById('fecha').innerText = data.fecha_pago;
 
-  document.getElementById('totalFacturas').innerText = `$${Number(data.total_facturas).toFixed(2)}`;
-  document.getElementById('totalAjustes').innerText = `$${Number(data.total_ajustes).toFixed(2)}`;
-  document.getElementById('importe').innerText = `$${Number(data.importe_pagado).toFixed(2)}`;
+  document.getElementById('totalFacturas').innerText = mxn(data.total_facturas);
+  document.getElementById('totalAjustes').innerText = mxn(data.total_ajustes);
+  document.getElementById('importe').innerText = mxn(data.importe_pagado);
 
   document.getElementById('comprobante').innerText = data.comprobante_raw || '';
   document.getElementById('notas').innerText = data.notas || '';
 
-  const facturas = JSON.parse(data.facturas_info || '[]');
   const tbody = document.getElementById('facturas');
+  tbody.innerHTML = '';
 
-  facturas.forEach(f=>{
-    tbody.innerHTML += `
-      <tr>
-        <td>${new Date(f.fecha).toLocaleDateString()}</td>
-        <td>${f.folio}</td>
-        <td>$${Number(f.total).toFixed(2)}</td>
-      </tr>
-    `;
-  });
+(data.facturas_info || []).forEach(f=>{
+  tbody.innerHTML += `
+    <tr>
+      <td>${new Date(f.fecha).toLocaleDateString()}</td>
+      <td>${f.serie || ''} ${f.folio || ''}</td>
+      <td style="font-family:monospace;font-size:12px">
+        ${f.uuid_cfdi || '—'}
+      </td>
+      <td>${mxn(f.importe)}</td>
+    </tr>
+  `;
+});
 }
 
 cargarPago();
 </script>
+
 
 </body>
 </html>
