@@ -52,6 +52,11 @@ th{background:#f3f4f6}
   font-size:12px;
   color:#555;
 }
+td:last-child, th:last-child{
+  text-align:right;
+  font-variant-numeric: tabular-nums;
+}
+
 </style>
 </head>
 
@@ -101,7 +106,7 @@ th{background:#f3f4f6}
   </table>
 
   <br>
-  <div class="total">Total listado: $<span id="total">0.00</span></div>
+  <div class="total">Total listado: <span id="total">$0.00</span></div>
 </div>
 
 <script>
@@ -109,7 +114,12 @@ const sb = window.supabase.createClient(
   'https://cvpbtjlupswbyxenugpz.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
 );
-
+/* 👉 AGREGA ESTO */
+const formatoMXN = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  minimumFractionDigits: 2
+});
 async function buscar(){
   let q = sb
     .from('pagos_proveedor')
@@ -149,15 +159,17 @@ if(dia){
         <td>${p.fecha_pago}</td>
         <td>${p.banco}</td>
         <td>${p.proveedor_nombre}</td>
-        <td>$${Number(p.importe_pagado).toFixed(2)}</td>
+        <td>${formatoMXN.format(p.importe_pagado || 0)}</td>
       </tr>
     `;
   });
 
-  document.getElementById('total').innerText = total.toFixed(2);
+  document.getElementById('total').innerText = formatoMXN.format(total);
+
 }
 
 </script>
 
 </body>
 </html>
+
