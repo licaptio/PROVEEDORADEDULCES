@@ -11,20 +11,163 @@
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <style>
-    body{font-family:'Poppins',Arial,sans-serif;background:#eef1f5;padding:20px}
-    .card{background:#fff;padding:18px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.15);margin-bottom:16px}
-    h2,h3{margin:0 0 10px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid #ddd}
-    input,select,textarea,button{padding:8px;border-radius:6px;border:1px solid #ccc}
-    button{cursor:pointer}
-    .total{font-size:20px;font-weight:700}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .muted{opacity:.7}
-    .btn{padding:10px 14px;font-weight:600}
-    .btn:disabled{opacity:.6;cursor:not-allowed}
-  </style>
+<style>
+:root{
+  --orange:#F57C00;
+  --orange-dark:#EF6C00;
+  --orange-soft:#FFF3E0;
+  --bg:#f4f6f9;
+  --card:#ffffff;
+  --text:#263238;
+  --muted:#6b7280;
+  --border:#e0e0e0;
+  --success:#2e7d32;
+}
+
+*{box-sizing:border-box}
+
+body{
+  font-family:'Poppins',Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  padding:24px;
+}
+
+/* Título principal */
+h2{
+  margin:0 0 18px;
+  font-weight:700;
+  color:var(--orange-dark);
+}
+
+/* Cards */
+.card{
+  background:var(--card);
+  border-radius:16px;
+  padding:18px 20px;
+  box-shadow:0 8px 22px rgba(0,0,0,.08);
+  margin-bottom:18px;
+  border-top:6px solid var(--orange);
+}
+
+/* Subtítulos */
+h3{
+  margin:0 0 12px;
+  font-size:16px;
+  font-weight:600;
+  color:#37474F;
+}
+
+/* Formularios */
+input,select,textarea{
+  width:100%;
+  padding:10px 12px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  font-family:inherit;
+  font-size:14px;
+}
+
+input:focus,select:focus,textarea:focus{
+  outline:none;
+  border-color:var(--orange);
+  box-shadow:0 0 0 2px rgba(245,124,0,.15);
+}
+
+/* Tablas */
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+
+thead th{
+  text-align:left;
+  padding:10px;
+  background:var(--orange-soft);
+  color:#5d4037;
+  font-weight:600;
+}
+
+tbody td{
+  padding:10px;
+  border-bottom:1px solid var(--border);
+}
+
+tbody tr:hover{
+  background:#fafafa;
+}
+
+/* Layout filas */
+.row{
+  display:flex;
+  gap:14px;
+  align-items:flex-end;
+  flex-wrap:wrap;
+}
+
+/* Totales */
+.total-box{
+  display:flex;
+  justify-content:space-between;
+  padding:10px 0;
+  font-size:15px;
+}
+
+.total-final{
+  margin-top:10px;
+  padding:14px;
+  background:linear-gradient(135deg,#F57C00,#FB8C00);
+  color:#fff;
+  border-radius:12px;
+  font-size:20px;
+  font-weight:700;
+  display:flex;
+  justify-content:space-between;
+}
+
+/* Botones */
+button{
+  border:none;
+  border-radius:10px;
+  padding:12px 18px;
+  font-weight:600;
+  font-size:14px;
+  cursor:pointer;
+}
+
+.btn{
+  background:var(--orange);
+  color:#fff;
+}
+
+.btn:hover{
+  background:var(--orange-dark);
+}
+
+.btn-outline{
+  background:#fff;
+  border:1px solid var(--orange);
+  color:var(--orange);
+}
+
+.btn-outline:hover{
+  background:var(--orange-soft);
+}
+
+.btn:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+/* Mensajes */
+.muted{
+  color:var(--muted);
+  font-size:14px;
+  margin-top:8px;
+}
+</style>
+
 </head>
 
 <body>
@@ -63,9 +206,19 @@
   </div>
 
   <div class="card">
-    <div>Total facturas: <b id="totalFacturas">$0.00</b></div>
-    <div>Total ajustes: <b id="totalAjustes">$0.00</b></div>
-    <div class="total">Total a pagar: <span id="totalPagar">$0.00</span></div>
+<div class="total-box">
+  <span>Total facturas</span>
+  <b id="totalFacturas">$0.00</b>
+</div>
+<div class="total-box">
+  <span>Total ajustes</span>
+  <b id="totalAjustes">$0.00</b>
+</div>
+
+<div class="total-final">
+  <span>Total a pagar</span>
+  <span id="totalPagar">$0.00</span>
+</div>
   </div>
 
   <div class="card">
@@ -93,7 +246,10 @@
     <textarea id="notas" rows="4" style="width:100%"></textarea>
   </div>
 
-  <button id="btnGuardar" class="btn" type="button" onclick="guardarPago()">💾 Guardar pago</button>
+  <button id="btnGuardar" class="btn" type="button" onclick="guardarPago()">
+  💾 Registrar pago
+</button>
+
   <div id="msg" class="muted" style="margin-top:10px"></div>
 
 <script>
@@ -337,3 +493,4 @@ await sb
 
 </body>
 </html>
+
