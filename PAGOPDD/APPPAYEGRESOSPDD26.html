@@ -186,18 +186,37 @@ button{
     <label>Proveedor</label><br>
     <select id="proveedorSelect"></select>
   </div>
+<div class="card">
+  <h3>Facturas pendientes</h3>
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Fecha</th>
+        <th>Folio</th>
+        <th style="text-align:right">Total</th>
+      </tr>
+    </thead>
+    <tbody id="tbodyFacturas"></tbody>
+  </table>
+</div>
 
-  <div class="card">
-    <h3>Facturas pendientes</h3>
-    <table>
-      <thead>
-        <tr>
-          <th></th><th>Fecha</th><th>Folio</th><th>Total</th>
-        </tr>
-      </thead>
-      <tbody id="tbodyFacturas"></tbody>
-    </table>
-  </div>
+<div class="card">
+  <h3>Detalle del cálculo</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>UUID</th>
+        <th>Proveedor</th>
+        <th>Serie / Folio</th>
+        <th style="text-align:right">Importe</th>
+      </tr>
+    </thead>
+    <tbody id="tbodyCalculo"></tbody>
+  </table>
+</div>
+
 
   <div class="card">
     <h3>Ajustes / Descuentos (globales)</h3>
@@ -306,39 +325,48 @@ button{
     proveedorSelect.onchange = cargarFacturas;
   }
 
-  async function cargarFacturas(){
-    const rfc = proveedorSelect.value;
-    if(!rfc){ tbody.innerHTML=''; facturas=[]; calcularTotales(); return; }
-
-    const { data, error } = await sb
-      .from('deuda_limpia_pdd')
-      .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor')
-      .eq('rfc_emisor', rfc)
-      .eq('factura_pagada','NO')
-      .order('fecha',{ascending:true});
-
-    if(error){ alert(error.message); return; }
-
-    facturas = data || [];
-    tbody.innerHTML = '';
-
-    facturas.forEach(f=>{
-      const fechaTxt = f.fecha ? String(f.fecha) : '';
-      const folioTxt = f.folio || '';
-      const totalNum = Number(f.total||0);
-
-      tbody.innerHTML += `
-        <tr>
-          <td><input type="checkbox" data-id="${f.id}" data-total="${totalNum}" onchange="calcularTotales()"></td>
-          <td>${fechaTxt}</td>
-          <td>${folioTxt}</td>
-          <td>${money(totalNum)}</td>
-        </tr>
-      `;
-    });
-
+async function cargarFacturas(){
+  const rfc = proveedorSelect.value;
+  if(!rfc){
+    document.getElementById('tbodyFacturas').innerHTML='';
+    facturas=[];
     calcularTotales();
+    return;
   }
+
+  const { data, error } = await sb
+    .from('deuda_limpia_pdd')
+    .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor')
+    .eq('rfc_emisor', rfc)
+    .eq('factura_pagada','NO')
+    .order('fecha',{ascending:true});
+
+  if(error){ alert(error.message); return; }
+
+  facturas = data || [];
+  const tbody = document.getElementById('tbodyFacturas');
+  tbody.innerHTML = '';
+
+  facturas.forEach(f=>{
+    const totalNum = Number(f.total||0);
+
+    tbody.innerHTML += `
+      <tr>
+        <td>
+          <input type="checkbox"
+                 data-id="${f.id}"
+                 data-total="${totalNum}"
+                 onchange="calcularTotales()">
+        </td>
+        <td>${f.fecha || ''}</td>
+        <td>${f.serie || ''} ${f.folio || ''}</td>
+        <td style="text-align:right">${money(totalNum)}</td>
+      </tr>
+    `;
+  });
+
+  calcularTotales();
+}
 
   function agregarAjuste(){
     ajustes.push({concepto:'', monto:0});
@@ -367,22 +395,87 @@ button{
     calcularTotales();
   }
 
-  function calcularTotales(){
-    let totalFact = 0;
-    document.querySelectorAll('#tbodyFacturas input[type=checkbox]:checked')
-      .forEach(cb => totalFact += Number(cb.dataset.total||0));
+function calcularTotales(){
+  const seleccionadas = [
+    ...document.querySelectorAll('#tbodyFacturas input[type=checkbox]:checked')
+  ];
 
-    let totalAj = ajustes.reduce((s,a)=> s + Number(a.monto||0), 0);
+  let totalFact = 0;
+  seleccionadas.forEach(cb => totalFact += Number(cb.dataset.total||0));
 
-    document.getElementById('totalFacturas').innerText = money(totalFact);
-    document.getElementById('totalAjustes').innerText = money(totalAj);
+  let totalAj = ajustes.reduce((s,a)=> s + Number(a.monto||0), 0);
 
-    const total = totalFact + totalAj;
-    document.getElementById('totalPagar').innerText = money(total);
+  document.getElementById('totalFacturas').innerText = money(totalFact);
+  document.getElementById('totalAjustes').innerText = money(totalAj);
 
-    // auto-llenado del importe
-    document.getElementById('importePago').value = total.toFixed(2);
+  const total = totalFact + totalAj;
+  document.getElementById('totalPagar').innerText = money(total);
+  document.getElementById('importePago').value = total.toFixed(2);
+
+  // 🔥 ESTA LÍNEA HACE QUE SE VEA EL DESGLOSE
+  renderCalculoDetalle(seleccionadas, totalFact, totalAj, total);
+}
+
+function renderCalculoDetalle(seleccionadas, totalFact, totalAj, totalFinal){
+  const tbody = document.getElementById('tbodyCalculo');
+  if(!tbody) return;
+
+  tbody.innerHTML = '';
+
+  // FACTURAS
+  seleccionadas.forEach(cb => {
+    const f = facturas.find(x => String(x.id) === String(cb.dataset.id));
+    if(!f) return;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${f.fecha || ''}</td>
+        <td style="font-size:12px">${f.uuid_cfdi || ''}</td>
+        <td>${f.razon_social_emisor || ''}</td>
+        <td>${f.serie || ''} ${f.folio || ''}</td>
+        <td style="text-align:right">${money(f.total)}</td>
+      </tr>
+    `;
+  });
+
+  // SUBTOTAL
+  tbody.innerHTML += `
+    <tr style="background:#f5f5f5">
+      <td colspan="4"><b>Subtotal facturas</b></td>
+      <td style="text-align:right"><b>${money(totalFact)}</b></td>
+    </tr>
+  `;
+
+  // AJUSTES
+  if(totalAj !== 0){
+    ajustes.forEach(a=>{
+      if(!a.concepto || !a.monto) return;
+
+      tbody.innerHTML += `
+        <tr>
+          <td colspan="3">Ajuste</td>
+          <td>${a.concepto}</td>
+          <td style="text-align:right">${money(a.monto)}</td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML += `
+      <tr style="background:#f5f5f5">
+        <td colspan="4"><b>Total ajustes</b></td>
+        <td style="text-align:right"><b>${money(totalAj)}</b></td>
+      </tr>
+    `;
   }
+
+  // TOTAL FINAL
+  tbody.innerHTML += `
+    <tr style="background:#FFF3E0;font-size:16px">
+      <td colspan="4"><b>Total a pagar</b></td>
+      <td style="text-align:right"><b>${money(totalFinal)}</b></td>
+    </tr>
+  `;
+}
 
   async function guardarPago(){
     const rfc = proveedorSelect.value;
@@ -493,4 +586,5 @@ await sb
 
 </body>
 </html>
+
 
