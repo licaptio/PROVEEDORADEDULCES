@@ -85,10 +85,11 @@ async function cargarDatos(){
     estado.innerText = `Cargando filas ${desde + 1} a ${desde + paso}…`;
 
     const { data, error } = await sb
-      .from('ingresos_pdd')
-      .select('id, serie, fecha, total')
-      .order('id', { ascending: true })
-      .range(desde, desde + paso - 1);
+.from('ingresos_pdd')
+.select('id, serie, fecha, total')
+.eq('cancelado', false)
+.order('id', { ascending: true })
+.range(desde, desde + paso - 1);
 
     if (error) {
       console.error(error);
