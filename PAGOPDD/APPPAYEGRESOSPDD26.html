@@ -92,6 +92,7 @@ thead th{
 tbody td{
   padding:10px;
   border-bottom:1px solid var(--border);
+  vertical-align:top;
 }
 
 tbody tr:hover{
@@ -160,12 +161,21 @@ button{
   cursor:not-allowed;
 }
 
+/* Botón mini para tabla */
+.btn-mini{
+  padding:8px 10px;
+  font-size:12px;
+  border-radius:8px;
+  white-space:nowrap;
+}
+
 /* Mensajes */
 .muted{
   color:var(--muted);
-  font-size:14px;
-  margin-top:8px;
+  font-size:12.5px;
+  margin-top:6px;
 }
+
 /* Importes monetarios */
 .monto{
   font-weight:600;
@@ -190,6 +200,51 @@ button{
   font-weight:800;
 }
 
+/* Modal */
+.modal-overlay{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  z-index:9999;
+  padding:18px;
+}
+.modal{
+  max-width:520px;
+  margin:8% auto;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 18px 50px rgba(0,0,0,.22);
+  padding:18px 18px 14px;
+  border-top:6px solid var(--orange);
+}
+.modal h3{ margin-bottom:8px }
+.modal .pill{
+  display:inline-block;
+  background:var(--orange-soft);
+  color:#5d4037;
+  border:1px solid #ffd7b3;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  margin:6px 0 10px;
+}
+.modal .grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+}
+.modal .actions{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  margin-top:12px;
+}
+hr.soft{
+  border:none;
+  border-top:1px solid #eee;
+  margin:12px 0;
+}
 </style>
 
 </head>
@@ -199,8 +254,8 @@ button{
   <!--
     ✅ Este HTML guarda TODO en UNA sola tabla: pagos_proveedor
     Requiere columnas en pagos_proveedor:
-      - facturas_info (jsonb)
-      - ajustes (jsonb)
+      - facturas_info (jsonb)  // ahora incluye descuento por factura: {monto, nota}
+      - ajustes (jsonb)        // ahora incluye nota por ajuste: {concepto, monto, nota}
     (además de las que ya tienes: rfc_emisor, proveedor_nombre, banco, fecha_pago, total_facturas, total_ajustes, importe_pagado, comprobante_raw, notas)
   -->
 
@@ -209,91 +264,132 @@ button{
   <div class="card">
     <label>Proveedor</label><br>
     <select id="proveedorSelect"></select>
+    <div class="muted">Selecciona un proveedor para ver sus facturas pendientes.</div>
   </div>
-<div class="card">
-  <h3>Facturas pendientes</h3>
-  <table>
-    <thead>
-      <tr>
-        <th></th>
-        <th>Fecha</th>
-        <th>Folio</th>
-        <th style="text-align:right">Total</th>
-      </tr>
-    </thead>
-    <tbody id="tbodyFacturas"></tbody>
-  </table>
-</div>
 
-<div class="card">
-  <h3>Detalle del cálculo</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>UUID</th>
-        <th>Proveedor</th>
-        <th>Serie / Folio</th>
-        <th style="text-align:right">Importe</th>
-      </tr>
-    </thead>
-    <tbody id="tbodyCalculo"></tbody>
-  </table>
-</div>
+  <div class="card">
+    <h3>Facturas pendientes</h3>
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Fecha</th>
+          <th>Folio</th>
+          <th style="text-align:right">Total</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyFacturas"></tbody>
+    </table>
+    <div class="muted">Marca las facturas que vas a pagar; el detalle y total se calcula abajo.</div>
+  </div>
 
+  <div class="card">
+    <h3>Detalle del cálculo</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>UUID</th>
+          <th>Proveedor</th>
+          <th>Serie / Folio</th>
+          <th style="text-align:right">Importe</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyCalculo"></tbody>
+    </table>
+    <div class="muted">💡 Los descuentos por factura se guardan dentro de cada factura (en <b>facturas_info</b>) y se reflejan automáticamente en el total.</div>
+  </div>
 
   <div class="card">
     <h3>Ajustes / Descuentos (globales)</h3>
     <div id="ajustes"></div>
     <button class="btn" type="button" onclick="agregarAjuste()">+ Agregar ajuste</button>
+    <div class="muted">Ejemplo: “Descuento global por pronto pago”, “Bonificación”, “Redondeo”, etc. (puede ser + o -)</div>
   </div>
 
   <div class="card">
-<div class="total-box">
-  <span>Total facturas</span>
-  <b id="totalFacturas">$0.00</b>
-</div>
-<div class="total-box">
-  <span>Total ajustes</span>
-  <b id="totalAjustes">$0.00</b>
-</div>
+    <div class="total-box">
+      <span>Total facturas (neto)</span>
+      <b id="totalFacturas">$0.00</b>
+    </div>
+    <div class="total-box">
+      <span>Total ajustes</span>
+      <b id="totalAjustes">$0.00</b>
+    </div>
 
-<div class="total-final">
-  <span>Total a pagar</span>
-  <span id="totalPagar">$0.00</span>
-</div>
+    <div class="total-final">
+      <span>Total a pagar</span>
+      <span id="totalPagar">$0.00</span>
+    </div>
   </div>
 
   <div class="card">
     <h3>Datos del pago</h3>
     <div class="row">
-      <div>
+      <div style="min-width:220px">
         Banco<br>
         <select id="banco">
           <option>BBVA</option><option>BANORTE</option><option>BANREGIO</option><option>OTRO</option>
         </select>
       </div>
-      <div>
+      <div style="min-width:220px">
         Fecha pago<br>
         <input type="date" id="fechaPago">
       </div>
-      <div>
+      <div style="min-width:220px">
         Importe<br>
         <input type="number" id="importePago" step="0.01">
       </div>
     </div>
+
     <br>
     Comprobante bancario (texto crudo)<br>
     <textarea id="comprobante" rows="6" style="width:100%"></textarea><br><br>
-    Notas<br>
+
+    Notas (generales del pago)<br>
     <textarea id="notas" rows="4" style="width:100%"></textarea>
   </div>
 
   <button id="btnGuardar" class="btn" type="button" onclick="guardarPago()">
-  💾 Registrar pago
-</button>
+    💾 Registrar pago
+  </button>
 
   <div id="msg" class="muted" style="margin-top:10px"></div>
+
+  <!-- ✅ MODAL DESCUENTO POR FACTURA -->
+  <div id="modalDescOverlay" class="modal-overlay" onclick="if(event.target.id==='modalDescOverlay') cerrarDesc();">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>💸 Descuento a factura</h3>
+      <div id="descFacturaPill" class="pill">—</div>
+
+      <div class="grid">
+        <div>
+          <label>Importe original</label>
+          <input id="descImporteOriginal" type="text" disabled>
+        </div>
+        <div>
+          <label>Descuento</label>
+          <input id="descMonto" type="number" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+
+      <div style="margin-top:10px">
+        <label>Nota del descuento</label>
+        <textarea id="descNota" rows="3" placeholder="Ej: Bonificación por merma / ajuste acordado / etc."></textarea>
+      </div>
+
+      <div class="muted" id="descHint"></div>
+
+      <hr class="soft">
+
+      <div class="actions">
+        <button class="btn-outline btn-mini" type="button" onclick="quitarDescuentoFactura()">Quitar descuento</button>
+        <button class="btn-outline btn-mini" type="button" onclick="cerrarDesc()">Cancelar</button>
+        <button class="btn btn-mini" type="button" onclick="aplicarDescuento()">Aplicar</button>
+      </div>
+    </div>
+  </div>
 
 <script>
   const sb = window.supabase.createClient(
@@ -304,8 +400,10 @@ button{
   let facturas = [];
   let ajustes = [];
 
+  // Control modal descuento por factura
+  let facturaDescId = null;
+
   const proveedorSelect = document.getElementById('proveedorSelect');
-  const tbody = document.getElementById('tbodyFacturas');
   const msg = document.getElementById('msg');
   const btnGuardar = document.getElementById('btnGuardar');
 
@@ -319,14 +417,26 @@ button{
   })();
 
   function money(n){
-  const x = Number(n || 0);
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 2
-  }).format(x);
-}
+    const x = Number(n || 0);
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 2
+    }).format(x);
+  }
 
+  function escapeHtml(str){
+    return String(str || '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#039;');
+  }
+
+  function getFacturaById(id){
+    return facturas.find(x => String(x.id) === String(id));
+  }
 
   async function cargarProveedores(){
     const { data, error } = await sb
@@ -348,71 +458,92 @@ button{
 
     proveedorSelect.innerHTML = '<option value="">Seleccione</option>';
     items.forEach(([rfc,name])=>{
-      proveedorSelect.innerHTML += `<option value="${rfc}">${name}</option>`;
+      proveedorSelect.innerHTML += `<option value="${rfc}">${escapeHtml(name)}</option>`;
     });
 
     proveedorSelect.onchange = cargarFacturas;
   }
 
-async function cargarFacturas(){
-  const rfc = proveedorSelect.value;
-  if(!rfc){
-    document.getElementById('tbodyFacturas').innerHTML='';
-    facturas=[];
+  async function cargarFacturas(){
+    const rfc = proveedorSelect.value;
+
+    // Reset UI
+    document.getElementById('tbodyFacturas').innerHTML = '';
+    document.getElementById('tbodyCalculo').innerHTML = '';
+    facturas = [];
     calcularTotales();
-    return;
+
+    if(!rfc) return;
+
+    const { data, error } = await sb
+      .from('deuda_limpia_pdd')
+      .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor')
+      .eq('rfc_emisor', rfc)
+      .eq('factura_pagada','NO')
+      .order('fecha',{ascending:true});
+
+    if(error){ alert(error.message); return; }
+
+    // Guardamos facturas y dejamos listo el espacio de descuento sin tocar DB
+    facturas = (data || []).map(f => ({
+      ...f,
+      descuento: null // { monto, nota } (solo en memoria; al guardar se mete en facturas_info)
+    }));
+
+    const tbody = document.getElementById('tbodyFacturas');
+    tbody.innerHTML = '';
+
+    facturas.forEach(f=>{
+      const totalNum = Number(f.total||0);
+      tbody.innerHTML += `
+        <tr>
+          <td>
+            <input type="checkbox"
+                   data-id="${f.id}"
+                   data-total="${totalNum}"
+                   onchange="calcularTotales()">
+          </td>
+          <td>${escapeHtml(f.fecha || '')}</td>
+          <td>${escapeHtml((f.serie||'') + ' ' + (f.folio||''))}</td>
+          <td style="text-align:right" class="monto">${money(totalNum)}</td>
+        </tr>
+      `;
+    });
+
+    calcularTotales();
   }
 
-  const { data, error } = await sb
-    .from('deuda_limpia_pdd')
-    .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor')
-    .eq('rfc_emisor', rfc)
-    .eq('factura_pagada','NO')
-    .order('fecha',{ascending:true});
-
-  if(error){ alert(error.message); return; }
-
-  facturas = data || [];
-  const tbody = document.getElementById('tbodyFacturas');
-  tbody.innerHTML = '';
-
-  facturas.forEach(f=>{
-    const totalNum = Number(f.total||0);
-
-    tbody.innerHTML += `
-      <tr>
-        <td>
-          <input type="checkbox"
-                 data-id="${f.id}"
-                 data-total="${totalNum}"
-                 onchange="calcularTotales()">
-        </td>
-        <td>${f.fecha || ''}</td>
-        <td>${f.serie || ''} ${f.folio || ''}</td>
-        <td style="text-align:right">${money(totalNum)}</td>
-      </tr>
-    `;
-  });
-
-  calcularTotales();
-}
-
+  // ✅ Ajustes globales (ahora con nota)
   function agregarAjuste(){
-    ajustes.push({concepto:'', monto:0});
+    ajustes.push({concepto:'', monto:0, nota:''});
     renderAjustes();
   }
 
   function renderAjustes(){
     const div = document.getElementById('ajustes');
     div.innerHTML = '';
+
     ajustes.forEach((a,i)=>{
       div.innerHTML += `
         <div class="row" style="margin-bottom:8px">
-          <input placeholder="Concepto" value="${a.concepto}"
-            oninput="ajustes[${i}].concepto=this.value">
-          <input type="number" step="0.01" placeholder="Monto (+/-)" value="${a.monto}"
-            oninput="ajustes[${i}].monto=parseFloat(this.value||0); calcularTotales()">
-          <button type="button" onclick="quitarAjuste(${i})">Quitar</button>
+          <div style="flex:2; min-width:220px">
+            <input placeholder="Concepto" value="${escapeHtml(a.concepto)}"
+              oninput="ajustes[${i}].concepto=this.value">
+          </div>
+
+          <div style="flex:1; min-width:160px">
+            <input type="number" step="0.01" placeholder="Monto (+/-)" value="${Number(a.monto||0)}"
+              oninput="ajustes[${i}].monto=parseFloat(this.value||0); calcularTotales()">
+          </div>
+
+          <div style="flex:2; min-width:240px">
+            <input placeholder="Nota (opcional)" value="${escapeHtml(a.nota||'')}"
+              oninput="ajustes[${i}].nota=this.value">
+          </div>
+
+          <div>
+            <button type="button" class="btn-outline btn-mini" onclick="quitarAjuste(${i})">Quitar</button>
+          </div>
         </div>
       `;
     });
@@ -424,96 +555,234 @@ async function cargarFacturas(){
     calcularTotales();
   }
 
-function calcularTotales(){
-  const seleccionadas = [
-    ...document.querySelectorAll('#tbodyFacturas input[type=checkbox]:checked')
-  ];
+  // ✅ Totales (incluye descuento por factura + ajustes globales)
+  function calcularTotales(){
+    const seleccionadas = [
+      ...document.querySelectorAll('#tbodyFacturas input[type=checkbox]:checked')
+    ];
 
-  let totalFact = 0;
-  seleccionadas.forEach(cb => totalFact += Number(cb.dataset.total||0));
+    let totalFactOriginal = 0;
+    let totalDescFacturas = 0;
+    let totalFactNeto = 0;
 
-  let totalAj = ajustes.reduce((s,a)=> s + Number(a.monto||0), 0);
+    seleccionadas.forEach(cb => {
+      const f = getFacturaById(cb.dataset.id);
+      const base = Number(f?.total || cb.dataset.total || 0);
+      const desc = Number(f?.descuento?.monto || 0);
 
-  document.getElementById('totalFacturas').innerText = money(totalFact);
-  document.getElementById('totalAjustes').innerText = money(totalAj);
+      totalFactOriginal += base;
+      totalDescFacturas += desc;
+      totalFactNeto += (base - desc);
+    });
 
-  const total = totalFact + totalAj;
-  document.getElementById('totalPagar').innerText = money(total);
-  document.getElementById('importePago').value = total.toFixed(2);
+    const totalAj = ajustes.reduce((s,a)=> s + Number(a.monto||0), 0);
 
-  // 🔥 ESTA LÍNEA HACE QUE SE VEA EL DESGLOSE
-  renderCalculoDetalle(seleccionadas, totalFact, totalAj, total);
-}
+    document.getElementById('totalFacturas').innerText = money(totalFactNeto);
+    document.getElementById('totalAjustes').innerText = money(totalAj);
 
-function renderCalculoDetalle(seleccionadas, totalFact, totalAj, totalFinal){
-  const tbody = document.getElementById('tbodyCalculo');
-  if(!tbody) return;
+    const total = totalFactNeto + totalAj;
+    document.getElementById('totalPagar').innerText = money(total);
+    document.getElementById('importePago').value = total.toFixed(2);
 
-  tbody.innerHTML = '';
+    renderCalculoDetalle(seleccionadas, {
+      totalFactOriginal,
+      totalDescFacturas,
+      totalFactNeto,
+      totalAj,
+      totalFinal: total
+    });
+  }
 
-  // FACTURAS
-  seleccionadas.forEach(cb => {
-    const f = facturas.find(x => String(x.id) === String(cb.dataset.id));
-    if(!f) return;
+  function renderCalculoDetalle(seleccionadas, totals){
+    const tbody = document.getElementById('tbodyCalculo');
+    if(!tbody) return;
 
-    tbody.innerHTML += `
-      <tr>
-        <td>${f.fecha || ''}</td>
-        <td style="font-size:12px">${f.uuid_cfdi || ''}</td>
-        <td>${f.razon_social_emisor || ''}</td>
-        <td>${f.serie || ''} ${f.folio || ''}</td>
-        <td class="monto" style="text-align:right">${money(f.total)}</td>
-      </tr>
-    `;
-  });
+    tbody.innerHTML = '';
 
-  // SUBTOTAL
-  tbody.innerHTML += `
-    <tr style="background:#f5f5f5">
-      <td colspan="4"><b>Subtotal facturas</b></td>
-      <td class="monto monto-subtotal" style="text-align:right">
-  ${money(totalFact)}
-</td>
+    // FACTURAS seleccionadas
+    seleccionadas.forEach(cb => {
+      const f = getFacturaById(cb.dataset.id);
+      if(!f) return;
 
-    </tr>
-  `;
+      const base = Number(f.total || 0);
+      const desc = Number(f.descuento?.monto || 0);
+      const nota = (f.descuento?.nota || '').trim();
+      const neto = base - desc;
 
-  // AJUSTES
-  if(totalAj !== 0){
-    ajustes.forEach(a=>{
-      if(!a.concepto || !a.monto) return;
+      const descBlock = desc > 0
+        ? `<div class="muted monto-negativo" style="text-align:right">Desc: -${money(desc)}</div>`
+        : '';
+
+      const notaBlock = nota
+        ? `<div class="muted" style="text-align:right; max-width:320px; margin-left:auto">${escapeHtml(nota)}</div>`
+        : '';
 
       tbody.innerHTML += `
         <tr>
-          <td colspan="3">Ajuste</td>
-          <td>${a.concepto}</td>
-          <td class="monto ${a.monto < 0 ? 'monto-negativo' : ''}" style="text-align:right">
-  ${money(a.monto)}
-</td>
+          <td>${escapeHtml(f.fecha || '')}</td>
+          <td style="font-size:12px">${escapeHtml(f.uuid_cfdi || '')}</td>
+          <td>${escapeHtml(f.razon_social_emisor || '')}</td>
+          <td>${escapeHtml((f.serie || '') + ' ' + (f.folio || ''))}</td>
+          <td class="monto" style="text-align:right">
+            ${money(neto)}
+            ${descBlock}
+            ${notaBlock}
+            <div class="muted" style="text-align:right">Orig: ${money(base)}</div>
+          </td>
+          <td>
+            <button class="btn-outline btn-mini" type="button"
+              onclick="abrirDescuentoFactura('${f.id}')">💸 Descuento</button>
+          </td>
         </tr>
       `;
     });
 
+    // Resumen facturas
     tbody.innerHTML += `
       <tr style="background:#f5f5f5">
-        <td colspan="4"><b>Total ajustes</b></td>
-        <td style="text-align:right"><b>${money(totalAj)}</b></td>
+        <td colspan="4"><b>Subtotal facturas (original)</b></td>
+        <td class="monto monto-subtotal" style="text-align:right">${money(totals.totalFactOriginal)}</td>
+        <td></td>
+      </tr>
+    `;
+
+    if(totals.totalDescFacturas > 0){
+      tbody.innerHTML += `
+        <tr style="background:#f5f5f5">
+          <td colspan="4"><b>Descuentos por factura</b></td>
+          <td class="monto monto-negativo" style="text-align:right">-${money(totals.totalDescFacturas)}</td>
+          <td></td>
+        </tr>
+      `;
+    }
+
+    tbody.innerHTML += `
+      <tr style="background:#f5f5f5">
+        <td colspan="4"><b>Total facturas (neto)</b></td>
+        <td class="monto monto-subtotal" style="text-align:right">${money(totals.totalFactNeto)}</td>
+        <td></td>
+      </tr>
+    `;
+
+    // AJUSTES globales
+    const ajustesValidos = ajustes
+      .filter(a => (a.concepto||'').trim() && Number(a.monto));
+
+    if(ajustesValidos.length){
+      ajustesValidos.forEach(a=>{
+        const nota = (a.nota||'').trim();
+        tbody.innerHTML += `
+          <tr>
+            <td colspan="3">Ajuste</td>
+            <td>
+              ${escapeHtml(a.concepto)}
+              ${nota ? `<div class="muted">${escapeHtml(nota)}</div>` : ''}
+            </td>
+            <td class="monto ${Number(a.monto) < 0 ? 'monto-negativo' : ''}" style="text-align:right">
+              ${money(a.monto)}
+            </td>
+            <td></td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML += `
+        <tr style="background:#f5f5f5">
+          <td colspan="4"><b>Total ajustes</b></td>
+          <td class="monto" style="text-align:right"><b>${money(totals.totalAj)}</b></td>
+          <td></td>
+        </tr>
+      `;
+    }
+
+    // TOTAL FINAL
+    tbody.innerHTML += `
+      <tr style="background:#FFF3E0;font-size:16px">
+        <td colspan="4"><b>Total a pagar</b></td>
+        <td class="monto monto-total" style="text-align:right">${money(totals.totalFinal)}</td>
+        <td></td>
       </tr>
     `;
   }
 
-  // TOTAL FINAL
-  tbody.innerHTML += `
-    <tr style="background:#FFF3E0;font-size:16px">
-      <td colspan="4"><b>Total a pagar</b></td>
-      <td class="monto monto-total" style="text-align:right">
-  ${money(totalFinal)}
-</td>
+  // ✅ MODAL: descuento por factura
+  function abrirDescuentoFactura(id){
+    const f = getFacturaById(id);
+    if(!f) return;
 
-    </tr>
-  `;
-}
+    facturaDescId = String(id);
 
+    const pill = `${(f.serie||'')} ${(f.folio||'')} • ${String(f.uuid_cfdi||'').slice(0,8)}…`;
+    document.getElementById('descFacturaPill').textContent = pill;
+
+    const base = Number(f.total || 0);
+    const descActual = Number(f.descuento?.monto || 0);
+    const notaActual = (f.descuento?.nota || '');
+
+    document.getElementById('descImporteOriginal').value = money(base);
+    document.getElementById('descMonto').value = descActual ? descActual.toFixed(2) : '';
+    document.getElementById('descNota').value = notaActual;
+
+    document.getElementById('descHint').textContent =
+      `Máximo descuento: ${money(base)} (si pones 0 se quita).`;
+
+    document.getElementById('modalDescOverlay').style.display = 'block';
+    setTimeout(()=> document.getElementById('descMonto').focus(), 80);
+  }
+
+  function cerrarDesc(){
+    document.getElementById('modalDescOverlay').style.display = 'none';
+    facturaDescId = null;
+  }
+
+  function quitarDescuentoFactura(){
+    if(!facturaDescId) return;
+    const f = getFacturaById(facturaDescId);
+    if(!f) return;
+
+    f.descuento = null;
+    cerrarDesc();
+    calcularTotales();
+  }
+
+  function aplicarDescuento(){
+    if(!facturaDescId) return;
+
+    const f = getFacturaById(facturaDescId);
+    if(!f) return;
+
+    const base = Number(f.total || 0);
+    const monto = Number(document.getElementById('descMonto').value || 0);
+    const nota = document.getElementById('descNota').value;
+
+    if(monto < 0){
+      alert('El descuento por factura debe ser positivo (se resta automáticamente).');
+      return;
+    }
+    if(monto > base){
+      alert('El descuento no puede ser mayor al importe original.');
+      return;
+    }
+
+    if(monto === 0){
+      f.descuento = null;
+    }else{
+      f.descuento = { monto, nota: String(nota||'') };
+    }
+
+    cerrarDesc();
+    calcularTotales();
+  }
+
+  // ESC para cerrar modal
+  window.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){
+      const open = document.getElementById('modalDescOverlay').style.display === 'block';
+      if(open) cerrarDesc();
+    }
+  });
+
+  // ✅ Guardar pago (descuentos por factura quedan en facturas_info)
   async function guardarPago(){
     const rfc = proveedorSelect.value;
     if(!rfc){ alert('Seleccione proveedor'); return; }
@@ -531,32 +800,50 @@ function renderCalculoDetalle(seleccionadas, totalFact, totalAj, totalFinal){
       return;
     }
 
-    // Totales
-    const totalFact = seleccionadas.reduce((s,cb)=> s + Number(cb.dataset.total||0), 0);
+    // Totales (neto)
+    let totalFactOriginal = 0;
+    let totalDescFacturas = 0;
+    let totalFactNeto = 0;
+
+    seleccionadas.forEach(cb => {
+      const f = getFacturaById(cb.dataset.id);
+      const base = Number(f?.total || cb.dataset.total || 0);
+      const desc = Number(f?.descuento?.monto || 0);
+      totalFactOriginal += base;
+      totalDescFacturas += desc;
+      totalFactNeto += (base - desc);
+    });
+
     const totalAj = ajustes.reduce((s,a)=> s + Number(a.monto||0), 0);
     const importe = Number(document.getElementById('importePago').value||0);
 
-    // JSON de facturas
-const facturasInfo = seleccionadas.map(cb => {
-  const idSel = String(cb.dataset.id);
-  const f = facturas.find(x => String(x.id) === idSel);
+    // JSON de facturas (incluye descuento por factura)
+    const facturasInfo = seleccionadas.map(cb => {
+      const f = getFacturaById(cb.dataset.id);
+      const base = Number(f?.total || 0);
+      const desc = Number(f?.descuento?.monto || 0);
 
-  return {
-    deuda_id: f.id,                 // PK interna
-    uuid_cfdi: f.uuid_cfdi,         // UUID SAT
-    fecha: f.fecha,                 // timestamp
-    proveedor: f.razon_social_emisor,
-    serie: f.serie,
-    folio: f.folio,
-    importe: Number(f.total)
-  };
-});
+      return {
+        deuda_id: f.id,
+        uuid_cfdi: f.uuid_cfdi,
+        fecha: f.fecha,
+        proveedor: f.razon_social_emisor,
+        serie: f.serie,
+        folio: f.folio,
+        importe_original: base,
+        descuento: f.descuento ? { monto: desc, nota: String(f.descuento?.nota || '') } : null,
+        importe_final: base - desc
+      };
+    });
 
-
-    // JSON de ajustes
+    // JSON de ajustes (globales) ahora con nota
     const ajustesInfo = ajustes
       .filter(a => (a.concepto||'').trim() && Number(a.monto))
-      .map(a => ({ concepto: String(a.concepto).trim(), monto: Number(a.monto) }));
+      .map(a => ({
+        concepto: String(a.concepto).trim(),
+        monto: Number(a.monto),
+        nota: String(a.nota || '')
+      }));
 
     btnGuardar.disabled = true;
     msg.innerText = 'Guardando pago...';
@@ -569,7 +856,7 @@ const facturasInfo = seleccionadas.map(cb => {
         proveedor_nombre: proveedorSelect.options[proveedorSelect.selectedIndex].text,
         banco,
         fecha_pago: fechaPago,
-        total_facturas: totalFact,
+        total_facturas: totalFactNeto,   // neto (ya con descuento por factura)
         total_ajustes: totalAj,
         importe_pagado: importe,
         facturas_info: facturasInfo,
@@ -589,19 +876,12 @@ const facturasInfo = seleccionadas.map(cb => {
     msg.innerText = 'Pago guardado. Marcando facturas como pagadas...';
     const ids = facturasInfo.map(f => f.deuda_id);
 
-await sb
-  .from('deuda_limpia_pdd')
-  .update({ factura_pagada: 'SI' })
-  .in('id', ids);
-
-
     const { error: e2 } = await sb
       .from('deuda_limpia_pdd')
       .update({ factura_pagada: 'SI' })
       .in('id', ids);
 
     if(e2){
-      // Pago quedó guardado, pero no se marcaron facturas (te avisamos)
       alert('Pago guardado, pero NO se pudieron marcar las facturas como pagadas:\n\n' + JSON.stringify(e2, null, 2));
       msg.innerText = '⚠ Pago guardado, pero faltó marcar facturas como pagadas.';
       btnGuardar.disabled = false;
@@ -609,20 +889,21 @@ await sb
     }
 
     msg.innerText = '✔ Pago guardado correctamente';
+
+    // Limpieza UI
     ajustes = [];
     renderAjustes();
     document.getElementById('comprobante').value = '';
     document.getElementById('notas').value = '';
-
     btnGuardar.disabled = false;
+
+    // Recargar facturas del proveedor
     cargarFacturas();
   }
 
+  // init
   cargarProveedores();
 </script>
 
 </body>
 </html>
-
-
-
