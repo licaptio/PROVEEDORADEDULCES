@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Notas de Crédito por Periodo – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f8;
+    padding:20px;
+  }
+  h2{ margin-bottom:10px; }
+
+  #estado{
+    margin-bottom:10px;
+    font-weight:bold;
+  }
+
+  table{
+    border-collapse: collapse;
+    width:100%;
+    background:#fff;
+    font-size:14px;
+  }
+  th, td{
+    border:1px solid #ccc;
+    padding:6px 8px;
+    text-align:right;
+    white-space: nowrap;
+  }
+  th{
+    background:#8b0000;
+    color:#fff;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  th:first-child,
+  td:first-child{
+    text-align:left;
+    font-weight:bold;
+    position: sticky;
+    left: 0;
+    background:#f2dede;
+    z-index: 3;
+  }
+</style>
+</head>
+
+<body>
+
+<h2>Notas de Crédito (CFDI E) – Histórico</h2>
+
+<div id="estado">Cargando datos…</div>
+
+<table id="tabla">
+  <thead></thead>
+  <tbody></tbody>
+</table>
+
+<script>
+// ===============================
+// 🔹 CLIENTE SUPABASE
+// ===============================
+const sb = window.supabase.createClient(
+  'https://cvpbtjlupswbyxenugpz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+);
+
+// ===============================
+// 🔹 CARGA PAGINADA
+// ===============================
+async function cargarDatos(){
+  const estado = document.getElementById('estado');
+  let todos = [];
+  let desde = 0;
+  const paso = 1000;
+
+  while (true) {
+    estado.innerText = `Cargando filas ${desde + 1} a ${desde + paso}…`;
+
+    const { data, error } = await sb
+      .from('notas_credito_pdd_v2')
+      .select('id, fecha_emision, monto_total, fecha_cancelacion')
+      .is('fecha_cancelacion', null)   // ❌ excluye NC canceladas
+      .order('id', { ascending: true })
+      .range(desde, desde + paso - 1);
+
+    if (error) {
+      console.error(error);
+      estado.innerText = '❌ Error cargando datos';
+      return;
+    }
+
+    if (!data || data.length === 0) break;
+
+    todos = todos.concat(data);
+    desde += paso;
+  }
+
+  estado.innerText = `Procesando ${todos.length.toLocaleString()} notas…`;
+  construirTabla(todos);
+  estado.innerText = `Listo (${todos.length.toLocaleString()} notas de crédito)`;
+}
+
+// ===============================
+// 🔹 CONSTRUCCIÓN TABLA + TOTAL
+// ===============================
+function construirTabla(rows){
+  const mapa = {};
+  const periodos = new Set();
+
+  rows.forEach(r=>{
+    if(!r.fecha_emision) return;
+    if(r.monto_total == null) return;
+
+    const periodo = String(r.fecha_emision).slice(0,7);
+    periodos.add(periodo);
+
+    if(!mapa[periodo]) mapa[periodo] = 0;
+
+    // Conceptualmente restan (aunque el número venga positivo)
+    mapa[periodo] += Number(r.monto_total);
+  });
+
+  const periodosOrdenados = Array.from(periodos).sort();
+
+  const thead = document.querySelector('#tabla thead');
+  const tbody = document.querySelector('#tabla tbody');
+
+  thead.innerHTML =
+    `<tr>
+      <th>Periodo</th>
+      <th>Total Notas de Crédito</th>
+    </tr>`;
+
+  tbody.innerHTML = '';
+
+  let totalGeneral = 0;
+
+  periodosOrdenados.forEach(p=>{
+    const val = mapa[p] || 0;
+    totalGeneral += val;
+
+    const fila = `
+      <tr>
+        <td>${p}</td>
+        <td>${formato(-val)}</td>
+      </tr>`;
+    tbody.insertAdjacentHTML('beforeend', fila);
+  });
+
+  // 🔹 FILA TOTAL GENERAL
+  const filaTotal = `
+    <tr style="font-weight:bold;background:#f5c6cb;">
+      <td>TOTAL NC</td>
+      <td>${formato(-totalGeneral)}</td>
+    </tr>`;
+  tbody.insertAdjacentHTML('beforeend', filaTotal);
+}
+
+// ===============================
+// 🔹 FORMATO MONEDA
+// ===============================
+function formato(n){
+  return n.toLocaleString('es-MX',{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+// ===============================
+cargarDatos();
+// ===============================
+</script>
+
+</body>
+</html>
