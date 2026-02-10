@@ -171,17 +171,6 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
 
 <body>
 
-<!--
-  ✅ Un solo flujo: el "Detalle del cálculo" contiene TODO:
-  - Facturas + descuento por factura (devolución / ajuste puntual)
-  - Descuento/ajuste global (pronto pago 3% o monto fijo) EN EL MISMO CÁLCULO
-  - Totales finales EN LA MISMA TABLA
-
-  Guarda en pagos_proveedor:
-  - facturas_info (jsonb) -> incluye descuento por factura y netos
-  - ajustes (jsonb) -> aquí guardamos el ajuste global (si aplica)
--->
-
 <h2>💸 Pago a Proveedores</h2>
 
 <div class="card">
@@ -223,7 +212,7 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
   </table>
 
   <div class="muted">
-    💡 Aquí se explica TODO el pago: descuentos por factura (devoluciones) + descuento global (pronto pago) y el total final.
+    💡 Aquí se explica TODO el pago: descuentos por factura (devoluciones) + descuento global (monto directo) y el total final.
   </div>
 </div>
 
@@ -307,13 +296,8 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
   let facturas = []; // {id, uuid_cfdi, serie, folio, fecha, total, razon_social_emisor, descuento:null|{monto,nota}}
   let facturaDescId = null;
 
-  // ✅ Un solo ajuste global (pronto pago / etc.) dentro del MISMO CÁLCULO
-  let ajusteGlobal = {
-    concepto: 'Pronto pago',
-    tipo: 'PORCENTAJE', // PORCENTAJE | MONTO
-    valor: 0,           // si PORCENTAJE => porcentaje; si MONTO => monto
-    nota: ''
-  };
+  // ✅ Descuento global SIMPLE: solo monto + nota
+  let ajusteGlobal = { monto: 0, nota: '' };
 
   const proveedorSelect = document.getElementById('proveedorSelect');
   const msg = document.getElementById('msg');
@@ -358,7 +342,6 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
       .map(l => l.trim())
       .filter(l => l.length > 0);
 
-    // Une valores que vienen en la línea siguiente después de ":" (como bancos suelen pegar)
     const out = [];
     for(let i=0; i<lines.length; i++){
       const cur = lines[i];
@@ -370,13 +353,10 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
         out.push(cur);
       }
     }
-
-    // Evita "saltos dobles"
     return out.join('\n');
   }
 
-  document.getElementById('comprobante').addEventListener('paste', (e)=>{
-    // Espera a que pegue y luego compacta
+  document.getElementById('comprobante').addEventListener('paste', ()=>{
     setTimeout(()=>{
       const ta = document.getElementById('comprobante');
       ta.value = compactarComprobante(ta.value);
@@ -436,11 +416,7 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
       const totalNum = Number(f.total||0);
       tbody.innerHTML += `
         <tr>
-          <td>
-            <input type="checkbox"
-                   data-id="${f.id}"
-                   onchange="recalcularPago()">
-          </td>
+          <td><input type="checkbox" data-id="${f.id}" onchange="recalcularPago()"></td>
           <td>${escapeHtml(f.fecha || '')}</td>
           <td>${escapeHtml((f.serie||'') + ' ' + (f.folio||''))}</td>
           <td style="text-align:right" class="monto">${money(totalNum)}</td>
@@ -472,21 +448,9 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
       subtotalNeto += (base - desc);
     });
 
-    // 2) Ajuste global (sobre subtotal neto)
-    let ajusteGlobalMonto = 0;
-    const tipo = String(ajusteGlobal.tipo || 'PORCENTAJE');
-    const valor = Number(ajusteGlobal.valor || 0);
-
-    if(valor !== 0){
-      if(tipo === 'PORCENTAJE'){
-        // descuento => monto NEGATIVO
-        ajusteGlobalMonto = -(subtotalNeto * (valor/100));
-      } else {
-        // MONTO: el usuario captura "monto del descuento" como POSITIVO (se resta)
-        // si quieres permitir cargos, mete negativo manual; aquí lo respetamos:
-        ajusteGlobalMonto = (valor > 0 ? -Math.abs(valor) : valor);
-      }
-    }
+    // 2) Ajuste global SIMPLE (monto directo)
+    const descGlobal = Number(ajusteGlobal.monto || 0);
+    const ajusteGlobalMonto = descGlobal > 0 ? -Math.abs(descGlobal) : 0;
 
     const totalFinal = subtotalNeto + ajusteGlobalMonto;
 
@@ -561,44 +525,31 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
       </tr>
     `;
 
-    // ✅ Fila editable: descuento/ajuste global DENTRO DEL MISMO CÁLCULO
+    // ✅ Fila editable: DESCUENTO GLOBAL SIMPLE
     tbody.innerHTML += `
       <tr style="background:#fff">
         <td colspan="4">
           <b>Descuento global (opcional)</b>
-          <div class="muted">Ej: 3% pronto pago / bonificación por volumen / redondeo. Se aplica sobre el <b>neto</b>.</div>
+          <div class="muted">Solo captura monto y nota. (Monto positivo = descuento).</div>
 
           <div class="row" style="margin-top:10px">
-            <div style="min-width:220px; flex:2">
-              <input id="gl_concepto" placeholder="Concepto" value="${escapeHtml(ajusteGlobal.concepto||'')}">
+            <div style="min-width:180px">
+              <input id="gl_monto" type="number" step="0.01" placeholder="0.00"
+                value="${descGlobal ? Number(descGlobal).toFixed(2) : ''}"
+                oninput="actualizarGlobal()">
             </div>
 
-            <div style="min-width:200px; flex:1">
-              <select id="gl_tipo">
-                <option value="PORCENTAJE" ${ajusteGlobal.tipo==='PORCENTAJE'?'selected':''}>Porcentaje (%)</option>
-                <option value="MONTO" ${ajusteGlobal.tipo==='MONTO'?'selected':''}>Monto (MXN)</option>
-              </select>
-            </div>
-
-            <div style="min-width:160px; flex:1">
-              <input id="gl_valor" type="number" step="0.01" placeholder="0.00" value="${Number(ajusteGlobal.valor||0)}">
-              <div class="small" id="gl_hint"></div>
-            </div>
-
-            <div style="min-width:260px; flex:2">
-              <input id="gl_nota" placeholder="Nota (opcional)" value="${escapeHtml(ajusteGlobal.nota||'')}">
-            </div>
-
-            <div>
-              <button class="btn-outline btn-mini" type="button" onclick="limpiarGlobal()">Quitar</button>
-              <button class="btn btn-mini" type="button" onclick="aplicarGlobalDesdeUI()">Aplicar</button>
+            <div style="flex:1; min-width:260px">
+              <input id="gl_nota" placeholder="Nota (opcional)"
+                value="${escapeHtml(ajusteGlobal.nota || '')}"
+                oninput="actualizarGlobal()">
             </div>
           </div>
         </td>
 
         <td class="monto ${ajusteGlobalMonto<0?'monto-negativo':''}" style="text-align:right">
-          ${valor!==0 ? money(ajusteGlobalMonto) : money(0)}
-          <div class="muted" style="text-align:right">${valor!==0 ? 'Aplicado al neto' : 'Sin global'}</div>
+          ${descGlobal>0 ? money(ajusteGlobalMonto) : money(0)}
+          <div class="muted" style="text-align:right">${descGlobal>0 ? 'Aplicado al neto' : 'Sin global'}</div>
         </td>
         <td></td>
       </tr>
@@ -613,43 +564,20 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
       </tr>
     `;
 
-    // Actualiza hint global
-    const hint = document.getElementById('gl_hint');
-    if(hint){
-      if(tipo === 'PORCENTAJE'){
-        hint.textContent = 'Ej: 3 = 3%';
-      }else{
-        hint.textContent = 'Ej: 1800 = -$1,800';
-      }
-    }
-
     // Actualiza importe pago (auto)
     const inp = document.getElementById('importePago');
     if(inp) inp.value = totalFinal.toFixed(2);
   }
 
-  function aplicarGlobalDesdeUI(){
-    const c = document.getElementById('gl_concepto')?.value || '';
-    const t = document.getElementById('gl_tipo')?.value || 'PORCENTAJE';
-    const v = Number(document.getElementById('gl_valor')?.value || 0);
+  // ✅ lee inputs del global y recalcula
+  function actualizarGlobal(){
+    const m = Number(document.getElementById('gl_monto')?.value || 0);
     const n = document.getElementById('gl_nota')?.value || '';
-
-    ajusteGlobal = {
-      concepto: String(c||'').trim(),
-      tipo: t,
-      valor: v,
-      nota: String(n||'')
-    };
-
+    ajusteGlobal = { monto: m > 0 ? m : 0, nota: n };
     recalcularPago();
   }
 
-  function limpiarGlobal(){
-    ajusteGlobal = { concepto:'Pronto pago', tipo:'PORCENTAJE', valor:0, nota:'' };
-    recalcularPago();
-  }
-
-  // ✅ Modal ajuste por factura
+  // ✅ Modal ajuste por factura (sin cambios)
   function abrirDescuentoFactura(id){
     const f = getFacturaById(id);
     if(!f) return;
@@ -735,10 +663,6 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
 
     if(!seleccionadas.length){ alert('Seleccione al menos una factura'); return; }
 
-    // Asegura que el ajuste global esté actualizado con lo que ve el usuario
-    // (por si escribió pero no dio "Aplicar")
-    if(document.getElementById('gl_concepto')) aplicarGlobalDesdeUI();
-
     const banco = document.getElementById('banco').value;
     const fechaPago = document.getElementById('fechaPago').value;
     const comprobante = document.getElementById('comprobante').value.trim();
@@ -766,17 +690,9 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
       subtotalNeto += (base - desc);
     });
 
-    let ajusteGlobalMonto = 0;
-    const tipo = String(ajusteGlobal.tipo || 'PORCENTAJE');
-    const valor = Number(ajusteGlobal.valor || 0);
-
-    if(valor !== 0){
-      if(tipo === 'PORCENTAJE'){
-        ajusteGlobalMonto = -(subtotalNeto * (valor/100));
-      } else {
-        ajusteGlobalMonto = (valor > 0 ? -Math.abs(valor) : valor);
-      }
-    }
+    // Global simple
+    const descGlobal = Number(ajusteGlobal.monto || 0);
+    const ajusteGlobalMonto = descGlobal > 0 ? -Math.abs(descGlobal) : 0;
 
     const totalFinalCalc = subtotalNeto + ajusteGlobalMonto;
     const importe = Number(document.getElementById('importePago').value || totalFinalCalc);
@@ -802,12 +718,10 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
 
     // JSON ajustes (global) si aplica
     const ajustesInfo = [];
-    if(valor !== 0){
+    if(descGlobal > 0){
       ajustesInfo.push({
-        concepto: String(ajusteGlobal.concepto || 'Descuento global').trim(),
-        tipo: tipo,
-        valor: valor,
-        monto: Number(ajusteGlobalMonto.toFixed(2)),
+        tipo: 'DESCUENTO_GLOBAL',
+        monto: Number(ajusteGlobalMonto.toFixed(2)), // NEGATIVO
         nota: String(ajusteGlobal.nota || '')
       });
     }
@@ -824,7 +738,7 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
         fecha_pago: fechaPago,
 
         total_facturas: Number(subtotalNeto.toFixed(2)),          // neto (ya con devoluciones)
-        total_ajustes: Number(ajusteGlobalMonto.toFixed(2)),      // global (pronto pago, etc.)
+        total_ajustes: Number(ajusteGlobalMonto.toFixed(2)),      // global (descuento global)
         importe_pagado: Number(importe.toFixed(2)),               // total final (o el que editaste)
 
         facturas_info: facturasInfo,
@@ -862,7 +776,7 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
     // Limpieza UI
     document.getElementById('comprobante').value = '';
     document.getElementById('notas').value = '';
-    limpiarGlobal();
+    ajusteGlobal = { monto: 0, nota: '' };
 
     btnGuardar.disabled = false;
     cargarFacturas();
