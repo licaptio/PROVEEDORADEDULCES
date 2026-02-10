@@ -71,7 +71,23 @@ const sb = window.supabase.createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
 );
 
-
+// ===============================
+// 🔹 HARDCODE SERIES (PROVSOFT)
+// ===============================
+const SERIES = {
+  AM:  'ALLENDE I',
+  SAN: 'ALLENDE II',
+  GM:  'BODEGA 41',
+  LMN: 'MATRIZ',
+  LO:  'OSITO',
+  LP:  'CENTRAL',
+  LV:  'PROVILEON',
+  MM:  'MONTEMORELOS',
+  RVN: 'RIO VERDE',
+  PP:  'NO DEFINIDO',
+  RM1: 'RUTA MOVIL 1',
+  RM2: 'RUTA MOVIL 2'
+};
 // ===============================
 // 🔹 CARGA PAGINADA
 // ===============================
@@ -119,7 +135,11 @@ function construirTabla(rows){
     if(!r.fecha) return;
     if(r.total == null) return;
 
-    const serie = r.serie || '(SIN SERIE)';
+    const codigoSerie = r.serie || 'PP';
+const serie = SERIES[codigoSerie] 
+  ? `${codigoSerie} - ${SERIES[codigoSerie]}`
+  : `${codigoSerie} - (NO DEFINIDA)`;
+
     const periodo = String(r.fecha).slice(0,7);
 
     periodos.add(periodo);
