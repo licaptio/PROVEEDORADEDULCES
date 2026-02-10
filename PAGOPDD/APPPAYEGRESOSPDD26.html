@@ -5,10 +5,7 @@
   <title>Pago a Proveedores – PROVSOFT</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Fuente (opcional, pero se ve PRO) -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -23,24 +20,18 @@
   --border:#e0e0e0;
   --success:#2e7d32;
 }
-
 *{box-sizing:border-box}
-
 body{
   font-family:'Poppins',Arial,sans-serif;
   background:var(--bg);
   color:var(--text);
   padding:24px;
 }
-
-/* Título principal */
 h2{
   margin:0 0 18px;
   font-weight:700;
   color:var(--orange-dark);
 }
-
-/* Cards */
 .card{
   background:var(--card);
   border-radius:16px;
@@ -49,16 +40,12 @@ h2{
   margin-bottom:18px;
   border-top:6px solid var(--orange);
 }
-
-/* Subtítulos */
 h3{
   margin:0 0 12px;
   font-size:16px;
   font-weight:600;
   color:#37474F;
 }
-
-/* Formularios */
 input,select,textarea{
   width:100%;
   padding:10px 12px;
@@ -67,20 +54,16 @@ input,select,textarea{
   font-family:inherit;
   font-size:14px;
 }
-
 input:focus,select:focus,textarea:focus{
   outline:none;
   border-color:var(--orange);
   box-shadow:0 0 0 2px rgba(245,124,0,.15);
 }
-
-/* Tablas */
 table{
   width:100%;
   border-collapse:collapse;
   font-size:14px;
 }
-
 thead th{
   text-align:left;
   padding:10px;
@@ -88,43 +71,18 @@ thead th{
   color:#5d4037;
   font-weight:600;
 }
-
 tbody td{
   padding:10px;
   border-bottom:1px solid var(--border);
   vertical-align:top;
 }
+tbody tr:hover{ background:#fafafa; }
 
-tbody tr:hover{
-  background:#fafafa;
-}
-
-/* Layout filas */
 .row{
   display:flex;
   gap:14px;
   align-items:flex-end;
   flex-wrap:wrap;
-}
-
-/* Totales */
-.total-box{
-  display:flex;
-  justify-content:space-between;
-  padding:10px 0;
-  font-size:15px;
-}
-
-.total-final{
-  margin-top:10px;
-  padding:14px;
-  background:linear-gradient(135deg,#F57C00,#FB8C00);
-  color:#fff;
-  border-radius:12px;
-  font-size:20px;
-  font-weight:700;
-  display:flex;
-  justify-content:space-between;
 }
 
 /* Botones */
@@ -136,32 +94,15 @@ button{
   font-size:14px;
   cursor:pointer;
 }
-
-.btn{
-  background:var(--orange);
-  color:#fff;
-}
-
-.btn:hover{
-  background:var(--orange-dark);
-}
-
+.btn{ background:var(--orange); color:#fff; }
+.btn:hover{ background:var(--orange-dark); }
 .btn-outline{
   background:#fff;
   border:1px solid var(--orange);
   color:var(--orange);
 }
-
-.btn-outline:hover{
-  background:var(--orange-soft);
-}
-
-.btn:disabled{
-  opacity:.6;
-  cursor:not-allowed;
-}
-
-/* Botón mini para tabla */
+.btn-outline:hover{ background:var(--orange-soft); }
+.btn:disabled{ opacity:.6; cursor:not-allowed; }
 .btn-mini{
   padding:8px 10px;
   font-size:12px;
@@ -169,36 +110,16 @@ button{
   white-space:nowrap;
 }
 
-/* Mensajes */
-.muted{
-  color:var(--muted);
-  font-size:12.5px;
-  margin-top:6px;
-}
-
-/* Importes monetarios */
+/* Texto */
+.muted{ color:var(--muted); font-size:12.5px; margin-top:6px; }
 .monto{
   font-weight:600;
   font-variant-numeric: tabular-nums;
   letter-spacing:0.3px;
 }
-
-/* Subtotales */
-.monto-subtotal{
-  font-weight:700;
-  color:#37474F;
-}
-
-/* Ajustes negativos */
-.monto-negativo{
-  color:#C62828;
-}
-
-/* Total final */
-.monto-total{
-  font-size:22px;
-  font-weight:800;
-}
+.monto-subtotal{ font-weight:700; color:#37474F; }
+.monto-negativo{ color:#C62828; }
+.monto-total{ font-size:22px; font-weight:800; }
 
 /* Modal */
 .modal-overlay{
@@ -240,156 +161,142 @@ button{
   justify-content:flex-end;
   margin-top:12px;
 }
-hr.soft{
-  border:none;
-  border-top:1px solid #eee;
-  margin:12px 0;
+hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
+.small{
+  font-size:12px;
+  color:#6b7280;
 }
 </style>
-
 </head>
 
 <body>
 
-  <!--
-    ✅ Este HTML guarda TODO en UNA sola tabla: pagos_proveedor
-    Requiere columnas en pagos_proveedor:
-      - facturas_info (jsonb)  // ahora incluye descuento por factura: {monto, nota}
-      - ajustes (jsonb)        // ahora incluye nota por ajuste: {concepto, monto, nota}
-    (además de las que ya tienes: rfc_emisor, proveedor_nombre, banco, fecha_pago, total_facturas, total_ajustes, importe_pagado, comprobante_raw, notas)
-  -->
+<!--
+  ✅ Un solo flujo: el "Detalle del cálculo" contiene TODO:
+  - Facturas + descuento por factura (devolución / ajuste puntual)
+  - Descuento/ajuste global (pronto pago 3% o monto fijo) EN EL MISMO CÁLCULO
+  - Totales finales EN LA MISMA TABLA
 
-  <h2>💸 Pago a Proveedores</h2>
+  Guarda en pagos_proveedor:
+  - facturas_info (jsonb) -> incluye descuento por factura y netos
+  - ajustes (jsonb) -> aquí guardamos el ajuste global (si aplica)
+-->
 
-  <div class="card">
-    <label>Proveedor</label><br>
-    <select id="proveedorSelect"></select>
-    <div class="muted">Selecciona un proveedor para ver sus facturas pendientes.</div>
+<h2>💸 Pago a Proveedores</h2>
+
+<div class="card">
+  <label>Proveedor</label><br>
+  <select id="proveedorSelect"></select>
+  <div class="muted">Selecciona un proveedor para ver sus facturas pendientes.</div>
+</div>
+
+<div class="card">
+  <h3>Facturas pendientes</h3>
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Fecha</th>
+        <th>Folio</th>
+        <th style="text-align:right">Total</th>
+      </tr>
+    </thead>
+    <tbody id="tbodyFacturas"></tbody>
+  </table>
+  <div class="muted">Marca las facturas que vas a pagar; el detalle y total se calcula abajo.</div>
+</div>
+
+<div class="card">
+  <h3>Detalle del cálculo</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>UUID</th>
+        <th>Proveedor</th>
+        <th>Serie / Folio</th>
+        <th style="text-align:right">Importe</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tbodyCalculo"></tbody>
+  </table>
+
+  <div class="muted">
+    💡 Aquí se explica TODO el pago: descuentos por factura (devoluciones) + descuento global (pronto pago) y el total final.
   </div>
+</div>
 
-  <div class="card">
-    <h3>Facturas pendientes</h3>
-    <table>
-      <thead>
-        <tr>
-          <th></th>
-          <th>Fecha</th>
-          <th>Folio</th>
-          <th style="text-align:right">Total</th>
-        </tr>
-      </thead>
-      <tbody id="tbodyFacturas"></tbody>
-    </table>
-    <div class="muted">Marca las facturas que vas a pagar; el detalle y total se calcula abajo.</div>
-  </div>
-
-  <div class="card">
-    <h3>Detalle del cálculo</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>UUID</th>
-          <th>Proveedor</th>
-          <th>Serie / Folio</th>
-          <th style="text-align:right">Importe</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="tbodyCalculo"></tbody>
-    </table>
-    <div class="muted">💡 Los descuentos por factura se guardan dentro de cada factura (en <b>facturas_info</b>) y se reflejan automáticamente en el total.</div>
-  </div>
-
-  <div class="card">
-    <h3>Ajustes / Descuentos (globales)</h3>
-    <div id="ajustes"></div>
-    <button class="btn" type="button" onclick="agregarAjuste()">+ Agregar ajuste</button>
-    <div class="muted">Ejemplo: “Descuento global por pronto pago”, “Bonificación”, “Redondeo”, etc. (puede ser + o -)</div>
-  </div>
-
-  <div class="card">
-    <div class="total-box">
-      <span>Total facturas (neto)</span>
-      <b id="totalFacturas">$0.00</b>
+<div class="card">
+  <h3>Datos del pago</h3>
+  <div class="row">
+    <div style="min-width:220px">
+      Banco<br>
+      <select id="banco">
+        <option>BBVA</option><option>BANORTE</option><option>BANREGIO</option><option>OTRO</option>
+      </select>
     </div>
-    <div class="total-box">
-      <span>Total ajustes</span>
-      <b id="totalAjustes">$0.00</b>
+    <div style="min-width:220px">
+      Fecha pago<br>
+      <input type="date" id="fechaPago">
     </div>
-
-    <div class="total-final">
-      <span>Total a pagar</span>
-      <span id="totalPagar">$0.00</span>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>Datos del pago</h3>
-    <div class="row">
-      <div style="min-width:220px">
-        Banco<br>
-        <select id="banco">
-          <option>BBVA</option><option>BANORTE</option><option>BANREGIO</option><option>OTRO</option>
-        </select>
-      </div>
-      <div style="min-width:220px">
-        Fecha pago<br>
-        <input type="date" id="fechaPago">
-      </div>
-      <div style="min-width:220px">
-        Importe<br>
-        <input type="number" id="importePago" step="0.01">
-      </div>
-    </div>
-
-    <br>
-    Comprobante bancario (texto crudo)<br>
-    <textarea id="comprobante" rows="6" style="width:100%"></textarea><br><br>
-
-    Notas (generales del pago)<br>
-    <textarea id="notas" rows="4" style="width:100%"></textarea>
-  </div>
-
-  <button id="btnGuardar" class="btn" type="button" onclick="guardarPago()">
-    💾 Registrar pago
-  </button>
-
-  <div id="msg" class="muted" style="margin-top:10px"></div>
-
-  <!-- ✅ MODAL DESCUENTO POR FACTURA -->
-  <div id="modalDescOverlay" class="modal-overlay" onclick="if(event.target.id==='modalDescOverlay') cerrarDesc();">
-    <div class="modal" onclick="event.stopPropagation()">
-      <h3>💸 Descuento a factura</h3>
-      <div id="descFacturaPill" class="pill">—</div>
-
-      <div class="grid">
-        <div>
-          <label>Importe original</label>
-          <input id="descImporteOriginal" type="text" disabled>
-        </div>
-        <div>
-          <label>Descuento</label>
-          <input id="descMonto" type="number" step="0.01" placeholder="0.00">
-        </div>
-      </div>
-
-      <div style="margin-top:10px">
-        <label>Nota del descuento</label>
-        <textarea id="descNota" rows="3" placeholder="Ej: Bonificación por merma / ajuste acordado / etc."></textarea>
-      </div>
-
-      <div class="muted" id="descHint"></div>
-
-      <hr class="soft">
-
-      <div class="actions">
-        <button class="btn-outline btn-mini" type="button" onclick="quitarDescuentoFactura()">Quitar descuento</button>
-        <button class="btn-outline btn-mini" type="button" onclick="cerrarDesc()">Cancelar</button>
-        <button class="btn btn-mini" type="button" onclick="aplicarDescuento()">Aplicar</button>
-      </div>
+    <div style="min-width:220px">
+      Importe<br>
+      <input type="number" id="importePago" step="0.01">
+      <div class="small">Se calcula automático, pero puedes ajustarlo si lo necesitas.</div>
     </div>
   </div>
+
+  <br>
+  Comprobante bancario (texto crudo)<br>
+  <textarea id="comprobante" rows="6" style="width:100%" placeholder="Pega aquí el comprobante..."></textarea>
+  <div class="muted">Al pegar, se compacta automáticamente (quita saltos inútiles).</div>
+  <br>
+
+  Notas (generales del pago)<br>
+  <textarea id="notas" rows="4" style="width:100%"></textarea>
+</div>
+
+<button id="btnGuardar" class="btn" type="button" onclick="guardarPago()">
+  💾 Registrar pago
+</button>
+
+<div id="msg" class="muted" style="margin-top:10px"></div>
+
+<!-- ✅ MODAL DESCUENTO POR FACTURA -->
+<div id="modalDescOverlay" class="modal-overlay" onclick="if(event.target.id==='modalDescOverlay') cerrarDesc();">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3>💸 Ajuste por factura (devolución / bonificación puntual)</h3>
+    <div id="descFacturaPill" class="pill">—</div>
+
+    <div class="grid">
+      <div>
+        <label>Importe original</label>
+        <input id="descImporteOriginal" type="text" disabled>
+      </div>
+      <div>
+        <label>Monto del ajuste</label>
+        <input id="descMonto" type="number" step="0.01" placeholder="0.00">
+        <div class="small">Usa número POSITIVO (se resta del total de esa factura).</div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px">
+      <label>Nota del ajuste</label>
+      <textarea id="descNota" rows="3" placeholder="Ej: Devolución de mercancía / merma / ajuste acordado"></textarea>
+    </div>
+
+    <div class="muted" id="descHint"></div>
+
+    <hr class="soft">
+
+    <div class="actions">
+      <button class="btn-outline btn-mini" type="button" onclick="quitarDescuentoFactura()">Quitar ajuste</button>
+      <button class="btn-outline btn-mini" type="button" onclick="cerrarDesc()">Cancelar</button>
+      <button class="btn btn-mini" type="button" onclick="aplicarDescuento()">Aplicar</button>
+    </div>
+  </div>
+</div>
 
 <script>
   const sb = window.supabase.createClient(
@@ -397,11 +304,16 @@ hr.soft{
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
   );
 
-  let facturas = [];
-  let ajustes = [];
-
-  // Control modal descuento por factura
+  let facturas = []; // {id, uuid_cfdi, serie, folio, fecha, total, razon_social_emisor, descuento:null|{monto,nota}}
   let facturaDescId = null;
+
+  // ✅ Un solo ajuste global (pronto pago / etc.) dentro del MISMO CÁLCULO
+  let ajusteGlobal = {
+    concepto: 'Pronto pago',
+    tipo: 'PORCENTAJE', // PORCENTAJE | MONTO
+    valor: 0,           // si PORCENTAJE => porcentaje; si MONTO => monto
+    nota: ''
+  };
 
   const proveedorSelect = document.getElementById('proveedorSelect');
   const msg = document.getElementById('msg');
@@ -438,6 +350,39 @@ hr.soft{
     return facturas.find(x => String(x.id) === String(id));
   }
 
+  // ✅ Compactador de comprobante al pegar (quita saltos inútiles)
+  function compactarComprobante(raw){
+    const lines = String(raw || '')
+      .replace(/\r/g, '')
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+
+    // Une valores que vienen en la línea siguiente después de ":" (como bancos suelen pegar)
+    const out = [];
+    for(let i=0; i<lines.length; i++){
+      const cur = lines[i];
+      const next = lines[i+1];
+      if (cur.endsWith(':') && next && !next.includes(':')){
+        out.push(cur + ' ' + next);
+        i++;
+      } else {
+        out.push(cur);
+      }
+    }
+
+    // Evita "saltos dobles"
+    return out.join('\n');
+  }
+
+  document.getElementById('comprobante').addEventListener('paste', (e)=>{
+    // Espera a que pegue y luego compacta
+    setTimeout(()=>{
+      const ta = document.getElementById('comprobante');
+      ta.value = compactarComprobante(ta.value);
+    }, 0);
+  });
+
   async function cargarProveedores(){
     const { data, error } = await sb
       .from('deuda_limpia_pdd')
@@ -446,7 +391,6 @@ hr.soft{
 
     if (error) { alert(error.message); return; }
 
-    // Dedup por RFC y ordenado por nombre
     const map = new Map();
     (data||[]).forEach(r=>{
       const rfc = r.rfc_emisor;
@@ -467,11 +411,10 @@ hr.soft{
   async function cargarFacturas(){
     const rfc = proveedorSelect.value;
 
-    // Reset UI
     document.getElementById('tbodyFacturas').innerHTML = '';
     document.getElementById('tbodyCalculo').innerHTML = '';
     facturas = [];
-    calcularTotales();
+    recalcularPago();
 
     if(!rfc) return;
 
@@ -484,11 +427,7 @@ hr.soft{
 
     if(error){ alert(error.message); return; }
 
-    // Guardamos facturas y dejamos listo el espacio de descuento sin tocar DB
-    facturas = (data || []).map(f => ({
-      ...f,
-      descuento: null // { monto, nota } (solo en memoria; al guardar se mete en facturas_info)
-    }));
+    facturas = (data || []).map(f => ({ ...f, descuento: null }));
 
     const tbody = document.getElementById('tbodyFacturas');
     tbody.innerHTML = '';
@@ -500,8 +439,7 @@ hr.soft{
           <td>
             <input type="checkbox"
                    data-id="${f.id}"
-                   data-total="${totalNum}"
-                   onchange="calcularTotales()">
+                   onchange="recalcularPago()">
           </td>
           <td>${escapeHtml(f.fecha || '')}</td>
           <td>${escapeHtml((f.serie||'') + ' ' + (f.folio||''))}</td>
@@ -510,108 +448,65 @@ hr.soft{
       `;
     });
 
-    calcularTotales();
+    recalcularPago();
   }
 
-  // ✅ Ajustes globales (ahora con nota)
-  function agregarAjuste(){
-    ajustes.push({concepto:'', monto:0, nota:''});
-    renderAjustes();
-  }
-
-  function renderAjustes(){
-    const div = document.getElementById('ajustes');
-    div.innerHTML = '';
-
-    ajustes.forEach((a,i)=>{
-      div.innerHTML += `
-        <div class="row" style="margin-bottom:8px">
-          <div style="flex:2; min-width:220px">
-            <input placeholder="Concepto" value="${escapeHtml(a.concepto)}"
-              oninput="ajustes[${i}].concepto=this.value">
-          </div>
-
-          <div style="flex:1; min-width:160px">
-            <input type="number" step="0.01" placeholder="Monto (+/-)" value="${Number(a.monto||0)}"
-              oninput="ajustes[${i}].monto=parseFloat(this.value||0); calcularTotales()">
-          </div>
-
-          <div style="flex:2; min-width:240px">
-            <input placeholder="Nota (opcional)" value="${escapeHtml(a.nota||'')}"
-              oninput="ajustes[${i}].nota=this.value">
-          </div>
-
-          <div>
-            <button type="button" class="btn-outline btn-mini" onclick="quitarAjuste(${i})">Quitar</button>
-          </div>
-        </div>
-      `;
-    });
-  }
-
-  function quitarAjuste(i){
-    ajustes.splice(i,1);
-    renderAjustes();
-    calcularTotales();
-  }
-
-  // ✅ Totales (incluye descuento por factura + ajustes globales)
-  function calcularTotales(){
+  // ✅ FUNCIÓN ÚNICA: calcula y pinta el detalle completo
+  function recalcularPago(){
     const seleccionadas = [
       ...document.querySelectorAll('#tbodyFacturas input[type=checkbox]:checked')
-    ];
+    ].map(cb => String(cb.dataset.id));
 
-    let totalFactOriginal = 0;
-    let totalDescFacturas = 0;
-    let totalFactNeto = 0;
+    // 1) Totales de facturas (original, desc individual, neto)
+    let subtotalOriginal = 0;
+    let descIndividualTotal = 0;
+    let subtotalNeto = 0;
 
-    seleccionadas.forEach(cb => {
-      const f = getFacturaById(cb.dataset.id);
-      const base = Number(f?.total || cb.dataset.total || 0);
-      const desc = Number(f?.descuento?.monto || 0);
-
-      totalFactOriginal += base;
-      totalDescFacturas += desc;
-      totalFactNeto += (base - desc);
+    seleccionadas.forEach(id=>{
+      const f = getFacturaById(id);
+      if(!f) return;
+      const base = Number(f.total||0);
+      const desc = Number(f.descuento?.monto || 0);
+      subtotalOriginal += base;
+      descIndividualTotal += desc;
+      subtotalNeto += (base - desc);
     });
 
-    const totalAj = ajustes.reduce((s,a)=> s + Number(a.monto||0), 0);
+    // 2) Ajuste global (sobre subtotal neto)
+    let ajusteGlobalMonto = 0;
+    const tipo = String(ajusteGlobal.tipo || 'PORCENTAJE');
+    const valor = Number(ajusteGlobal.valor || 0);
 
-    document.getElementById('totalFacturas').innerText = money(totalFactNeto);
-    document.getElementById('totalAjustes').innerText = money(totalAj);
+    if(valor !== 0){
+      if(tipo === 'PORCENTAJE'){
+        // descuento => monto NEGATIVO
+        ajusteGlobalMonto = -(subtotalNeto * (valor/100));
+      } else {
+        // MONTO: el usuario captura "monto del descuento" como POSITIVO (se resta)
+        // si quieres permitir cargos, mete negativo manual; aquí lo respetamos:
+        ajusteGlobalMonto = (valor > 0 ? -Math.abs(valor) : valor);
+      }
+    }
 
-    const total = totalFactNeto + totalAj;
-    document.getElementById('totalPagar').innerText = money(total);
-    document.getElementById('importePago').value = total.toFixed(2);
+    const totalFinal = subtotalNeto + ajusteGlobalMonto;
 
-    renderCalculoDetalle(seleccionadas, {
-      totalFactOriginal,
-      totalDescFacturas,
-      totalFactNeto,
-      totalAj,
-      totalFinal: total
-    });
-  }
-
-  function renderCalculoDetalle(seleccionadas, totals){
+    // 3) Pintar tabla del cálculo completa
     const tbody = document.getElementById('tbodyCalculo');
-    if(!tbody) return;
-
     tbody.innerHTML = '';
 
-    // FACTURAS seleccionadas
-    seleccionadas.forEach(cb => {
-      const f = getFacturaById(cb.dataset.id);
+    // Filas facturas
+    seleccionadas.forEach(id=>{
+      const f = getFacturaById(id);
       if(!f) return;
 
-      const base = Number(f.total || 0);
+      const base = Number(f.total||0);
       const desc = Number(f.descuento?.monto || 0);
-      const nota = (f.descuento?.nota || '').trim();
+      const nota = String(f.descuento?.nota || '').trim();
       const neto = base - desc;
 
       const descBlock = desc > 0
-        ? `<div class="muted monto-negativo" style="text-align:right">Desc: -${money(desc)}</div>`
-        : '';
+        ? `<div class="muted monto-negativo" style="text-align:right">Ajuste: -${money(desc)}</div>`
+        : `<div class="muted" style="text-align:right">Ajuste: ${money(0)}</div>`;
 
       const notaBlock = nota
         ? `<div class="muted" style="text-align:right; max-width:320px; margin-left:auto">${escapeHtml(nota)}</div>`
@@ -631,81 +526,130 @@ hr.soft{
           </td>
           <td>
             <button class="btn-outline btn-mini" type="button"
-              onclick="abrirDescuentoFactura('${f.id}')">💸 Descuento</button>
+              onclick="abrirDescuentoFactura('${f.id}')">💸 Ajuste</button>
           </td>
         </tr>
       `;
     });
 
-    // Resumen facturas
+    // Resumen: subtotal original
     tbody.innerHTML += `
       <tr style="background:#f5f5f5">
         <td colspan="4"><b>Subtotal facturas (original)</b></td>
-        <td class="monto monto-subtotal" style="text-align:right">${money(totals.totalFactOriginal)}</td>
+        <td class="monto monto-subtotal" style="text-align:right">${money(subtotalOriginal)}</td>
         <td></td>
       </tr>
     `;
 
-    if(totals.totalDescFacturas > 0){
-      tbody.innerHTML += `
-        <tr style="background:#f5f5f5">
-          <td colspan="4"><b>Descuentos por factura</b></td>
-          <td class="monto monto-negativo" style="text-align:right">-${money(totals.totalDescFacturas)}</td>
-          <td></td>
-        </tr>
-      `;
-    }
+    // Resumen: descuento individual total
+    tbody.innerHTML += `
+      <tr style="background:#f5f5f5">
+        <td colspan="4"><b>Ajustes por factura (total)</b></td>
+        <td class="monto ${descIndividualTotal>0?'monto-negativo':''}" style="text-align:right">
+          ${descIndividualTotal>0 ? '-' + money(descIndividualTotal) : money(0)}
+        </td>
+        <td></td>
+      </tr>
+    `;
 
+    // Resumen: subtotal neto
     tbody.innerHTML += `
       <tr style="background:#f5f5f5">
         <td colspan="4"><b>Total facturas (neto)</b></td>
-        <td class="monto monto-subtotal" style="text-align:right">${money(totals.totalFactNeto)}</td>
+        <td class="monto monto-subtotal" style="text-align:right">${money(subtotalNeto)}</td>
         <td></td>
       </tr>
     `;
 
-    // AJUSTES globales
-    const ajustesValidos = ajustes
-      .filter(a => (a.concepto||'').trim() && Number(a.monto));
+    // ✅ Fila editable: descuento/ajuste global DENTRO DEL MISMO CÁLCULO
+    tbody.innerHTML += `
+      <tr style="background:#fff">
+        <td colspan="4">
+          <b>Descuento global (opcional)</b>
+          <div class="muted">Ej: 3% pronto pago / bonificación por volumen / redondeo. Se aplica sobre el <b>neto</b>.</div>
 
-    if(ajustesValidos.length){
-      ajustesValidos.forEach(a=>{
-        const nota = (a.nota||'').trim();
-        tbody.innerHTML += `
-          <tr>
-            <td colspan="3">Ajuste</td>
-            <td>
-              ${escapeHtml(a.concepto)}
-              ${nota ? `<div class="muted">${escapeHtml(nota)}</div>` : ''}
-            </td>
-            <td class="monto ${Number(a.monto) < 0 ? 'monto-negativo' : ''}" style="text-align:right">
-              ${money(a.monto)}
-            </td>
-            <td></td>
-          </tr>
-        `;
-      });
+          <div class="row" style="margin-top:10px">
+            <div style="min-width:220px; flex:2">
+              <input id="gl_concepto" placeholder="Concepto" value="${escapeHtml(ajusteGlobal.concepto||'')}">
+            </div>
 
-      tbody.innerHTML += `
-        <tr style="background:#f5f5f5">
-          <td colspan="4"><b>Total ajustes</b></td>
-          <td class="monto" style="text-align:right"><b>${money(totals.totalAj)}</b></td>
-          <td></td>
-        </tr>
-      `;
-    }
+            <div style="min-width:200px; flex:1">
+              <select id="gl_tipo">
+                <option value="PORCENTAJE" ${ajusteGlobal.tipo==='PORCENTAJE'?'selected':''}>Porcentaje (%)</option>
+                <option value="MONTO" ${ajusteGlobal.tipo==='MONTO'?'selected':''}>Monto (MXN)</option>
+              </select>
+            </div>
 
-    // TOTAL FINAL
+            <div style="min-width:160px; flex:1">
+              <input id="gl_valor" type="number" step="0.01" placeholder="0.00" value="${Number(ajusteGlobal.valor||0)}">
+              <div class="small" id="gl_hint"></div>
+            </div>
+
+            <div style="min-width:260px; flex:2">
+              <input id="gl_nota" placeholder="Nota (opcional)" value="${escapeHtml(ajusteGlobal.nota||'')}">
+            </div>
+
+            <div>
+              <button class="btn-outline btn-mini" type="button" onclick="limpiarGlobal()">Quitar</button>
+              <button class="btn btn-mini" type="button" onclick="aplicarGlobalDesdeUI()">Aplicar</button>
+            </div>
+          </div>
+        </td>
+
+        <td class="monto ${ajusteGlobalMonto<0?'monto-negativo':''}" style="text-align:right">
+          ${valor!==0 ? money(ajusteGlobalMonto) : money(0)}
+          <div class="muted" style="text-align:right">${valor!==0 ? 'Aplicado al neto' : 'Sin global'}</div>
+        </td>
+        <td></td>
+      </tr>
+    `;
+
+    // Total final
     tbody.innerHTML += `
       <tr style="background:#FFF3E0;font-size:16px">
         <td colspan="4"><b>Total a pagar</b></td>
-        <td class="monto monto-total" style="text-align:right">${money(totals.totalFinal)}</td>
+        <td class="monto monto-total" style="text-align:right">${money(totalFinal)}</td>
         <td></td>
       </tr>
     `;
+
+    // Actualiza hint global
+    const hint = document.getElementById('gl_hint');
+    if(hint){
+      if(tipo === 'PORCENTAJE'){
+        hint.textContent = 'Ej: 3 = 3%';
+      }else{
+        hint.textContent = 'Ej: 1800 = -$1,800';
+      }
+    }
+
+    // Actualiza importe pago (auto)
+    const inp = document.getElementById('importePago');
+    if(inp) inp.value = totalFinal.toFixed(2);
   }
 
-  // ✅ MODAL: descuento por factura
+  function aplicarGlobalDesdeUI(){
+    const c = document.getElementById('gl_concepto')?.value || '';
+    const t = document.getElementById('gl_tipo')?.value || 'PORCENTAJE';
+    const v = Number(document.getElementById('gl_valor')?.value || 0);
+    const n = document.getElementById('gl_nota')?.value || '';
+
+    ajusteGlobal = {
+      concepto: String(c||'').trim(),
+      tipo: t,
+      valor: v,
+      nota: String(n||'')
+    };
+
+    recalcularPago();
+  }
+
+  function limpiarGlobal(){
+    ajusteGlobal = { concepto:'Pronto pago', tipo:'PORCENTAJE', valor:0, nota:'' };
+    recalcularPago();
+  }
+
+  // ✅ Modal ajuste por factura
   function abrirDescuentoFactura(id){
     const f = getFacturaById(id);
     if(!f) return;
@@ -724,7 +668,7 @@ hr.soft{
     document.getElementById('descNota').value = notaActual;
 
     document.getElementById('descHint').textContent =
-      `Máximo descuento: ${money(base)} (si pones 0 se quita).`;
+      `Máximo ajuste: ${money(base)} (si pones 0 se quita).`;
 
     document.getElementById('modalDescOverlay').style.display = 'block';
     setTimeout(()=> document.getElementById('descMonto').focus(), 80);
@@ -742,7 +686,7 @@ hr.soft{
 
     f.descuento = null;
     cerrarDesc();
-    calcularTotales();
+    recalcularPago();
   }
 
   function aplicarDescuento(){
@@ -756,11 +700,11 @@ hr.soft{
     const nota = document.getElementById('descNota').value;
 
     if(monto < 0){
-      alert('El descuento por factura debe ser positivo (se resta automáticamente).');
+      alert('El ajuste por factura debe ser positivo (se resta automáticamente).');
       return;
     }
     if(monto > base){
-      alert('El descuento no puede ser mayor al importe original.');
+      alert('El ajuste no puede ser mayor al importe original.');
       return;
     }
 
@@ -771,10 +715,9 @@ hr.soft{
     }
 
     cerrarDesc();
-    calcularTotales();
+    recalcularPago();
   }
 
-  // ESC para cerrar modal
   window.addEventListener('keydown', (e)=>{
     if(e.key === 'Escape'){
       const open = document.getElementById('modalDescOverlay').style.display === 'block';
@@ -782,13 +725,19 @@ hr.soft{
     }
   });
 
-  // ✅ Guardar pago (descuentos por factura quedan en facturas_info)
   async function guardarPago(){
     const rfc = proveedorSelect.value;
     if(!rfc){ alert('Seleccione proveedor'); return; }
 
-    const seleccionadas = [...document.querySelectorAll('#tbodyFacturas input[type=checkbox]:checked')];
+    const seleccionadas = [
+      ...document.querySelectorAll('#tbodyFacturas input[type=checkbox]:checked')
+    ].map(cb => String(cb.dataset.id));
+
     if(!seleccionadas.length){ alert('Seleccione al menos una factura'); return; }
+
+    // Asegura que el ajuste global esté actualizado con lo que ve el usuario
+    // (por si escribió pero no dio "Aplicar")
+    if(document.getElementById('gl_concepto')) aplicarGlobalDesdeUI();
 
     const banco = document.getElementById('banco').value;
     const fechaPago = document.getElementById('fechaPago').value;
@@ -800,26 +749,41 @@ hr.soft{
       return;
     }
 
-    // Totales (neto)
-    let totalFactOriginal = 0;
-    let totalDescFacturas = 0;
-    let totalFactNeto = 0;
+    // Recalcula una vez (para traer los números exactos)
+    recalcularPago();
 
-    seleccionadas.forEach(cb => {
-      const f = getFacturaById(cb.dataset.id);
-      const base = Number(f?.total || cb.dataset.total || 0);
+    // Vuelve a calcular aquí para guardar
+    let subtotalOriginal = 0;
+    let descIndividualTotal = 0;
+    let subtotalNeto = 0;
+
+    seleccionadas.forEach(id=>{
+      const f = getFacturaById(id);
+      const base = Number(f?.total || 0);
       const desc = Number(f?.descuento?.monto || 0);
-      totalFactOriginal += base;
-      totalDescFacturas += desc;
-      totalFactNeto += (base - desc);
+      subtotalOriginal += base;
+      descIndividualTotal += desc;
+      subtotalNeto += (base - desc);
     });
 
-    const totalAj = ajustes.reduce((s,a)=> s + Number(a.monto||0), 0);
-    const importe = Number(document.getElementById('importePago').value||0);
+    let ajusteGlobalMonto = 0;
+    const tipo = String(ajusteGlobal.tipo || 'PORCENTAJE');
+    const valor = Number(ajusteGlobal.valor || 0);
 
-    // JSON de facturas (incluye descuento por factura)
-    const facturasInfo = seleccionadas.map(cb => {
-      const f = getFacturaById(cb.dataset.id);
+    if(valor !== 0){
+      if(tipo === 'PORCENTAJE'){
+        ajusteGlobalMonto = -(subtotalNeto * (valor/100));
+      } else {
+        ajusteGlobalMonto = (valor > 0 ? -Math.abs(valor) : valor);
+      }
+    }
+
+    const totalFinalCalc = subtotalNeto + ajusteGlobalMonto;
+    const importe = Number(document.getElementById('importePago').value || totalFinalCalc);
+
+    // JSON facturas_info (incluye ajuste por factura y netos)
+    const facturasInfo = seleccionadas.map(id => {
+      const f = getFacturaById(id);
       const base = Number(f?.total || 0);
       const desc = Number(f?.descuento?.monto || 0);
 
@@ -836,19 +800,21 @@ hr.soft{
       };
     });
 
-    // JSON de ajustes (globales) ahora con nota
-    const ajustesInfo = ajustes
-      .filter(a => (a.concepto||'').trim() && Number(a.monto))
-      .map(a => ({
-        concepto: String(a.concepto).trim(),
-        monto: Number(a.monto),
-        nota: String(a.nota || '')
-      }));
+    // JSON ajustes (global) si aplica
+    const ajustesInfo = [];
+    if(valor !== 0){
+      ajustesInfo.push({
+        concepto: String(ajusteGlobal.concepto || 'Descuento global').trim(),
+        tipo: tipo,
+        valor: valor,
+        monto: Number(ajusteGlobalMonto.toFixed(2)),
+        nota: String(ajusteGlobal.nota || '')
+      });
+    }
 
     btnGuardar.disabled = true;
     msg.innerText = 'Guardando pago...';
 
-    // 1) Insert pago completo (UNA sola tabla)
     const { error: e1 } = await sb
       .from('pagos_proveedor')
       .insert({
@@ -856,11 +822,14 @@ hr.soft{
         proveedor_nombre: proveedorSelect.options[proveedorSelect.selectedIndex].text,
         banco,
         fecha_pago: fechaPago,
-        total_facturas: totalFactNeto,   // neto (ya con descuento por factura)
-        total_ajustes: totalAj,
-        importe_pagado: importe,
+
+        total_facturas: Number(subtotalNeto.toFixed(2)),          // neto (ya con devoluciones)
+        total_ajustes: Number(ajusteGlobalMonto.toFixed(2)),      // global (pronto pago, etc.)
+        importe_pagado: Number(importe.toFixed(2)),               // total final (o el que editaste)
+
         facturas_info: facturasInfo,
         ajustes: ajustesInfo,
+
         comprobante_raw: comprobante,
         notas
       });
@@ -872,8 +841,8 @@ hr.soft{
       return;
     }
 
-    // 2) Marcar facturas como pagadas (en deuda_limpia_pdd)
     msg.innerText = 'Pago guardado. Marcando facturas como pagadas...';
+
     const ids = facturasInfo.map(f => f.deuda_id);
 
     const { error: e2 } = await sb
@@ -891,13 +860,11 @@ hr.soft{
     msg.innerText = '✔ Pago guardado correctamente';
 
     // Limpieza UI
-    ajustes = [];
-    renderAjustes();
     document.getElementById('comprobante').value = '';
     document.getElementById('notas').value = '';
-    btnGuardar.disabled = false;
+    limpiarGlobal();
 
-    // Recargar facturas del proveedor
+    btnGuardar.disabled = false;
     cargarFacturas();
   }
 
