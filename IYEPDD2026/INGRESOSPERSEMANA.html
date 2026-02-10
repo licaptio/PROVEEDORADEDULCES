@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Ingresos Semanales (Domingo a Sábado) – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f8;
+    padding:20px;
+    margin:0;
+  }
+  h2{ margin:0 0 10px 0; }
+
+  .bar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin:10px 0 12px 0;
+  }
+  select, button{
+    padding:8px 10px;
+    font-size:14px;
+    border-radius:8px;
+    border:1px solid #cbd5e1;
+    background:#fff;
+  }
+  button{
+    background:#0c6cbd;
+    color:#fff;
+    border:none;
+    cursor:pointer;
+    padding:9px 14px;
+  }
+  button:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+  }
+
+  #estado{
+    margin:8px 0 12px 0;
+    font-weight:bold;
+  }
+  #detalle{
+    margin:0 0 12px 0;
+    color:#334155;
+    font-size:13px;
+  }
+
+  .wrap{
+    background:#fff;
+    border-radius:12px;
+    border:1px solid #e5e7eb;
+    overflow:auto;
+    box-shadow:0 8px 20px rgba(0,0,0,.08);
+  }
+
+  table{
+    border-collapse: collapse;
+    width: max-content;
+    min-width: 100%;
+    background:#fff;
+    font-size:14px;
+  }
+  th, td{
+    border:1px solid #d1d5db;
+    padding:6px 10px;
+    text-align:right;
+    white-space: nowrap;
+  }
+  th{
+    background:#0c6cbd;
+    color:#fff;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  th:first-child,
+  td:first-child{
+    text-align:left;
+    font-weight:bold;
+    position: sticky;
+    left: 0;
+    background:#e9eef5;
+    z-index: 3;
+  }
+
+  .total-row td{
+    font-weight:bold;
+    background:#dfe9f7;
+  }
+  .muted{
+    color:#64748b;
+  }
+</style>
+</head>
+
+<body>
+
+<h2>Ingresos Semanales por Sucursal (Lunes → Domingo)</h2>
+
+<div class="bar">
+  <label>Año:
+    <select id="anio"></select>
+  </label>
+
+  <label>Mes:
+    <select id="mes"></select>
+  </label>
+
+  <button id="btnCargar">Cargar</button>
+</div>
+
+<div id="estado">Listo.</div>
+<div id="detalle" class="muted"></div>
+
+<div class="wrap">
+  <table id="tabla">
+    <thead></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+/* ===============================
+   🔹 SUPABASE (igual que tu app)
+   ⚠️ El anon key es público, pero asegúrate de tener RLS bien puesta.
+================================= */
+const SUPABASE_URL = 'https://cvpbtjlupswbyxenugpz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ===============================
+   🔹 SERIES (PROVSOFT)
+================================= */
+const SERIES = {
+  AM:  'ALLENDE I',
+  SAN: 'ALLENDE II',
+  GM:  'BODEGA 41',
+  LMN: 'MATRIZ',
+  LO:  'OSITO',
+  LP:  'CENTRAL',
+  LV:  'PROVILEON',
+  MM:  'MONTEMORELOS',
+  RVN: 'RIO VERDE',
+  PP:  'NO DEFINIDO',
+  RM1: 'RUTA MOVIL 1',
+  RM2: 'RUTA MOVIL 2'
+};
+
+const MESES_ABR = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+const MESES_FULL = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+/* ===============================
+   🔹 UI INIT
+================================= */
+const selAnio = document.getElementById('anio');
+const selMes  = document.getElementById('mes');
+const btn     = document.getElementById('btnCargar');
+const estado  = document.getElementById('estado');
+const detalle = document.getElementById('detalle');
+
+(function init(){
+  const hoy = new Date();
+  const anioActual = hoy.getFullYear();
+  const mesActual = hoy.getMonth() + 1;
+
+  // años (actual -3 a actual +1)
+  for(let a = anioActual - 3; a <= anioActual + 1; a++){
+    const op = document.createElement('option');
+    op.value = String(a);
+    op.textContent = String(a);
+    if(a === anioActual) op.selected = true;
+    selAnio.appendChild(op);
+  }
+
+  // meses 1-12
+  for(let m=1; m<=12; m++){
+    const op = document.createElement('option');
+    op.value = String(m);
+    op.textContent = `${String(m).padStart(2,'0')} - ${MESES_FULL[m-1]}`;
+    if(m === mesActual) op.selected = true;
+    selMes.appendChild(op);
+  }
+
+  btn.addEventListener('click', cargar);
+  selAnio.addEventListener('change', cargar);
+  selMes.addEventListener('change', cargar);
+
+  cargar();
+})();
+
+/* ===============================
+   🔹 FECHAS (LOCAL, sin UTC shift)
+================================= */
+function ymdLocal(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function dd2(n){ return String(n).padStart(2,'0'); }
+
+function inicioSemanaLunes(fecha){
+  const d = new Date(fecha);
+  const day = d.getDay(); // 0=domingo, 1=lunes
+  const diff = day === 0 ? -6 : 1 - day; // mover a lunes
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+
+function etiquetaSemana(ini){
+  const fin = new Date(ini);
+  fin.setDate(fin.getDate() + 6);
+
+  const iniTxt = `${dd2(ini.getDate())}-${MESES_ABR[ini.getMonth()]}`;
+
+  // si cambia de mes, el final va en nombre completo (como tu ejemplo)
+  const finTxt = (fin.getMonth() !== ini.getMonth())
+    ? `${dd2(fin.getDate())} ${MESES_FULL[fin.getMonth()]}`
+    : `${dd2(fin.getDate())}-${MESES_ABR[fin.getMonth()]}`;
+
+  return `${iniTxt} A ${finTxt}`;
+}
+
+function semanasDelMes(anio, mes){
+  // mes: 1-12
+  const inicioMes = new Date(anio, mes-1, 1);
+  const finMes = new Date(anio, mes, 0);
+
+const ini = new Date(inicioMes);
+const day = ini.getDay();
+const diff = day === 0 ? -6 : 1 - day;
+ini.setDate(ini.getDate() + diff);
+ini.setHours(0,0,0,0);
+
+
+  const semanas = [];
+  let cursor = new Date(ini);
+
+  while(cursor <= finMes){
+    const sIni = new Date(cursor);
+    const sFin = new Date(cursor);
+    sFin.setDate(sFin.getDate() + 6);
+    sFin.setHours(23,59,59,999);
+
+    semanas.push({
+      inicio: sIni,
+      fin: sFin,
+      etiqueta: etiquetaSemana(sIni),
+      key: ymdLocal(sIni) // orden estable
+    });
+
+    cursor.setDate(cursor.getDate() + 7);
+  }
+
+  return semanas;
+}
+
+/* ===============================
+   🔹 MONEDA
+================================= */
+function formato(n){
+  return Number(n).toLocaleString('es-MX',{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+/* ===============================
+   🔹 CARGA SUPABASE (solo rango)
+================================= */
+async function cargar(){
+  const anio = Number(selAnio.value);
+  const mes = Number(selMes.value);
+
+  const semanas = semanasDelMes(anio, mes);
+
+  // Rango real a consultar: desde inicio de la 1ra semana hasta inicio de día siguiente al fin de última semana
+  const rangoInicio = new Date(semanas[0].inicio);
+  rangoInicio.setHours(0,0,0,0);
+
+  const rangoFinExclusivo = new Date(semanas[semanas.length-1].fin);
+  rangoFinExclusivo.setHours(0,0,0,0);
+  rangoFinExclusivo.setDate(rangoFinExclusivo.getDate() + 1); // exclusivo
+
+  const inicioStr = `${ymdLocal(rangoInicio)}T00:00:00`;
+  const finStrEx  = `${ymdLocal(rangoFinExclusivo)}T00:00:00`;
+
+  detalle.textContent =
+    `Mes seleccionado: ${MESES_FULL[mes-1]} ${anio} | Rango consultado: ${ymdLocal(rangoInicio)} a ${ymdLocal(new Date(rangoFinExclusivo.getTime()-1))}`;
+
+  btn.disabled = true;
+  estado.textContent = 'Cargando datos…';
+
+  // paginado
+  let todos = [];
+  let desde = 0;
+  const paso = 1000;
+
+  try{
+    while(true){
+      estado.textContent = `Cargando filas ${desde + 1} a ${desde + paso}…`;
+
+      const { data, error } = await sb
+        .from('ingresos_pdd')
+        .select('id, serie, fecha, total')
+        .eq('cancelado', false)
+        .gte('fecha', inicioStr)
+        .lt('fecha', finStrEx)
+        .order('id', { ascending: true })
+        .range(desde, desde + paso - 1);
+
+      if(error) throw error;
+      if(!data || data.length === 0) break;
+
+      todos = todos.concat(data);
+      desde += paso;
+    }
+
+    estado.textContent = `Procesando ${todos.length.toLocaleString()} registros…`;
+    construirTabla(todos, semanas);
+    estado.textContent = `Listo (${todos.length.toLocaleString()} registros)`;
+
+  }catch(err){
+    console.error(err);
+    estado.textContent = '❌ Error cargando datos (ver consola)';
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ===============================
+   🔹 TABLA: Sucursal x Semana + Total
+================================= */
+function construirTabla(rows, semanas){
+  // Mapa: sucursalLabel -> weekKey(ymd inicio) -> total
+  const mapa = {};
+  const semanaPorKey = {};
+  semanas.forEach(s => semanaPorKey[s.key] = s);
+
+  // lista estable de series (incluye todas las definidas)
+  const seriesLabels = Object.keys(SERIES).map(code => `${code} - ${SERIES[code]}`);
+
+  // también agrega series desconocidas que lleguen en datos
+  const desconocidas = new Set();
+
+  // precalcular inicios de semana por cada fecha: weekKey = ymdLocal(inicioSemanaDomingo)
+  rows.forEach(r=>{
+    if(!r.fecha || r.total == null) return;
+
+    const codigo = r.serie || 'PP';
+    const label = SERIES[codigo] ? `${codigo} - ${SERIES[codigo]}` : `${codigo} - (NO DEFINIDA)`;
+    if(!SERIES[codigo]) desconocidas.add(label);
+
+    const ini = inicioSemanaLunes(r.fecha);
+    const key = ymdLocal(ini);
+
+    // solo si esa semana está en las semanas del mes seleccionado
+    if(!semanaPorKey[key]) return;
+
+    if(!mapa[label]) mapa[label] = {};
+    if(!mapa[label][key]) mapa[label][key] = 0;
+
+    mapa[label][key] += Number(r.total);
+  });
+
+  const todasSeries = seriesLabels.concat(Array.from(desconocidas)).sort();
+
+  // HEADER
+  const thead = document.querySelector('#tabla thead');
+  const tbody = document.querySelector('#tabla tbody');
+
+  thead.innerHTML =
+    `<tr><th>serie</th>` +
+    semanas.map(s => `<th>${s.etiqueta}</th>`).join('') +
+    `</tr>`;
+
+  tbody.innerHTML = '';
+
+  // totales por semana
+  const totalesSemana = {};
+  semanas.forEach(s => totalesSemana[s.key] = 0);
+
+  // filas por sucursal (incluye ceros)
+  todasSeries.forEach(label=>{
+    let fila = `<tr><td>${label}</td>`;
+
+    semanas.forEach(s=>{
+      const val = (mapa[label] && mapa[label][s.key]) ? mapa[label][s.key] : 0;
+      totalesSemana[s.key] += val;
+      fila += `<td>${val ? formato(val) : ''}</td>`;
+    });
+
+    fila += `</tr>`;
+    tbody.insertAdjacentHTML('beforeend', fila);
+  });
+
+  // fila total ingresos
+  let totalGeneral = 0;
+  let filaTotal = `<tr class="total-row"><td>TOTAL INGRESOS</td>`;
+  semanas.forEach(s=>{
+    const v = totalesSemana[s.key] || 0;
+    totalGeneral += v;
+    filaTotal += `<td>${formato(v)}</td>`;
+  });
+  filaTotal += `</tr>`;
+  tbody.insertAdjacentHTML('beforeend', filaTotal);
+}
+
+</script>
+
+</body>
+</html>
