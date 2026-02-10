@@ -534,15 +534,19 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
 
           <div class="row" style="margin-top:10px">
             <div style="min-width:180px">
-              <input id="gl_monto" type="number" step="0.01" placeholder="0.00"
-                value="${descGlobal ? Number(descGlobal).toFixed(2) : ''}"
-                oninput="actualizarGlobal()">
+<input id="gl_monto" type="number" step="0.01" placeholder="0.00"
+  value="${descGlobal ? Number(descGlobal).toFixed(2) : ''}"
+  onchange="actualizarGlobal()"
+  onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}"
+>
             </div>
 
             <div style="flex:1; min-width:260px">
-              <input id="gl_nota" placeholder="Nota (opcional)"
-                value="${escapeHtml(ajusteGlobal.nota || '')}"
-                oninput="actualizarGlobal()">
+<input id="gl_nota" placeholder="Nota (opcional)"
+  value="${escapeHtml(ajusteGlobal.nota || '')}"
+  onchange="actualizarGlobal()"
+  onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}"
+>
             </div>
           </div>
         </td>
@@ -570,12 +574,19 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
   }
 
   // ✅ lee inputs del global y recalcula
-  function actualizarGlobal(){
-    const m = Number(document.getElementById('gl_monto')?.value || 0);
-    const n = document.getElementById('gl_nota')?.value || '';
-    ajusteGlobal = { monto: m > 0 ? m : 0, nota: n };
-    recalcularPago();
-  }
+function actualizarGlobal(){
+  const val = document.getElementById('gl_monto')?.value ?? '';
+  const m = val === '' ? 0 : Number(val);
+  const n = document.getElementById('gl_nota')?.value || '';
+
+  ajusteGlobal = {
+    monto: (isFinite(m) && m > 0) ? m : 0,
+    nota: n
+  };
+
+  recalcularPago();
+}
+
 
   // ✅ Modal ajuste por factura (sin cambios)
   function abrirDescuentoFactura(id){
@@ -788,3 +799,4 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
 
 </body>
 </html>
+
