@@ -68,11 +68,12 @@ h3{ margin:0 0 10px; color:var(--verde); }
 table{
   width:100%;
   border-collapse:collapse;
-  font-size:14px;
+  font-size:13px;
 }
 th,td{
   padding:10px;
   border-bottom:1px solid #ddd;
+  vertical-align:top;
 }
 th{
   background:#f9fafb;
@@ -93,6 +94,8 @@ pre{
   border-radius:10px;
   font-size:12px;
   overflow:auto;
+  white-space:pre-wrap;
+  word-break:break-word;
 }
 
 .footer{
@@ -216,6 +219,9 @@ hr{
   margin-top:6px;
 }
 
+.neg{ color:#b91c1c; font-weight:700; }
+.note{ font-size:11px; color:#6b7280; margin-top:4px; }
+
 /* 🖨️ MODO IMPRESIÓN */
 @media print{
   body{ background:#fff; padding:0; }
@@ -267,7 +273,9 @@ hr{
         <th>Fecha</th>
         <th>Serie / Folio</th>
         <th>UUID CFDI</th>
-        <th>Importe</th>
+        <th style="text-align:right">Importe Original</th>
+        <th style="text-align:right">Descuento</th>
+        <th style="text-align:right">Importe Final</th>
       </tr>
     </thead>
     <tbody id="facturas"></tbody>
@@ -277,7 +285,9 @@ hr{
 <div class="card">
   <h3>Resumen</h3>
   <div class="grid">
-    <div><div class="label">Total Facturas</div><div class="value" id="totalFacturas"></div></div>
+    <div><div class="label">Total Facturas (original)</div><div class="value" id="totalFacturasOriginal"></div></div>
+    <div><div class="label">Descuentos por factura</div><div class="value" id="totalDescFacturas"></div></div>
+    <div><div class="label">Total Facturas (neto)</div><div class="value" id="totalFacturas"></div></div>
     <div><div class="label">Ajustes</div><div class="value" id="totalAjustes"></div></div>
     <div><div class="label">Importe Pagado</div><div class="value total" id="importe"></div></div>
   </div>
@@ -308,7 +318,9 @@ hr{
     <hr>
 
     <div class="grid">
-      <div><div class="label">Total Facturas</div><div class="value" id="img_totalFacturas">—</div></div>
+      <div><div class="label">Facturas (original)</div><div class="value" id="img_totalFacturasOriginal">—</div></div>
+      <div><div class="label">Descuentos factura</div><div class="value" id="img_totalDescFacturas">—</div></div>
+      <div><div class="label">Facturas (neto)</div><div class="value" id="img_totalFacturas">—</div></div>
       <div><div class="label">Ajustes</div><div class="value" id="img_totalAjustes">—</div></div>
       <div><div class="label">Facturas Incluidas</div><div class="value" id="img_numFacturas">—</div></div>
     </div>
@@ -327,7 +339,7 @@ hr{
             <tr>
               <th>Serie/Folio</th>
               <th>UUID</th>
-              <th style="text-align:right">Importe</th>
+              <th style="text-align:right">Final</th>
             </tr>
           </thead>
           <tbody id="img_facturas"></tbody>
@@ -386,6 +398,18 @@ function shortUuid(u){
   return s.slice(0, 8) + '…' + s.slice(-4);
 }
 
+// ✅ Soporta jsonb real O string con JSON adentro (como te regresó en tu ejemplo)
+function parseMaybeJson(v, fallback){
+  if(Array.isArray(v)) return v;
+  if(v && typeof v === 'object') return v;
+  if(typeof v === 'string'){
+    const s = v.trim();
+    if(!s) return fallback;
+    try{ return JSON.parse(s); }catch(e){ return fallback; }
+  }
+  return fallback;
+}
+
 function recortarComprobante(raw, maxLineas = 14){
   const lines = (raw || '')
     .split(/\r?\n/)
@@ -395,6 +419,31 @@ function recortarComprobante(raw, maxLineas = 14){
   const shown = lines.slice(0, maxLineas).join('\n');
   const extra = lines.length > maxLineas ? `… y ${lines.length - maxLineas} líneas más` : '';
   return { shown, extra, total: lines.length };
+}
+
+// Unifica campos (compatibilidad con pagos viejos y nuevos)
+function getImportesFactura(f){
+  const orig = Number(
+    f.importe_original ?? f.importe ?? f.total ?? 0
+  );
+
+  // descuento puede venir como objeto {monto,nota} o no venir
+  const desc = Number(
+    f?.descuento?.monto ?? 0
+  );
+
+  // neto (prioriza importe_final si existe)
+  let neto = Number(
+    f.importe_final ?? (orig - desc)
+  );
+
+  // redondeo suave
+  neto = Number(neto.toFixed(2));
+
+  // si viene un pago viejo con f.importe solamente, haz coherente
+  const descFinal = Number((orig - neto).toFixed(2)) > 0 ? Number((orig - neto).toFixed(2)) : desc;
+
+  return { orig, desc: descFinal, neto };
 }
 
 async function cargarPago(){
@@ -414,6 +463,25 @@ async function cargarPago(){
     return;
   }
 
+  // ✅ Parse robusto
+  const factList = parseMaybeJson(data.facturas_info, []);
+  const ajustesList = parseMaybeJson(data.ajustes, []);
+
+  // ✅ Calcula totales desde facturas (para que SIEMPRE salga bien)
+  let sumOrig = 0;
+  let sumDesc = 0;
+  let sumNeto = 0;
+
+  factList.forEach(f=>{
+    const { orig, desc, neto } = getImportesFactura(f);
+    sumOrig += orig;
+    sumDesc += desc;
+    sumNeto += neto;
+  });
+
+  // Ajustes globales (si tu tabla guarda total_ajustes ya calculado, lo respetamos, pero también sumamos por seguridad)
+  const sumAj = ajustesList.reduce((s,a)=> s + Number(a?.monto || 0), 0);
+
   // ===== VISOR NORMAL =====
   document.getElementById('pagoId').innerText = data.id ?? '—';
   document.getElementById('proveedor').innerText = data.proveedor_nombre ?? '—';
@@ -421,23 +489,37 @@ async function cargarPago(){
   document.getElementById('banco').innerText = data.banco ?? '—';
   document.getElementById('fecha').innerText = fechaMx(data.fecha_pago);
 
-  document.getElementById('totalFacturas').innerText = mxn(data.total_facturas);
-  document.getElementById('totalAjustes').innerText = mxn(data.total_ajustes);
-  document.getElementById('importe').innerText = mxn(data.importe_pagado);
+  document.getElementById('totalFacturasOriginal').innerText = mxn(sumOrig);
+  document.getElementById('totalDescFacturas').innerText = sumDesc > 0 ? ('-' + mxn(sumDesc)) : mxn(0);
+  document.getElementById('totalFacturas').innerText = mxn(sumNeto);
 
+  // Usa total_ajustes si existe; si no, sumAj
+  const totalAjustesShown = (data.total_ajustes != null) ? Number(data.total_ajustes) : sumAj;
+  document.getElementById('totalAjustes').innerText = mxn(totalAjustesShown);
+
+  document.getElementById('importe').innerText = mxn(data.importe_pagado);
   document.getElementById('comprobante').innerText = data.comprobante_raw || '';
   document.getElementById('notas').innerText = data.notas || '';
 
-  // tabla facturas normal
+  // tabla facturas normal (con descuento)
   const tbody = document.getElementById('facturas');
   tbody.innerHTML = '';
-  (data.facturas_info || []).forEach(f=>{
+
+  factList.forEach(f=>{
+    const { orig, desc, neto } = getImportesFactura(f);
+    const nota = (f?.descuento?.nota || '').trim();
+
     tbody.innerHTML += `
       <tr>
         <td>${fechaMx(f.fecha)}</td>
         <td>${(f.serie || '')} ${(f.folio || '')}</td>
         <td style="font-family:monospace;font-size:12px">${f.uuid_cfdi || '—'}</td>
-        <td>${mxn(f.importe)}</td>
+        <td style="text-align:right;font-weight:700">${mxn(orig)}</td>
+        <td style="text-align:right" class="${desc>0 ? 'neg' : ''}">
+          ${desc>0 ? ('-' + mxn(desc)) : mxn(0)}
+          ${nota ? `<div class="note">${nota}</div>` : ''}
+        </td>
+        <td style="text-align:right;font-weight:800">${mxn(neto)}</td>
       </tr>
     `;
   });
@@ -449,17 +531,20 @@ async function cargarPago(){
   document.getElementById('img_rfc').innerText = data.rfc_emisor ?? '—';
   document.getElementById('img_banco').innerText = data.banco ?? '—';
   document.getElementById('img_importe').innerText = mxn(data.importe_pagado);
-  document.getElementById('img_totalFacturas').innerText = mxn(data.total_facturas);
-  document.getElementById('img_totalAjustes').innerText = mxn(data.total_ajustes);
-  document.getElementById('img_numFacturas').innerText = (data.facturas_info || []).length;
+
+  document.getElementById('img_totalFacturasOriginal').innerText = mxn(sumOrig);
+  document.getElementById('img_totalDescFacturas').innerText = sumDesc > 0 ? ('-' + mxn(sumDesc)) : mxn(0);
+  document.getElementById('img_totalFacturas').innerText = mxn(sumNeto);
+
+  document.getElementById('img_totalAjustes').innerText = mxn(totalAjustesShown);
+  document.getElementById('img_numFacturas').innerText = factList.length;
 
   // comprobante en imagen
   const { shown, extra } = recortarComprobante(data.comprobante_raw, 14);
   document.getElementById('img_comprobante').innerText = shown || '—';
   document.getElementById('img_comprobante_extra').innerText = extra || '';
 
-  // facturas en imagen
-  const factList = (data.facturas_info || []);
+  // facturas en imagen (muestra neto final + marca descuento si aplica)
   const tbodyImg = document.getElementById('img_facturas');
   tbodyImg.innerHTML = '';
 
@@ -469,11 +554,16 @@ async function cargarPago(){
     const folio = (f.folio || '').trim();
     const sf = `${serie}${serie && folio ? ' ' : ''}${folio}`.trim() || '—';
 
+    const { desc, neto } = getImportesFactura(f);
+
     tbodyImg.innerHTML += `
       <tr>
-        <td>${sf}</td>
+        <td>
+          ${sf}
+          ${desc>0 ? `<div class="mutedline">Desc: -${mxn(desc)}</div>` : ''}
+        </td>
         <td class="uuid">${shortUuid(f.uuid_cfdi)}</td>
-        <td style="text-align:right;font-weight:700">${mxn(f.importe)}</td>
+        <td style="text-align:right;font-weight:800">${mxn(neto)}</td>
       </tr>
     `;
   });
