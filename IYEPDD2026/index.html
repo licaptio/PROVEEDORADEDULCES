@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PROVSOFT · Menú Principal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --naranja:#ff8c00;
+  --naranja-osc:#e67600;
+  --fondo:#fff4e6;
+  --texto:#2b2b2b;
+  --sombra:0 12px 30px rgba(0,0,0,.18);
+  --radio:18px;
+}
+
+body{
+  margin:0;
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(135deg,#ff9a1f,#ff6f00);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.panel{
+  background:#fff;
+  width:100%;
+  max-width:900px;
+  padding:30px;
+  border-radius:22px;
+  box-shadow:var(--sombra);
+}
+
+.header{
+  text-align:center;
+  margin-bottom:25px;
+}
+
+.header h1{
+  margin:0;
+  font-size:28px;
+  color:var(--naranja-osc);
+}
+
+.header h2{
+  margin:5px 0 0;
+  font-size:14px;
+  font-weight:400;
+  color:#777;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:20px;
+}
+
+.card{
+  background:linear-gradient(160deg,#fff,#fff7ef);
+  border-radius:var(--radio);
+  padding:22px;
+  box-shadow:0 8px 18px rgba(0,0,0,.12);
+  text-decoration:none;
+  color:var(--texto);
+  transition:all .25s ease;
+  border:1px solid #ffd8b0;
+}
+
+.card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 16px 35px rgba(0,0,0,.25);
+  background:linear-gradient(160deg,var(--naranja),var(--naranja-osc));
+  color:#fff;
+}
+
+.icon{
+  font-size:34px;
+  margin-bottom:10px;
+}
+
+.card h3{
+  margin:0 0 6px;
+  font-size:18px;
+  font-weight:600;
+}
+
+.card p{
+  margin:0;
+  font-size:13px;
+  opacity:.85;
+}
+
+.footer{
+  text-align:center;
+  font-size:12px;
+  color:#999;
+  margin-top:25px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+
+  <div class="header">
+    <h1>PROVSOFT</h1>
+    <h2>INGRESOS · PROVEEDORA DE DULCES</h2>
+  </div>
+
+  <div class="cards">
+
+    <a href="./CargaIngresoPDD.html" class="card">
+      <div class="icon">📥</div>
+      <h3>Carga de Ingresos</h3>
+      <p>Subida y validación de ingresos PDD</p>
+    </a>
+
+    <a href="./ventaspdd.html" class="card">
+      <div class="icon">📊</div>
+      <h3>Ventas Estadísticas</h3>
+      <p>Gráficas y análisis de ventas</p>
+    </a>
+
+    <a href="./INGREPRIS.html" class="card">
+      <div class="icon">🧾</div>
+      <h3>Facturación 2026</h3>
+      <p>Control de ingresos y facturación</p>
+    </a>
+
+  </div>
+
+  <div class="footer">
+    PROVSOFT · Sistema interno<br>
+    Proveedora de Dulces y Desechables
+  </div>
+
+</div>
+
+</body>
+</html>
