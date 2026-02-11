@@ -76,29 +76,6 @@ td{
   border-bottom:1px dotted #999;
 }
 
-.col-cant{ width: 14%; text-align:right; padding-right:6px; }
-.col-cod { width: 24%; }
-.col-desc{ width: 40%; }
-.col-precio{ width: 22%; text-align:right; font-weight:900; }
-
-/* FIRMAS (pantalla) */
-.sigWrap{
-  margin-top: 45px;
-  font-size: var(--font);
-}
-.sigBox{
-  border-top: 2px solid #000;
-  margin-top: 55px;
-  padding-top: 14px;
-}
-.sigImg{
-  display:block;
-  width: 100%;
-  max-height: 200px;
-  object-fit: contain;
-  margin-top: 12px;
-}
-
 /* BOTONES */
 .btns{
   width: var(--paper);
@@ -118,7 +95,8 @@ button{
 .close{ background:#ddd; color:#111; }
 
 /* ===============================
-   🖨️ IMPRESIÓN GENERIC / EPSON
+   🖨️ IMPRESIÓN: MODO TEXTO REAL
+   (Generic / Text Only)
 =============================== */
 @media print {
 
@@ -137,11 +115,15 @@ button{
   }
 
   .ticket{
-    width: 40ch;          /* 🔑 CLAVE PARA GENERIC */
+    width: 40ch;     /* ancho fijo en caracteres */
     margin: 0;
     padding: 0;
     box-shadow:none;
-    transform:none;       /* ❌ fuera scale */
+  }
+
+  /* en Generic: fuera tablas y estilos "bonitos" */
+  table, thead, tbody, tr, td, th{
+    display:none !important;
   }
 
   .h1, .h2{
@@ -149,30 +131,29 @@ button{
     letter-spacing: 0;
   }
 
-  table{
-    font-size: 12px;
-  }
-
-  th, td{
-    padding: 2px 0;
-    border: none;
-  }
-
   .hr{
     border-top: 1px dashed #000;
     margin: 6px 0;
   }
 
-  /* ❌ firmas NO se imprimen en Generic */
-  .sigWrap,
-  .sigBox,
-  .sigImg{
-    display:none !important;
+  /* el ticket en texto SÍ se imprime */
+  #detalleTexto{
+    display:block !important;
+    white-space: pre;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.25;
+    margin: 0;
   }
 
   .btns{
     display:none !important;
   }
+}
+
+/* por defecto (pantalla): el pre oculto */
+#detalleTexto{
+  display:none;
 }
 </style>
 
@@ -195,8 +176,26 @@ const qs = (n) => new URLSearchParams(location.search).get(n);
 
 function fmtFecha(iso){
   const d = new Date(iso);
-  return d.toLocaleString("es-MX",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
+  return d.toLocaleString("es-MX",{
+    year:"numeric",month:"2-digit",day:"2-digit",
+    hour:"2-digit",minute:"2-digit"
+  });
 }
+
+// helpers para ticket texto
+const W = 40; // ancho en caracteres (debe empatar con 40ch)
+const line = (ch='-') => ch.repeat(W) + "\n";
+const center = (s) => {
+  s = String(s ?? "");
+  if (s.length >= W) return s.slice(0, W) + "\n";
+  const left = Math.floor((W - s.length)/2);
+  return " ".repeat(left) + s + "\n";
+};
+const cut = (s, n) => String(s ?? "").replace(/\s+/g,' ').trim().slice(0, n);
+const money = (n) => {
+  const v = Number(n ?? 0);
+  return "$" + v.toFixed(2);
+};
 
 async function cargar(){
   const id = qs("id");
@@ -206,34 +205,69 @@ async function cargar(){
   const snap = await getDoc(ref);
   const data = snap.data();
 
+  // ====== HTML "bonito" (pantalla) ======
   document.getElementById("folio").textContent = id;
   document.getElementById("rutaId").textContent = ruta;
-  document.getElementById("vendedorId").textContent = data.vendedorId;
-  document.getElementById("vendedorNombre").textContent = data.vendedorNombre;
+  document.getElementById("vendedorId").textContent = data.vendedorId ?? "";
+  document.getElementById("vendedorNombre").textContent = data.vendedorNombre ?? "";
   document.getElementById("fecha").textContent = fmtFecha(data.fecha);
-// ===============================
-// FIRMAS TEXTO (GENERIC / TEXTO)
-// ===============================
-document.getElementById("entregaNombreTxt").textContent =
-  data?.firmas?.entrega?.nombre || "—";
 
-document.getElementById("recibeNombreTxt").textContent =
-  data?.firmas?.recibe?.nombre || "—";
+  document.getElementById("entregaNombreTxt").textContent =
+    data?.firmas?.entrega?.nombre || "—";
+  document.getElementById("recibeNombreTxt").textContent =
+    data?.firmas?.recibe?.nombre || "—";
 
   const tbody = document.getElementById("items");
   tbody.innerHTML = "";
-
-  data.items.forEach(it=>{
+  (data.items || []).forEach(it=>{
     const precio = Number(it.precioUnitario ?? it.precio ?? 0);
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td class="right">${it.cantidad}</td>
-      <td>${it.codigo}</td>
-      <td>${it.concepto}</td>
-      <td class="right">$${precio.toFixed(2)}</td>
+      <td class="right">${it.cantidad ?? ""}</td>
+      <td>${it.codigo ?? ""}</td>
+      <td>${it.concepto ?? ""}</td>
+      <td class="right">${money(precio)}</td>
     `;
     tbody.appendChild(tr);
   });
+
+  // ====== TEXTO PARA GENERIC / Text Only ======
+  let txt = "";
+  txt += center("PROVSOFT");
+  txt += center("TRASPASO ENTRE ALMACENES");
+  txt += line("-");
+
+  txt += `Folio: ${id}\n`;
+  txt += `Ruta : ${ruta}\n`;
+  txt += `VendID: ${cut(data.vendedorId ?? "", 32)}\n`;
+  txt += `Vende : ${cut(data.vendedorNombre ?? "", 32)}\n`;
+  txt += `Fecha : ${fmtFecha(data.fecha)}\n`;
+  txt += line("-");
+
+  txt += center("DETALLE");
+  txt += "Cant Codigo      Producto           P.U.\n";
+  txt += line("-");
+
+  (data.items || []).forEach(it=>{
+    const cant = String(it.cantidad ?? "").padStart(4);
+    const cod  = cut(it.codigo ?? "", 10).padEnd(10);
+    const prod = cut(it.concepto ?? "", 18).padEnd(18);
+    const pu   = money(it.precioUnitario ?? it.precio ?? 0).padStart(8);
+    txt += `${cant} ${cod} ${prod} ${pu}\n`;
+
+    // si quieres segunda línea para completar nombre largo:
+    const resto = String(it.concepto ?? "").replace(/\s+/g,' ').trim().slice(18);
+    if (resto) txt += `     ${"".padEnd(10)} ${cut(resto, 18)}\n`;
+  });
+
+  txt += line("-");
+  txt += `ENTREGA: ${cut(data?.firmas?.entrega?.nombre || "—", 30)}\n`;
+  txt += `RECIBE : ${cut(data?.firmas?.recibe?.nombre || "—", 30)}\n`;
+  txt += "FIRMA INGRESADA EN LA BASE DE DATOS\n";
+  txt += line("-");
+  txt += center("FIN DEL TICKET");
+
+  document.getElementById("detalleTexto").textContent = txt;
 }
 
 window.addEventListener("DOMContentLoaded",()=>{
@@ -247,6 +281,7 @@ window.addEventListener("DOMContentLoaded",()=>{
 <body>
 
 <div class="ticket">
+  <!-- ===== Vista Bonita (pantalla / drivers buenos) ===== -->
   <div class="center h1">PROVSOFT</div>
   <div class="center h2">TRASPASO ENTRE ALMACENES</div>
 
@@ -273,29 +308,26 @@ window.addEventListener("DOMContentLoaded",()=>{
     <tbody id="items"></tbody>
   </table>
 
-<div class="hr"></div>
+  <div class="hr"></div>
 
-<!-- ===== FIRMAS TEXTO (PARA GENERIC) ===== -->
-<div class="kv">
-  <b>ENTREGA:</b> <span id="entregaNombreTxt"></span>
-</div>
-<div class="kv">
-  <b>RECIBE:</b> <span id="recibeNombreTxt"></span>
-</div>
+  <div class="kv"><b>ENTREGA:</b> <span id="entregaNombreTxt"></span></div>
+  <div class="kv"><b>RECIBE:</b> <span id="recibeNombreTxt"></span></div>
 
-<div class="center muted" style="margin-top:10px;">
-  FIRMA INGRESADA EN LA BASE DE DATOS
-</div>
+  <div class="center muted" style="margin-top:10px;">
+    FIRMA INGRESADA EN LA BASE DE DATOS
+  </div>
 
-<div class="hr"></div>
+  <div class="hr"></div>
 
-<div class="center muted">
-  — FIN DEL TICKET —
-</div>
+  <div class="center muted">— FIN DEL TICKET —</div>
 
-<div class="btns">
-  <button class="print" id="btnPrint">IMPRIMIR</button>
-  <button class="close" id="btnClose">CERRAR</button>
+  <!-- ===== TEXTO PARA GENERIC (solo imprime) ===== -->
+  <pre id="detalleTexto"></pre>
+
+  <div class="btns">
+    <button class="print" id="btnPrint">IMPRIMIR</button>
+    <button class="close" id="btnClose">CERRAR</button>
+  </div>
 </div>
 
 </body>
