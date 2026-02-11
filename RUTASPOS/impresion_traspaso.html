@@ -54,7 +54,6 @@ body{
   font-size: var(--font);
   line-height: 1.6;
   margin: 8px 0;
-  word-break: break-word;
 }
 .kv b{ font-weight:900; }
 
@@ -62,11 +61,9 @@ table{
   width:100%;
   border-collapse:collapse;
   font-size: 16px;
-  line-height:1.6;
 }
 th, td{
-  padding: 8px 0;
-  vertical-align:top;
+  padding: 6px 0;
 }
 th{
   font-weight:900;
@@ -95,14 +92,13 @@ button{
 .close{ background:#ddd; color:#111; }
 
 /* ===============================
-   🖨️ IMPRESIÓN: MODO TEXTO REAL
-   (Generic / Text Only)
+   🖨️ IMPRESIÓN GENERIC / TEXT ONLY
 =============================== */
 @media print {
 
   @page{
-    size: auto;
-    margin: 0;
+    size:auto;
+    margin:0;
   }
 
   body{
@@ -110,51 +106,26 @@ button{
     padding:0;
     background:#fff;
     font-family: Consolas, "Courier New", monospace;
-    font-size: 12px;
-    color:#000;
+    font-size:12px;
   }
 
-  .ticket{
-    width: 40ch;     /* ancho fijo en caracteres */
-    margin: 0;
-    padding: 0;
-    box-shadow:none;
-  }
-
-  /* en Generic: fuera tablas y estilos "bonitos" */
-  table, thead, tbody, tr, td, th{
+  /* 🔥 OCULTAR TODO */
+  body *{
     display:none !important;
   }
 
-  .h1, .h2{
-    font-size: 14px;
-    letter-spacing: 0;
-  }
-
-  .hr{
-    border-top: 1px dashed #000;
-    margin: 6px 0;
-  }
-
-  /* el ticket en texto SÍ se imprime */
+  /* ✅ SOLO TEXTO PURO */
   #detalleTexto{
     display:block !important;
-    white-space: pre;
-    font-family: Consolas, "Courier New", monospace;
-    font-size: 12px;
-    line-height: 1.25;
-    margin: 0;
-  }
-
-  .btns{
-    display:none !important;
+    white-space:pre;
+    line-height:1.25;
+    margin:0;
+    padding:0;
   }
 }
 
-/* por defecto (pantalla): el pre oculto */
-#detalleTexto{
-  display:none;
-}
+/* oculto en pantalla */
+#detalleTexto{ display:none; }
 </style>
 
 <script type="module">
@@ -174,105 +145,80 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const qs = (n) => new URLSearchParams(location.search).get(n);
 
+const W = 40;
+const line = () => "-".repeat(W) + "\n";
+const center = (s) => {
+  s = String(s ?? "");
+  if (s.length >= W) return s.slice(0,W) + "\n";
+  return " ".repeat(Math.floor((W-s.length)/2)) + s + "\n";
+};
+const cut = (s,n)=>String(s??"").replace(/\s+/g," ").trim().slice(0,n);
+const money = (n)=>"$"+Number(n??0).toFixed(2);
+
 function fmtFecha(iso){
-  const d = new Date(iso);
-  return d.toLocaleString("es-MX",{
+  return new Date(iso).toLocaleString("es-MX",{
     year:"numeric",month:"2-digit",day:"2-digit",
     hour:"2-digit",minute:"2-digit"
   });
 }
 
-// helpers para ticket texto
-const W = 40; // ancho en caracteres (debe empatar con 40ch)
-const line = (ch='-') => ch.repeat(W) + "\n";
-const center = (s) => {
-  s = String(s ?? "");
-  if (s.length >= W) return s.slice(0, W) + "\n";
-  const left = Math.floor((W - s.length)/2);
-  return " ".repeat(left) + s + "\n";
-};
-const cut = (s, n) => String(s ?? "").replace(/\s+/g,' ').trim().slice(0, n);
-const money = (n) => {
-  const v = Number(n ?? 0);
-  return "$" + v.toFixed(2);
-};
-
 async function cargar(){
   const id = qs("id");
   const ruta = qs("ruta");
 
-  const ref = doc(db, "almacenes", ruta, "entradas", id);
+  const ref = doc(db,"almacenes",ruta,"entradas",id);
   const snap = await getDoc(ref);
-  const data = snap.data();
+  const d = snap.data();
 
-  // ====== HTML "bonito" (pantalla) ======
-  document.getElementById("folio").textContent = id;
-  document.getElementById("rutaId").textContent = ruta;
-  document.getElementById("vendedorId").textContent = data.vendedorId ?? "";
-  document.getElementById("vendedorNombre").textContent = data.vendedorNombre ?? "";
-  document.getElementById("fecha").textContent = fmtFecha(data.fecha);
+  /* ===== PANTALLA ===== */
+  folio.textContent=id;
+  rutaId.textContent=ruta;
+  vendedorId.textContent=d.vendedorId??"";
+  vendedorNombre.textContent=d.vendedorNombre??"";
+  fecha.textContent=fmtFecha(d.fecha);
 
-  document.getElementById("entregaNombreTxt").textContent =
-    data?.firmas?.entrega?.nombre || "—";
-  document.getElementById("recibeNombreTxt").textContent =
-    data?.firmas?.recibe?.nombre || "—";
-
-  const tbody = document.getElementById("items");
-  tbody.innerHTML = "";
-  (data.items || []).forEach(it=>{
-    const precio = Number(it.precioUnitario ?? it.precio ?? 0);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="right">${it.cantidad ?? ""}</td>
-      <td>${it.codigo ?? ""}</td>
-      <td>${it.concepto ?? ""}</td>
-      <td class="right">${money(precio)}</td>
-    `;
-    tbody.appendChild(tr);
+  items.innerHTML="";
+  (d.items||[]).forEach(it=>{
+    items.innerHTML+=`
+      <tr>
+        <td class="right">${it.cantidad}</td>
+        <td>${it.codigo}</td>
+        <td>${it.concepto}</td>
+        <td class="right">${money(it.precioUnitario??it.precio)}</td>
+      </tr>`;
   });
 
-  // ====== TEXTO PARA GENERIC / Text Only ======
-  let txt = "";
-  txt += center("PROVSOFT");
-  txt += center("TRASPASO ENTRE ALMACENES");
-  txt += line("-");
+  /* ===== TEXTO PURO ===== */
+  let t="";
+  t+=center("PROVSOFT");
+  t+=center("TRASPASO ENTRE ALMACENES");
+  t+=line();
+  t+=`Folio : ${id}\n`;
+  t+=`Ruta  : ${ruta}\n`;
+  t+=`Vende : ${cut(d.vendedorNombre,30)}\n`;
+  t+=`Fecha : ${fmtFecha(d.fecha)}\n`;
+  t+=line();
+  t+=center("DETALLE");
+  t+="Cant Codigo      Producto           P.U.\n";
+  t+=line();
 
-  txt += `Folio: ${id}\n`;
-  txt += `Ruta : ${ruta}\n`;
-  txt += `VendID: ${cut(data.vendedorId ?? "", 32)}\n`;
-  txt += `Vende : ${cut(data.vendedorNombre ?? "", 32)}\n`;
-  txt += `Fecha : ${fmtFecha(data.fecha)}\n`;
-  txt += line("-");
-
-  txt += center("DETALLE");
-  txt += "Cant Codigo      Producto           P.U.\n";
-  txt += line("-");
-
-  (data.items || []).forEach(it=>{
-    const cant = String(it.cantidad ?? "").padStart(4);
-    const cod  = cut(it.codigo ?? "", 10).padEnd(10);
-    const prod = cut(it.concepto ?? "", 18).padEnd(18);
-    const pu   = money(it.precioUnitario ?? it.precio ?? 0).padStart(8);
-    txt += `${cant} ${cod} ${prod} ${pu}\n`;
-
-    // si quieres segunda línea para completar nombre largo:
-    const resto = String(it.concepto ?? "").replace(/\s+/g,' ').trim().slice(18);
-    if (resto) txt += `     ${"".padEnd(10)} ${cut(resto, 18)}\n`;
+  (d.items||[]).forEach(it=>{
+    t+=`${String(it.cantidad).padStart(4)} ${cut(it.codigo,10).padEnd(10)} ${cut(it.concepto,18).padEnd(18)} ${money(it.precioUnitario??it.precio).padStart(8)}\n`;
   });
 
-  txt += line("-");
-  txt += `ENTREGA: ${cut(data?.firmas?.entrega?.nombre || "—", 30)}\n`;
-  txt += `RECIBE : ${cut(data?.firmas?.recibe?.nombre || "—", 30)}\n`;
-  txt += "FIRMA INGRESADA EN LA BASE DE DATOS\n";
-  txt += line("-");
-  txt += center("FIN DEL TICKET");
+  t+=line();
+  t+=`ENTREGA: ${cut(d?.firmas?.entrega?.nombre||"—",30)}\n`;
+  t+=`RECIBE : ${cut(d?.firmas?.recibe?.nombre||"—",30)}\n`;
+  t+="FIRMA INGRESADA EN LA BASE DE DATOS\n";
+  t+=line();
+  t+=center("FIN DEL TICKET");
 
-  document.getElementById("detalleTexto").textContent = txt;
+  detalleTexto.textContent=t;
 }
 
 window.addEventListener("DOMContentLoaded",()=>{
-  document.getElementById("btnPrint").onclick=()=>window.print();
-  document.getElementById("btnClose").onclick=()=>window.close();
+  btnPrint.onclick=()=>window.print();
+  btnClose.onclick=()=>window.close();
   cargar();
 });
 </script>
@@ -281,7 +227,6 @@ window.addEventListener("DOMContentLoaded",()=>{
 <body>
 
 <div class="ticket">
-  <!-- ===== Vista Bonita (pantalla / drivers buenos) ===== -->
   <div class="center h1">PROVSOFT</div>
   <div class="center h2">TRASPASO ENTRE ALMACENES</div>
 
@@ -295,7 +240,6 @@ window.addEventListener("DOMContentLoaded",()=>{
 
   <div class="hr"></div>
 
-  <div class="center h2">DETALLE</div>
   <table>
     <thead>
       <tr>
@@ -308,27 +252,14 @@ window.addEventListener("DOMContentLoaded",()=>{
     <tbody id="items"></tbody>
   </table>
 
-  <div class="hr"></div>
-
-  <div class="kv"><b>ENTREGA:</b> <span id="entregaNombreTxt"></span></div>
-  <div class="kv"><b>RECIBE:</b> <span id="recibeNombreTxt"></span></div>
-
-  <div class="center muted" style="margin-top:10px;">
-    FIRMA INGRESADA EN LA BASE DE DATOS
-  </div>
-
-  <div class="hr"></div>
-
-  <div class="center muted">— FIN DEL TICKET —</div>
-
-  <!-- ===== TEXTO PARA GENERIC (solo imprime) ===== -->
-  <pre id="detalleTexto"></pre>
-
   <div class="btns">
     <button class="print" id="btnPrint">IMPRIMIR</button>
     <button class="close" id="btnClose">CERRAR</button>
   </div>
 </div>
+
+<!-- 🖨️ SOLO ESTO SE IMPRIME EN GENERIC -->
+<pre id="detalleTexto"></pre>
 
 </body>
 </html>
