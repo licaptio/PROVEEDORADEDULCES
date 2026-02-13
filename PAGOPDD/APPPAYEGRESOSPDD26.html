@@ -320,6 +320,31 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
       minimumFractionDigits: 2
     }).format(x);
   }
+function formatearFechaCorta(fechaISO){
+  if(!fechaISO) return '';
+  const d = new Date(fechaISO);
+
+  const dia = String(d.getDate()).padStart(2,'0');
+  const mes = String(d.getMonth()+1).padStart(2,'0');
+  const anio = String(d.getFullYear()).slice(-2);
+
+  return `${dia}/${mes}/${anio}`;
+}
+
+function diasTranscurridos(fechaISO){
+  if(!fechaISO) return '';
+  const hoy = new Date();
+  const f = new Date(fechaISO);
+
+  // quitar horas
+  hoy.setHours(0,0,0,0);
+  f.setHours(0,0,0,0);
+
+  const diff = hoy - f;
+  const dias = Math.floor(diff / (1000*60*60*24));
+
+  return dias >= 0 ? `${dias} días` : '0 días';
+}
 
   function escapeHtml(str){
     return String(str || '')
@@ -417,7 +442,13 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
       tbody.innerHTML += `
         <tr>
           <td><input type="checkbox" data-id="${f.id}" onchange="recalcularPago()"></td>
-          <td>${escapeHtml(f.fecha || '')}</td>
+          <td>
+  ${formatearFechaCorta(f.fecha)}
+  <span class="muted" style="margin-left:6px">
+    (${diasTranscurridos(f.fecha)})
+  </span>
+</td>
+
           <td>${escapeHtml((f.serie||'') + ' ' + (f.folio||''))}</td>
           <td style="text-align:right" class="monto">${money(totalNum)}</td>
         </tr>
@@ -478,7 +509,11 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
 
       tbody.innerHTML += `
         <tr>
-          <td>${escapeHtml(f.fecha || '')}</td>
+          <td>
+  ${formatearFechaCorta(f.fecha)}
+  <div class="muted">${diasTranscurridos(f.fecha)}</div>
+</td>
+
           <td style="font-size:12px">${escapeHtml(f.uuid_cfdi || '')}</td>
           <td>${escapeHtml(f.razon_social_emisor || '')}</td>
           <td>${escapeHtml((f.serie || '') + ' ' + (f.folio || ''))}</td>
@@ -799,4 +834,5 @@ function actualizarGlobal(){
 
 </body>
 </html>
+
 
