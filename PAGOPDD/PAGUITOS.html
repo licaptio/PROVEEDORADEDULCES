@@ -487,7 +487,12 @@
 
         // Sin vínculo por ahora
         tr.innerHTML = `
-          <td class="id">${p.id}</td>
+          <tr>
+  <td class="id">
+    <a href="CARDEX.html?id=${p.id}" target="_blank" style="color:#2563eb;font-weight:600;text-decoration:none;">
+      ${p.id}
+    </a>
+  </td>
           <td>${p.fecha_pago ?? ''}</td>
           <td>${p.banco ?? ''}</td>
           <td>${p.proveedor_nombre ?? ''}</td>
@@ -562,4 +567,5 @@
 
 </body>
 </html>
+
 
