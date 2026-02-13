@@ -23,12 +23,21 @@ body{
 }
 
 .ticket{
-  width: var(--paper);
+  width: 420px; /* ancho cómodo en pantalla */
   background:#fff;
   margin: 25mm auto;
   padding: 16mm 8mm;
   box-shadow: 0 6px 18px rgba(0,0,0,.18);
 }
+
+@media print{
+  .ticket{
+    width: 80mm; /* ancho real impresora */
+    margin:0;
+    box-shadow:none;
+  }
+}
+
 
 .center{ text-align:center; }
 .right{ text-align:right; }
@@ -62,6 +71,22 @@ table{
   border-collapse:collapse;
   font-size: 16px;
 }
+  th:nth-child(1), td:nth-child(1){
+  width:12%;
+}
+
+th:nth-child(2), td:nth-child(2){
+  width:22%;
+}
+
+th:nth-child(3), td:nth-child(3){
+  width:46%;
+}
+
+th:nth-child(4), td:nth-child(4){
+  width:20%;
+}
+
 th, td{
   padding: 6px 0;
 }
