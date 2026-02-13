@@ -193,7 +193,13 @@
 ========================================================== */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, query, where, getDocs, addDoc
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -222,6 +228,16 @@ function openDB() {
     };
     request.onsuccess = e => resolve(e.target.result);
     request.onerror = e => reject(e);
+  });
+}
+async function cargarRutasReimpresion() {
+  const snap = await getDocs(collection(db, "almacenes"));
+  const select = document.getElementById("rutaReimpresion");
+
+  select.innerHTML = `<option value="">Seleccione Ruta</option>`;
+
+  snap.forEach(doc => {
+    select.innerHTML += `<option value="${doc.id}">${doc.id}</option>`;
   });
 }
 
@@ -692,10 +708,85 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
 
   // cerrar modal buscar nombre
-  document.getElementById("cerrarModal").addEventListener("click", () => {
+   document.getElementById("cerrarModal").addEventListener("click", () => {
     document.getElementById("modalResultados").style.display = "none";
   });
+
+  /* =========================
+     REIMPRESIÓN
+  ========================= */
+
+document.getElementById("btnReimpresion").addEventListener("click", async () => {
+  const modal = document.getElementById("modalReimpresion");
+  modal.style.display = "flex";
+
+  await cargarRutasReimpresion();
+
+  const select = document.getElementById("rutaReimpresion");
+
+  if (select.value) {
+    select.dispatchEvent(new Event("change"));
+  }
 });
+
+
+ document.getElementById("rutaReimpresion").addEventListener("change", async (e) => {
+  const rutaId = e.target.value.trim();
+
+  if (!rutaId) return;
+
+const snap = await getDocs(
+  query(
+    collection(db, "almacenes", rutaId, "entradas"),
+    orderBy("fecha", "desc")
+  )
+);
+
+  console.log("Consultando ruta:", rutaId);
+  console.log("Docs encontrados:", snap.size);
+
+  const contenedor = document.getElementById("listaReimpresion");
+  contenedor.innerHTML = "";
+
+  if (snap.empty) {
+    contenedor.innerHTML = "<div style='padding:10px;color:#777;'>No hay traspasos</div>";
+    return;
+  }
+
+  snap.forEach(doc => {
+    const d = doc.data();
+    const fecha = new Date(d.fecha).toLocaleString();
+
+    const div = document.createElement("div");
+    div.style = `
+      background:white;
+      padding:12px;
+      border-radius:10px;
+      margin-bottom:8px;
+      cursor:pointer;
+      border:1px solid #eee;
+    `;
+
+div.innerHTML = `
+  <div style="color:#111;">
+    <b>${fecha}</b><br>
+    ${d.vendedorNombre || "Sin vendedor"}
+  </div>
+`;
+
+    div.onclick = function() {
+      window.open(
+        "impresion_traspaso.html?id=" + doc.id + "&ruta=" + rutaId,
+        "_blank"
+      );
+    };
+
+    contenedor.appendChild(div);
+  });
+});
+
+});
+
 
 /* ==========================================================
    🟦 BUSCAR POR NOMBRE – MODAL
@@ -712,75 +803,10 @@ async function buscarPorNombre() {
   resultadosBusqueda = productos;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("busquedaNombre").addEventListener("input", e => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      const term = e.target.value.toLowerCase().trim();
-      const lista = document.getElementById("listaResultados");
 
-      if (term.length < 2) {
-        lista.innerHTML = "";
-        return;
-      }
-
-      const filtrados = resultadosBusqueda
-        .filter(p => p.concepto?.toLowerCase().includes(term))
-        .slice(0, 30);
-
-      lista.innerHTML = "";
-
-      filtrados.forEach(p => {
-        const div = document.createElement("div");
-        div.className = "item";
-        div.textContent = `${p.concepto} (${p.codigoBarra})`;
-
-        div.onclick = () => {
-          productoSeleccionadoPorNombre = p;
-          document.getElementById("modalResultados").style.display = "none";
-          document.getElementById("modalCantidad").style.display = "flex";
-          document.getElementById("inputCantidadNombre").value = "";
-          document.getElementById("inputCantidadNombre").focus();
-        };
-
-        lista.appendChild(div);
-      });
-    }, 200);
-  });
-
- document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
-  const cant = parseFloat(document.getElementById("inputCantidadNombre").value);
-
-  if (!cant || cant <= 0) {
-    alert("Escriba una cantidad válida");
-    return;
-  }
-
-  document.getElementById("modalCantidad").style.display = "none";
-
-  // 🔁 MODO EDICIÓN DESDE LA TABLA
-  if (indiceEdicionCantidad !== null) {
-    carrito[indiceEdicionCantidad].cantidad = cant;
-    indiceEdicionCantidad = null;
-
-    renderTabla();
-    localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
-    return;
-  }
-
-  // ➕ MODO AGREGAR DESDE BUSCAR NOMBRE
-  seleccionarProducto(productoSeleccionadoPorNombre);
-  window.cantidadManual = cant;
-
-  agregarItem();
-  renderTabla();
-  localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
-
-  document.getElementById("preview").innerText = "";
-  document.getElementById("buscador").focus();
-});
-
-});
+window.cerrarReimpresion = function() {
+  document.getElementById("modalReimpresion").style.display = "none";
+};
 
 </script>
 
@@ -842,6 +868,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   <!-- BOTÓN -->
   <button id="btnTraspaso" style="margin-top:12px; width:100%;">Finalizar Traspaso</button>
+<button id="btnReimpresion" style="
+  margin-top:10px;
+  width:100%;
+  background:#444;
+">
+  Reimpresión de Traspaso
+</button>
 
 </div>
 
@@ -996,6 +1029,57 @@ document.addEventListener("DOMContentLoaded", () => {
         background:#eee; color:#333; border:none; border-radius:12px;
         padding:12px; cursor:pointer; font-weight:bold;
       ">Cancelar</button>
+    </div>
+
+  </div>
+</div>
+<div id="modalReimpresion" style="
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:rgba(0,0,0,.65);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:5000;
+">
+
+  <div id="panelReimpresion" style="
+    background:white;
+    width:95%;
+    max-width:650px;
+    max-height:85vh;
+    border-radius:18px;
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 12px 35px rgba(0,0,0,.35);
+  ">
+
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; color:#00416A;">Reimpresión</h3>
+      <button onclick="cerrarReimpresion()" style="
+        background:#0c6cbd;
+        color:white;
+        border:none;
+        border-radius:10px;
+        padding:6px 12px;
+        cursor:pointer;
+      ">Cerrar</button>
+    </div>
+
+    <select id="rutaReimpresion" style="margin-top:15px;"></select>
+
+    <!-- CONTENEDOR FLOTANTE SCROLLABLE -->
+    <div id="listaReimpresion" style="
+      margin-top:15px;
+      overflow-y:auto;
+      flex:1;
+      border:1px solid #ddd;
+      border-radius:12px;
+      padding:10px;
+      background:#f9fafc;
+    ">
     </div>
 
   </div>
