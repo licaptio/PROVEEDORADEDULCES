@@ -476,7 +476,7 @@
         const msg = String(error.message || '').toLowerCase();
         if(msg.includes('jwt') || msg.includes('token') || error.code === 'PGRST301'){
           await sb.auth.signOut();
-          location.reload();
+          setLoggedOutUI();
         }
         return;
       }
@@ -577,6 +577,7 @@
 
 </body>
 </html>
+
 
 
 
