@@ -8,7 +8,7 @@
 <style>
 :root{
   --paper: 80mm;
-  --font: 17px;
+  --font: 14px;
 }
 
 /* ======================
@@ -69,25 +69,32 @@ body{
 table{
   width:100%;
   border-collapse:collapse;
-  font-size: 16px;
+  table-layout: fixed; /* 🔥 CLAVE */
+  font-size: 14px;
 }
-  th:nth-child(1), td:nth-child(1){
-  width:12%;
+
+th:nth-child(1), td:nth-child(1){
+  width: 10%;
+  text-align:right;
 }
 
 th:nth-child(2), td:nth-child(2){
-  width:22%;
+  width: 22%;
 }
 
 th:nth-child(3), td:nth-child(3){
-  width:46%;
+  width: 48%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* 🔥 corta descripción */
 }
 
 th:nth-child(4), td:nth-child(4){
-  width:20%;
+  width: 20%;
+  text-align:right;
 }
 
-th, td{
+  th, td{
   padding: 6px 0;
 }
 th{
@@ -96,8 +103,9 @@ th{
 }
 td{
   border-bottom:1px dotted #999;
+  overflow:hidden;
 }
-
+  
 /* BOTONES */
 .btns{
   width: var(--paper);
@@ -228,7 +236,7 @@ async function cargar(){
   t+=line();
 
   (d.items||[]).forEach(it=>{
-    t+=`${String(it.cantidad).padStart(4)} ${cut(it.codigo,10).padEnd(10)} ${cut(it.concepto,18).padEnd(18)} ${money(it.precioUnitario??it.precio).padStart(8)}\n`;
+    t+=`${String(it.cantidad).padStart(3)} ${cut(it.codigo,9).padEnd(9)} ${cut(it.concepto,16).padEnd(16)} ${money(it.precioUnitario??it.precio).padStart(7)}\n`;
   });
 
   t+=line();
