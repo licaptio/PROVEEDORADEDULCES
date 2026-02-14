@@ -187,6 +187,7 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
         <th></th>
         <th>Fecha</th>
         <th>Folio</th>
+        <th>Fotos</th>
         <th style="text-align:right">Total</th>
       </tr>
     </thead>
@@ -425,7 +426,7 @@ function diasTranscurridos(fechaISO){
 
     const { data, error } = await sb
       .from('deuda_limpia_pdd')
-      .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor')
+      .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor,fotos')
       .eq('rfc_emisor', rfc)
       .eq('factura_pagada','NO')
       .order('fecha',{ascending:true});
@@ -438,22 +439,39 @@ function diasTranscurridos(fechaISO){
     tbody.innerHTML = '';
 
     facturas.forEach(f=>{
-      const totalNum = Number(f.total||0);
-      tbody.innerHTML += `
-        <tr>
-          <td><input type="checkbox" data-id="${f.id}" onchange="recalcularPago()"></td>
-          <td>
-  ${formatearFechaCorta(f.fecha)}
-  <span class="muted" style="margin-left:6px">
-    (${diasTranscurridos(f.fecha)})
-  </span>
-</td>
+  const totalNum = Number(f.total||0);
+  const fotos = Array.isArray(f.fotos) ? f.fotos : [];
 
-          <td>${escapeHtml((f.serie||'') + ' ' + (f.folio||''))}</td>
-          <td style="text-align:right" class="monto">${money(totalNum)}</td>
-        </tr>
-      `;
-    });
+  const fotosHtml = fotos.length
+    ? `
+      <div style="display:flex; gap:6px; flex-wrap:wrap">
+        ${fotos.map((url,i)=>`
+          <a href="${url}" target="_blank" 
+             style="font-size:12px; text-decoration:none; background:#FFF3E0; padding:4px 8px; border-radius:6px; border:1px solid #ffd7b3">
+             📎 ${i+1}
+          </a>
+        `).join('')}
+      </div>
+      <div class="muted">${fotos.length} archivo(s)</div>
+    `
+    : `<span class="muted">—</span>`;
+
+  tbody.innerHTML += `
+    <tr>
+      <td><input type="checkbox" data-id="${f.id}" onchange="recalcularPago()"></td>
+      <td>
+        ${formatearFechaCorta(f.fecha)}
+        <span class="muted" style="margin-left:6px">
+          (${diasTranscurridos(f.fecha)})
+        </span>
+      </td>
+      <td>${escapeHtml((f.serie||'') + ' ' + (f.folio||''))}</td>
+      <td>${fotosHtml}</td>
+      <td style="text-align:right" class="monto">${money(totalNum)}</td>
+    </tr>
+  `;
+});
+
 
     recalcularPago();
   }
@@ -834,5 +852,6 @@ function actualizarGlobal(){
 
 </body>
 </html>
+
 
 
