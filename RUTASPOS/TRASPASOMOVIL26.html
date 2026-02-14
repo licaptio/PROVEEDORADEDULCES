@@ -802,11 +802,6 @@ const win = window.open(
   "_blank"
 );
 
-win.onload = () => {
-  win.print();
-  win.onafterprint = () => win.close();
-};
-
   carrito = [];
   renderTabla();
   localStorage.removeItem("carrito_traspaso");
