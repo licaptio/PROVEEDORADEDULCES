@@ -175,8 +175,7 @@
   }
 
   #modalResultados,
-  #modalCantidad,
-  #modalFirmas {
+  #modalCantidad {
     backdrop-filter: none !important;
   }
 
@@ -454,199 +453,84 @@ async function cargarListaVendedores() {
 }
 
 /* ==========================================================
-   ✍️ FIRMA (2 CANVAS) + MODAL
+   🟫 INIT
 ========================================================== */
-function setupSignature(canvas) {
+function crearFirmaPantallaCompleta(canvas) {
+
   const ctx = canvas.getContext("2d");
-  ctx.lineWidth = 2.2;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.strokeStyle = "#111";
+
+  function resize() {
+    const width = canvas.offsetWidth;
+    const height = canvas.offsetHeight;
+
+    if (width === 0 || height === 0) return; // 🔥 evita canvas inválido
+
+    canvas.width = width;
+    canvas.height = height;
+
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#111";
+  }
+
+  window.addEventListener("resize", resize);
 
   let drawing = false;
-  let moved = false;
 
-  const getPos = (e) => {
+  const getPos = e => {
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-      x: (clientX - rect.left) * (canvas.width / rect.width),
-      y: (clientY - rect.top) * (canvas.height / rect.height),
-    };
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    return { x, y };
   };
 
-  const start = (e) => {
+  const start = e => {
     drawing = true;
-    moved = false;
     const p = getPos(e);
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
-    e.preventDefault?.();
+    e.preventDefault();
   };
 
-  const move = (e) => {
+  const move = e => {
     if (!drawing) return;
-    moved = true;
     const p = getPos(e);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    e.preventDefault?.();
+    e.preventDefault();
   };
 
-  const end = (e) => {
-    drawing = false;
-    e.preventDefault?.();
-  };
+  const end = () => drawing = false;
 
   canvas.addEventListener("mousedown", start);
   canvas.addEventListener("mousemove", move);
   window.addEventListener("mouseup", end);
 
-  canvas.addEventListener("touchstart", start, { passive: false });
-  canvas.addEventListener("touchmove", move, { passive: false });
-  canvas.addEventListener("touchend", end, { passive: false });
+  canvas.addEventListener("touchstart", start, { passive:false });
+  canvas.addEventListener("touchmove", move, { passive:false });
+  canvas.addEventListener("touchend", end);
 
   return {
-    clear() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    },
+    resize, // 🔥 ahora podemos llamarlo manualmente
+    clear() { ctx.clearRect(0,0,canvas.width,canvas.height); },
     hasInk() {
-      const img = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      for (let i = 3; i < img.length; i += 4) {
-        if (img[i] !== 0) return true;
-      }
-      return false;
+      if (canvas.width === 0 || canvas.height === 0) return false; // 🔥 protección total
+      const data = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+      return data.some((v,i)=> i%4===3 && v!==0);
     },
-    toPNGBase64() {
-      return canvas.toDataURL("image/png");
-    }
+    getBase64() { return canvas.toDataURL("image/png"); }
   };
 }
 
-function abrirModalFirmas() {
-  const modal = document.getElementById("modalFirmas");
-  modal.style.display = "flex";
 
-  // Poner vendedor seleccionado en nombreRecibe
-  const sel = document.getElementById("vendedorSelect");
-  const opt = sel.selectedOptions[0];
-  const nombreVendedor = opt ? (opt.dataset.nombre || opt.textContent || "") : "";
-  document.getElementById("nombreRecibe").value = nombreVendedor || "";
-  document.getElementById("nombreEntrega").focus();
-}
+let firmaPaso1;
+let firmaPaso2;
 
-function cerrarModalFirmas() {
-  document.getElementById("modalFirmas").style.display = "none";
-}
-
-/* ==========================================================
-   🟪 GUARDAR TRASPASO (AHORA CON FIRMAS)
-========================================================== */
-let firmaEntrega = null;
-let firmaRecibe = null;
-
-async function guardarTraspasoConFirmas() {
-  const vendedorId = document.getElementById("vendedorSelect").value;
-  const rutaId = document.getElementById("rutaId").value;
-
-  if (!vendedorId) { alert("Seleccione un vendedor"); return; }
-  if (!rutaId) { alert("Este vendedor no tiene rutaId asignado"); return; }
-  if (carrito.length === 0) { alert("Agregue productos antes de finalizar el traspaso"); return; }
-
-  const nombreEntrega = document.getElementById("nombreEntrega").value.trim();
-  const nombreRecibe = document.getElementById("nombreRecibe").value.trim();
-
-  if (!nombreEntrega) { alert("Escriba el nombre de quien entrega"); return; }
-  if (!nombreRecibe) { alert("No se detectó el nombre del vendedor"); return; }
-
-  if (!firmaEntrega.hasInk()) { alert("Falta la firma de quien entrega"); return; }
-  if (!firmaRecibe.hasInk()) { alert("Falta la firma del vendedor que recibe"); return; }
-
-  // Extraer firmas en base64 PNG
-  const firmaEntregaB64 = firmaEntrega.toPNGBase64();
-  const firmaRecibeB64 = firmaRecibe.toPNGBase64();
-
-  const sel = document.getElementById("vendedorSelect");
-  const opt = sel.selectedOptions[0];
-
-  const payload = {
-    vendedorId,
-    rutaId,
-    fecha: new Date().toISOString(),
-    vendedorNombre: opt ? (opt.dataset.nombre || opt.textContent || "") : "",
-    items: carrito.map(i => ({
-      codigo: i.codigo,
-      concepto: i.concepto,
-      cantidad: i.cantidad,
-      precio: i.precio
-    })),
-    firmas: {
-      entrega: {
-        nombre: nombreEntrega,
-        pngBase64: firmaEntregaB64
-      },
-      recibe: {
-        nombre: nombreRecibe,
-        pngBase64: firmaRecibeB64
-      }
-    }
-  };
-
-  try {
-    const rutaColeccion = collection(db, "almacenes", rutaId, "entradas");
-
-    const btn = document.getElementById("btnConfirmarFirmas");
-    btn.disabled = true;
-    btn.textContent = "Enviando...";
-
-    const docRef = await addDoc(rutaColeccion, payload);
-    const idTraspaso = docRef.id;
-
-    cerrarModalFirmas();
-
-    alert("✔ Traspaso enviado correctamente");
-
-    // ✅ Abrir impresión CON parámetros (id y ruta)
-    window.open(`impresion_traspaso.html?id=${encodeURIComponent(idTraspaso)}&ruta=${encodeURIComponent(rutaId)}`, "_blank");
-
-    // limpiar pantalla
-    carrito = [];
-    renderTabla();
-    localStorage.removeItem("carrito_traspaso");
-
-    // limpiar firmas
-    document.getElementById("nombreEntrega").value = "";
-    firmaEntrega.clear();
-    firmaRecibe.clear();
-
-    btn.disabled = false;
-    btn.textContent = "Confirmar y Enviar";
-
-  } catch (err) {
-    console.error(err);
-    alert("❌ Error al guardar: " + err.message);
-    const btn = document.getElementById("btnConfirmarFirmas");
-    btn.disabled = false;
-    btn.textContent = "Confirmar y Enviar";
-  }
-}
-
-/* ==========================================================
-   🟫 INIT
-========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
 
-  // Firmas setup
-  firmaEntrega = setupSignature(document.getElementById("canvasEntrega"));
-  firmaRecibe  = setupSignature(document.getElementById("canvasRecibe"));
+firmaPaso1 = crearFirmaPantallaCompleta(document.getElementById("canvasEntregaPaso1"));
+firmaPaso2 = crearFirmaPantallaCompleta(document.getElementById("canvasRecibePaso2"));
 
-  document.getElementById("btnLimpiarEntrega").addEventListener("click", () => firmaEntrega.clear());
-  document.getElementById("btnLimpiarRecibe").addEventListener("click", () => firmaRecibe.clear());
-
-  document.getElementById("btnCerrarFirmas").addEventListener("click", cerrarModalFirmas);
-  document.getElementById("btnCancelarFirmas").addEventListener("click", cerrarModalFirmas);
-  document.getElementById("btnConfirmarFirmas").addEventListener("click", guardarTraspasoConFirmas);
 
   // Tu botón ahora abre firmas (ya NO guarda directo)
   document.getElementById("btnTraspaso").addEventListener("click", () => {
@@ -657,7 +541,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!rutaId) { alert("Este vendedor no tiene rutaId asignado"); return; }
     if (carrito.length === 0) { alert("Agregue productos antes de finalizar el traspaso"); return; }
 
-    abrirModalFirmas();
+    document.getElementById("modalEntrega").style.display = "flex";
+    setTimeout(() => firmaPaso1.resize(), 50);
+
+const sel = document.getElementById("vendedorSelect");
+const opt = sel.selectedOptions[0];
+document.getElementById("nombreRecibePaso2").value =
+  opt ? (opt.dataset.nombre || opt.textContent) : "";
+
   });
 
   const ultimaSync = localStorage.getItem("ultima_sync_productos");
@@ -689,12 +580,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const opt = e.target.selectedOptions[0];
     if (!opt) return;
     document.getElementById("rutaId").value = opt.dataset.ruta;
-
-    // Si modal firmas está abierto, reflejar nombre
-    const modal = document.getElementById("modalFirmas");
-    if (modal && modal.style.display === "flex") {
-      document.getElementById("nombreRecibe").value = opt.dataset.nombre || opt.textContent || "";
-    }
   });
 
   // escaneo con pistola (ENTER)
@@ -711,6 +596,42 @@ document.addEventListener("DOMContentLoaded", async () => {
    document.getElementById("cerrarModal").addEventListener("click", () => {
     document.getElementById("modalResultados").style.display = "none";
   });
+document.getElementById("btnLimpiarPaso1").onclick = () => firmaPaso1.clear();
+
+document.getElementById("btnContinuarPaso1").onclick = () => {
+
+  const nombre = document.getElementById("nombreEntregaPaso1").value.trim();
+  if (!nombre) { alert("Escriba el nombre de quien entrega"); return; }
+  if (!firmaPaso1.hasInk()) { alert("Falta la firma"); return; }
+
+  document.getElementById("modalEntrega").style.display = "none";
+  document.getElementById("modalRecibe").style.display = "flex";
+  setTimeout(() => firmaPaso2.resize(), 50);
+  }; // 🔥 ESTA LLAVE FALTABA
+
+
+document.getElementById("btnCancelarPaso2").onclick = () => {
+  firmaPaso2.clear();
+  document.getElementById("modalRecibe").style.display = "none";
+};
+
+document.getElementById("btnConfirmarPaso2").onclick = async () => {
+
+  if (!firmaPaso2.hasInk()) {
+    alert("Falta la firma del vendedor");
+    return;
+  }
+
+  const nombreEntrega = document.getElementById("nombreEntregaPaso1").value.trim();
+  const nombreRecibe = document.getElementById("nombreRecibePaso2").value.trim();
+
+  const firmaEntregaB64 = firmaPaso1.getBase64();
+  const firmaRecibeB64 = firmaPaso2.getBase64();
+
+  // Aquí reutilizamos tu lógica actual de guardado
+  await guardarTraspasoFinal(nombreEntrega, nombreRecibe, firmaEntregaB64, firmaRecibeB64);
+
+};
 
   /* =========================
      REIMPRESIÓN
@@ -787,6 +708,51 @@ div.innerHTML = `
 
 });
 
+async function guardarTraspasoFinal(nombreEntrega, nombreRecibe, firmaEntregaB64, firmaRecibeB64) {
+
+  const vendedorId = document.getElementById("vendedorSelect").value;
+  const rutaId = document.getElementById("rutaId").value;
+
+  const sel = document.getElementById("vendedorSelect");
+  const opt = sel.selectedOptions[0];
+
+  const payload = {
+    vendedorId,
+    rutaId,
+    fecha: new Date().toISOString(),
+    vendedorNombre: opt ? (opt.dataset.nombre || opt.textContent) : "",
+    items: carrito,
+    firmas: {
+      entrega: { nombre: nombreEntrega, pngBase64: firmaEntregaB64 },
+      recibe: { nombre: nombreRecibe, pngBase64: firmaRecibeB64 }
+    }
+  };
+
+  const rutaColeccion = collection(db, "almacenes", rutaId, "entradas");
+  const docRef = await addDoc(rutaColeccion, payload);
+
+  document.getElementById("modalRecibe").style.display = "none";
+  firmaPaso1.clear();
+firmaPaso2.clear();
+document.getElementById("nombreEntregaPaso1").value = "";
+
+
+  alert("✔ Traspaso enviado correctamente");
+
+const win = window.open(
+  `impresion_traspaso.html?id=${docRef.id}&ruta=${rutaId}`,
+  "_blank"
+);
+
+win.onload = () => {
+  win.print();
+  win.onafterprint = () => win.close();
+};
+
+  carrito = [];
+  renderTabla();
+  localStorage.removeItem("carrito_traspaso");
+}
 
 /* ==========================================================
    🟦 BUSCAR POR NOMBRE – MODAL
@@ -955,84 +921,6 @@ window.cerrarReimpresion = function() {
   </div>
 </div>
 
-<!-- =========================
-     MODAL FIRMAS (ENTREGA/RECIBE)
-========================= -->
-<div id="modalFirmas" style="
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  background:rgba(0,0,0,0.60); display:none;
-  align-items:center; justify-content:center;
-  backdrop-filter: blur(3px);
-  z-index:2000;
-">
-  <div style="
-    background:#fff;
-    padding:18px 18px;
-    border-radius:18px;
-    width:96%;
-    max-width:820px;
-    color:#111;
-    box-shadow:0 8px 26px rgba(0,0,0,0.25);
-  ">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-      <h3 style="margin:0; font-size:20px; color:#00416A;">Firmas del Traspaso</h3>
-      <button id="btnCerrarFirmas" style="
-        background:#0c6cbd; color:#fff; border:none; border-radius:10px;
-        padding:8px 14px; cursor:pointer; font-weight:bold;
-      ">Cerrar</button>
-    </div>
-
-    <div style="margin-top:10px; font-size:13px; color:#444;">
-      Antes de enviar, firma <b>quien entrega</b> y el <b>vendedor que recibe</b>.
-    </div>
-
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px;">
-
-      <!-- ENTREGA -->
-      <div style="border:1px solid #e6e6e6; border-radius:14px; padding:12px;">
-        <div style="font-weight:700; color:#00416A; margin-bottom:8px;">Firma quien entrega</div>
-        <input id="nombreEntrega" placeholder="Nombre quien entrega" style="width:100%; margin:0 0 10px 0; padding:10px; border-radius:10px; border:1px solid #ccc;">
-        <canvas id="canvasEntrega" width="620" height="220" style="
-          width:100%; height:160px; border:2px solid #cfd4dc; border-radius:12px; background:#fff;
-          touch-action:none;
-        "></canvas>
-        <div style="display:flex; gap:10px; margin-top:10px;">
-          <button id="btnLimpiarEntrega" style="flex:1; background:#ddd; color:#333;">Limpiar</button>
-        </div>
-      </div>
-
-      <!-- RECIBE -->
-      <div style="border:1px solid #e6e6e6; border-radius:14px; padding:12px;">
-        <div style="font-weight:700; color:#00416A; margin-bottom:8px;">Firma vendedor que recibe</div>
-        <input id="nombreRecibe" disabled style="width:100%; margin:0 0 10px 0; padding:10px; border-radius:10px; border:1px solid #ccc; background:#f5f6f8;">
-        <canvas id="canvasRecibe" width="620" height="220" style="
-          width:100%; height:160px; border:2px solid #cfd4dc; border-radius:12px; background:#fff;
-          touch-action:none;
-        "></canvas>
-        <div style="display:flex; gap:10px; margin-top:10px;">
-          <button id="btnLimpiarRecibe" style="flex:1; background:#ddd; color:#333;">Limpiar</button>
-        </div>
-      </div>
-
-    </div>
-
-    <div style="display:flex; gap:10px; margin-top:14px;">
-      <button id="btnConfirmarFirmas" style="
-        flex:1;
-        background:#0c6cbd;
-        color:#fff; border:none; border-radius:12px;
-        padding:12px; font-weight:bold; cursor:pointer; font-size:16px;
-      ">Confirmar y Enviar</button>
-
-      <button id="btnCancelarFirmas" style="
-        width:180px;
-        background:#eee; color:#333; border:none; border-radius:12px;
-        padding:12px; cursor:pointer; font-weight:bold;
-      ">Cancelar</button>
-    </div>
-
-  </div>
-</div>
 <div id="modalReimpresion" style="
   position:fixed;
   top:0; left:0;
@@ -1083,6 +971,83 @@ window.cerrarReimpresion = function() {
     </div>
 
   </div>
+</div>
+<!-- =========================
+     PASO 1 – FIRMA ENTREGA
+========================= -->
+<div id="modalEntrega" style="
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:#fff;
+  display:none;
+  flex-direction:column;
+  z-index:6000;
+">
+
+  <div style="padding:20px;">
+    <h2 style="color:#00416A;">Firma quien entrega</h2>
+
+    <input id="nombreEntregaPaso1"
+      placeholder="Nombre quien entrega"
+      style="width:100%; padding:12px; border-radius:10px; border:1px solid #ccc; margin-top:10px;">
+  </div>
+
+ <canvas id="canvasEntregaPaso1"
+  style="
+    flex:1;
+    min-height:300px;
+    max-height:calc(100vh - 220px);
+    border-top:2px solid #ddd;
+    border-bottom:2px solid #ddd;
+    touch-action:none;
+  ">
+</canvas>
+
+
+  <div style="padding:15px; display:flex; gap:10px;">
+    <button id="btnLimpiarPaso1" style="flex:1; background:#ddd; color:#333;">Limpiar</button>
+    <button id="btnContinuarPaso1" style="flex:2;">Continuar</button>
+  </div>
+
+</div>
+<!-- =========================
+     PASO 2 – FIRMA RECIBE
+========================= -->
+<div id="modalRecibe" style="
+  position:fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background:#fff;
+  display:none;
+  flex-direction:column;
+  z-index:6001;
+">
+
+  <div style="padding:20px;">
+    <h2 style="color:#00416A;">Firma quien recibe</h2>
+
+    <input id="nombreRecibePaso2" readonly
+      placeholder="Nombre quien recibe"
+      style="width:100%; padding:12px; border-radius:10px; border:1px solid #ccc; margin-top:10px;">
+  </div>
+
+  <canvas id="canvasRecibePaso2"
+    style="
+  flex:1;
+  min-height:300px;
+  max-height:calc(100vh - 220px);
+  border-top:2px solid #ddd;
+  border-bottom:2px solid #ddd;
+  touch-action:none;">
+  </canvas>
+
+  <div style="padding:15px; display:flex; gap:10px;">
+    <button id="btnCancelarPaso2" style="flex:1; background:#ddd; color:#333;">Cancelar</button>
+    <button id="btnLimpiarPaso2" style="flex:1; background:#ddd; color:#333;">Limpiar</button>
+    <button id="btnConfirmarPaso2" style="flex:2;">Confirmar y Enviar</button>
+  </div>
+
 </div>
 
 </body>
