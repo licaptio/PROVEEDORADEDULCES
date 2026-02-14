@@ -592,6 +592,41 @@ document.getElementById("nombreRecibePaso2").value =
 
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
 
+  document.getElementById("busquedaNombre").addEventListener("input", function() {
+
+  const texto = this.value.trim().toLowerCase();
+  const contenedor = document.getElementById("listaResultados");
+  contenedor.innerHTML = "";
+
+  if (!texto) return;
+
+  const filtrados = resultadosBusqueda.filter(p =>
+    p.concepto?.toLowerCase().includes(texto) ||
+    p.codigoBarra?.includes(texto)
+  ).slice(0, 50);
+
+  filtrados.forEach(prod => {
+
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <b>${prod.concepto}</b><br>
+      Código: ${prod.codigoBarra}
+    `;
+
+    div.onclick = () => {
+      seleccionarProducto(prod);
+      agregarItem();
+      renderTabla();
+      localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
+      document.getElementById("modalResultados").style.display = "none";
+    };
+
+    contenedor.appendChild(div);
+  });
+
+});
+
   // cerrar modal buscar nombre
    document.getElementById("cerrarModal").addEventListener("click", () => {
     document.getElementById("modalResultados").style.display = "none";
@@ -768,8 +803,7 @@ async function buscarPorNombre() {
   const productos = await getAllProductos();
   resultadosBusqueda = productos;
 }
-
-
+  
 window.cerrarReimpresion = function() {
   document.getElementById("modalReimpresion").style.display = "none";
 };
