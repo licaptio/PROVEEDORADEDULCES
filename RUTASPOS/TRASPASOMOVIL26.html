@@ -591,6 +591,29 @@ document.getElementById("nombreRecibePaso2").value =
   });
 
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
+  
+  document.getElementById("btnAceptarCantidad").addEventListener("click", () => {
+
+  const nuevaCantidad = parseFloat(document.getElementById("inputCantidadNombre").value);
+
+  if (!nuevaCantidad || nuevaCantidad <= 0) {
+    alert("Cantidad inválida");
+    return;
+  }
+
+  if (indiceEdicionCantidad !== null) {
+    carrito[indiceEdicionCantidad].cantidad = nuevaCantidad;
+    indiceEdicionCantidad = null;
+  } else {
+    window.cantidadManual = nuevaCantidad;
+    agregarItem();
+  }
+
+  renderTabla();
+  localStorage.setItem("carrito_traspaso", JSON.stringify(carrito));
+
+  document.getElementById("modalCantidad").style.display = "none";
+});
 
   document.getElementById("busquedaNombre").addEventListener("input", function() {
 
