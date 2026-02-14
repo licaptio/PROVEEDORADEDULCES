@@ -187,6 +187,7 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
         <th></th>
         <th>Fecha</th>
         <th>Folio</th>
+        <th>Física</th>
         <th>Fotos</th>
         <th style="text-align:right">Total</th>
       </tr>
@@ -426,7 +427,7 @@ function diasTranscurridos(fechaISO){
 
     const { data, error } = await sb
       .from('deuda_limpia_pdd')
-      .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor,fotos')
+      .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor,fotos,factura_fisicamente')
       .eq('rfc_emisor', rfc)
       .eq('factura_pagada','NO')
       .order('fecha',{ascending:true});
@@ -455,6 +456,25 @@ function diasTranscurridos(fechaISO){
       <div class="muted">${fotos.length} archivo(s)</div>
     `
     : `<span class="muted">—</span>`;
+const esFisica = (f.factura_fisicamente || 'NO') === 'SI';
+
+const fisicaHtml = esFisica
+  ? `<span style="
+        background:#E8F5E9;
+        color:#2e7d32;
+        padding:4px 8px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:600;
+      ">SI</span>`
+  : `<span style="
+        background:#FFEBEE;
+        color:#C62828;
+        padding:4px 8px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:600;
+      ">NO</span>`;
 
   tbody.innerHTML += `
     <tr>
@@ -466,6 +486,7 @@ function diasTranscurridos(fechaISO){
         </span>
       </td>
       <td>${escapeHtml((f.serie||'') + ' ' + (f.folio||''))}</td>
+      <td style="text-align:center">${fisicaHtml}</td>
       <td>${fotosHtml}</td>
       <td style="text-align:right" class="monto">${money(totalNum)}</td>
     </tr>
@@ -852,6 +873,7 @@ function actualizarGlobal(){
 
 </body>
 </html>
+
 
 
 
