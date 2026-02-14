@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>PAGOS Y DIFERENCIAS DE TAURO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!--
+REQUISITO EN BD (solo 1 vez):
+alter table public.lista_precios_proveedor
+  add column if not exists descripcion_cfdi text;
+
+(Recomendado)
+create index if not exists idx_lista_tauro_cfdi
+  on public.lista_precios_proveedor (rfc_proveedor, fecha_lista, descripcion_cfdi);
+
+RLS debe permitir:
+- SELECT deuda_limpia_pdd (Tauro pendientes)
+- SELECT lista_precios_proveedor (Tauro por fecha)
+- UPDATE lista_precios_proveedor.descripcion_cfdi
+- INSERT pagos_proveedor
+- UPDATE deuda_limpia_pdd.factura_pagada (marcar SI)
+-->
+
+<style>
+:root{
+  --bg:#f4f6f9; --card:#fff; --line:#eee; --accent:#e67e22; --accent2:#d35400;
+  --ok:#2e7d32; --bad:#c0392b; --muted:#6b7280;
+}
+body{font-family:Arial; padding:20px; background:var(--bg)}
+h2{color:var(--accent2); margin:0 0 14px}
+.card{background:var(--card); padding:15px; border-radius:10px; margin-bottom:14px; box-shadow:0 4px 10px rgba(0,0,0,.08)}
+table{width:100%; border-collapse:collapse; font-size:13.5px}
+th,td{padding:8px; border-bottom:1px solid var(--line); vertical-align:top}
+th{background:#fef3e7; text-align:left}
+.monto{text-align:right; font-weight:700; white-space:nowrap; font-variant-numeric: tabular-nums}
+.ok{color:var(--ok)}
+.diff{color:var(--bad)}
+.no{color:gray}
+small,.small{font-size:12px; color:var(--muted)}
+.row{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end}
+input,select,textarea{padding:8px; border:1px solid #ddd; border-radius:8px; font-family:inherit}
+textarea{width:100%}
+button{padding:8px 12px; border:none; border-radius:8px; cursor:pointer; font-weight:700}
+.btn{background:var(--accent); color:white}
+.btn-outline{background:white; border:1px solid var(--accent); color:var(--accent)}
+.pill{display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; font-weight:700}
+.pill-ok{background:#e8f5e9; color:var(--ok)}
+.pill-no{background:#ffebee; color:var(--bad)}
+hr{border:none; border-top:1px solid var(--line); margin:12px 0}
+.modal{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; z-index:9999; padding:16px}
+.modal-box{background:white; padding:16px; width:860px; max-width:96vw; margin:4% auto; border-radius:12px; box-shadow:0 18px 50px rgba(0,0,0,.22)}
+.actions{display:flex; gap:10px; justify-content:flex-end; margin-top:12px}
+.kpi{font-weight:800}
+kbd{background:#111827; color:#fff; padding:2px 6px; border-radius:6px; font-size:12px}
+</style>
+</head>
+
+<body>
+
+<h2>📊 PAGOS Y DIFERENCIAS DE TAURO</h2>
+
+<div class="card">
+  <div class="row">
+    <div style="min-width:260px; flex:1">
+      <label>Lista de precios (fecha)</label><br>
+      <select id="listaFecha"></select>
+      <div class="small">Selecciona la fecha de lista ANTES de calcular.</div>
+    </div>
+
+    <div style="min-width:180px">
+      <label>IVA</label><br>
+      <input id="ivaRate" type="number" step="0.01" value="0.16">
+      <div class="small">Se usa para convertir CFDI (sin IVA) → (con IVA).</div>
+    </div>
+
+    <div style="min-width:280px; flex:1">
+      <div class="small" id="diag"></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 10px">Facturas pendientes (Tauro)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th></th>
+        <th>Fecha</th>
+        <th>Serie/Folio</th>
+        <th>UUID</th>
+        <th class="monto">Total</th>
+      </tr>
+    </thead>
+    <tbody id="facturasBody"></tbody>
+  </table>
+  <div class="small">Marca facturas para bajar conceptos.</div>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 10px">Detalle artículos (comparativo por fila)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Factura</th>
+        <th>Concepto (CFDI)</th>
+        <th>Cant</th>
+        <th class="monto">Fact U. (sin IVA)</th>
+        <th class="monto">Fact U. (con IVA)</th>
+        <th class="monto">Lista U. (neto)</th>
+        <th class="monto">Dif U.</th>
+        <th class="monto">Dif Total</th>
+        <th class="monto">Desc aplicado</th>
+        <th>Estado</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="articulosBody"></tbody>
+  </table>
+  <div class="small">
+    Descuento se aplica solo si <b>Factura (con IVA) &gt; Lista</b>.
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 10px">Resumen</h3>
+  <div>Subtotal facturas: <span class="kpi" id="subTotal">$0.00</span></div>
+  <div>Descuentos por diferencias: <span class="kpi" id="totalDesc">$0.00</span></div>
+  <div><b>Total a pagar: <span class="kpi" id="totalFinal">$0.00</span></b></div>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 10px">Datos del pago</h3>
+  <div class="row">
+    <div style="min-width:180px">
+      <label>Banco</label><br>
+      <select id="banco">
+        <option>BBVA</option>
+        <option>BANORTE</option>
+        <option>BANREGIO</option>
+        <option>OTRO</option>
+      </select>
+    </div>
+    <div style="min-width:180px">
+      <label>Fecha pago</label><br>
+      <input type="date" id="fechaPago">
+    </div>
+    <div style="min-width:220px">
+      <label>Importe pagado</label><br>
+      <input type="number" step="0.01" id="importePago">
+      <div class="small">Se llena con el total a pagar, editable.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:10px">
+    <label>Comprobante bancario (texto crudo)</label><br>
+    <textarea id="comprobante" rows="5" placeholder="Pega aquí el comprobante..."></textarea>
+  </div>
+
+  <div style="margin-top:10px">
+    <label>Notas</label><br>
+    <textarea id="notas" rows="3"></textarea>
+  </div>
+
+  <div class="actions">
+    <button class="btn" onclick="guardarPago()">💾 Registrar pago</button>
+  </div>
+
+  <div class="small" id="msg"></div>
+</div>
+
+<!-- Modal enlace -->
+<div class="modal" id="modal" onclick="if(event.target.id==='modal') cerrarModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h3 style="margin:0 0 6px">🔗 Enlazar / Editar match</h3>
+    <div class="small">
+      Aquí guardas el enlace en la lista: <code>lista_precios_proveedor.descripcion_cfdi</code> = descripción CFDI exacta. <br>
+      Búsqueda rápida: escribe <kbd>charola</kbd> o <kbd>855</kbd> o <kbd>9h</kbd>.
+    </div>
+
+    <hr>
+
+    <div class="small"><b>Concepto CFDI:</b></div>
+    <div id="conceptoTxt" style="padding:8px;background:#f7f7f7;border-radius:8px;margin:6px 0 12px"></div>
+
+    <div class="row">
+      <div style="flex:1; min-width:420px">
+        <label>Buscar en lista</label><br>
+        <input id="matchSearch" placeholder="Ej: charola / 855 / 9h ..." style="width:100%">
+        <div class="small" id="matchSummary"></div>
+      </div>
+      <div style="min-width:220px">
+        <label>Costo neto (selección)</label><br>
+        <input id="matchCosto" disabled>
+      </div>
+    </div>
+
+    <div style="margin-top:10px">
+      <label>Resultados</label><br>
+      <select id="matchSelect" size="12" style="width:100%"></select>
+      <div class="small">Tip: si ya estaba enlazado, se preselecciona automático.</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-outline" onclick="quitarEnlaceActual()">Quitar enlace</button>
+      <button class="btn-outline" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn" onclick="confirmarMatch()">Guardar enlace</button>
+    </div>
+
+    <div class="small" id="modalMsg"></div>
+  </div>
+</div>
+
+<script>
+/*** CONFIG ***/
+const RFC_TAURO = "BTA010327AD3";
+const NOMBRE_TAURO = "TAURO";
+
+const sb = supabase.createClient(
+  "https://cvpbtjlupswbyxenugpz.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY"
+);
+
+/*** STATE ***/
+let facturas = [];
+let lista = [];
+let listaMapByCFDI = new Map();   // descripcion_cfdi -> row
+let listaMapByDesc = new Map();   // descripcion -> row
+let articulosSeleccionados = [];
+
+let modalConceptoIdx = -1;
+let modalConceptoTxt = "";
+let listaFechaActual = "";
+
+/*** HELPERS ***/
+function money(n){
+  const x = Number(n || 0);
+  return new Intl.NumberFormat("es-MX", { style:"currency", currency:"MXN", minimumFractionDigits:2 }).format(x);
+}
+function hoyISO(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
+function safeJson(v){
+  if (v == null) return [];
+  if (Array.isArray(v)) return v;
+  if (typeof v === "object") return v;
+  if (typeof v === "string"){
+    try { return JSON.parse(v); } catch(e){ return []; }
+  }
+  return [];
+}
+function getIvaRate(){
+  const x = Number(document.getElementById("ivaRate").value || 0.16);
+  return isFinite(x) ? x : 0.16;
+}
+function includesCI(haystack, needle){
+  return String(haystack||"").toLowerCase().includes(String(needle||"").toLowerCase());
+}
+
+// Extrae valor unitario (CFDI)
+function getValorUnitario(con, cantidad){
+  const cand = [
+    con.valor_unitario,
+    con.ValorUnitario,
+    con.valorUnitario
+  ].find(v => v != null && v !== "");
+
+  if (cand != null){
+    const n = Number(cand);
+    return isFinite(n) ? n : 0;
+  }
+
+  // fallback: importe / cantidad
+  const imp = con.importe ?? con.Importe;
+  const impN = Number(imp || 0);
+  const qty = Number(cantidad || 0) || 0;
+
+  if (qty > 0 && isFinite(impN)) return impN / qty;
+  return 0;
+}
+
+function buildListaMaps(rows){
+  listaMapByCFDI = new Map();
+  listaMapByDesc = new Map();
+  (rows||[]).forEach(r=>{
+    if (r.descripcion_cfdi) listaMapByCFDI.set(String(r.descripcion_cfdi), r);
+    if (r.descripcion) listaMapByDesc.set(String(r.descripcion), r);
+  });
+}
+
+function findMatch(textoCFDI){
+  const m1 = listaMapByCFDI.get(String(textoCFDI));
+  if (m1) return m1;
+
+  const m2 = listaMapByDesc.get(String(textoCFDI));
+  if (m2) return m2;
+
+  return null;
+}
+
+/*** DIAGNOSTICO ***/
+async function diagnostico(){
+  const diag = document.getElementById("diag");
+  diag.textContent = "Diagnóstico RLS...";
+  const tests = [
+    sb.from("deuda_limpia_pdd").select("id").limit(1),
+    sb.from("lista_precios_proveedor").select("id").limit(1),
+    sb.from("pagos_proveedor").select("id").limit(1),
+  ];
+  const res = await Promise.all(tests);
+  const ok = res.map(r => !r.error);
+  if (ok.every(Boolean)) {
+    diag.innerHTML = `<span class="pill pill-ok">RLS OK (SELECT)</span> <span class="small">Si falla UPDATE/INSERT te lo dirá al guardar.</span>`;
+  } else {
+    const errs = res.map((r,i)=> r.error ? `T${i+1}: ${r.error.message}` : null).filter(Boolean).join(" | ");
+    diag.innerHTML = `<span class="pill pill-no">RLS BLOQUEA</span> <span class="small">${errs}</span>`;
+  }
+}
+
+/*** LOADERS ***/
+async function cargarListas(){
+  const sel = document.getElementById("listaFecha");
+  sel.innerHTML = `<option value="">Seleccione</option>`;
+
+  const { data, error } = await sb
+    .from("lista_precios_proveedor")
+    .select("fecha_lista")
+    .eq("rfc_proveedor", RFC_TAURO)
+    .order("fecha_lista", { ascending:false });
+
+  if (error){ console.error(error); alert(error.message); return; }
+
+  const fechas = [...new Set((data||[]).map(x => x.fecha_lista))];
+  fechas.forEach(f => sel.innerHTML += `<option value="${f}">${f}</option>`);
+
+  sel.onchange = async ()=>{
+    listaFechaActual = sel.value || "";
+    await recalcular();
+  };
+}
+
+async function cargarFacturas(){
+  const { data, error } = await sb
+    .from("deuda_limpia_pdd")
+    .select("id,uuid_cfdi,fecha,total,serie,folio,conceptos_detalle")
+    .eq("rfc_emisor", RFC_TAURO)
+    .eq("factura_pagada", "NO")
+    .order("fecha", { ascending:true });
+
+  if (error){ console.error(error); alert(error.message); return; }
+
+  facturas = data || [];
+  const body = document.getElementById("facturasBody");
+  body.innerHTML = "";
+
+  facturas.forEach(f=>{
+    const uuid = String(f.uuid_cfdi||"");
+    body.innerHTML += `
+      <tr>
+        <td><input type="checkbox" data-id="${f.id}" onchange="recalcular()"></td>
+        <td>${String(f.fecha||"").substring(0,10)}</td>
+        <td>${(f.serie||"")+" "+(f.folio||"")}</td>
+        <td style="font-size:12px">${uuid.slice(0,8)}…</td>
+        <td class="monto">${money(f.total)}</td>
+      </tr>
+    `;
+  });
+}
+
+async function cargarListaSeleccionada(){
+  const fecha = document.getElementById("listaFecha").value;
+  listaFechaActual = fecha || "";
+  if(!fecha){ lista = []; buildListaMaps([]); return; }
+
+  const { data, error } = await sb
+    .from("lista_precios_proveedor")
+    .select("id,descripcion,descripcion_cfdi,costo_neto")
+    .eq("rfc_proveedor", RFC_TAURO)
+    .eq("fecha_lista", fecha);
+
+  if (error){ console.error(error); alert(error.message); return; }
+
+  lista = data || [];
+  buildListaMaps(lista);
+}
+
+/*** BUILD ARTICULOS ***/
+function construirArticulosSeleccionados(){
+  const checks = [...document.querySelectorAll("#facturasBody input[type=checkbox]:checked")];
+  articulosSeleccionados = [];
+  let subTotal = 0;
+
+  checks.forEach(cb=>{
+    const f = facturas.find(x => String(x.id) === String(cb.dataset.id));
+    if(!f) return;
+
+    subTotal += Number(f.total || 0);
+
+    const conceptos = safeJson(f.conceptos_detalle);
+    conceptos.forEach(con=>{
+      const descripcion = String(con.descripcion ?? con.Descripcion ?? "").trim();
+      const cantidad = Number(con.cantidad ?? con.Cantidad ?? 0);
+      const qty = isFinite(cantidad) ? cantidad : 0;
+
+      const vu = getValorUnitario(con, qty);
+
+      articulosSeleccionados.push({
+        deuda_id: f.id,
+        uuid_cfdi: f.uuid_cfdi,
+        serie: f.serie,
+        folio: f.folio,
+        fecha: f.fecha,
+        total_factura: Number(f.total || 0),
+
+        concepto_cfdi: descripcion,       // exacto
+        cantidad: qty,
+        valor_unitario_sin_iva: vu        // CFDI (normalmente sin IVA)
+      });
+    });
+  });
+
+  return subTotal;
+}
+
+/*** RECALC ***/
+async function recalcular(){
+  await cargarListaSeleccionada();
+
+  const body = document.getElementById("articulosBody");
+  body.innerHTML = "";
+  document.getElementById("msg").textContent = "";
+
+  const fechaLista = document.getElementById("listaFecha").value;
+  const iva = getIvaRate();
+
+  const haySeleccion = document.querySelectorAll("#facturasBody input[type=checkbox]:checked").length > 0;
+  if (!haySeleccion){
+    document.getElementById("subTotal").innerText = money(0);
+    document.getElementById("totalDesc").innerText = money(0);
+    document.getElementById("totalFinal").innerText = money(0);
+    document.getElementById("importePago").value = "0.00";
+    return;
+  }
+
+  if (haySeleccion && !fechaLista){
+    body.innerHTML = `<tr><td colspan="11"><span class="pill pill-no">Selecciona la fecha de lista primero</span></td></tr>`;
+    document.getElementById("subTotal").innerText = money(0);
+    document.getElementById("totalDesc").innerText = money(0);
+    document.getElementById("totalFinal").innerText = money(0);
+    document.getElementById("importePago").value = "0.00";
+    return;
+  }
+
+  const subTotal = construirArticulosSeleccionados();
+  let totalDescuentos = 0;
+
+  articulosSeleccionados.forEach((a, idx)=>{
+    const match = findMatch(a.concepto_cfdi);
+
+    const factSin = Number(a.valor_unitario_sin_iva || 0);
+    const factCon = factSin * (1 + iva);
+
+    let estado = "no";
+    let listaUnit = 0;
+    let difUnit = 0;
+    let difTotal = 0;
+    let descAplicado = 0;
+
+    if (match){
+      listaUnit = Number(match.costo_neto || 0);
+      difUnit = factCon - listaUnit;
+      difTotal = difUnit * Number(a.cantidad || 0);
+
+      if (difTotal > 0) descAplicado = difTotal;
+      totalDescuentos += descAplicado;
+
+      estado = (difUnit === 0) ? "ok" : (difUnit > 0 ? "diff" : "ok");
+    }
+
+    const estadoTxt = estado==="ok" ? "OK" : estado==="diff" ? "Diferencia" : "Sin enlace";
+
+    body.innerHTML += `
+      <tr>
+        <td style="font-size:12px">${String(a.uuid_cfdi||"").slice(0,8)}…</td>
+        <td>${a.concepto_cfdi}</td>
+        <td>${a.cantidad}</td>
+
+        <td class="monto">${money(factSin)}</td>
+        <td class="monto">${money(factCon)}</td>
+        <td class="monto">${match ? money(listaUnit) : "-"}</td>
+        <td class="monto">${match ? money(difUnit) : "-"}</td>
+        <td class="monto">${match ? money(difTotal) : "-"}</td>
+        <td class="monto">${match ? money(descAplicado) : "-"}</td>
+
+        <td class="${estado}">${estadoTxt}</td>
+
+        <td>
+          <button class="btn-outline" onclick="abrirModal(${idx})">
+            ${match ? "✏️" : "🔗"}
+          </button>
+        </td>
+      </tr>
+    `;
+
+    // evidencia para auditoría (se guarda en pagos_proveedor.facturas_info)
+    a._match = match ? {
+      lista_id: match.id,
+      lista_descripcion: match.descripcion,
+      lista_descripcion_cfdi: match.descripcion_cfdi || null,
+      lista_unit_neto: listaUnit
+    } : null;
+
+    a._calc = {
+      iva_rate: iva,
+      fact_unit_sin_iva: factSin,
+      fact_unit_con_iva: factCon,
+      dif_unit: difUnit,
+      dif_total: difTotal,
+      descuento_aplicado: descAplicado
+    };
+  });
+
+  const totalFinal = subTotal - totalDescuentos;
+
+  document.getElementById("subTotal").innerText = money(subTotal);
+  document.getElementById("totalDesc").innerText = money(totalDescuentos);
+  document.getElementById("totalFinal").innerText = money(totalFinal);
+
+  document.getElementById("importePago").value = (isFinite(totalFinal) ? totalFinal : 0).toFixed(2);
+}
+
+/*** MODAL: search + resumen + preselect + edit ***/
+function renderMatchOptions(filterText){
+  const sel = document.getElementById("matchSelect");
+  const summary = document.getElementById("matchSummary");
+  const q = String(filterText||"").trim();
+
+  const filtered = !q
+    ? lista
+    : lista.filter(r => includesCI(r.descripcion, q) || includesCI(r.descripcion_cfdi, q));
+
+  // resumen: count + min/max
+  let min = null, max = null, sum = 0;
+  filtered.forEach(r=>{
+    const c = Number(r.costo_neto||0);
+    if (min === null || c < min) min = c;
+    if (max === null || c > max) max = c;
+    sum += c;
+  });
+
+  summary.textContent = `Mostrando ${filtered.length} de ${lista.length}. ` +
+    (filtered.length ? `Min ${money(min)} · Max ${money(max)} · Prom ${money(sum/filtered.length)}` : "");
+
+  sel.innerHTML = "";
+  filtered.slice(0, 500).forEach(r=>{
+    const label = `${r.descripcion}  —  ${money(r.costo_neto)}${r.descripcion_cfdi ? "  (ya enlazado)" : ""}`;
+    sel.innerHTML += `<option value="${r.id}">${label}</option>`;
+  });
+
+  // refrescar costo
+  sel.dispatchEvent(new Event("change"));
+}
+
+function abrirModal(idx){
+  if(!listaFechaActual){
+    alert("Selecciona la fecha de lista primero.");
+    return;
+  }
+  const a = articulosSeleccionados[idx];
+  if(!a) return;
+
+  modalConceptoIdx = idx;
+  modalConceptoTxt = a.concepto_cfdi;
+
+  document.getElementById("conceptoTxt").textContent = modalConceptoTxt;
+  document.getElementById("modalMsg").textContent = "";
+
+  // input search
+  const inp = document.getElementById("matchSearch");
+  inp.value = "";
+  inp.oninput = ()=> renderMatchOptions(inp.value);
+
+  const sel = document.getElementById("matchSelect");
+  sel.onchange = ()=>{
+    const chosen = lista.find(x=>String(x.id)===String(sel.value));
+    document.getElementById("matchCosto").value = chosen ? money(chosen.costo_neto) : "";
+  };
+
+  // render options (sin filtro)
+  renderMatchOptions("");
+
+  // si ya tiene enlace, preselecciona
+  const actual = lista.find(l => l.descripcion_cfdi === modalConceptoTxt);
+  if(actual){
+    // si no está en los primeros 500, metemos un filtro rápido por su descripcion para que aparezca
+    const inFirst = Array.from(sel.options).some(o => String(o.value) === String(actual.id));
+    if(!inFirst){
+      inp.value = String(actual.descripcion || "");
+      renderMatchOptions(inp.value);
+    }
+    sel.value = actual.id;
+    sel.dispatchEvent(new Event("change"));
+  }
+
+  document.getElementById("modal").style.display = "block";
+}
+
+function cerrarModal(){
+  document.getElementById("modal").style.display = "none";
+  modalConceptoIdx = -1;
+  modalConceptoTxt = "";
+}
+
+async function quitarEnlaceActual(){
+  if(!modalConceptoTxt){
+    alert("No hay concepto activo.");
+    return;
+  }
+  const modalMsg = document.getElementById("modalMsg");
+  const old = lista.find(l => l.descripcion_cfdi === modalConceptoTxt);
+  if(!old){
+    modalMsg.textContent = "No existe enlace que quitar.";
+    return;
+  }
+  if(!confirm("¿Quitar el enlace actual de este concepto?")) return;
+
+  modalMsg.textContent = "Quitando enlace...";
+  const { error } = await sb
+    .from("lista_precios_proveedor")
+    .update({ descripcion_cfdi: null })
+    .eq("id", old.id);
+
+  if(error){
+    alert(error.message);
+    modalMsg.textContent = "";
+    return;
+  }
+  cerrarModal();
+  await recalcular();
+}
+
+// ✅ EDITAR: limpia el viejo y pone el nuevo
+async function confirmarMatch(){
+  const sel = document.getElementById("matchSelect");
+  const newId = sel.value;
+  const modalMsg = document.getElementById("modalMsg");
+
+  if(!newId || !modalConceptoTxt){
+    alert("Selecciona artículo.");
+    return;
+  }
+
+  const chosen = lista.find(x=>String(x.id)===String(newId));
+  if(chosen && chosen.descripcion_cfdi && chosen.descripcion_cfdi !== modalConceptoTxt){
+    const ok = confirm(
+      "Ese renglón de lista YA está enlazado a otro CFDI.\n\n" +
+      "Actual: " + chosen.descripcion_cfdi + "\n\n" +
+      "¿Reemplazarlo por este concepto?"
+    );
+    if(!ok) return;
+  }
+
+  modalMsg.textContent = "Guardando enlace...";
+
+  // 1) quitar enlace viejo (si existe y es distinto)
+  const old = lista.find(l => l.descripcion_cfdi === modalConceptoTxt);
+  if(old && String(old.id) !== String(newId)){
+    const { error: eOld } = await sb
+      .from("lista_precios_proveedor")
+      .update({ descripcion_cfdi: null })
+      .eq("id", old.id);
+    if(eOld){
+      alert(eOld.message);
+      modalMsg.textContent = "";
+      return;
+    }
+  }
+
+  // 2) asignar nuevo enlace
+  const { error } = await sb
+    .from("lista_precios_proveedor")
+    .update({ descripcion_cfdi: modalConceptoTxt })
+    .eq("id", newId);
+
+  if(error){
+    alert(
+      "No se pudo guardar el enlace.\n\n" +
+      error.message +
+      "\n\nAsegúrate de tener la columna:\n" +
+      "alter table lista_precios_proveedor add column if not exists descripcion_cfdi text;"
+    );
+    modalMsg.textContent = "";
+    return;
+  }
+
+  cerrarModal();
+  await recalcular();
+}
+
+/*** SAVE PAGO ***/
+function setFechaHoy(){
+  document.getElementById("fechaPago").value = hoyISO();
+}
+
+async function guardarPago(){
+  const msg = document.getElementById("msg");
+  msg.textContent = "";
+
+  const fechaLista = document.getElementById("listaFecha").value;
+  if(!fechaLista){ alert("Seleccione lista de precios (fecha)"); return; }
+
+  const seleccionadas = [...document.querySelectorAll("#facturasBody input[type=checkbox]:checked")].map(x=>String(x.dataset.id));
+  if(!seleccionadas.length){ alert("Seleccione al menos una factura"); return; }
+
+  // Si queda algún sin enlace, no deja pagar
+  if(document.querySelectorAll("#articulosBody .no").length > 0){
+    alert("Hay conceptos sin enlace. Usa 🔗 para enlazar.");
+    return;
+  }
+
+  const banco = document.getElementById("banco").value;
+  const fechaPago = document.getElementById("fechaPago").value;
+  const comprobante = (document.getElementById("comprobante").value || "").trim();
+  const notas = document.getElementById("notas").value || "";
+
+  if(!fechaPago || !comprobante){
+    alert("Fecha de pago y comprobante son obligatorios.");
+    return;
+  }
+
+  // Recalcula para asegurar que _calc esté actualizado
+  await recalcular();
+
+  // Agrupar por factura
+  const byFactura = new Map();
+  articulosSeleccionados.forEach(a=>{
+    const k = String(a.deuda_id);
+    if(!byFactura.has(k)){
+      byFactura.set(k, {
+        deuda_id: a.deuda_id,
+        uuid_cfdi: a.uuid_cfdi,
+        serie: a.serie,
+        folio: a.folio,
+        fecha: a.fecha,
+        total_factura: a.total_factura,
+        items: [],
+        descuento_factura: 0
+      });
+    }
+    const pack = byFactura.get(k);
+    pack.items.push({
+      concepto_cfdi: a.concepto_cfdi,
+      cantidad: a.cantidad,
+      lista: a._match,
+      calc: a._calc
+    });
+    pack.descuento_factura += Number(a._calc?.descuento_aplicado || 0);
+  });
+
+  const facturasInfo = [...byFactura.values()];
+
+  const subtotalFacturas = facturasInfo.reduce((s,f)=> s + Number(f.total_factura||0), 0);
+  const totalDescuentos = facturasInfo.reduce((s,f)=> s + Number(f.descuento_factura||0), 0);
+  const totalPagar = subtotalFacturas - totalDescuentos;
+
+  const importePagado = Number(document.getElementById("importePago").value || totalPagar);
+
+  const ajustes = [
+    { tipo:"LISTA_TAURO_USADA", fecha_lista: fechaLista },
+    { tipo:"IVA_RATE", iva_rate: getIvaRate() },
+    { tipo:"DIFERENCIAS", total_descuentos: Number(totalDescuentos.toFixed(2)) }
+  ];
+
+  msg.textContent = "Guardando pago...";
+
+  const { error: e1 } = await sb.from("pagos_proveedor").insert({
+    rfc_emisor: RFC_TAURO,
+    proveedor_nombre: NOMBRE_TAURO,
+    banco,
+    fecha_pago: fechaPago,
+
+    total_facturas: Number(subtotalFacturas.toFixed(2)),
+    total_ajustes: Number(totalDescuentos.toFixed(2)),   // positivo = descuentos
+    importe_pagado: Number(importePagado.toFixed(2)),
+
+    facturas_info: facturasInfo,
+    ajustes,
+    comprobante_raw: comprobante,
+    notas
+  });
+
+  if(e1){
+    console.error(e1);
+    alert("Error al guardar pago:\n" + e1.message);
+    msg.textContent = "";
+    return;
+  }
+
+  msg.textContent = "Pago guardado. Marcando facturas como pagadas...";
+
+  const { error: e2 } = await sb
+    .from("deuda_limpia_pdd")
+    .update({ factura_pagada: "SI" })
+    .in("id", seleccionadas);
+
+  if(e2){
+    console.error(e2);
+    alert("Pago guardado, pero NO se pudieron marcar facturas como pagadas:\n" + e2.message);
+    msg.textContent = "⚠ Pago guardado, faltó marcar facturas pagadas.";
+    return;
+  }
+
+  msg.textContent = "✅ Pago guardado y facturas marcadas como pagadas.";
+  setTimeout(()=> location.reload(), 900);
+}
+
+/*** INIT ***/
+(async function init(){
+  setFechaHoy();
+  await diagnostico();
+  await cargarListas();
+  await cargarFacturas();
+})();
+</script>
+
+</body>
+</html>
