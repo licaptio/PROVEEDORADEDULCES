@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Inventario Real – Almacén Cigarro</title>
+
+<style>
+  :root{ --b:#00416A; --bg:#f4f4f4; --line:#ddd; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:var(--bg);
+    padding:12px;
+    box-sizing:border-box;
+  }
+  h2{
+    margin:6px 0 12px;
+    color:var(--b);
+    text-align:center;
+    font-size:18px;
+    font-weight:700;
+  }
+  .wrap{ width:100%; overflow:auto; -webkit-overflow-scrolling:touch; background:#fff; border:1px solid var(--line); }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:#fff;
+    font-size:12px;
+    table-layout:fixed;
+  }
+  th,td{
+    border-bottom:1px solid var(--line);
+    padding:8px 6px;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  th{
+    position:sticky; top:0;
+    background:var(--b);
+    color:#fff;
+    z-index:2;
+    font-weight:700;
+  }
+  td.desc{ text-align:left; }
+  tr.marca-row td{
+    background:#d9e7f5;
+    font-weight:800;
+    text-align:left;
+  }
+  .pos{ color:#0a7a0a; font-weight:800; }
+  .neg{ color:#c01616; font-weight:800; }
+
+  input[type=number]{
+    width:82px;
+    padding:6px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    font-size:12px;
+    box-sizing:border-box;
+  }
+  .actions{ text-align:center; padding:12px 0 0; }
+  button{
+    background:var(--b);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  button:active{ transform:translateY(1px); }
+
+  /* toast ultra-light (evita alert que a veces "traba" en Android) */
+  #toast{
+    position:fixed; left:50%; bottom:14px; transform:translateX(-50%);
+    background:#111; color:#fff; padding:10px 12px; border-radius:10px;
+    font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s ease;
+    z-index:9999;
+  }
+  #toast.show{ opacity:.92; }
+</style>
+</head>
+
+<body>
+<h2>Inventario Real – Almacén Cigarro</h2>
+
+<div class="wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:92px">Código</th>
+        <th>Descripción</th>
+        <th style="width:66px">Inicial</th>
+        <th style="width:66px">Entr.</th>
+        <th style="width:66px">Sal.</th>
+        <th style="width:70px">Actual</th>
+        <th style="width:110px">Real</th>
+      </tr>
+    </thead>
+    <tbody id="tablaInventario">
+      <tr><td colspan="7">Cargando…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="actions">
+  <button id="btnGuardar">Guardar ajustes</button>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, onSnapshot,
+  doc, writeBatch, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const $t = document.getElementById("tablaInventario");
+const $btn = document.getElementById("btnGuardar");
+const $toast = document.getElementById("toast");
+
+const norm = c => (c ?? "").toString().trim().padStart(12,"0");
+const esc  = s => (s ?? "").toString().replace(/[&<>"']/g, m => (
+  m==="&"?"&amp;":m==="<"?"&lt;":m===">"?"&gt;":m==='"'?"&quot;":"&#39;"
+));
+
+let productos = {};   // {codigo: {desc, marca}}
+let entradas  = {};   // {codigo: total}
+let salidas   = {};   // {codigo: total}
+let iniciales = {};   // {codigo: existencia}
+let productosListos = false;
+
+let drawQueued = false;
+function scheduleDraw(){
+  if(!productosListos) return;
+  if(drawQueued) return;
+  drawQueued = true;
+  requestAnimationFrame(() => {
+    drawQueued = false;
+    dibujar();
+  });
+}
+
+function toast(msg){
+  $toast.textContent = msg;
+  $toast.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=> $toast.classList.remove("show"), 1400);
+}
+
+// ====== PRODUCTOS (solo 1 carga) ======
+(async function cargarProductos(){
+  const snap = await getDocs(collection(db,"productos"));
+  const tmp = {};
+  snap.forEach(d=>{
+    const x = d.data();
+    if(x.activo !== true) return;
+    if(x.departamento !== "CIGARROS") return;
+
+    const codigo = norm(x.codigoBarra || x.productoId);
+    tmp[codigo] = {
+      desc: x.descripcion || x.concepto || "-",
+      marca: x.marca || "SIN MARCA"
+    };
+  });
+  productos = tmp;
+  productosListos = true;
+  scheduleDraw();
+})().catch(()=> {
+  $t.innerHTML = `<tr><td colspan="7">Error cargando productos</td></tr>`;
+});
+
+// ====== ENTRADAS ======
+onSnapshot(collection(db,"almacenes/almacen_cigarro/entradas"), snap=>{
+  const tmp = {};
+  snap.forEach(d=>{
+    const items = d.data().items || [];
+    for(const it of items){
+      const c = norm(it.productoId || it.codigo);
+      tmp[c] = (tmp[c] || 0) + Number(it.cantidadTotal || 0);
+    }
+  });
+  entradas = tmp;
+  scheduleDraw();
+});
+
+// ====== SALIDAS ======
+onSnapshot(collection(db,"almacenes/almacen_cigarro/salidas1.0"), snap=>{
+  const tmp = {};
+  snap.forEach(d=>{
+    const items = d.data().productos || [];
+    for(const it of items){
+      const c = norm(it.codigo);
+      tmp[c] = (tmp[c] || 0) + Number(it.cantidad || 0);
+    }
+  });
+  salidas = tmp;
+  scheduleDraw();
+});
+
+// ====== INVENTARIO BASE ======
+onSnapshot(collection(db,"almacenes/almacen_cigarro/inventario_base"), snap=>{
+  const tmp = {};
+  snap.forEach(d=>{
+    tmp[norm(d.id)] = Number(d.data().existencia || 0);
+  });
+  iniciales = tmp;
+  scheduleDraw();
+});
+
+// ====== DIBUJAR (light) ======
+function dibujar(){
+  // Itera SOLO productos (evita sets enormes)
+  const grupos = Object.create(null);
+
+  for(const c in productos){
+    const p = productos[c];
+    const ini = iniciales[c] || 0;
+    const ent = entradas[c]  || 0;
+    const sal = salidas[c]   || 0;
+    const act = ini + ent - sal;
+
+    const m = p.marca || "SIN MARCA";
+    (grupos[m] ||= []).push({ c, desc:p.desc, ini, ent, sal, act });
+  }
+
+  const marcas = Object.keys(grupos).sort((a,b)=>a.localeCompare(b,"es"));
+  const rows = [];
+
+  for(const m of marcas){
+    rows.push(`<tr class="marca-row"><td colspan="7">${esc(m)}</td></tr>`);
+
+    // opcional: orden por descripción (si te pesa, quítalo)
+    grupos[m].sort((x,y)=> (x.desc||"").localeCompare(y.desc||"","es"));
+
+    for(const i of grupos[m]){
+      const cls = i.act < 0 ? "neg" : "pos";
+      rows.push(`
+        <tr>
+          <td>${esc(i.c)}</td>
+          <td class="desc">${esc(i.desc)}</td>
+          <td>${i.ini}</td>
+          <td>${i.ent}</td>
+          <td>${i.sal}</td>
+          <td class="${cls}">${i.act}</td>
+          <td><input inputmode="numeric" type="number" id="real_${esc(i.c)}" placeholder="${i.act}"></td>
+        </tr>
+      `);
+    }
+  }
+
+  $t.innerHTML = rows.length ? rows.join("") : `<tr><td colspan="7">Sin datos</td></tr>`;
+}
+
+// ====== GUARDAR AJUSTES (batch) ======
+$btn.addEventListener("click", async ()=>{
+  const inputs = document.querySelectorAll("input[id^='real_']");
+  const batch = writeBatch(db);
+  let total = 0;
+
+  for(const inp of inputs){
+    if(inp.value === "") continue;
+
+    const c = inp.id.slice(5);
+    const fisico = Number(inp.value);
+    if(!Number.isFinite(fisico)) continue;
+
+    const ent = entradas[c] || 0;
+    const sal = salidas[c]  || 0;
+
+    // Nuevo inventario base para que "Actual" quede = físico
+    const nuevoInicial = fisico - ent + sal;
+
+    batch.set(
+      doc(db,"almacenes/almacen_cigarro/inventario_base", c),
+      {
+        existencia: nuevoInicial,
+        actualizadoEn: serverTimestamp(),
+        motivo: "AJUSTE_MANUAL"
+      },
+      { merge:true }
+    );
+
+    total++;
+  }
+
+  if(total === 0){ toast("No se realizaron ajustes"); return; }
+
+  try{
+    $btn.disabled = true;
+    await batch.commit();
+    toast("Ajustes aplicados");
+    // opcional: limpia inputs capturados
+    inputs.forEach(i=>{ if(i.value!=="") i.value=""; });
+  }catch(e){
+    toast("Error al guardar");
+  }finally{
+    $btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
