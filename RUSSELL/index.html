@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PROVSOFT Monitor</title>
+
+<style>
+body{
+  margin:0;
+  background:#000;
+  overflow:hidden;
+  font-family:Arial;
+}
+
+#container{
+  display:flex;
+  width:500%;
+  height:100vh;
+  transition: transform 0.6s ease;
+}
+
+iframe{
+  width:100vw;
+  height:100vh;
+  border:none;
+}
+
+.controls{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  z-index:1000;
+}
+
+button{
+  padding:10px 15px;
+  font-size:20px;
+  margin-left:5px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div id="container">
+  <iframe src="VCigarro.html"></iframe>
+  <iframe src="VDulce.html"></iframe>
+  <iframe src="VLiquidos.html"></iframe>
+  <iframe src="VZapata.html"></iframe>
+  <iframe src="kardex.html"></iframe>
+</div>
+
+<div class="controls">
+  <button onclick="prev()">⬅</button>
+  <button onclick="next()">➡</button>
+</div>
+
+<script>
+let index = 0;
+const total = 5;
+const container = document.getElementById("container");
+let autoRotate;
+
+function update(){
+  container.style.transform = `translateX(-${index * 100}vw)`;
+}
+
+function next(){
+  index = (index + 1) % total;
+  update();
+  resetTimer();
+}
+
+function prev(){
+  index = (index - 1 + total) % total;
+  update();
+  resetTimer();
+}
+
+function startAutoRotate(){
+  autoRotate = setInterval(() => {
+    index = (index + 1) % total;
+    update();
+  }, 120000); // 2 minutos
+}
+
+function resetTimer(){
+  clearInterval(autoRotate);
+  startAutoRotate();
+}
+
+startAutoRotate();
+update();
+</script>
+
+</body>
+</html>

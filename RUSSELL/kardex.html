@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Kardex</title>
+
+<style>
+:root{
+  --color:#ff6b00;
+  --gris:#f4f6f9;
+}
+
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:var(--gris);
+}
+
+header{
+  background:var(--color);
+  color:white;
+  padding:20px;
+  font-size:22px;
+  font-weight:bold;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+button{
+  background:white;
+  color:var(--color);
+  border:none;
+  padding:8px 14px;
+  border-radius:6px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.container{ padding:25px; }
+
+.card{
+  background:white;
+  border-left:6px solid var(--color);
+  border-radius:8px;
+  padding:15px;
+  margin-bottom:20px;
+  box-shadow:0 3px 8px rgba(0,0,0,.08);
+}
+
+.detalle{
+  margin-top:15px;
+  background:#fff3e6;
+  padding:10px;
+  border-radius:6px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+
+th{
+  background:var(--color);
+  color:white;
+  padding:8px;
+}
+
+td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+}
+
+.firmas{
+  display:flex;
+  gap:30px;
+  margin-top:15px;
+  flex-wrap:wrap;
+}
+
+.firmas img{
+  max-width:280px;
+  border:1px solid #ddd;
+  border-radius:6px;
+  padding:6px;
+  background:white;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <span id="titulo">KARDEX</span>
+  <button onclick="history.back()">Regresar</button>
+</header>
+
+<div class="container">
+  <div id="lista"></div>
+</div>
+
+<script type="module">
+
+import { db } from "./firebase-config.js";
+import { collection, query, where, onSnapshot }
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const lista = document.getElementById("lista");
+const titulo = document.getElementById("titulo");
+
+const params = new URLSearchParams(window.location.search);
+const almacen = params.get("almacen") || "Almacen_Liquidos";
+const folio = params.get("folio");
+
+// 🔎 Mapeo de colecciones
+const MAP = {
+  "Almacen_Liquidos": "salidas",
+  "Almacen_Dulces": "salidas",
+  "almacen_cigarro": "salidas1.0",
+  "almacen_zapata": "salidas1.0"
+};
+
+if(!MAP[almacen]){
+  lista.innerHTML = "<b>Almacén no configurado.</b>";
+  throw new Error("Almacén inválido");
+}
+
+const coleccion = MAP[almacen];
+
+titulo.textContent =
+  "KARDEX - " + almacen.replaceAll("_"," ").toUpperCase();
+
+const q = query(
+  collection(db,"almacenes",almacen,coleccion),
+  where("folio","==",folio)
+);
+
+onSnapshot(q,(snapshot)=>{
+
+  lista.innerHTML = "";
+
+  if(snapshot.empty){
+    lista.innerHTML = "<b>No se encontró información.</b>";
+    return;
+  }
+
+  snapshot.forEach(doc=>{
+
+    const data = doc.data();
+
+    // 🔥 MULTI SOPORTE
+    const items = data.productos || data.articulos || [];
+
+    const total = items.reduce((a,p)=>a+(p.cantidad||0),0);
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <b>Folio:</b> ${data.folio || "-"}<br>
+      ${data.folioCincho ? `<b>Folio Cincho:</b> ${data.folioCincho}<br>` : ""}
+      <b>Destino:</b> ${data.destino || "-"}<br>
+      <b>Entrega:</b> ${data.entrega || "-"}<br>
+      <b>Recibe:</b> ${data.recibe || "-"}<br>
+      <b>Fecha:</b> ${data.fecha || "-"}
+
+      <div class="firmas">
+        ${data.firmaEntrega ? `
+          <div>
+            <b>Firma Entrega:</b><br>
+            <img src="${data.firmaEntrega}">
+          </div>
+        ` : ""}
+
+        ${data.firmaRecibe ? `
+          <div>
+            <b>Firma Recibe:</b><br>
+            <img src="${data.firmaRecibe}">
+          </div>
+        ` : ""}
+      </div>
+
+      <div class="detalle">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descripción</th>
+              <th>Cant.</th>
+              <th>Unidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(p=>`
+              <tr>
+                <td>${p.codigo||""}</td>
+                <td>${p.descripcion || p.nombre || ""}</td>
+                <td>${p.cantidad||0}</td>
+                <td>${p.unidad||""}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+        <div><b>Total piezas:</b> ${total}</div>
+      </div>
+    `;
+
+    lista.appendChild(card);
+
+  });
+
+});
+</script>
+
+</body>
+</html>
