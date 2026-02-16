@@ -3,72 +3,102 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel Financiero</title>
+<title>PROVSOFT - Panel Acciones</title>
 
 <style>
 body{
   margin:0;
-  background:#0b0f19;
-  font-family:Arial;
-  color:white;
-  padding:10px;
+  background:#f5f7fa;
+  font-family:Arial, sans-serif;
+  color:#222;
+  padding:20px;
 }
 
-h2{
+h1{
   text-align:center;
-  margin-bottom:15px;
+  margin-bottom:30px;
+  color:#ff6b00;
+  font-weight:700;
 }
 
 .grid{
   display:grid;
-  grid-template-columns: 1fr;
-  gap:12px;
+  gap:15px;
 }
 
 .card{
-  background:#111827;
-  padding:12px;
-  border-radius:8px;
+  background:white;
+  padding:18px;
+  border-radius:14px;
+  cursor:pointer;
+  transition:0.25s ease;
+  border-left:6px solid #ff6b00;
+  box-shadow:0 4px 10px rgba(0,0,0,0.08);
+  font-size:18px;
+  font-weight:600;
 }
+
+.card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 8px 20px rgba(255,107,0,0.25);
+  background:#fff8f2;
+}
+
 </style>
 </head>
 <body>
 
-<h2>Panel Acciones</h2>
+<h1>Panel de Acciones</h1>
 
 <div class="grid">
 
-<div class="card">
-<iframe src="https://s.tradingview.com/widgetembed/?symbol=BMV:AC&theme=dark" 
-style="width:100%; height:120px;" frameborder="0"></iframe>
+<div class="card" onclick="abrir('https://finance.yahoo.com/quote/AC.MX')">
+ARCA CONTINENTAL (AC)
 </div>
 
-<div class="card">
-<iframe src="https://s.tradingview.com/widgetembed/?symbol=NASDAQ:AMZN&theme=dark" 
-style="width:100%; height:120px;" frameborder="0"></iframe>
+<div class="card" onclick="abrir('https://finance.yahoo.com/quote/AMZN')">
+AMAZON (AMZN)
 </div>
 
-<div class="card">
-<iframe src="https://s.tradingview.com/widgetembed/?symbol=BMV:FEMSAUBD&theme=dark" 
-style="width:100%; height:120px;" frameborder="0"></iframe>
+<div class="card" onclick="abrir('https://finance.yahoo.com/quote/FEMSAUBD.MX')">
+FEMSA UBD
 </div>
 
-<div class="card">
-<iframe src="https://s.tradingview.com/widgetembed/?symbol=BMV:GFNORTEO&theme=dark" 
-style="width:100%; height:120px;" frameborder="0"></iframe>
+<div class="card" onclick="abrir('https://finance.yahoo.com/quote/GFNORTEO.MX')">
+GFNORTE O
 </div>
 
-<div class="card">
-<iframe src="https://s.tradingview.com/widgetembed/?symbol=BMV:LIVEPOLC1&theme=dark" 
-style="width:100%; height:120px;" frameborder="0"></iframe>
+<div class="card" onclick="abrir('https://finance.yahoo.com/quote/LIVEPOLC-1.MX')">
+LIVEPOL C-1
 </div>
 
-<div class="card">
-<iframe src="https://s.tradingview.com/widgetembed/?symbol=BMV:NAFTRAC&theme=dark" 
-style="width:100%; height:120px;" frameborder="0"></iframe>
+<div class="card" onclick="abrir('https://finance.yahoo.com/quote/NAFTRAC.MX')">
+NAFTRAC ISHRS
+</div>
+
+<div class="card" onclick="abrir('https://finance.yahoo.com/quote/PGJ')">
+PGJ ETF
+</div>
+
+<div class="card" onclick="abrir('https://finance.yahoo.com/quote/VOO')">
+VOO ETF
+</div>
+
+<div class="card" onclick="abrir('https://finance.yahoo.com/quote/VUAA.L')">
+VUAA
+</div>
+
+<div class="card" onclick="abrir('https://finance.yahoo.com/quote/ACTIRENB.MX')">
+ACTIREN B (Fondo Deuda)
 </div>
 
 </div>
+
+<script>
+function abrir(url){
+  window.open(url, "_blank");
+}
+</script>
 
 </body>
 </html>
