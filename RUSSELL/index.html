@@ -3,165 +3,144 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 
-<title>Saldo Actual – Cigarros</title>
+<title>PROVSOFT Monitor</title>
 
 <style>
-:root{
-  --color:#00416A;
-  --bg:#f2f4f7;
-}
-
 html,body{
   margin:0;
   padding:0;
   height:100%;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto;
-  background:var(--bg);
+  overflow:hidden;
+  background:#000;
+  touch-action:manipulation;
+  font-family:Arial, sans-serif;
 }
 
-header{
-  background:var(--color);
-  color:white;
-  padding:14px;
-  font-weight:700;
-  font-size:16px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+#container{
+  position:relative;
+  width:100%;
+  height:100%;
+  overflow:hidden;
 }
 
-header button{
-  background:white;
-  color:var(--color);
+.slide{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  transform:translate3d(100%,0,0);
+  transition:transform .45s ease;
+  will-change:transform;
+}
+
+.slide.active{
+  transform:translate3d(0,0,0);
+  z-index:2;
+}
+
+.slide.prev{
+  transform:translate3d(-100%,0,0);
+}
+
+iframe{
+  width:100%;
+  height:100%;
   border:none;
-  padding:6px 12px;
+  background:#fff;
+}
+
+.controls{
+  position:fixed;
+  bottom:15px;
+  right:15px;
+  z-index:1000;
+  display:flex;
+  gap:10px;
+}
+
+button{
+  padding:10px 18px;
+  font-size:20px;
   border-radius:8px;
-  font-weight:600;
+  border:none;
+  background:#ff7a00;
+  color:#fff;
   cursor:pointer;
 }
-
-#lista{
-  padding:10px;
-}
-
-.card{
-  background:white;
-  border-radius:14px;
-  padding:14px;
-  margin-bottom:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.05);
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.nombre{
-  font-size:14px;
-  font-weight:600;
-  max-width:70%;
-}
-
-.saldo{
-  font-size:18px;
-  font-weight:800;
-}
-
-.pos{ color:#0a7a0a; }
-.neg{ color:#c01616; }
-.cero{ color:#666; }
 </style>
 </head>
-
 <body>
 
-<header>
-  <span>Saldo Actual – Cigarros</span>
-  <button onclick="location.reload()">Refrescar</button>
-</header>
+<div id="container">
 
-<div id="lista">Cargando...</div>
+  <div class="slide active"><iframe src="VCigarro.html"></iframe></div>
+  <div class="slide"><iframe src="VDulce.html"></iframe></div>
+  <div class="slide"><iframe src="VLiquidos.html"></iframe></div>
+  <div class="slide"><iframe src="VZapata.html"></iframe></div>
+  <div class="slide"><iframe src="VRutaVTAMOB.html"></iframe></div>
+  <div class="slide"><iframe src="INVTEORICOCIGPDD.html"></iframe></div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs }
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+</div>
 
-const firebaseConfig = {
-  apiKey:"AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-  authDomain:"inventariopv-643f1.firebaseapp.com",
-  projectId:"inventariopv-643f1",
-};
+<div class="controls">
+  <button onclick="prev()">⬅</button>
+  <button onclick="next()">➡</button>
+</div>
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+<script>
+const slides = document.querySelectorAll(".slide");
+let index = 0;
+let autoRotate;
+const total = slides.length;
 
-const norm=c=>(c||"").toString().trim().padStart(12,"0");
+function showSlide(newIndex){
+  slides.forEach(s => s.classList.remove("active","prev"));
 
-async function cargar(){
+  let old = index;
+  index = (newIndex + total) % total;
 
-  const productosSnap = await getDocs(collection(db,"productos"));
-  const entradasSnap = await getDocs(collection(db,"almacenes/almacen_cigarro/entradas"));
-  const salidasSnap = await getDocs(collection(db,"almacenes/almacen_cigarro/salidas1.0"));
-  const baseSnap = await getDocs(collection(db,"almacenes/almacen_cigarro/inventario_base"));
-
-  let productos={},entradas={},salidas={},iniciales={};
-
-  productosSnap.forEach(d=>{
-    const x=d.data();
-    if(x.activo!==true||x.departamento!=="CIGARROS") return;
-    productos[norm(x.codigoBarra||x.productoId)] = x.descripcion||"-";
-  });
-
-  entradasSnap.forEach(d=>{
-    (d.data().items||[]).forEach(i=>{
-      const c=norm(i.productoId||i.codigo);
-      entradas[c]=(entradas[c]||0)+Number(i.cantidadTotal||0);
-    });
-  });
-
-  salidasSnap.forEach(d=>{
-    (d.data().productos||[]).forEach(i=>{
-      const c=norm(i.codigo);
-      salidas[c]=(salidas[c]||0)+Number(i.cantidad||0);
-    });
-  });
-
-  baseSnap.forEach(d=>{
-    iniciales[norm(d.id)] = Number(d.data().existencia||0);
-  });
-
-  dibujar(productos,entradas,salidas,iniciales);
+  slides[old].classList.add("prev");
+  slides[index].classList.add("active");
 }
 
-function dibujar(productos,entradas,salidas,iniciales){
-
-  let html="";
-
-  for(const c in productos){
-
-    const ini=iniciales[c]||0;
-    const ent=entradas[c]||0;
-    const sal=salidas[c]||0;
-    const act=ini+ent-sal;
-
-    let clase="cero";
-    if(act>0) clase="pos";
-    if(act<0) clase="neg";
-
-    html+=`
-      <div class="card">
-        <div class="nombre">${productos[c]}</div>
-        <div class="saldo ${clase}">${act}</div>
-      </div>
-    `;
-  }
-
-  document.getElementById("lista").innerHTML=html||"Sin datos";
+function next(){
+  showSlide(index+1);
+  resetTimer();
 }
 
-cargar();
+function prev(){
+  showSlide(index-1);
+  resetTimer();
+}
+
+function startAuto(){
+  autoRotate = setInterval(()=>next(),60000);
+}
+
+function resetTimer(){
+  clearInterval(autoRotate);
+  startAuto();
+}
+
+/* Swipe optimizado */
+let startX = 0;
+
+document.addEventListener("touchstart",e=>{
+  startX = e.touches[0].clientX;
+},{passive:true});
+
+document.addEventListener("touchend",e=>{
+  let endX = e.changedTouches[0].clientX;
+  let diff = startX - endX;
+
+  if(diff > 60) next();
+  if(diff < -60) prev();
+},{passive:true});
+
+startAuto();
 </script>
 
 </body>
