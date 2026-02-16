@@ -2,77 +2,134 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Saldo Actual – Cigarros</title>
 
 <style>
 :root{
   --color:#00416A;
   --bg:#f2f4f7;
+  --card:#fff;
+  --muted:#6b7280;
 }
-
 html,body{
-  margin:0;
-  padding:0;
-  height:100%;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto;
+  margin:0; padding:0; height:100%;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   background:var(--bg);
-  -webkit-font-smoothing:antialiased;
 }
-
 header{
   background:var(--color);
-  color:white;
-  text-align:center;
-  padding:14px;
-  font-weight:700;
+  color:#fff;
+  padding:12px 14px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  justify-content:space-between;
+}
+header .left{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+}
+header .title{
+  font-weight:800;
   font-size:16px;
+  line-height:1.1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+header .meta{
+  font-size:12px;
+  opacity:.85;
+}
+header button{
+  background:#fff;
+  color:var(--color);
+  border:0;
+  padding:8px 12px;
+  border-radius:10px;
+  font-weight:800;
+  cursor:pointer;
+}
+header button:disabled{
+  opacity:.7;
+  cursor:not-allowed;
 }
 
 #lista{
   padding:10px;
 }
 
+/* Card */
 .card{
-  background:white;
+  background:var(--card);
   border-radius:14px;
-  padding:14px;
-  margin-bottom:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.05);
+  padding:12px 14px;
+  box-shadow:0 2px 6px rgba(0,0,0,.05);
   display:flex;
-  justify-content:space-between;
   align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:10px;
 }
-
 .nombre{
   font-size:14px;
-  font-weight:600;
-  max-width:70%;
+  font-weight:700;
+  line-height:1.15;
+  min-width:0;
 }
-
+.nombre small{
+  display:block;
+  font-size:12px;
+  font-weight:600;
+  color:var(--muted);
+  margin-top:4px;
+}
 .saldo{
   font-size:18px;
-  font-weight:800;
+  font-weight:900;
+  white-space:nowrap;
 }
-
 .pos{ color:#0a7a0a; }
 .neg{ color:#c01616; }
-.cero{ color:#666; }
+.cero{ color:#6b7280; }
+
+#estado{
+  padding:10px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+/* PC: grid */
+@media (min-width: 900px){
+  #lista{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap:12px;
+  }
+  .card{ margin:0; }
+}
 </style>
 </head>
 
 <body>
 
-<header>Saldo Actual – Cigarros</header>
+<header>
+  <div class="left">
+    <div class="title">Saldo Actual – Cigarros</div>
+    <div class="meta" id="meta">Cargando…</div>
+  </div>
+  <button id="btn">Refrescar</button>
+</header>
+
+<div id="estado"></div>
 <div id="lista"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getFirestore, collection, getDocs, onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -83,87 +140,125 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const norm=c=>(c||"").toString().trim().padStart(12,"0");
+const $lista = document.getElementById("lista");
+const $estado = document.getElementById("estado");
+const $meta = document.getElementById("meta");
+const $btn = document.getElementById("btn");
 
-let productos={},entradas={},salidas={},iniciales={};
-let ready=false;
+const norm = c => (c ?? "").toString().trim().padStart(12,"0");
+const esc = s => (s ?? "").toString().replace(/[&<>"']/g, m => (
+  m==="&"?"&amp;":m==="<"?"&lt;":m===">"?"&gt;":m==='"'?"&quot;":"&#39;"
+));
 
-const $lista=document.getElementById("lista");
+// toma descripción de varios campos (tu colección viene variada)
+function pickDesc(x){
+  return (
+    x.descripcion ??
+    x.concepto ??
+    x.nombre ??
+    x.producto ??
+    x.desc ??
+    x.descripcionCorta ??
+    "-"
+  );
+}
 
-// PRODUCTOS
-getDocs(collection(db,"productos")).then(s=>{
-  s.forEach(d=>{
-    const x=d.data();
-    if(x.activo!==true||x.departamento!=="CIGARROS") return;
+async function cargar(){
+  $btn.disabled = true;
+  $estado.textContent = "Cargando datos…";
+  $lista.innerHTML = "";
+  const t0 = performance.now();
 
-    productos[norm(x.codigoBarra||x.productoId)] = {
-      desc:x.descripcion||"-"
-    };
-  });
-  ready=true;
-  dibujar();
-});
+  try{
+    const [productosSnap, entradasSnap, salidasSnap, baseSnap] = await Promise.all([
+      getDocs(collection(db,"productos")),
+      getDocs(collection(db,"almacenes/almacen_cigarro/entradas")),
+      getDocs(collection(db,"almacenes/almacen_cigarro/salidas1.0")),
+      getDocs(collection(db,"almacenes/almacen_cigarro/inventario_base")),
+    ]);
 
-// ENTRADAS
-onSnapshot(collection(db,"almacenes/almacen_cigarro/entradas"),s=>{
-  entradas={};
-  s.forEach(d=>{
-    (d.data().items||[]).forEach(i=>{
-      const c=norm(i.productoId||i.codigo);
-      entradas[c]=(entradas[c]||0)+Number(i.cantidadTotal||0);
+    const productos = {};
+    const entradas  = {};
+    const salidas   = {};
+    const iniciales = {};
+
+    productosSnap.forEach(d=>{
+      const x = d.data();
+      if(x.activo !== true) return;
+      if(x.departamento !== "CIGARROS") return;
+
+      const codigo = norm(x.codigoBarra || x.productoId || x.codigo);
+      productos[codigo] = pickDesc(x);
     });
-  });
-  dibujar();
-});
 
-// SALIDAS
-onSnapshot(collection(db,"almacenes/almacen_cigarro/salidas1.0"),s=>{
-  salidas={};
-  s.forEach(d=>{
-    (d.data().productos||[]).forEach(i=>{
-      const c=norm(i.codigo);
-      salidas[c]=(salidas[c]||0)+Number(i.cantidad||0);
+    entradasSnap.forEach(d=>{
+      (d.data().items || []).forEach(i=>{
+        const c = norm(i.productoId || i.codigo);
+        entradas[c] = (entradas[c] || 0) + Number(i.cantidadTotal || 0);
+      });
     });
+
+    salidasSnap.forEach(d=>{
+      (d.data().productos || []).forEach(i=>{
+        const c = norm(i.codigo);
+        salidas[c] = (salidas[c] || 0) + Number(i.cantidad || 0);
+      });
+    });
+
+    baseSnap.forEach(d=>{
+      iniciales[norm(d.id)] = Number(d.data().existencia || 0);
+    });
+
+    dibujar(productos, entradas, salidas, iniciales);
+
+    const ms = Math.round(performance.now() - t0);
+    const now = new Date();
+    $meta.textContent = `Actualizado: ${now.toLocaleTimeString()} · ${Object.keys(productos).length} productos · ${ms}ms`;
+    $estado.textContent = "";
+  }catch(e){
+    console.error(e);
+    $estado.textContent = "Error cargando datos (revisa consola / permisos / red).";
+    $meta.textContent = "Sin actualizar";
+  }finally{
+    $btn.disabled = false;
+  }
+}
+
+function dibujar(productos, entradas, salidas, iniciales){
+  const items = Object.entries(productos).map(([c, desc])=>{
+    const ini = iniciales[c] || 0;
+    const ent = entradas[c]  || 0;
+    const sal = salidas[c]   || 0;
+    const act = ini + ent - sal;
+    return { c, desc, act };
   });
-  dibujar();
-});
 
-// INVENTARIO BASE
-onSnapshot(collection(db,"almacenes/almacen_cigarro/inventario_base"),s=>{
-  iniciales={};
-  s.forEach(d=>{
-    iniciales[norm(d.id)] = Number(d.data().existencia||0);
-  });
-  dibujar();
-});
+  // orden por descripción
+  items.sort((a,b)=>(a.desc||"").localeCompare(b.desc||"","es"));
 
-// DIBUJAR
-function dibujar(){
-  if(!ready) return;
+  let html = "";
+  for(const it of items){
+    let cls = "cero";
+    if(it.act > 0) cls = "pos";
+    if(it.act < 0) cls = "neg";
 
-  let html="";
-
-  for(const c in productos){
-    const p=productos[c];
-    const ini=iniciales[c]||0;
-    const ent=entradas[c]||0;
-    const sal=salidas[c]||0;
-    const act=ini+ent-sal;
-
-    let clase="cero";
-    if(act>0) clase="pos";
-    if(act<0) clase="neg";
-
-    html+=`
+    html += `
       <div class="card">
-        <div class="nombre">${p.desc}</div>
-        <div class="saldo ${clase}">${act}</div>
+        <div class="nombre">
+          ${esc(it.desc)}
+          <small>${esc(it.c)}</small>
+        </div>
+        <div class="saldo ${cls}">${it.act}</div>
       </div>
     `;
   }
-
-  $lista.innerHTML=html;
+  $lista.innerHTML = html || `<div id="estado">Sin datos</div>`;
 }
+
+$btn.addEventListener("click", cargar);
+
+// carga única al abrir
+cargar();
 </script>
 
 </body>
