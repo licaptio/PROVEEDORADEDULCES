@@ -85,11 +85,12 @@ const formatoMXN = new Intl.NumberFormat('es-MX', {
 });
 
 async function cargarUltimos(){
-  const { data, error } = await sb
-    .from('pagos_proveedor')
-    .select('id,fecha_pago,banco,proveedor_nombre,importe_pagado')
-    .order('fecha_pago',{ascending:false})
-    .limit(20);
+const { data, error } = await sb
+  .from('pagos_proveedor')
+  .select('id,fecha_pago,banco,proveedor_nombre,importe_pagado,creado_en')
+  .order('fecha_pago', { ascending: false })
+  .order('creado_en', { ascending: false })
+  .limit(20);
 
   if(error){
     alert(error.message);
