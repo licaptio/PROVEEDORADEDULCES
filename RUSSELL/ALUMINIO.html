@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alertas Proveedores (Últimos 5)</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+body{
+  font-family: system-ui, -apple-system, Segoe UI, Roboto;
+  background:#f4f6f8;
+  margin:0;
+  padding:20px;
+}
+
+h2{
+  margin:0 0 15px 0;
+  font-weight:700;
+}
+
+.section{
+  margin-bottom:18px;
+}
+
+.section h3{
+  margin:0 0 8px 0;
+  font-size:1.05em;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+}
+
+th, td{
+  padding:8px;
+  border:1px solid #ddd;
+  font-size:0.9em;
+}
+
+th{
+  background:#0c6cbd;
+  color:white;
+  position:sticky;
+  top:0;
+}
+
+td.numero{
+  text-align:right;
+}
+
+.total-box{
+  background:white;
+  padding:12px 15px;
+  margin-bottom:10px;
+  border-radius:8px;
+  box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+
+.total-box span{
+  font-size:1.25em;
+  font-weight:bold;
+  color:#0a6c21;
+}
+
+.badge{
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:0.85em;
+  background:#eef3ff;
+  border:1px solid #d7e2ff;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📦 Alertas Proveedores (Últimos 5 CFDI)</h2>
+
+<div id="bloque1" class="section"></div>
+<div id="bloque2" class="section"></div>
+
+<script>
+const SUPABASE_URL = 'https://cvpbtjlupswbyxenugpz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
+
+const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function moneyMX(n){
+  return Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function safeText(v, fallback="—"){
+  if(v === null || v === undefined) return fallback;
+  const s = String(v).trim();
+  return s.length ? s : fallback;
+}
+
+async function cargarBloque({ rfc, divId, titulo, limit = 5 }){
+
+  const cont = document.getElementById(divId);
+  cont.innerHTML = `<div class="total-box">Cargando <strong>${titulo}</strong>...</div>`;
+
+  const { data, error } = await _supabase
+    .from("v_deuda_proveedores")
+    .select("*")
+    .eq("rfc_emisor", rfc)
+    .order("fecha", { ascending: false })
+    .limit(limit);
+
+  if(error){
+    console.error("Error:", error);
+    cont.innerHTML = `
+      <div class="total-box">
+        <strong>${titulo}</strong> <span class="badge">${rfc}</span><br><br>
+        ❌ Error cargando datos
+      </div>
+    `;
+    return;
+  }
+
+  if(!data || data.length === 0){
+    cont.innerHTML = `
+      <div class="total-box">
+        <strong>${titulo}</strong> <span class="badge">${rfc}</span><br><br>
+        Sin registros recientes.
+      </div>
+    `;
+    return;
+  }
+
+  const totalGlobal = data.reduce((acc, f) => acc + (parseFloat(f.total) || 0), 0);
+
+  let html = `
+    <div class="total-box">
+      <strong>${titulo}</strong> <span class="badge">${rfc}</span><br>
+      Últimos ${limit} registros<br>
+      Total acumulado:<br>
+      <span>$${moneyMX(totalGlobal)}</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>UUID</th>
+          <th>Serie/Folio</th>
+          <th>Total</th>
+          <th>Pagada</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  data.forEach(f => {
+    const fecha = f.fecha ? String(f.fecha).split("T")[0] : "";
+    const folio = safeText(f.serie_folio);
+    const total = moneyMX(f.total);
+    const pagada = (String(f.factura_pagada || "NO").toUpperCase() === "SI") ? "✅" : "❌";
+    const uuid = safeText(f.uuid_cfdi);
+
+    html += `
+      <tr>
+        <td>${fecha}</td>
+        <td>${uuid}</td>
+        <td>${folio}</td>
+        <td class="numero">$${total}</td>
+        <td style="text-align:center">${pagada}</td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table>`;
+  cont.innerHTML = html;
+}
+
+async function cargarTodo(){
+  await cargarBloque({
+    rfc: "MAX240320BL5",
+    divId: "bloque1",
+    titulo: "MAX — Alertas",
+    limit: 5
+  });
+
+  await cargarBloque({
+    rfc: "AST0712073L1",
+    divId: "bloque2",
+    titulo: "AST — Alertas",
+    limit: 5
+  });
+}
+
+document.addEventListener("DOMContentLoaded", cargarTodo);
+</script>
+
+</body>
+</html>
