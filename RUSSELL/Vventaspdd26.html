@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Ingresos Semanales – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#0c6cbd">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --b:#0c6cbd;
+    --bg:#f4f6f8;
+    --card:#fff;
+    --line:#e5e7eb;
+    --muted:#64748b;
+  }
+  html,body{ margin:0; padding:0; background:var(--bg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; }
+  .page{ padding:12px; }
+
+  /* Top bar */
+  .top{
+    background:var(--b);
+    color:#fff;
+    border-radius:14px;
+    padding:12px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .top .ttl{
+    font-weight:900;
+    font-size:15px;
+    line-height:1.1;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .top .sub{
+    font-size:12px;
+    opacity:.9;
+    margin-top:2px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .top .left{ min-width:0; }
+
+  .bar{
+    margin-top:10px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  select, button{
+    padding:10px 12px;
+    font-size:14px;
+    border-radius:12px;
+    border:1px solid #cbd5e1;
+    background:#fff;
+  }
+  button{
+    background:var(--b);
+    color:#fff;
+    border:none;
+    cursor:pointer;
+    font-weight:800;
+  }
+  button:disabled{ opacity:.6; cursor:not-allowed; }
+
+  #estado{
+    margin:10px 2px 6px;
+    font-weight:800;
+    color:#0f172a;
+  }
+  #detalle{
+    margin:0 2px 10px;
+    color:var(--muted);
+    font-size:12px;
+  }
+
+  /* Mobile view */
+  #mobile{
+    display:block;
+  }
+  .kpi{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+    box-shadow:0 6px 16px rgba(0,0,0,.05);
+  }
+  .kpi .lbl{ font-weight:900; color:#0f172a; }
+  .kpi .val{ font-weight:1000; font-size:18px; }
+
+  details.week{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    margin-bottom:10px;
+    overflow:hidden;
+    box-shadow:0 6px 16px rgba(0,0,0,.05);
+  }
+  details.week > summary{
+    list-style:none;
+    cursor:pointer;
+    padding:12px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+    font-weight:900;
+  }
+  details.week > summary::-webkit-details-marker{ display:none; }
+
+  .wkLabel{ font-size:13px; color:#0f172a; }
+  .wkTotal{ font-size:16px; color:#0f172a; white-space:nowrap; }
+
+  .wkBody{
+    border-top:1px solid var(--line);
+    padding:10px 12px 12px;
+  }
+  .row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:8px 0;
+    border-bottom:1px dashed #eef2f7;
+    gap:10px;
+  }
+  .row:last-child{ border-bottom:none; }
+  .row .suc{
+    font-size:12px;
+    color:#0f172a;
+    font-weight:700;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .row .amt{
+    font-size:12px;
+    font-weight:900;
+    white-space:nowrap;
+  }
+  .muted{ color:var(--muted); font-weight:700; font-size:12px; }
+
+  /* Desktop table */
+  #desktop{
+    display:none;
+    margin-top:10px;
+  }
+  .wrap{
+    background:#fff;
+    border-radius:14px;
+    border:1px solid var(--line);
+    overflow:auto;
+    box-shadow:0 10px 22px rgba(0,0,0,.07);
+  }
+  table{
+    border-collapse:collapse;
+    width:max-content;
+    min-width:100%;
+    background:#fff;
+    font-size:14px;
+  }
+  th,td{
+    border:1px solid #d1d5db;
+    padding:6px 10px;
+    text-align:right;
+    white-space:nowrap;
+  }
+  th{
+    background:var(--b);
+    color:#fff;
+    position:sticky;
+    top:0;
+    z-index:2;
+  }
+  th:first-child, td:first-child{
+    text-align:left;
+    font-weight:900;
+    position:sticky;
+    left:0;
+    background:#e9eef5;
+    z-index:3;
+  }
+  .total-row td{ font-weight:900; background:#dfe9f7; }
+
+  /* Switch view by screen */
+  @media (min-width: 900px){
+    .page{ padding:16px 18px; }
+    #mobile{ display:none; }
+    #desktop{ display:block; }
+  }
+</style>
+</head>
+
+<body>
+<div class="page">
+  <div class="top">
+    <div class="left">
+      <div class="ttl">Ingresos Semanales – PROVSOFT</div>
+      <div class="sub">Por sucursal · Semana (Lunes → Domingo)</div>
+    </div>
+    <button id="btnCargar" style="background:#fff;color:#0c6cbd;">Refrescar</button>
+  </div>
+
+  <div class="bar">
+    <label>Año:
+      <select id="anio"></select>
+    </label>
+    <label>Mes:
+      <select id="mes"></select>
+    </label>
+  </div>
+
+  <div id="estado">Listo.</div>
+  <div id="detalle" class="muted"></div>
+
+  <!-- Mobile -->
+  <div id="mobile">
+    <div class="kpi">
+      <div class="lbl">TOTAL MES</div>
+      <div class="val" id="kpiTotal">$0.00</div>
+    </div>
+    <div id="weeks"></div>
+  </div>
+
+  <!-- Desktop -->
+  <div id="desktop">
+    <div class="wrap">
+      <table id="tabla">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== SUPABASE ===== */
+const SUPABASE_URL = 'https://cvpbtjlupswbyxenugpz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ===== SERIES ===== */
+const SERIES = {
+  AM:'ALLENDE I', SAN:'ALLENDE II', GM:'BODEGA 41', LMN:'MATRIZ', LO:'OSITO',
+  LP:'CENTRAL', LV:'PROVILEON', MM:'MONTEMORELOS', RVN:'RIO VERDE', PP:'NO DEFINIDO',
+  RM1:'RUTA MOVIL 1', RM2:'RUTA MOVIL 2'
+};
+
+const MESES_ABR  = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+const MESES_FULL = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+const selAnio = document.getElementById('anio');
+const selMes  = document.getElementById('mes');
+const btn     = document.getElementById('btnCargar');
+const estado  = document.getElementById('estado');
+const detalle = document.getElementById('detalle');
+const weeksEl = document.getElementById('weeks');
+const kpiTotal= document.getElementById('kpiTotal');
+
+/* ===== FECHAS (LOCAL) ===== */
+function ymdLocal(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function dd2(n){ return String(n).padStart(2,'0'); }
+
+function inicioSemanaLunes(fecha){
+  const d = new Date(fecha);
+  const day = d.getDay(); // 0=domingo
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function etiquetaSemana(ini){
+  const fin = new Date(ini);
+  fin.setDate(fin.getDate()+6);
+  const iniTxt = `${dd2(ini.getDate())}-${MESES_ABR[ini.getMonth()]}`;
+  const finTxt = (fin.getMonth() !== ini.getMonth())
+    ? `${dd2(fin.getDate())} ${MESES_FULL[fin.getMonth()]}`
+    : `${dd2(fin.getDate())}-${MESES_ABR[fin.getMonth()]}`;
+  return `${iniTxt} A ${finTxt}`;
+}
+function semanasDelMes(anio, mes){
+  const inicioMes = new Date(anio, mes-1, 1);
+  const finMes    = new Date(anio, mes, 0);
+
+  const ini = inicioSemanaLunes(inicioMes);
+  const semanas = [];
+  let cursor = new Date(ini);
+
+  while(cursor <= finMes){
+    const sIni = new Date(cursor);
+    const sFin = new Date(cursor);
+    sFin.setDate(sFin.getDate()+6);
+    sFin.setHours(23,59,59,999);
+
+    semanas.push({
+      inicio:sIni,
+      fin:sFin,
+      etiqueta: etiquetaSemana(sIni),
+      key: ymdLocal(sIni)
+    });
+
+    cursor.setDate(cursor.getDate()+7);
+  }
+  return semanas;
+}
+
+/* ===== MONEDA ===== */
+const moneyFmt = new Intl.NumberFormat('es-MX',{ style:'currency', currency:'MXN' });
+function formato(n){ return moneyFmt.format(Number(n||0)); }
+
+/* ===== UI INIT ===== */
+(function init(){
+  const hoy = new Date();
+  const anioActual = hoy.getFullYear();
+  const mesActual  = hoy.getMonth()+1;
+
+  for(let a=anioActual-3; a<=anioActual+1; a++){
+    const op=document.createElement('option');
+    op.value=String(a); op.textContent=String(a);
+    if(a===anioActual) op.selected=true;
+    selAnio.appendChild(op);
+  }
+  for(let m=1; m<=12; m++){
+    const op=document.createElement('option');
+    op.value=String(m);
+    op.textContent=`${String(m).padStart(2,'0')} - ${MESES_FULL[m-1]}`;
+    if(m===mesActual) op.selected=true;
+    selMes.appendChild(op);
+  }
+
+  btn.addEventListener('click', cargar);
+
+  // debounce para evitar doble carga al mover selects rápido
+  let t=null;
+  function debounced(){
+    clearTimeout(t);
+    t=setTimeout(cargar, 180);
+  }
+  selAnio.addEventListener('change', debounced);
+  selMes.addEventListener('change', debounced);
+
+  cargar();
+})();
+
+/* ===== CARGA SUPABASE ===== */
+async function cargar(){
+  const anio = Number(selAnio.value);
+  const mes  = Number(selMes.value);
+
+  const semanas = semanasDelMes(anio, mes);
+  const rangoInicio = new Date(semanas[0].inicio);
+  rangoInicio.setHours(0,0,0,0);
+
+  const rangoFinEx = new Date(semanas[semanas.length-1].fin);
+  rangoFinEx.setHours(0,0,0,0);
+  rangoFinEx.setDate(rangoFinEx.getDate()+1); // exclusivo
+
+  const inicioStr = `${ymdLocal(rangoInicio)}T00:00:00`;
+  const finStrEx  = `${ymdLocal(rangoFinEx)}T00:00:00`;
+
+  detalle.textContent = `Mes: ${MESES_FULL[mes-1]} ${anio} · Rango: ${ymdLocal(rangoInicio)} a ${ymdLocal(new Date(rangoFinEx.getTime()-1))}`;
+
+  btn.disabled = true;
+  estado.textContent = 'Cargando…';
+  weeksEl.innerHTML = '';
+  kpiTotal.textContent = formato(0);
+
+  let todos = [];
+  let desde = 0;
+  const paso = 1000;
+
+  try{
+    while(true){
+      const { data, error } = await sb
+        .from('ingresos_pdd')
+        .select('id, serie, fecha, total')
+        .eq('cancelado', false)
+        .gte('fecha', inicioStr)
+        .lt('fecha', finStrEx)
+        .order('id', { ascending:true })
+        .range(desde, desde + paso - 1);
+
+      if(error) throw error;
+      if(!data || data.length===0) break;
+
+      todos = todos.concat(data);
+      desde += paso;
+
+      // status light
+      estado.textContent = `Cargando… (${todos.length.toLocaleString()} regs)`;
+    }
+
+    estado.textContent = `Procesando ${todos.length.toLocaleString()} registros…`;
+    construirVistas(todos, semanas);
+    estado.textContent = `Listo (${todos.length.toLocaleString()} registros)`;
+  }catch(err){
+    console.error(err);
+    estado.textContent = '❌ Error (ver consola)';
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ===== Construcción: Mobile + Desktop ===== */
+function construirVistas(rows, semanas){
+  const semanaPorKey = Object.create(null);
+  semanas.forEach(s => semanaPorKey[s.key] = s);
+
+  // mapa[label][weekKey] = total
+  const mapa = Object.create(null);
+  const totalesSemana = Object.create(null);
+  semanas.forEach(s => totalesSemana[s.key] = 0);
+
+  const totalesSerie = Object.create(null);
+
+  for(const r of rows){
+    if(!r.fecha || r.total == null) continue;
+
+    const codigo = r.serie || 'PP';
+    const label = SERIES[codigo] ? `${codigo} - ${SERIES[codigo]}` : `${codigo} - (NO DEFINIDA)`;
+
+    const ini = inicioSemanaLunes(r.fecha);
+    const key = ymdLocal(ini);
+    if(!semanaPorKey[key]) continue;
+
+    (mapa[label] ||= Object.create(null));
+    mapa[label][key] = (mapa[label][key] || 0) + Number(r.total);
+
+    totalesSemana[key] += Number(r.total);
+    totalesSerie[label] = (totalesSerie[label] || 0) + Number(r.total);
+  }
+
+  // KPI total mes
+  let totalMes = 0;
+  for(const k of Object.keys(totalesSemana)) totalMes += totalesSemana[k] || 0;
+  kpiTotal.textContent = formato(totalMes);
+
+  renderMobile(mapa, semanas, totalesSemana);
+  renderDesktopTable(mapa, semanas);
+}
+
+/* ===== Mobile: semanas con detalle por sucursal ===== */
+function renderMobile(mapa, semanas, totalesSemana){
+  // construir lista de sucursales con actividad (para no llenar de ceros)
+  const sucursales = Object.keys(mapa);
+
+  let html = '';
+  for(const s of semanas){
+    const totalW = totalesSemana[s.key] || 0;
+
+    // detalle: lista de sucursales con valor > 0 en esta semana, orden desc
+    const det = [];
+    for(const label of sucursales){
+      const v = (mapa[label] && mapa[label][s.key]) ? mapa[label][s.key] : 0;
+      if(v) det.push([label, v]);
+    }
+    det.sort((a,b)=>b[1]-a[1]);
+
+    html += `
+      <details class="week">
+        <summary>
+          <div class="wkLabel">${s.etiqueta}</div>
+          <div class="wkTotal">${formato(totalW)}</div>
+        </summary>
+        <div class="wkBody">
+          ${det.length ? det.map(([label,v])=>`
+            <div class="row">
+              <div class="suc" title="${escapeHtml(label)}">${escapeHtml(label)}</div>
+              <div class="amt">${formato(v)}</div>
+            </div>
+          `).join('') : `<div class="muted">Sin movimientos</div>`}
+        </div>
+      </details>
+    `;
+  }
+
+  weeksEl.innerHTML = html || `<div class="muted">Sin datos</div>`;
+}
+
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, m =>
+    m==='&'?'&amp;':m==='<'?'&lt;':m==='>'?'&gt;':m==='"'?'&quot;':'&#39;'
+  );
+}
+
+/* ===== Desktop: tabla completa (similar a tu original) ===== */
+function renderDesktopTable(mapa, semanas){
+  const thead = document.querySelector('#tabla thead');
+  const tbody = document.querySelector('#tabla tbody');
+
+  // lista estable: SERIES definidas + desconocidas encontradas
+  const base = Object.keys(SERIES).map(code => `${code} - ${SERIES[code]}`);
+  const extras = Object.keys(mapa).filter(x => !base.includes(x));
+  const todas = base.concat(extras).sort((a,b)=>a.localeCompare(b,'es'));
+
+  thead.innerHTML =
+    `<tr><th>serie</th>` +
+    semanas.map(s => `<th>${s.etiqueta}</th>`).join('') +
+    `</tr>`;
+
+  const totalesSemana = Object.create(null);
+  semanas.forEach(s => totalesSemana[s.key] = 0);
+
+  let bodyHtml = '';
+  for(const label of todas){
+    let row = `<tr><td>${escapeHtml(label)}</td>`;
+    for(const s of semanas){
+      const val = (mapa[label] && mapa[label][s.key]) ? mapa[label][s.key] : 0;
+      totalesSemana[s.key] += val;
+      row += `<td>${val ? formato(val) : ''}</td>`;
+    }
+    row += `</tr>`;
+    bodyHtml += row;
+  }
+
+  // total
+  let totalRow = `<tr class="total-row"><td>TOTAL INGRESOS</td>`;
+  for(const s of semanas){
+    totalRow += `<td>${formato(totalesSemana[s.key] || 0)}</td>`;
+  }
+  totalRow += `</tr>`;
+
+  tbody.innerHTML = bodyHtml + totalRow;
+}
+</script>
+</body>
+</html>
