@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facturación GRUPO CONVERMEX</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+body{
+  font-family: system-ui, -apple-system, Segoe UI, Roboto;
+  background:#f4f6f8;
+  margin:0;
+  padding:20px;
+}
+
+h2{
+  margin:0 0 15px 0;
+  font-weight:700;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+}
+
+th, td{
+  padding:8px;
+  border:1px solid #ddd;
+  font-size:0.9em;
+}
+
+th{
+  background:#0c6cbd;
+  color:white;
+  position:sticky;
+  top:0;
+}
+
+td.numero{
+  text-align:right;
+}
+
+.total-box{
+  background:white;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:8px;
+  box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+
+.total-box span{
+  font-size:1.4em;
+  font-weight:bold;
+  color:#0a6c21;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📦 Facturación GRUPO CONVERMEX</h2>
+
+<div id="total"></div>
+<div id="tabla"></div>
+
+<script>
+
+const _supabase = window.supabase.createClient( 'https://cvpbtjlupswbyxenugpz.supabase.co', 
+'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY' );
+
+
+async function cargar(){
+
+  const { data, error } = await _supabase
+    .from("v_deuda_proveedores")
+    .select("*")
+    .eq("rfc_emisor", "GCO0303128G0")
+    .order("fecha", { ascending: false })
+    .limit(20);
+
+  if(error){
+    alert("Error cargando datos");
+    console.error(error);
+    return;
+  }
+
+  if(!data || data.length === 0){
+    document.getElementById("tabla").innerHTML = "Sin registros";
+    return;
+  }
+
+  const totalGlobal = data.reduce((acc,f)=> acc + (parseFloat(f.total)||0),0);
+
+  document.getElementById("total").innerHTML = `
+    <div class="total-box">
+      <strong>Últimos 20 registros</strong><br>
+      Total acumulado:<br>
+      <span>$${totalGlobal.toLocaleString("es-MX",{minimumFractionDigits:2})}</span>
+    </div>
+  `;
+
+  let html = `
+  <table>
+  <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>UUID</th>
+      <th>Serie/Folio</th>
+      <th>Total</th>
+      <th>Pagada</th>
+    </tr>
+  </thead>
+  <tbody>
+  `;
+
+  data.forEach(f => {
+
+    const fecha = f.fecha ? f.fecha.split("T")[0] : "";
+    const folio = f.serie_folio || "—";
+    const total = Number(f.total||0).toLocaleString("es-MX",{minimumFractionDigits:2});
+    const pagada = (f.factura_pagada || "NO") === "SI" ? "✅" : "❌";
+
+    html += `
+      <tr>
+        <td>${fecha}</td>
+        <td>${f.uuid_cfdi}</td>
+        <td>${folio}</td>
+        <td class="numero">$${total}</td>
+        <td style="text-align:center">${pagada}</td>
+      </tr>
+    `;
+  });
+
+  html += "</tbody></table>";
+
+  document.getElementById("tabla").innerHTML = html;
+}
+
+document.addEventListener("DOMContentLoaded", cargar);
+
+</script>
+</body>
+</html>
+
+
+TAUROCARRUSSELL.html
