@@ -78,13 +78,15 @@ button{
 
   
   <div class="slide"><iframe src="VDulce.html"></iframe></div>
-    <div class="slide"><iframe src="VZapata.html"></iframe></div>
+  <div class="slide"><iframe src="VZapata.html"></iframe></div>
   <div class="slide"><iframe src="VRutaVTAMOB.html"></iframe></div>
   <div class="slide"><iframe src="INVTEORICOCIGPDD.html"></iframe></div>
-  <div class="slide active"><iframe src="VCigarro.html"></iframe></div>
+  <div class="slide"><iframe src="VCigarro.html"></iframe></div>
   <div class="slide"><iframe src="VLiquidos.html"></iframe></div>
   <div class="slide"><iframe src="VAccionesAC.html"></iframe></div>
-  <div class="slide"><iframe src="Vventaspdd26.html"></iframe></div>
+  <div class="slide active">
+  <iframe src="Vventaspdd26.html"></iframe>
+</div>
 
 </div>
 
@@ -95,7 +97,8 @@ button{
 
 <script>
 const slides = document.querySelectorAll(".slide");
-let index = 0;
+let index = Array.from(slides).findIndex(s => s.classList.contains("active"));
+if(index === -1) index = 0;
 let autoRotate;
 const total = slides.length;
 
@@ -148,6 +151,7 @@ startAuto();
 
 </body>
 </html>
+
 
 
 
