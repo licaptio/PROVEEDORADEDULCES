@@ -189,6 +189,7 @@ hr.soft{ border:none; border-top:1px solid #eee; margin:12px 0; }
         <th>Folio</th>
         <th>Física</th>
         <th>Fotos</th>
+        <th style="text-align:right">Desc</th>
         <th style="text-align:right">Total</th>
       </tr>
     </thead>
@@ -427,7 +428,7 @@ function diasTranscurridos(fechaISO){
 
     const { data, error } = await sb
       .from('deuda_limpia_pdd')
-      .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor,fotos,factura_fisicamente')
+      .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor,fotos,factura_fisicamente,descuentos')
       .eq('rfc_emisor', rfc)
       .eq('factura_pagada','NO')
       .order('fecha',{ascending:true});
@@ -439,10 +440,12 @@ function diasTranscurridos(fechaISO){
     const tbody = document.getElementById('tbodyFacturas');
     tbody.innerHTML = '';
 
-    facturas.forEach(f=>{
+facturas.forEach(f=>{
+
   const totalNum = Number(f.total||0);
   const fotos = Array.isArray(f.fotos) ? f.fotos : [];
-
+  const pdfUrl = String(f.descuentos || '').trim(); // ← AQUÍ
+  
   const fotosHtml = fotos.length
     ? `
       <div style="display:flex; gap:6px; flex-wrap:wrap">
@@ -486,9 +489,35 @@ const fisicaHtml = esFisica
         </span>
       </td>
       <td>${escapeHtml((f.serie||'') + ' ' + (f.folio||''))}</td>
-      <td style="text-align:center">${fisicaHtml}</td>
-      <td>${fotosHtml}</td>
-      <td style="text-align:right" class="monto">${money(totalNum)}</td>
+const pdfUrl = String(f.descuentos || '').trim();
+
+<td style="text-align:center">
+  ${
+    pdfUrl.startsWith('http')
+      ? `
+        <a href="${pdfUrl}"
+           target="_blank"
+           rel="noopener noreferrer"
+           style="
+             font-size:12px;
+             text-decoration:none;
+             background:#E3F2FD;
+             padding:4px 8px;
+             border-radius:6px;
+             border:1px solid #BBDEFB;
+             display:inline-block;
+             font-weight:600;
+           ">
+           📄 Nota
+        </a>
+      `
+      : `<span class="muted">—</span>`
+  }
+</td>
+<td style="text-align:right" class="monto">
+  ${money(totalNum)}
+</td>
+
     </tr>
   `;
 });
@@ -873,7 +902,3 @@ function actualizarGlobal(){
 
 </body>
 </html>
-
-
-
-
