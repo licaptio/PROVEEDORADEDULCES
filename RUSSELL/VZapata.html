@@ -1,7 +1,7 @@
 <!-- =========================================================
   index_zapata.html
   Monitor Salidas - Almacén Zapata
-  Colección: /almacenes/almacen_zapata/salidas1.0
+  Últimas 15 salidas
 ========================================================= -->
 <!DOCTYPE html>
 <html lang="es">
@@ -11,14 +11,13 @@
   <style>
     body { font-family: Arial, sans-serif; background:#f4f6f9; margin:20px; }
     h1 { margin-bottom: 12px; }
-    .topbar { display:flex; gap:12px; align-items:center; margin-bottom: 16px; }
-    input[type="date"] { padding:8px; border:1px solid #cfd6e3; border-radius:6px; background:#fff; }
-    .hint { font-size:12px; color:#666; }
+
     .card {
       background:#fff; padding:12px; margin-bottom:10px; border-radius:6px;
       box-shadow:0 2px 5px rgba(0,0,0,0.1);
       cursor:pointer;
     }
+
     .status {
       display:none;
       background:#fff;
@@ -29,6 +28,7 @@
       color:#333;
       font-size:13px;
     }
+
     .spinner {
       width:14px; height:14px; border-radius:50%;
       border:2px solid #ddd; border-top-color:#666;
@@ -36,18 +36,15 @@
       margin-right:8px;
       animation: spin 0.9s linear infinite;
     }
+
     @keyframes spin { to { transform: rotate(360deg); } }
+
     .empty { color:#666; font-size:13px; padding:8px 0; }
   </style>
 </head>
 <body>
 
-<h1>Salidas - ALMACEN ZAPATA</h1>
-
-<div class="topbar">
-  <input type="date" id="selector" />
-  <div class="hint">Se actualiza automáticamente para el día seleccionado.</div>
-</div>
+<h1>Salidas - ALMACEN ZAPATA (Últimas 15)</h1>
 
 <div id="status" class="status">
   <span class="spinner"></span>
@@ -58,20 +55,12 @@
 
 <script type="module">
 import { db } from "./firebase-config.js";
-import { collection, query, where, orderBy, onSnapshot }
+import { collection, query, orderBy, limit, onSnapshot }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const lista = document.getElementById("lista");
-const selector = document.getElementById("selector");
 const status = document.getElementById("status");
 const statusText = document.getElementById("statusText");
-
-// Fecha hoy por defecto
-const hoy = new Date();
-const yyyy = hoy.getFullYear();
-const mm = String(hoy.getMonth() + 1).padStart(2, "0");
-const dd = String(hoy.getDate()).padStart(2, "0");
-selector.value = `${yyyy}-${mm}-${dd}`;
 
 let unsub = null;
 
@@ -79,14 +68,9 @@ function showStatus(msg){
   statusText.textContent = msg;
   status.style.display = "block";
 }
+
 function hideStatus(){
   status.style.display = "none";
-}
-
-function inicioFinDelDia(fechaISO){
-  const inicio = new Date(`${fechaISO}T00:00:00`);
-  const fin = new Date(`${fechaISO}T23:59:59.999`);
-  return { inicio, fin };
 }
 
 function pintarLista(items){
@@ -95,7 +79,7 @@ function pintarLista(items){
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "Sin salidas para esa fecha.";
+    empty.textContent = "No hay salidas registradas.";
     lista.appendChild(empty);
     return;
   }
@@ -130,17 +114,15 @@ function pintarLista(items){
   });
 }
 
-function escucharDia(fechaISO){
+function escucharUltimas() {
   if (typeof unsub === "function") unsub();
 
-  const { inicio, fin } = inicioFinDelDia(fechaISO);
-  showStatus("Cargando salidas del día...");
+  showStatus("Cargando últimas 15 salidas...");
 
   const q = query(
     collection(db, "almacenes", "almacen_zapata", "salidas1.0"),
-    where("timestamp", ">=", inicio),
-    where("timestamp", "<=", fin),
-    orderBy("timestamp", "desc")
+    orderBy("timestamp", "desc"),
+    limit(15)
   );
 
   unsub = onSnapshot(q, (snapshot) => {
@@ -150,12 +132,11 @@ function escucharDia(fechaISO){
     hideStatus();
   }, (err) => {
     console.error(err);
-    showStatus("Error cargando. Revisa índices o campo timestamp.");
+    showStatus("Error cargando datos. Revisa índice de timestamp.");
   });
 }
 
-selector.addEventListener("change", () => escucharDia(selector.value));
-escucharDia(selector.value);
+escucharUltimas();
 
 </script>
 
