@@ -440,18 +440,23 @@ function diasTranscurridos(fechaISO){
     const tbody = document.getElementById('tbodyFacturas');
     tbody.innerHTML = '';
 
-facturas.forEach(f=>{
+facturas.forEach(f => {
 
-  const totalNum = Number(f.total||0);
+  const totalNum = Number(f.total || 0);
   const fotos = Array.isArray(f.fotos) ? f.fotos : [];
-  const pdfUrl = String(f.descuentos || '').trim(); // ← AQUÍ
-  
+  const pdfUrl = String(f.descuentos || '').trim(); // ✅ AFUERA del template
+  const esFisica = (f.factura_fisicamente || 'NO') === 'SI';
+
+  const fisicaHtml = esFisica
+    ? `<span style="background:#E8F5E9;color:#2e7d32;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:600;">SI</span>`
+    : `<span style="background:#FFEBEE;color:#C62828;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:600;">NO</span>`;
+
   const fotosHtml = fotos.length
     ? `
       <div style="display:flex; gap:6px; flex-wrap:wrap">
         ${fotos.map((url,i)=>`
-          <a href="${url}" target="_blank" 
-             style="font-size:12px; text-decoration:none; background:#FFF3E0; padding:4px 8px; border-radius:6px; border:1px solid #ffd7b3">
+          <a href="${url}" target="_blank" rel="noopener noreferrer"
+             style="font-size:12px;text-decoration:none;background:#FFF3E0;padding:4px 8px;border-radius:6px;border:1px solid #ffd7b3">
              📎 ${i+1}
           </a>
         `).join('')}
@@ -459,68 +464,38 @@ facturas.forEach(f=>{
       <div class="muted">${fotos.length} archivo(s)</div>
     `
     : `<span class="muted">—</span>`;
-const esFisica = (f.factura_fisicamente || 'NO') === 'SI';
 
-const fisicaHtml = esFisica
-  ? `<span style="
-        background:#E8F5E9;
-        color:#2e7d32;
-        padding:4px 8px;
-        border-radius:999px;
-        font-size:12px;
-        font-weight:600;
-      ">SI</span>`
-  : `<span style="
-        background:#FFEBEE;
-        color:#C62828;
-        padding:4px 8px;
-        border-radius:999px;
-        font-size:12px;
-        font-weight:600;
-      ">NO</span>`;
+  const descHtml = pdfUrl.startsWith('http')
+    ? `
+      <a href="${pdfUrl}" target="_blank" rel="noopener noreferrer"
+         style="font-size:12px;text-decoration:none;background:#E3F2FD;padding:4px 8px;border-radius:6px;border:1px solid #BBDEFB;display:inline-block;font-weight:600;">
+         📄 Nota
+      </a>
+    `
+    : `<span class="muted">—</span>`;
 
   tbody.innerHTML += `
     <tr>
       <td><input type="checkbox" data-id="${f.id}" onchange="recalcularPago()"></td>
+
       <td>
         ${formatearFechaCorta(f.fecha)}
-        <span class="muted" style="margin-left:6px">
-          (${diasTranscurridos(f.fecha)})
-        </span>
+        <span class="muted" style="margin-left:6px">(${diasTranscurridos(f.fecha)})</span>
       </td>
+
       <td>${escapeHtml((f.serie||'') + ' ' + (f.folio||''))}</td>
-const pdfUrl = String(f.descuentos || '').trim();
 
-<td style="text-align:center">
-  ${
-    pdfUrl.startsWith('http')
-      ? `
-        <a href="${pdfUrl}"
-           target="_blank"
-           rel="noopener noreferrer"
-           style="
-             font-size:12px;
-             text-decoration:none;
-             background:#E3F2FD;
-             padding:4px 8px;
-             border-radius:6px;
-             border:1px solid #BBDEFB;
-             display:inline-block;
-             font-weight:600;
-           ">
-           📄 Nota
-        </a>
-      `
-      : `<span class="muted">—</span>`
-  }
-</td>
-<td style="text-align:right" class="monto">
-  ${money(totalNum)}
-</td>
+      <td style="text-align:center">${fisicaHtml}</td>
 
+      <td>${fotosHtml}</td>
+
+      <td style="text-align:right">${descHtml}</td>
+
+      <td style="text-align:right" class="monto">${money(totalNum)}</td>
     </tr>
   `;
 });
+
 
 
     recalcularPago();
@@ -902,3 +877,4 @@ function actualizarGlobal(){
 
 </body>
 </html>
+
