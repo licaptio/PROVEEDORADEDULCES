@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Pagos a Proveedores – Últimos 20</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -39,16 +38,10 @@ th{background:#f3f4f6}
 .id{
   font-family:monospace;
   font-size:12px;
-  color:#555;
 }
 td:last-child, th:last-child{
   text-align:right;
   font-variant-numeric: tabular-nums;
-}
-.loading{
-  text-align:center;
-  padding:20px;
-  color:#666;
 }
 </style>
 </head>
@@ -69,7 +62,7 @@ td:last-child, th:last-child{
       </tr>
     </thead>
     <tbody id="tbody">
-      <tr><td colspan="5" class="loading">Cargando...</td></tr>
+      <tr><td colspan="5">Cargando...</td></tr>
     </tbody>
   </table>
 
@@ -82,70 +75,62 @@ td:last-child, th:last-child{
 
 const sb = window.supabase.createClient(
   'https://cvpbtjlupswbyxenugpz.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY',
+  {
+    auth:{
+      persistSession:false,
+      autoRefreshToken:false,
+      detectSessionInUrl:false,
+      storage:{
+        getItem:()=>null,
+        setItem:()=>{},
+        removeItem:()=>{}
+      }
+    }
+  }
 );
-  
-const formatoMXN = new Intl.NumberFormat('es-MX', {
-  style: 'currency',
-  currency: 'MXN',
-  minimumFractionDigits: 2
-});
 
-const formatoFecha = new Intl.DateTimeFormat('es-MX', {
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit'
+const formatoMXN = new Intl.NumberFormat('es-MX',{
+  style:'currency',
+  currency:'MXN'
 });
 
 async function cargarUltimos(){
 
   const { data, error } = await sb
     .from('pagos_proveedor')
-    .select('id,fecha_pago,banco,proveedor_nombre,importe_pagado,creado_en')
-    .order('creado_en', { ascending: false })
+    .select('id,fecha_pago,banco,proveedor_nombre,importe_pagado')
+    .order('creado_en',{ascending:false})
     .limit(20);
 
   const tbody = document.getElementById('tbody');
-  tbody.innerHTML = '';
+  tbody.innerHTML='';
 
   if(error){
-    tbody.innerHTML = `<tr><td colspan="5">Error: ${error.message}</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="5">${error.message}</td></tr>`;
     return;
   }
 
-  if(!data || data.length === 0){
-    tbody.innerHTML = `<tr><td colspan="5">Sin registros</td></tr>`;
-    return;
-  }
-
-  let total = 0;
+  let total=0;
 
   data.forEach(p=>{
+    total+=Number(p.importe_pagado||0);
 
-    const importe = Number(p.importe_pagado || 0);
-    total += importe;
-
-    const tr = document.createElement('tr');
-
-    tr.innerHTML = `
-      <td class="id">
-        <a href="CARDEX.html?id=${p.id}" target="_blank">
-          ${p.id}
-        </a>
-      </td>
-      <td>${p.fecha_pago ? formatoFecha.format(new Date(p.fecha_pago)) : '-'}</td>
-      <td>${p.banco || '-'}</td>
-      <td>${p.proveedor_nombre || '-'}</td>
-      <td>${formatoMXN.format(importe)}</td>
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="id">${p.id}</td>
+      <td>${p.fecha_pago||''}</td>
+      <td>${p.banco||''}</td>
+      <td>${p.proveedor_nombre||''}</td>
+      <td>${formatoMXN.format(p.importe_pagado||0)}</td>
     `;
-
     tbody.appendChild(tr);
   });
 
-  document.getElementById('total').innerText = formatoMXN.format(total);
+  document.getElementById('total').innerText=formatoMXN.format(total);
 }
 
-window.addEventListener('DOMContentLoaded', cargarUltimos);
+window.addEventListener('DOMContentLoaded',cargarUltimos);
 
 </script>
 
