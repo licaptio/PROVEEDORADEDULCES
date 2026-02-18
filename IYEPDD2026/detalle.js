@@ -188,7 +188,8 @@ if (conceptos.length > 0) {
     const galeria = $("galeriaFotos");
     galeria.innerHTML = "";
 
-    const fotos = f.fotos || [];
+    const fotos = [...new Set((f.fotos || []).filter(Boolean))];
+
 
     if (!fotos.length) {
       galeria.innerHTML = `<p style="color:#666">No hay fotos.</p>`;
@@ -516,25 +517,54 @@ async function subirFoto() {
   const file = $("fotoInput").files[0];
   if (!file) return showToast("Selecciona una foto", true);
 
-  const nombre = `${crypto.randomUUID()}.jpg`;
+  // 🔎 Detectar extensión real
+  let ext = file.name.includes(".")
+    ? file.name.split(".").pop().toLowerCase()
+    : "";
+
+  if (!ext) {
+    if (file.type.includes("png")) ext = "png";
+    else if (file.type.includes("jpeg") || file.type.includes("jpg")) ext = "jpg";
+    else if (file.type.includes("webp")) ext = "webp";
+    else if (file.type.includes("heic")) ext = "heic";
+    else ext = "jpg";
+  }
+
+  if (ext === "jpeg") ext = "jpg";
+
+  const nombre = `${crypto.randomUUID()}.${ext}`;
   const ruta = `${CARPETA}/${nombre}`;
 
-  const client = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+  // ✅ v2 correcto (sin window.)
+  const client = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-  const { error: upErr } = await client.storage.from(BUCKET).upload(ruta, file);
-  if (upErr) return showToast("Error al subir", true);
+  const { error: upErr } = await client.storage
+    .from(BUCKET)
+    .upload(ruta, file, {
+      upsert: true,
+      contentType: file.type
+    });
 
-  const { data: pub } = client.storage.from(BUCKET).getPublicUrl(ruta);
-  const url = pub.publicUrl;
+  if (upErr) {
+    console.error(upErr);
+    return showToast("Error al subir", true);
+  }
 
+  const { data } = client.storage.from(BUCKET).getPublicUrl(ruta);
+  const url = data.publicUrl;
+
+  // Traer fotos actuales
   const fotosRes = await fetch(
     `${SUPA_URL}/rest/v1/${TABLA}?uuid_cfdi=eq.${uuid}&select=fotos`,
     { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } }
   );
 
   const actuales = (await fotosRes.json())[0]?.fotos || [];
-  const nuevas = [...actuales, url];
 
+  // Evitar duplicados o vacíos
+  const nuevas = [...new Set([...actuales, url].filter(Boolean))];
+
+  // Guardar en BD
   const up = await fetch(`${SUPA_URL}/rest/v1/${TABLA}?uuid_cfdi=eq.${uuid}`, {
     method: "PATCH",
     headers: {
@@ -545,7 +575,10 @@ async function subirFoto() {
     body: JSON.stringify({ fotos: nuevas })
   });
 
-  if (!up.ok) return showToast("Error BD", true);
+  if (!up.ok) {
+    console.error(await up.text());
+    return showToast("Error BD", true);
+  }
 
   showToast("Foto subida");
   setTimeout(() => location.reload(), 700);
@@ -563,7 +596,7 @@ async function eliminarFoto(url) {
 
   const ruta = url.substring(idx + marker.length);
 
-  const client = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+  const client = supabase.createClient(SUPA_URL, SUPA_KEY);
 
   await client.storage.from(BUCKET).remove([ruta]);
 
