@@ -8,190 +8,43 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-  body{
-    font-family:Poppins,Arial,sans-serif;
-    background:#eef1f5;
-    padding:25px;
-  }
-
-  .topbar{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:14px;
-    flex-wrap:wrap;
-  }
+  body{font-family:Poppins,Arial,sans-serif;background:#eef1f5;padding:25px;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
   h2{margin:0}
-
-  .brand{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    flex-wrap:wrap;
-  }
-  .brand img{
-    height:64px;
-    max-width:100%;
-    object-fit:contain;
-  }
-  .brand .t1{
-    font-weight:900;
-    letter-spacing:.5px;
-    font-size:22px;
-    line-height:1.05;
-  }
-  .brand .t2{
-    font-size:13px;
-    color:#b91c1c;
-    font-weight:700;
-    letter-spacing:.3px;
-  }
-
-  .card{
-    background:#fff;
-    padding:18px;
-    border-radius:14px;
-    box-shadow:0 6px 18px rgba(0,0,0,.15);
-    margin-bottom:18px;
-  }
-
+  .brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .brand img{height:64px;max-width:100%;object-fit:contain;}
+  .brand .t1{font-weight:900;letter-spacing:.5px;font-size:22px;line-height:1.05;}
+  .brand .t2{font-size:13px;color:#b91c1c;font-weight:700;letter-spacing:.3px;}
+  .card{background:#fff;padding:18px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.15);margin-bottom:18px;}
   table{width:100%;border-collapse:collapse;}
   th,td{padding:8px;border-bottom:1px solid #ddd;text-align:left;font-size:14px;}
   th{background:#f3f4f6;position:sticky;top:0;z-index:1;}
   td:last-child,th:last-child{text-align:right;font-variant-numeric:tabular-nums;}
-
   .id{font-family:monospace;font-size:12px;color:#555;}
   .total{font-weight:900;font-size:20px;}
-
-  .pill{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    background:#dcfce7;
-    padding:8px 10px;
-    border-radius:999px;
-    font-size:13px;
-    color:#111;
-    border:1px solid rgba(0,0,0,.06);
-  }
-
-  .btn{
-    padding:9px 12px;
-    border-radius:8px;
-    border:1px solid #ccc;
-    background:#fff;
-    cursor:pointer;
-  }
-  .btn-primary{
-    background:#111827;
-    color:#fff;
-    border-color:#111827;
-  }
+  .pill{display:inline-flex;align-items:center;gap:8px;background:#dcfce7;padding:8px 10px;border-radius:999px;font-size:13px;color:#111;border:1px solid rgba(0,0,0,.06);}
+  .btn{padding:9px 12px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;}
+  .btn-primary{background:#111827;color:#fff;border-color:#111827;}
   .btn-primary:disabled{opacity:.6;cursor:not-allowed;}
   .hidden{display:none !important;}
   .muted{color:#666;font-size:13px}
+  .table-wrap{max-height:65vh;overflow:auto;border:1px solid #eee;border-radius:12px;}
 
-  .table-wrap{
-    max-height:65vh;
-    overflow:auto;
-    border:1px solid #eee;
-    border-radius:12px;
-  }
-
-  /* Login modal backdrop con fondo (foto 1) */
   .modal-backdrop{
-    position:fixed;
-    inset:0;
-    background:
-      linear-gradient(rgba(255,255,255,.88), rgba(255,255,255,.88)),
+    position:fixed;inset:0;
+    background:linear-gradient(rgba(255,255,255,.88), rgba(255,255,255,.88)),
       url('images.png') center/cover no-repeat;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:18px;
-    z-index:9999;
+    display:flex;align-items:center;justify-content:center;padding:18px;z-index:9999;
   }
-
-  .modal{
-    width:min(520px, 100%);
-    background:#fff;
-    border-radius:16px;
-    box-shadow:0 10px 30px rgba(0,0,0,.25);
-    overflow:hidden;
-    border:1px solid rgba(0,0,0,.06);
-  }
-
-  .modal header{
-    padding:16px 18px;
-    border-bottom:1px solid #eee;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-    background:linear-gradient(#fff, #fafafa);
-  }
+  .modal{width:min(520px,100%);background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden;border:1px solid rgba(0,0,0,.06);}
+  .modal header{padding:16px 18px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;gap:10px;background:linear-gradient(#fff,#fafafa);}
   .modal header h3{margin:0;font-size:16px;}
   .modal .content{padding:18px;}
-
-  .login-logo{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-bottom:12px;
-  }
-  .login-logo img{
-    height:48px;
-    object-fit:contain;
-  }
-  .login-logo .name{
-    font-weight:900;
-    letter-spacing:.2px;
-    font-size:16px;
-    line-height:1.1;
-  }
-  .login-logo .sub{
-    font-size:12px;
-    color:#b91c1c;
-    font-weight:800;
-  }
-
-  .modal .content label{
-    display:block;
-    font-size:13px;
-    color:#333;
-    margin-bottom:6px;
-  }
-  .modal .content input{
-    width:100%;
-    box-sizing:border-box;
-    margin-bottom:12px;
-    padding:9px 10px;
-    border-radius:8px;
-    border:1px solid #ccc;
-  }
-
-  .modal .actions{
-    display:flex;
-    gap:10px;
-    justify-content:flex-end;
-    padding:14px 18px;
-    border-top:1px solid #eee;
-    background:#fafafa;
-  }
-
+  .modal .content label{display:block;font-size:13px;color:#333;margin-bottom:6px;}
+  .modal .content input{width:100%;box-sizing:border-box;margin-bottom:12px;padding:9px 10px;border-radius:8px;border:1px solid #ccc;}
+  .modal .actions{display:flex;gap:10px;justify-content:flex-end;padding:14px 18px;border-top:1px solid #eee;background:#fafafa;}
   .status{margin-top:8px;font-size:13px;color:#b91c1c;}
-
-  .loader{
-    display:inline-block;
-    width:14px;height:14px;
-    border:2px solid #ddd;
-    border-top-color:#111827;
-    border-radius:50%;
-    animation:spin .8s linear infinite;
-    vertical-align:middle;
-    margin-left:8px;
-  }
+  .loader{display:inline-block;width:14px;height:14px;border:2px solid #ddd;border-top-color:#111827;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-left:8px;}
   @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -200,7 +53,6 @@
 
 <div class="topbar">
   <div class="brand">
-    <!-- FOTO 2: logo grande en el cuerpo -->
     <img src="logo.png" alt="PROVEEDORA">
     <div>
       <div class="t1">MIS PAGUITOS</div>
@@ -250,24 +102,14 @@
     </header>
 
     <div class="content">
-<div style="margin-bottom:18px">
-  <div style="
-      font-weight:900;
-      font-size:22px;
-      letter-spacing:.5px;
-      line-height:1.1;
-      color:#111827;">
-    MIS PAGUITOS
-  </div>
-  <div style="
-      font-size:13px;
-      font-weight:800;
-      color:#b91c1c;
-      letter-spacing:.4px;">
-    PROVEEDORA DE DULCES
-  </div>
-</div>
-
+      <div style="margin-bottom:18px">
+        <div style="font-weight:900;font-size:22px;letter-spacing:.5px;line-height:1.1;color:#111827;">
+          MIS PAGUITOS
+        </div>
+        <div style="font-size:13px;font-weight:800;color:#b91c1c;letter-spacing:.4px;">
+          PROVEEDORA DE DULCES
+        </div>
+      </div>
 
       <label>Email</label>
       <input id="email" type="email" placeholder="correo@proveedor.com" autocomplete="username" />
@@ -275,10 +117,7 @@
       <label>Contraseña</label>
       <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password" />
 
-      <div class="muted" style="margin-top:6px">
-        Cierre automático tras 5 minutos sin actividad.
-      </div>
-
+      <div class="muted" style="margin-top:6px">Cierre automático tras 5 minutos sin actividad.</div>
       <div id="loginStatus" class="status"></div>
     </div>
 
@@ -290,25 +129,27 @@
 </div>
 
 <script>
-  // 0) Asegura que el SDK cargó
   if(!window.supabase){
     alert("No cargó supabase-js (CDN bloqueado o sin Internet).");
     throw new Error("supabase-js no disponible");
   }
 
-  // 1) Cliente único
+  // ✅ Cliente Supabase (con persistencia y refresh)
   const sb = window.supabase.createClient(
     'https://cvpbtjlupswbyxenugpz.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY',
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    }
   );
-  // debug opcional
-  window.sb = sb;
 
-  const formatoMXN = new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 2
-  });
+  window.sb = sb; // debug opcional
+
+  const formatoMXN = new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN', minimumFractionDigits:2 });
 
   const loginBackdrop = document.getElementById('loginBackdrop');
   const tableCard = document.getElementById('tableCard');
@@ -328,19 +169,17 @@
   let isLoading = false;
   let didInitialLoad = false;
 
-  // 2) Auto-logout por inactividad (5 min)
+  // ✅ Auto-logout por inactividad (5 min reales)
   const IDLE_MS = 5 * 60 * 1000;
   let idleTimer = null;
 
   function startIdleTimer(){
     stopIdleTimer();
-    idleTimer = setTimeout(async () => {
-      try{
-        alert("Sesión cerrada por inactividad.");
-        await sb.auth.signOut();
-      } catch(e){
-        console.error(e);
-      }
+    idleTimer = setTimeout(() => {
+      alert("Sesión cerrada por inactividad.");
+      // primero UI, luego signOut (evita parpadeos por eventos intermedios)
+      setLoggedOutUI();
+      sb.auth.signOut();
     }, IDLE_MS);
   }
 
@@ -350,7 +189,6 @@
   }
 
   function bumpIdle(){
-    // solo cuenta cuando está logueado
     if(!btnLogout.classList.contains('hidden')){
       startIdleTimer();
     }
@@ -390,6 +228,7 @@
     totalCargado = 0;
     totalCount = null;
     didInitialLoad = false;
+    isLoading = false;
 
     document.getElementById('total').innerText = formatoMXN.format(0);
     document.getElementById('countInfo').innerText = '';
@@ -471,13 +310,6 @@
       if(error){
         console.error('Supabase error:', error);
         alert(error.message || 'Error consultando pagos');
-
-        // Si el token expiró, fuerza relogin
-        const msg = String(error.message || '').toLowerCase();
-        if(msg.includes('jwt') || msg.includes('token') || error.code === 'PGRST301'){
-          await sb.auth.signOut();
-          setLoggedOutUI();
-        }
         return;
       }
 
@@ -485,7 +317,6 @@
 
       const rows = data || [];
 
-      // Si ya no hay más filas, detener
       if(rows.length === 0){
         setBtnEnd();
         return;
@@ -495,14 +326,12 @@
         totalCargado += Number(p.importe_pagado || 0);
         const tr = document.createElement('tr');
 
-        // Sin vínculo por ahora
         tr.innerHTML = `
-          <tr>
-  <td class="id">
-    <a href="CARDEX.html?id=${p.id}" target="_blank" style="color:#2563eb;font-weight:600;text-decoration:none;">
-      ${p.id}
-    </a>
-  </td>
+          <td class="id">
+            <a href="CARDEX.html?id=${p.id}" target="_blank" style="color:#2563eb;font-weight:600;text-decoration:none;">
+              ${p.id}
+            </a>
+          </td>
           <td>${p.fecha_pago ?? ''}</td>
           <td>${p.banco ?? ''}</td>
           <td>${p.proveedor_nombre ?? ''}</td>
@@ -542,21 +371,31 @@
     }
   });
 
-  // Auth state
+  // ✅ Auth state (NO borra UI por session null momentáneo)
   sb.auth.onAuthStateChange(async (event, session) => {
-    if(session?.user){
-      setLoginLoading(false);
-      setLoggedInUI(session.user.email);
-      resetListado();
+    console.log("Auth event:", event);
 
-      if(!didInitialLoad){
-        didInitialLoad = true;
-        await cargarMas();
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (session?.user) {
+        setLoginLoading(false);
+        setLoggedInUI(session.user.email);
+
+        if (!didInitialLoad) {
+          didInitialLoad = true;
+          resetListado();
+          await cargarMas();
+        }
       }
-    } else {
+      return;
+    }
+
+    if (event === 'SIGNED_OUT') {
       setLoginLoading(false);
       setLoggedOutUI();
+      return;
     }
+
+    // otros eventos no tocan UI
   });
 
   // Sesión existente
@@ -577,7 +416,3 @@
 
 </body>
 </html>
-
-
-
-
