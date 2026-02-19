@@ -52,7 +52,13 @@ import { getFirestore, collection, getDocs } from "https://www.gstatic.com/fireb
 
 const CODIGO = "7501020540666"
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+})
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 
@@ -220,3 +226,4 @@ if(ok){
 
 </body>
 </html>
+
