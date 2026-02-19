@@ -3,36 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <title>Activación PROVSOFT</title>
+
 <style>
-body{font-family:Arial;padding:20px;background:#f4f6f9}
-.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:10px}
-button{padding:8px 15px;background:#ff7a00;color:#fff;border:none;border-radius:6px}
+body{
+  font-family:Arial;
+  padding:20px;
+  background:#f4f6f9;
+}
+.card{
+  background:#fff;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:10px;
+}
+button{
+  padding:8px 15px;
+  background:#ff7a00;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
 </style>
 </head>
+
 <body>
 
 <h2>Activar / Desactivar Módulos</h2>
 
 <div id="list"></div>
 
+<br>
 <button onclick="save()">Guardar Cambios</button>
 
+<!-- AQUÍ VA EL SCRIPT -->
 <script>
-const pages = JSON.parse(localStorage.getItem("provsoft_pages"));
+const defaultPages = [
+  { id:"VDulce", file:"VDulce.html", enabled:true },
+  { id:"VZapata", file:"VZapata.html", enabled:true },
+  { id:"VRutaVTAMOB", file:"VRutaVTAMOB.html", enabled:true },
+  { id:"INVTEORICOCIGPDD", file:"INVTEORICOCIGPDD.html", enabled:true },
+  { id:"ALUMINIO", file:"ALUMINIO.html", enabled:true },
+  { id:"CONVERRUSSELL", file:"CONVERRUSSELL.html", enabled:true },
+  { id:"RUSSELLGYM", file:"RUSSELLGYM.html", enabled:true },
+  { id:"VCigarro", file:"VCigarro.html", enabled:true },
+  { id:"VLiquidos", file:"VLiquidos.html", enabled:true },
+  { id:"TAUROCARRUSSELL", file:"TAUROCARRUSSELL.html", enabled:true },
+  { id:"Vbryan", file:"Vbryan.html", enabled:true },
+  { id:"VAccionesAC", file:"VAccionesAC.html", enabled:true },
+  { id:"Vventaspdd26", file:"Vventaspdd26.html", enabled:true }
+];
+
+let pages = JSON.parse(localStorage.getItem("provsoft_pages"));
+
+if(!Array.isArray(pages)){
+  pages = defaultPages;
+  localStorage.setItem("provsoft_pages", JSON.stringify(pages));
+}
 
 const list = document.getElementById("list");
 
-pages.forEach((p,i)=>{
-  const div = document.createElement("div");
-  div.className="card";
-  div.innerHTML = `
-    <label>
-      <input type="checkbox" ${p.enabled ? "checked":""} onchange="toggle(${i},this.checked)">
-      ${p.id}
-    </label>
-  `;
-  list.appendChild(div);
-});
+function render(){
+  list.innerHTML = "";
+
+  pages.forEach((p,i)=>{
+    const div = document.createElement("div");
+    div.className="card";
+    div.innerHTML = `
+      <label>
+        <input type="checkbox"
+        ${p.enabled ? "checked":""}
+        onchange="toggle(${i},this.checked)">
+        ${p.id}
+      </label>
+    `;
+    list.appendChild(div);
+  });
+}
 
 function toggle(i,val){
   pages[i].enabled = val;
@@ -42,6 +89,8 @@ function save(){
   localStorage.setItem("provsoft_pages", JSON.stringify(pages));
   alert("Configuración guardada");
 }
+
+render();
 </script>
 
 </body>
