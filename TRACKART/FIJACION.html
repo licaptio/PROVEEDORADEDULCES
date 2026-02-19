@@ -1,0 +1,307 @@
+<!-- =========================
+     Panel de Fijación – PROVSOFT
+     1 movimiento = 1 producto (FIJACION)
+     Captura: artículo + cantidad + FECHA/HORA REAL (manual)
+     Guarda en Supabase: movimientos_inventario
+     ========================= -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Panel de Fijación – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<style>
+  body{font-family:Arial;background:#f4f6f9;padding:40px}
+  .card{background:#fff;padding:25px;border-radius:12px;max-width:650px;margin:auto;box-shadow:0 6px 18px rgba(0,0,0,.1);position:relative}
+  input,button,select{width:100%;padding:10px;margin-top:10px;border-radius:6px;border:1px solid #ccc}
+  button{background:#F57C00;color:#fff;font-weight:bold;border:none;cursor:pointer}
+  button:hover{background:#EF6C00}
+  h2{margin-top:0}
+
+  /* AUTOCOMPLETE */
+  .sugerencias{
+    position:absolute;background:#fff;border:1px solid #ddd;max-height:260px;overflow:auto;
+    border-radius:8px;display:none;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:9999
+  }
+  .sugerencia-item{padding:10px;cursor:pointer;border-bottom:1px solid #eee;font-size:14px}
+  .sugerencia-item:hover{background:#f2f2f2}
+
+  #estado{margin-top:15px;font-weight:bold}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row > *{flex:1;min-width:220px}
+  .hint{font-size:12px;color:#555;margin-top:6px}
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h2>Fijación Física (1 producto = 1 movimiento)</h2>
+
+  <label>Buscar producto (código o concepto)</label>
+  <input type="text" id="buscar" placeholder="Ej: nutri leche o 7501020540666" autocomplete="off" />
+  <div id="sugerencias" class="sugerencias"></div>
+
+  <label>Código</label>
+  <input type="text" id="codigo" readonly placeholder="Se llena al seleccionar" />
+
+  <label>Descripción</label>
+  <input type="text" id="descripcion" readonly placeholder="Se llena al seleccionar" />
+
+  <div class="row">
+    <div>
+      <label>Cantidad física</label>
+      <input type="number" id="cantidad" placeholder="Ej: 945" step="0.01" />
+    </div>
+    <div>
+      <label>Fecha y hora real del conteo</label>
+      <input type="datetime-local" id="fechaConteo" />
+      <div class="hint">Esto define el “punto base” para el tracker. No uses la hora actual si el conteo fue antes.</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <label>Almacén</label>
+      <input type="text" id="almacen" value="MATRIZ PISO" />
+    </div>
+    <div>
+      <label>Usuario</label>
+      <input type="text" id="usuario" value="GERARDO" />
+    </div>
+  </div>
+
+  <button id="btnFijar">Guardar FIJACIÓN</button>
+
+  <div id="estado"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { firebaseConfig, supabaseUrl, supabaseAnonKey } from "./config.js";
+
+/* =========================
+   INICIALIZACIÓN
+   ========================= */
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+let productosCache = [];
+let debounceTimer = null;
+
+/* =========================
+   HELPERS
+   ========================= */
+function normalizar(txt){
+  return (txt ?? "")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function filtrarProductos(texto){
+  const t = normalizar(texto);
+  if(!t) return [];
+  return productosCache.filter(p => {
+    const concepto = normalizar(p.concepto);
+    const codigo = normalizar(p.codigoBarra);
+    return concepto.includes(t) || codigo.includes(t);
+  });
+}
+
+function posicionarSugerencias(){
+  const buscar = document.getElementById("buscar");
+  const cont = document.getElementById("sugerencias");
+  const card = document.querySelector(".card");
+
+  const rInput = buscar.getBoundingClientRect();
+  const rCard  = card.getBoundingClientRect();
+
+  cont.style.left  = (rInput.left - rCard.left) + "px";
+  cont.style.top   = (rInput.bottom - rCard.top + 6) + "px";
+  cont.style.width = rInput.width + "px";
+}
+
+function renderSugerencias(lista){
+  const cont = document.getElementById("sugerencias");
+  cont.innerHTML = "";
+
+  if(!lista.length){
+    cont.style.display = "none";
+    return;
+  }
+
+  posicionarSugerencias();
+
+  lista.slice(0, 30).forEach(p => {
+    const div = document.createElement("div");
+    div.className = "sugerencia-item";
+    div.textContent = `${p.codigoBarra ?? ""} - ${p.concepto ?? ""}`;
+    div.addEventListener("click", () => seleccionarProducto(p));
+    cont.appendChild(div);
+  });
+
+  cont.style.display = "block";
+}
+
+function ocultarSugerencias(){
+  document.getElementById("sugerencias").style.display = "none";
+}
+
+function seleccionarProducto(p){
+  document.getElementById("codigo").value = p.codigoBarra ?? "";
+  document.getElementById("descripcion").value = p.concepto ?? "";
+  document.getElementById("buscar").value = `${p.codigoBarra ?? ""} - ${p.concepto ?? ""}`;
+  ocultarSugerencias();
+  document.getElementById("cantidad").focus();
+}
+
+function folioFijacion(dtLocal){
+  // dtLocal = "YYYY-MM-DDTHH:MM"
+  // lo convertimos a FIJ-YYYYMMDD-HHMMSS (SS=00)
+  const safe = (dtLocal || "").replace("T","").replace(/[-:]/g,"");
+  // safe: YYYYMMDDHHMM
+  return `FIJ-${safe || Date.now()}`;
+}
+
+function dtLocalToIsoWithTZ(dtLocal){
+  // Convierte datetime-local (sin zona) a ISO real con tu zona local del navegador
+  // Ej: "2026-02-08T19:30" -> "2026-02-09T01:30:00.000Z" (en UTC)
+  const d = new Date(dtLocal);
+  if(isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+/* =========================
+   CARGA DE PRODUCTOS ACTIVOS (Firebase)
+   ========================= */
+async function cargarProductosActivos(){
+  // Solo activos = true
+  const q = query(collection(db, "productos"), where("activo", "==", true));
+  const snapshot = await getDocs(q);
+  productosCache = snapshot.docs.map(d => d.data());
+  console.log("Productos activos cargados:", productosCache.length);
+}
+
+/* =========================
+   GUARDAR FIJACIÓN EN SUPA
+   ========================= */
+async function guardarFijacion(){
+  const codigo = document.getElementById("codigo").value.trim();
+  const descripcion = document.getElementById("descripcion").value.trim();
+  const cantidad = parseFloat(document.getElementById("cantidad").value);
+  const almacen = document.getElementById("almacen").value.trim() || null;
+  const usuario = document.getElementById("usuario").value.trim() || null;
+
+  const dtLocal = document.getElementById("fechaConteo").value; // requerido
+  const timestampISO = dtLocalToIsoWithTZ(dtLocal);
+
+  if(!codigo) return alert("Selecciona un producto desde el buscador.");
+  if(isNaN(cantidad)) return alert("Captura una cantidad física válida.");
+  if(!dtLocal || !timestampISO) return alert("Selecciona la fecha y hora real del conteo (datetime).");
+
+  const estado = document.getElementById("estado");
+  estado.innerText = "Guardando FIJACIÓN...";
+
+  const folio = folioFijacion(dtLocal);
+
+  // Un solo producto dentro de productos[]
+  const productos = [{
+    codigo,
+    descripcion,
+    cantidad,
+    // unidad opcional: si quieres, cámbialo a dinámico al cargar producto seleccionado
+    unidad: "H87"
+  }];
+
+  const { error } = await supabase
+    .from("movimientos_inventario")
+    .insert([{
+      tipo: "FIJACION",
+      folio,
+      almacen,
+      usuario,
+      timestamp: timestampISO,   // 👈 ESTE es el punto: fecha/hora manual
+      productos
+    }]);
+
+  if(error){
+    console.error(error);
+    estado.innerText = "Error al guardar ❌";
+    return alert("No se pudo guardar. Revisa consola (F12).");
+  }
+
+  estado.innerText = `FIJACIÓN guardada ✅ (${folio})`;
+
+  // Limpieza rápida
+  document.getElementById("cantidad").value = "";
+  // no borro buscar/codigo/descripcion por si vas a fijar variaciones rápidas
+}
+
+/* =========================
+   UI EVENTS
+   ========================= */
+function initUI(){
+  const buscar = document.getElementById("buscar");
+  const cont = document.getElementById("sugerencias");
+  const btn = document.getElementById("btnFijar");
+
+  // Autocomplete realtime
+  buscar.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      const resultados = filtrarProductos(buscar.value);
+      renderSugerencias(resultados);
+    }, 120);
+  });
+
+  // Enter / Escape
+  buscar.addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){
+      e.preventDefault();
+      const resultados = filtrarProductos(buscar.value);
+      if(resultados.length) seleccionarProducto(resultados[0]);
+    }
+    if(e.key === "Escape"){
+      ocultarSugerencias();
+    }
+  });
+
+  // Click fuera
+  document.addEventListener("click", (e) => {
+    const dentro = cont.contains(e.target) || buscar.contains(e.target);
+    if(!dentro) ocultarSugerencias();
+  });
+
+  // Reposicionar en resize/scroll
+  window.addEventListener("resize", () => {
+    if(cont.style.display === "block") posicionarSugerencias();
+  });
+  window.addEventListener("scroll", () => {
+    if(cont.style.display === "block") posicionarSugerencias();
+  }, true);
+
+  btn.addEventListener("click", guardarFijacion);
+
+  // Default fechaConteo = ahora (editable)
+  const now = new Date();
+  const pad = (n)=>String(n).padStart(2,"0");
+  const local = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById("fechaConteo").value = local;
+}
+
+/* =========================
+   MAIN
+   ========================= */
+window.addEventListener("DOMContentLoaded", async () => {
+  await cargarProductosActivos();
+  initUI();
+});
+</script>
+</body>
+</html>
