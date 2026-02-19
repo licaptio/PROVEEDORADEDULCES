@@ -95,13 +95,13 @@ function setDebug(msg){
 
 async function cargarFijacion(){
 
-  const { data, error } = await supabase
-    .from("movimientos_inventario")
-    .select("id,timestamp,nivel_alerta,productos,activa")
-    .eq("tipo","FIJACION")
-    .eq("activa", true)
-    .order("timestamp", { ascending: false })
-
+const { data, error } = await supabase
+  .from("movimientos_inventario")
+  .select("id,timestamp,nivel_alerta,productos,activa")
+  .eq("tipo","FIJACION")
+  .eq("activa", true)
+  .order("timestamp", { ascending: false })
+  
   if(error){
     console.error(error)
     alert("Error leyendo fijaciones")
