@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Resumen Deudas No Pagadas</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; margin: 0; padding: 1rem; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    th, td { padding: 8px; border: 1px solid #ccc; font-size: 0.9em; }
+    th { background-color: #007bff; color: white; position: sticky; top: 0; }
+    .vencida-30 { background: #fff8e1; }
+    .vencida-60 { background: #ffe082; }
+    .vencida-90 { background: #ffca28; }
+    .vencida-mas { background: #ff7043; color: white; }
+    .proveedor-destacado { font-weight: bold; color: #2c3e50; }
+
+    button {
+      margin: 1rem 0;
+      padding: 10px 20px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover { background: #218838; }
+
+    td.numero { text-align: right; }
+
+    .proveedor-especial {
+      background-color: #d0ecff !important;
+      animation: parpadeo 1.6s infinite;
+    }
+    @keyframes parpadeo { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+    .proveedor-especial-vencido {
+      background-color: #ede7f6 !important;
+      animation: parpadeo-morado 1.6s infinite;
+    }
+    @keyframes parpadeo-morado { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+    .proveedor-contado {
+      background-color: #d0f0ff !important;
+      animation: parpadeo-celeste 1.5s infinite;
+      color: #003344;
+      font-weight: bold;
+    }
+    @keyframes parpadeo-celeste { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+    .dias-30-morado {
+      background-color: #ede7f6 !important;
+      animation: parpadeo-morado 1.6s infinite;
+      font-weight: bold;
+      color: #4a148c;
+    }
+
+    .desintegrando { opacity: 0; transition: opacity 1.2s ease; }
+
+    .btn-pagar {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: none; cursor: pointer;
+      background-color: #28a745;
+      display: inline-block;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s;
+    }
+    .btn-pagar:hover { transform: scale(1.15); box-shadow: 0 0 0 4px rgba(40,167,69,0.25); }
+    .btn-pagar:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .uuid-corto {
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .col-fecha {
+      white-space: nowrap;
+      font-size: 0.85em;
+      width: 90px;
+      max-width: 90px;
+      text-align: center;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin: 10px 0 14px;
+    }
+    .pill{
+      display:inline-block;
+      padding:8px 12px;
+      border-radius:999px;
+      background:#fff;
+      box-shadow:0 2px 4px rgba(0,0,0,0.12);
+      font-size:0.9em;
+    }
+  </style>
+</head>
+<body>
+  <h2>📌 Facturas Pendientes</h2>
+
+  <div class="toolbar">
+    <button id="btnOrdenDias">Orden: Más viejas (más días) primero</button>
+    <button id="btnOrdenProveedor">Orden: Proveedor (A→Z) y más viejas primero</button>
+    <span id="estadoOrden" class="pill"></span>
+  </div>
+
+  <div id="tabla"></div>
+
+  <script>
+    const _supabase = window.supabase.createClient(
+      'https://cvpbtjlupswbyxenugpz.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+    );
+
+    const proveedoresEspeciales = {
+      "ROBERTO CANTU OZUNA": 12,
+      "DECASA DEL CENTRO": 20,
+      "DULCES LAS DELICIAS": 28,
+      "GUSTAVO MARTINEZ PLATAS": 10,
+      "EDDY HERNANDEZ VILLARREAL": 7,
+      "DISTRIBUIDORA DE DULCES DEL NORTE": 27,
+      "INOCENCIO DELGADO MARQUEZ": 15,
+      "DUL-TAM PAVITO": 7,
+      "LOCALIZACION ESPECIALIZADA GPS": 2,
+      "LUIS FERNANDO KARR GARCIA": 2,
+      "DISTRIBUIDORA DE PRODUCTOS DESHIDRATADOS": 28,
+      "DETALLE Y DISTRIBUCIONES": 20,
+      "PRODUCTOS VIGAR": 15,
+      "DISTRIBUIDORA DE LA ROSA": 15,
+      "COMERCIALIZADORA INDUSTRIAL IDALI": 15,
+      "MAXILUM": 15,
+      "DESFICO": 7,
+      "GRUPO CHI-SO": 15,
+      "ABARROTES": 25
+    };
+
+    const proveedoresContado = [
+      "BBVA MEXICO, S.A., INSTITUCION DE BANCA MULTIPLE, GRUPO FINANCIERO BBVA MEXICO",
+      "BANCO SANTANDER MEXICO S.A., INSTITUCION DE BANCA MULTIPLE, GRUPO FINANCIERO SANTANDER MEXICO",
+      "MARIA IMELDA CHAPA PARAS",
+      "JOSE ANTONIO PEÑA MARTINEZ",
+      "COMERCIALIZADORA PEPSICO MEXICO",
+      "DISTRIBUIDORA ARCA CONTINENTAL",
+      "WINETPC",
+      "GASNGO MEXICO",
+      "RADIOMOVIL DIPSA",
+      "SERVICIOS GASOLINEROS DE MEXICO",
+      "PEÑAFIEL BEBIDAS",
+      "DELIA EUSTOLIA TORRES GARCIA",
+      "BONAFONT",
+      "BOTANAS Y DERIVADOS",
+      "ANDRES EULALIO RAMIREZ CRUZ",
+      "TELEFONOS DE MEXICO",
+      "LA CACHOTA",
+      "DOLORES BRISEÑO MANCHA",
+      "COMISION FEDERAL DE ELECTRICIDAD"
+    ];
+
+    // ====== ESTADO GLOBAL ======
+    let DATA_FINAL = [];
+    const ORDEN = { DIAS_DESC: "DIAS_DESC", PROVEEDOR_ASC_DIAS_DESC: "PROVEEDOR_ASC_DIAS_DESC" };
+    let ordenActual = ORDEN.DIAS_DESC;
+
+    // -------------------------------------------------------
+    // 1) PÉGAS AQUÍ TU ARREGLO VIEJO (DE PRECIOS, FACTURAS, ETC.)
+    // -------------------------------------------------------
+    const datosViejos = [
+      // {fecha:"2024-06-10", total:"1200", razon_social_emisor:"ALGO", uuid_cfdi:"---", ...}
+    ];
+
+    // -------------------------------------------------------
+    // NORMALIZA FECHA: acepta "YYYY-MM-DD" o ISO con T
+    // Devuelve string "YYYY-MM-DD" (o "" si no hay)
+    // -------------------------------------------------------
+    function fechaYMD(value) {
+      if (!value) return "";
+      if (typeof value === "string") return value.split("T")[0];
+      // Date
+      if (value instanceof Date && !isNaN(value)) {
+        const y = value.getFullYear();
+        const m = String(value.getMonth() + 1).padStart(2, "0");
+        const d = String(value.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+      return String(value).split("T")[0];
+    }
+
+    // -------------------------------------------------------
+    // NORMALIZADOR UNIVERSAL PARA UNIR VIEJO + NUEVO
+    // -------------------------------------------------------
+    function normalizarFactura(f) {
+      const uuid = (f.uuid_cfdi || f.uuid || "").trim();
+      return {
+        uuid_cfdi: uuid,
+        fecha: fechaYMD(f.fecha),
+        rfc_emisor: f.rfc_emisor || "",
+        razon_social_emisor: f.razon_social_emisor || "",
+        proveedor: (f.proveedor || "").trim(),
+        factura: f.factura || "",
+        serie: f.serie || "",
+        serie_folio: f.serie_folio || "",
+        total: parseFloat(f.total || 0),
+        factura_pagada: (f.factura_pagada || "").toUpperCase().trim(),
+        factura_fisicamente: (f.factura_fisicamente || "").toUpperCase().trim(),
+        fotos: Array.isArray(f.fotos) ? f.fotos : [],
+        ...f
+      };
+    }
+
+    function proveedorReal(f) {
+      return (f.proveedor && f.proveedor.trim() !== "")
+        ? f.proveedor
+        : (f.razon_social_emisor && f.razon_social_emisor.trim() !== "")
+          ? f.razon_social_emisor
+          : (f.rfc_emisor || "");
+    }
+
+    function calcularDias(fechaStr) {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+
+      if (!fechaStr) return 0;
+
+      const ymd = fechaYMD(fechaStr);
+      const [y, m, d] = ymd.split("-").map(Number);
+      if (!y || !m || !d) return 0;
+
+      const f = new Date(y, m - 1, d);
+      f.setHours(0, 0, 0, 0);
+
+      const diff = hoy - f;
+      return Math.floor(diff / 86400000);
+    }
+
+    function obtenerClaseVencimiento(d) {
+      if (d > 90) return "vencida-mas";
+      if (d > 60) return "vencida-90";
+      if (d > 30) return "vencida-60";
+      return "vencida-30";
+    }
+
+    function ordenarDatos(arr, modo) {
+      const copia = [...arr];
+
+      if (modo === ORDEN.DIAS_DESC) {
+        // Más días primero (más vieja primero). Si empata: proveedor, total desc
+        copia.sort((a, b) => {
+          const da = calcularDias(a.fecha);
+          const db = calcularDias(b.fecha);
+          if (db !== da) return db - da;
+          const pa = proveedorReal(a).toLowerCase();
+          const pb = proveedorReal(b).toLowerCase();
+          if (pa !== pb) return pa.localeCompare(pb);
+          return (parseFloat(b.total)||0) - (parseFloat(a.total)||0);
+        });
+        return copia;
+      }
+
+      if (modo === ORDEN.PROVEEDOR_ASC_DIAS_DESC) {
+        // Proveedor A→Z y dentro del proveedor: más días primero
+        copia.sort((a, b) => {
+          const pa = proveedorReal(a).toLowerCase();
+          const pb = proveedorReal(b).toLowerCase();
+          if (pa !== pb) return pa.localeCompare(pb);
+
+          const da = calcularDias(a.fecha);
+          const db = calcularDias(b.fecha);
+          if (db !== da) return db - da;
+
+          return (parseFloat(b.total)||0) - (parseFloat(a.total)||0);
+        });
+        return copia;
+      }
+
+      return copia;
+    }
+
+    function setEstadoOrden() {
+      const el = document.getElementById("estadoOrden");
+      el.textContent =
+        ordenActual === ORDEN.DIAS_DESC
+          ? "Orden actual: Más viejas (más días) primero"
+          : "Orden actual: Proveedor (A→Z) y más viejas primero";
+    }
+
+    async function cargar() {
+      const { data, error } = await _supabase
+        .from("v_deuda_proveedores")
+        .select("*")
+        .neq("factura_pagada", "SI");
+
+      if (error) return alert("Error cargando datos");
+
+      // 3) FILTRO DE NO PAGADAS DEL SUPABASE (NUEVO)
+      const noPagadasSupabase = (data || []).filter(f =>
+        (f.factura_pagada || "NO").toUpperCase().trim() !== "SI"
+      );
+
+      // 4) UNIR AMBAS FUENTES (VIEJO + NUEVO) NORMALIZADAS
+      const unidas = [
+        ...datosViejos.map(normalizarFactura),
+        ...noPagadasSupabase.map(normalizarFactura)
+      ];
+
+      // 5) QUITAR DUPLICADOS POR uuid_cfdi (si no hay uuid, se conserva como único)
+      const unicas = Object.values(
+        unidas.reduce((acc, f) => {
+          const key = f.uuid_cfdi || crypto.randomUUID();
+          if (!acc[key]) acc[key] = f;
+          return acc;
+        }, {})
+      );
+
+      // Guardar dataset base
+      DATA_FINAL = unicas;
+
+      // Render inicial (más días primero)
+      setEstadoOrden();
+      render();
+      pintarTotalGlobal();
+    }
+
+    function pintarTotalGlobal() {
+      // quitar bloque previo si existe
+      const prev = document.getElementById("totalGlobalBox");
+      if (prev) prev.remove();
+
+      const ordenados = ordenarDatos(DATA_FINAL, ordenActual);
+      const sumaGlobal = ordenados.reduce((acc, f) => acc + (parseFloat(f.total) || 0), 0);
+
+      document.getElementById("tabla").insertAdjacentHTML("beforebegin", `
+        <div id="totalGlobalBox" style="
+          background:#fff;
+          padding:15px;
+          margin-bottom:12px;
+          border-radius:8px;
+          box-shadow:0 2px 4px rgba(0,0,0,0.15);
+        ">
+          <strong style="font-size:1.1em;">💰 TOTAL GLOBAL PENDIENTE:</strong><br>
+          <span style="font-size:1.6em; font-weight:bold; color:#0a6c21;">
+            $${sumaGlobal.toLocaleString("es-MX",{ minimumFractionDigits:2 })}
+          </span>
+        </div>
+      `);
+    }
+
+    function render() {
+      const ordenados = ordenarDatos(DATA_FINAL, ordenActual);
+      mostrarTabla(ordenados);
+    }
+
+    function mostrarTabla(data) {
+      let html = `<table><thead><tr>
+        <th>Fecha</th>
+        <th>Días</th>
+        <th>UUID</th>
+        <th>RFC</th>
+        <th>Proveedor</th>
+        <th>Serie/Folio</th>
+        <th>Total</th>
+        <th>Física</th>
+        <th>Fotos</th>
+        <th>Acción</th>
+      </tr></thead><tbody>`;
+
+      for (const f of data) {
+        const dias = calcularDias(f.fecha);
+        const proveedor = proveedorReal(f);
+        const folioFinal = f.serie_folio || "—";
+
+        const clase30 = dias >= 30 ? "dias-30-morado" : "";
+
+        html += `
+          <tr class="${clase30}">
+            <td class="col-fecha">${fechaYMD(f.fecha)}</td>
+            <td>${dias}</td>
+            <td>
+              <a href="detalle.html?uuid=${f.uuid_cfdi}" target="_blank" class="uuid-corto" title="${f.uuid_cfdi}">
+                ${f.uuid_cfdi || "—"}
+              </a>
+            </td>
+            <td>${f.rfc_emisor || ""}</td>
+            <td class="proveedor-destacado">${proveedor}</td>
+            <td>${folioFinal}</td>
+            <td class="numero">
+              ${Number(f.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+            </td>
+            <td style="text-align:center">
+              ${(f.factura_fisicamente || "") === "SI" ? "✅" : ""}
+            </td>
+            <td style="text-align:center">
+              ${
+                (f.fotos && f.fotos.length > 0)
+                  ? f.fotos.map(url => `<a href="${url}" target="_blank">📷</a>`).join("")
+                  : ""
+              }
+            </td>
+            <td style="text-align:center">
+              <button class="btn-pagar" title="Marcar como pagada" onclick="marcarPagada('${f.uuid_cfdi}', this)"></button>
+            </td>
+          </tr>
+        `;
+      }
+
+      html += "</tbody></table>";
+      document.getElementById("tabla").innerHTML = html;
+    }
+
+    async function marcarPagada(uuid_cfdi, boton) {
+      const fila = boton.closest("tr");
+
+      boton.disabled = true;
+      boton.style.backgroundColor = "#6c757d";
+
+      const { error } = await _supabase
+        .from("deuda_limpia_pdd")
+        .update({ factura_pagada: "SI" })
+        .eq("uuid_cfdi", uuid_cfdi);
+
+      if (error) {
+        alert("❌ Error al marcar como pagada");
+        console.error(error);
+        boton.disabled = false;
+        boton.style.backgroundColor = "#28a745";
+        return;
+      }
+
+      fila.style.background = "#e8f5e9";
+
+      setTimeout(() => {
+        fila.classList.add("desintegrando");
+        setTimeout(() => fila.remove(), 1200);
+      }, 5000);
+    }
+
+    // ====== BOTONES DE ORDEN ======
+    document.getElementById("btnOrdenDias").addEventListener("click", () => {
+      ordenActual = ORDEN.DIAS_DESC;
+      setEstadoOrden();
+      render();
+      pintarTotalGlobal();
+    });
+
+    document.getElementById("btnOrdenProveedor").addEventListener("click", () => {
+      ordenActual = ORDEN.PROVEEDOR_ASC_DIAS_DESC;
+      setEstadoOrden();
+      render();
+      pintarTotalGlobal();
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setEstadoOrden();
+      cargar();
+    });
+  </script>
+</body>
+</html>
