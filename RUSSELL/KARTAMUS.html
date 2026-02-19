@@ -59,6 +59,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false
   }
 })
+
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 
@@ -68,9 +69,8 @@ let nivelAlerta = 0
 let fechaFijacion = null
 
 function parseProductosField(productosField){
-  if (!productosField) return []
   if (Array.isArray(productosField)) return productosField
-  if (typeof productosField === "object") return productosField
+  if (productosField && typeof productosField === "object") return productosField
   if (typeof productosField === "string") {
     try { return JSON.parse(productosField) } catch { return [] }
   }
@@ -90,14 +90,13 @@ function setDebug(msg){
 }
 
 async function cargarFijacion(){
+  const { data, error } = await supabase
+    .from("movimientos_inventario")
+    .select("id,timestamp,nivel_alerta,productos")
+    .eq("tipo","FIJACION")
+    .eq("activa",true)
+    .order("timestamp", { ascending: false })
 
-const { data, error } = await supabase
-  .from("movimientos_inventario")
-  .select("id,timestamp,nivel_alerta,productos,activa")
-  .eq("tipo","FIJACION")
-  .eq("activa", true)
-  .order("timestamp", { ascending: false })
-  
   if(error){
     console.error(error)
     alert("Error leyendo fijaciones")
@@ -141,11 +140,10 @@ const { data, error } = await supabase
 
   setDebug(`Fijación usada: ${fechaFijacion.toLocaleString()}`)
   verificarAlerta()
-
   return true
 }
-async function reconstruirSalidas(){
 
+async function reconstruirSalidas(){
   const colecciones = [
     { nombre: "Almacen_Dulces", ref: collection(db, "almacenes", "Almacen_Dulces", "salidas") },
     { nombre: "Almacen_Liquidos", ref: collection(db, "almacenes", "Almacen_Liquidos", "salidas") }
@@ -161,9 +159,7 @@ async function reconstruirSalidas(){
       if(!data || !data.productos) return
 
       const lista = Array.isArray(data.productos) ? data.productos : []
-      const prod = lista.find(p =>
-        String(p.codigo).trim() === CODIGO.trim()
-      )
+      const prod = lista.find(p => String(p.codigo).trim() === CODIGO.trim())
       if(!prod) return
 
       const fechaSalida = toDateSafe(data.timestamp)
@@ -173,7 +169,8 @@ async function reconstruirSalidas(){
       eventos.push({
         fecha: fechaSalida,
         folio: data.folio || "",
-        cantidad: Number(prod.cantidad || 0)
+        cantidad: Number(prod.cantidad || 0),
+        almacen: c.nombre
       })
     })
   }
@@ -191,7 +188,7 @@ async function reconstruirSalidas(){
     tabla.innerHTML += `
       <tr>
         <td>${ev.fecha.toLocaleString()}</td>
-        <td>${ev.folio}</td>
+        <td>${ev.folio} <span class="small">(${ev.almacen})</span></td>
         <td>${ev.cantidad}</td>
         <td>${inventarioTeorico}</td>
       </tr>
