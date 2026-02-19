@@ -70,13 +70,9 @@ let fechaFijacion = null
 function parseProductosField(productosField){
   if (!productosField) return []
   if (Array.isArray(productosField)) return productosField
+  if (typeof productosField === "object") return productosField
   if (typeof productosField === "string") {
-    try {
-      const parsed = JSON.parse(productosField)
-      return Array.isArray(parsed) ? parsed : []
-    } catch {
-      return []
-    }
+    try { return JSON.parse(productosField) } catch { return [] }
   }
   return []
 }
