@@ -13,6 +13,7 @@ body{font-family:Arial;background:#f4f6f9;padding:20px}
 table{width:100%;border-collapse:collapse}
 th,td{padding:8px;border-bottom:1px solid #ddd;text-align:center}
 .alerta{font-size:22px;margin-left:10px}
+.small{font-size:12px;color:#666;margin-top:6px}
 </style>
 </head>
 <body>
@@ -25,6 +26,7 @@ th,td{padding:8px;border-bottom:1px solid #ddd;text-align:center}
     Teórico: <span id="teorico">—</span>
     <span id="icono" class="alerta">⚠</span>
   </h3>
+  <div class="small" id="debug">—</div>
 </div>
 
 <div class="card">
@@ -44,7 +46,7 @@ th,td{padding:8px;border-bottom:1px solid #ddd;text-align:center}
 
 <script type="module">
 import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 
@@ -60,7 +62,6 @@ let nivelAlerta = 0
 let fechaFijacion = null
 
 function parseProductosField(productosField){
-  // Soporta: jsonb (array/obj) o string JSON
   if (Array.isArray(productosField)) return productosField
   if (productosField && typeof productosField === "object") return productosField
   if (typeof productosField === "string") {
@@ -73,14 +74,16 @@ function toDateSafe(v){
   if (!v) return null
   if (v?.toDate) return v.toDate()        // Firestore Timestamp
   if (v instanceof Date) return v
-  const d = new Date(v)                   // string/number
+  const d = new Date(v)
   return isNaN(d.getTime()) ? null : d
 }
 
-// 1) Cargar fijación activa (solo la del producto y su base + mínimo)
-async function cargarFijacion(){
+function setDebug(msg){
+  document.getElementById("debug").innerText = msg
+}
 
-  // Si tienes múltiples fijaciones, esto agarra 1. (si quieres: order by timestamp desc)
+// 1) Cargar fijación activa (base + mínimo)
+async function cargarFijacion(){
   const { data, error } = await supabase
     .from("movimientos_inventario")
     .select("id,timestamp,nivel_alerta,productos")
@@ -101,15 +104,12 @@ async function cargarFijacion(){
   }
 
   const fijacion = data[0]
-
   const productos = parseProductosField(fijacion.productos)
 
-  // Si viene como array de objetos
   let producto = null
   if (Array.isArray(productos)) {
-    producto = productos.find(p => String(p.codigo) === CODIGO)
+    producto = productos.find(p => String(p.codigo).trim() === CODIGO.trim())
   } else if (productos && typeof productos === "object") {
-    // por si algún día lo guardas como mapa { codigo: {...} }
     producto = productos[CODIGO] || null
   }
 
@@ -122,62 +122,63 @@ async function cargarFijacion(){
   inventarioTeorico = inventarioBase
   nivelAlerta = Number(fijacion.nivel_alerta || 0)
 
-  fechaFijacion = toDateSafe(fijacion.timestamp)
-  if(!fechaFijacion){
-    // fallback seguro
-    fechaFijacion = new Date(0)
-  }
+  fechaFijacion = toDateSafe(fijacion.timestamp) || new Date(0)
 
   document.getElementById("base").innerText = inventarioBase
   document.getElementById("minimo").innerText = nivelAlerta
   document.getElementById("teorico").innerText = inventarioTeorico
 
+  setDebug(`Fijación: ${fechaFijacion.toLocaleString()} | SKU: ${CODIGO}`)
   verificarAlerta()
   return true
 }
 
 // 2) Reconstruir salidas posteriores a la fijación
 async function reconstruirSalidas(){
-
   const colecciones = [
-    collection(db, "almacenes", "Almacen_Dulces", "salidas"),
-    collection(db, "almacenes", "Almacen_Liquidos", "salidas")
+    { nombre: "Almacen_Dulces", ref: collection(db, "almacenes", "Almacen_Dulces", "salidas") },
+    { nombre: "Almacen_Liquidos", ref: collection(db, "almacenes", "Almacen_Liquidos", "salidas") }
   ]
 
   let eventos = []
+  let docsLeidos = 0
+  let matchesSku = 0
+  let matchesDespues = 0
 
-  for(const colRef of colecciones){
-    const snapshot = await getDocs(colRef)
+  for(const c of colecciones){
+    const snapshot = await getDocs(c.ref)
+    docsLeidos += snapshot.size
 
     snapshot.forEach(docSnap => {
       const data = docSnap.data()
       if(!data || !data.productos) return
 
       const lista = Array.isArray(data.productos) ? data.productos : []
-      const prod = lista.find(p => String(p.codigo) === CODIGO)
+      const prod = lista.find(p => String(p.codigo).trim() === CODIGO.trim())
       if(!prod) return
+      matchesSku++
 
-      const fechaSalida = toDateSafe(data.fecha)
+      // ✅ USAR timestamp REAL (no "fecha" string)
+      const fechaSalida = toDateSafe(data.timestamp)
       if(!fechaSalida) return
 
-      // Solo después de fijación (punto cero)
       if(fechaSalida < fechaFijacion) return
+      matchesDespues++
 
       eventos.push({
         fecha: fechaSalida,
         folio: data.folio || "",
-        cantidad: Number(prod.cantidad || 0)
+        cantidad: Number(prod.cantidad || 0),
+        almacen: c.nombre
       })
     })
   }
 
-  // Orden cronológico
   eventos.sort((a,b) => a.fecha - b.fecha)
 
   const tabla = document.getElementById("tablaEventos")
   tabla.innerHTML = ""
 
-  // Recalcular desde base (por si recargas)
   inventarioTeorico = inventarioBase
 
   for(const ev of eventos){
@@ -186,7 +187,7 @@ async function reconstruirSalidas(){
     tabla.innerHTML += `
       <tr>
         <td>${ev.fecha.toLocaleString()}</td>
-        <td>${ev.folio}</td>
+        <td>${ev.folio} <span class="small">(${ev.almacen})</span></td>
         <td>${ev.cantidad}</td>
         <td>${inventarioTeorico}</td>
       </tr>
@@ -194,6 +195,7 @@ async function reconstruirSalidas(){
   }
 
   document.getElementById("teorico").innerText = inventarioTeorico
+  setDebug(`Docs leídos: ${docsLeidos} | Con SKU: ${matchesSku} | >= Fijación: ${matchesDespues} | Eventos: ${eventos.length}`)
   verificarAlerta()
 }
 
