@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Activación PROVSOFT</title>
+<style>
+body{font-family:Arial;padding:20px;background:#f4f6f9}
+.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:10px}
+button{padding:8px 15px;background:#ff7a00;color:#fff;border:none;border-radius:6px}
+</style>
+</head>
+<body>
+
+<h2>Activar / Desactivar Módulos</h2>
+
+<div id="list"></div>
+
+<button onclick="save()">Guardar Cambios</button>
+
+<script>
+const pages = JSON.parse(localStorage.getItem("provsoft_pages"));
+
+const list = document.getElementById("list");
+
+pages.forEach((p,i)=>{
+  const div = document.createElement("div");
+  div.className="card";
+  div.innerHTML = `
+    <label>
+      <input type="checkbox" ${p.enabled ? "checked":""} onchange="toggle(${i},this.checked)">
+      ${p.id}
+    </label>
+  `;
+  list.appendChild(div);
+});
+
+function toggle(i,val){
+  pages[i].enabled = val;
+}
+
+function save(){
+  localStorage.setItem("provsoft_pages", JSON.stringify(pages));
+  alert("Configuración guardada");
+}
+</script>
+
+</body>
+</html>
