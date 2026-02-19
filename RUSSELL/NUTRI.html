@@ -96,49 +96,52 @@ async function cargarFijacion(){
     .eq("tipo","FIJACION")
     .eq("activa",true)
     .order("timestamp", { ascending: false })
-    .limit(1)
 
   if(error){
     console.error(error)
-    alert("Error leyendo fijación")
+    alert("Error leyendo fijaciones")
     return false
   }
 
   if(!data || data.length === 0){
-    alert("No hay fijación activa")
+    alert("No hay fijaciones activas")
     return false
   }
 
-  const fijacion = data[0]
-  const productos = parseProductosField(fijacion.productos)
-
+  let fijacion = null
   let producto = null
-  if (Array.isArray(productos)) {
-    producto = productos.find(p => String(p.codigo).trim() === CODIGO.trim())
-  } else if (productos && typeof productos === "object") {
-    producto = productos[CODIGO] || null
+
+  for(const f of data){
+    const lista = parseProductosField(f.productos)
+    const encontrado = lista.find(p =>
+      String(p.codigo).trim() === CODIGO.trim()
+    )
+
+    if(encontrado){
+      fijacion = f
+      producto = encontrado
+      break
+    }
   }
 
   if(!producto){
-    alert("La fijación activa NO contiene este artículo")
+    alert("No existe fijación activa para este artículo")
     return false
   }
 
   inventarioBase = Number(producto.cantidad || 0)
   inventarioTeorico = inventarioBase
   nivelAlerta = Number(fijacion.nivel_alerta || 0)
-
   fechaFijacion = toDateSafe(fijacion.timestamp) || new Date(0)
 
   document.getElementById("base").innerText = inventarioBase
   document.getElementById("minimo").innerText = nivelAlerta
   document.getElementById("teorico").innerText = inventarioTeorico
 
-  setDebug(`Fijación: ${fechaFijacion.toLocaleString()} | SKU: ${CODIGO}`)
+  setDebug(`Fijación usada: ${fechaFijacion.toLocaleString()}`)
   verificarAlerta()
   return true
 }
-
 // 2) Reconstruir salidas posteriores a la fijación
 async function reconstruirSalidas(){
   const colecciones = [
@@ -226,3 +229,4 @@ if(ok){
 
 </body>
 </html>
+
