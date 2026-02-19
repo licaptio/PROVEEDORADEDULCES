@@ -2,9 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>PROVSOFT Monitor</title>
 
 <style>
@@ -70,30 +68,35 @@ button{
   color:#fff;
   cursor:pointer;
 }
+
+/* botón opcional de configuración */
+.gear{
+  position:fixed;
+  top:12px;
+  right:12px;
+  z-index:1100;
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  background:#ff7a00;
+  color:#fff;
+  border-radius:10px;
+  text-decoration:none;
+  font-size:22px;
+  font-weight:700;
+  opacity:.85;
+}
+.gear:active{ transform:scale(.98); }
 </style>
 </head>
+
 <body>
 
-<div id="container">
+<!-- (Opcional) acceso rápido a activacion.html -->
+<a class="gear" href="activacion.html" title="Activación">⚙</a>
 
-  
-  <div class="slide"><iframe src="VDulce.html"></iframe></div>
-  <div class="slide"><iframe src="VZapata.html"></iframe></div>
-  <div class="slide"><iframe src="VRutaVTAMOB.html"></iframe></div>
-  <div class="slide"><iframe src="INVTEORICOCIGPDD.html"></iframe></div>
-  <div class="slide"><iframe src="ALUMINIO.html"></iframe></div>
-  <div class="slide"><iframe src="CONVERRUSSELL.html"></iframe></div>
-  <div class="slide"><iframe src="RUSSELLGYM.html"></iframe></div>
-  <div class="slide"><iframe src="VCigarro.html"></iframe></div>
-  <div class="slide"><iframe src="VLiquidos.html"></iframe></div>
-  <div class="slide"><iframe src="TAUROCARRUSSELL.html"></iframe></div>
-  <div class="slide"><iframe src="Vbryan.html"></iframe></div>
-  <div class="slide"><iframe src="VAccionesAC.html"></iframe></div>
-  <div class="slide active">
-  <iframe src="Vventaspdd26.html"></iframe>
-</div>
-
-</div>
+<div id="container"></div>
 
 <div class="controls">
   <button onclick="prev()">⬅</button>
@@ -101,57 +104,133 @@ button{
 </div>
 
 <script>
-const slides = document.querySelectorAll(".slide");
-let index = Array.from(slides).findIndex(s => s.classList.contains("active"));
-if(index === -1) index = 0;
-let autoRotate;
-const total = slides.length;
+/* ===============================
+   CONFIG BASE (todas las páginas)
+=================================*/
+const defaultPages = [
+  { id:"VDulce", file:"VDulce.html" },
+  { id:"VZapata", file:"VZapata.html" },
+  { id:"VRutaVTAMOB", file:"VRutaVTAMOB.html" },
+  { id:"INVTEORICOCIGPDD", file:"INVTEORICOCIGPDD.html" },
+  { id:"ALUMINIO", file:"ALUMINIO.html" },
+  { id:"CONVERRUSSELL", file:"CONVERRUSSELL.html" },
+  { id:"RUSSELLGYM", file:"RUSSELLGYM.html" },
+  { id:"VCigarro", file:"VCigarro.html" },
+  { id:"VLiquidos", file:"VLiquidos.html" },
+  { id:"TAUROCARRUSSELL", file:"TAUROCARRUSSELL.html" },
+  { id:"Vbryan", file:"Vbryan.html" },
+  { id:"VAccionesAC", file:"VAccionesAC.html" },
+  { id:"Vventaspdd26", file:"Vventaspdd26.html" }
+];
 
-function showSlide(newIndex){
-  slides.forEach(s => s.classList.remove("active","prev"));
+/* ===============================
+   CARGAR CONFIGURACIÓN
+=================================*/
+let config = JSON.parse(localStorage.getItem("provsoft_pages"));
 
-  let old = index;
-  index = (newIndex + total) % total;
-
-  slides[old].classList.add("prev");
-  slides[index].classList.add("active");
+if(!Array.isArray(config)){
+  config = defaultPages.map(p => ({ ...p, enabled:true }));
+  localStorage.setItem("provsoft_pages", JSON.stringify(config));
 }
 
-function next(){
-  showSlide(index+1);
-  resetTimer();
+/* Si agregaste páginas nuevas en defaultPages y tu config es vieja,
+   las integra automáticamente sin perder tus activaciones */
+const byId = new Map(config.map(p => [p.id, p]));
+for(const p of defaultPages){
+  if(!byId.has(p.id)) config.push({ ...p, enabled:true });
 }
+localStorage.setItem("provsoft_pages", JSON.stringify(config));
 
-function prev(){
-  showSlide(index-1);
-  resetTimer();
-}
+/* ===============================
+   CONSTRUIR SOLO ACTIVOS
+=================================*/
+const container = document.getElementById("container");
+const activePages = config.filter(p => p.enabled);
 
-function startAuto(){
-  autoRotate = setInterval(()=>next(),30000);
-}
+if(activePages.length === 0){
+  container.innerHTML = `
+    <div style="color:white;display:flex;align-items:center;justify-content:center;
+                height:100%;font-size:22px;text-align:center;padding:20px;">
+      No hay módulos activos<br>
+      Activa alguno en <b>activacion.html</b>
+    </div>`;
+  // no continuar
+} else {
 
-function resetTimer(){
-  clearInterval(autoRotate);
+  activePages.forEach((p,i)=>{
+    const div = document.createElement("div");
+    div.className = "slide";
+    if(i===0) div.classList.add("active");
+    div.innerHTML = `<iframe src="${p.file}" loading="lazy"></iframe>`;
+    container.appendChild(div);
+  });
+
+  /* ===============================
+     LÓGICA CARRUSEL
+  =================================*/
+  const slides = document.querySelectorAll(".slide");
+  let index = 0;
+  let autoRotate;
+  const total = slides.length;
+
+  function showSlide(newIndex){
+    slides.forEach(s => s.classList.remove("active","prev"));
+
+    const old = index;
+    index = (newIndex + total) % total;
+
+    slides[old].classList.add("prev");
+    slides[index].classList.add("active");
+  }
+
+  window.next = function(){
+    showSlide(index+1);
+    resetTimer();
+  }
+
+  window.prev = function(){
+    showSlide(index-1);
+    resetTimer();
+  }
+
+  function startAuto(){
+    autoRotate = setInterval(()=>window.next(),30000);
+  }
+
+  function resetTimer(){
+    clearInterval(autoRotate);
+    startAuto();
+  }
+
+  /* ===============================
+     SWIPE
+  =================================*/
+  let startX = 0;
+
+  document.addEventListener("touchstart",e=>{
+    startX = e.touches[0].clientX;
+  },{passive:true});
+
+  document.addEventListener("touchend",e=>{
+    const endX = e.changedTouches[0].clientX;
+    const diff = startX - endX;
+
+    if(diff > 60) window.next();
+    if(diff < -60) window.prev();
+  },{passive:true});
+
   startAuto();
+
+  /* ===============================
+     REFRESH SI CAMBIA LOCALSTORAGE
+     (si modificas activacion.html en otra pestaña)
+  =================================*/
+  window.addEventListener("storage", (e)=>{
+    if(e.key === "provsoft_pages"){
+      location.reload();
+    }
+  });
 }
-
-/* Swipe optimizado */
-let startX = 0;
-
-document.addEventListener("touchstart",e=>{
-  startX = e.touches[0].clientX;
-},{passive:true});
-
-document.addEventListener("touchend",e=>{
-  let endX = e.changedTouches[0].clientX;
-  let diff = startX - endX;
-
-  if(diff > 60) next();
-  if(diff < -60) prev();
-},{passive:true});
-
-startAuto();
 </script>
 
 </body>
