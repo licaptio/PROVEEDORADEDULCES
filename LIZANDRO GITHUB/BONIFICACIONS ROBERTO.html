@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Comparador Cotización vs Factura (BD)</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+
+<style>
+:root{
+  --azul1:#00416A;
+  --azul2:#0c6cbd;
+  --gris:#f4f6f9;
+  --card:#ffffff;
+  --radius:14px;
+  --shadow:0 8px 24px rgba(0,0,0,.18);
+}
+
+*{
+  box-sizing:border-box;
+  font-family:'Poppins', Arial, sans-serif;
+}
+
+body{
+  margin:0;
+  background:linear-gradient(135deg,var(--azul1),var(--azul2));
+  padding:30px;
+}
+
+.container{
+  background:var(--card);
+  max-width:1200px;
+  margin:auto;
+  padding:30px;
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+
+h2{
+  margin-top:0;
+  color:var(--azul1);
+  font-weight:600;
+}
+
+label{
+  font-weight:600;
+  color:#333;
+}
+
+select,input[type="file"]{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  margin-right:10px;
+}
+
+button{
+  padding:10px 18px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.2s ease;
+}
+
+button:hover{
+  transform:translateY(-2px);
+  opacity:.9;
+}
+
+button.primary{
+  background:var(--azul1);
+  color:white;
+}
+
+button.success{
+  background:#0c6cbd;
+  color:white;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+  background:white;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+th{
+  background:var(--azul1);
+  color:white;
+  padding:12px;
+  font-size:14px;
+}
+tbody tr:last-child td{
+  border-bottom:none;
+}
+
+td{
+  padding:10px;
+  border-bottom:1px solid #eee;
+  font-size:13px;
+}
+
+tr:hover{
+  background:#f1f5f9;
+}
+
+tr.falta{
+  background:#fff4cc;
+}
+
+.total{
+  margin-top:20px;
+  padding:15px;
+  background:#fff3f3;
+  border-left:6px solid #b00020;
+  border-radius:8px;
+  font-size:20px;
+  font-weight:bold;
+  color:#b00020;
+}
+
+
+#listaFacturas{
+  background:#f4f6f9;
+  padding:15px;
+  border-radius:10px;
+  margin-top:15px;
+}
+
+#listaFacturas button{
+  background:var(--azul2);
+  color:white;
+  margin-left:10px;
+}
+
+#btnGuardar{
+  margin-top:20px;
+  background:#28a745;
+  color:white;
+  font-size:16px;
+}
+.facturas-grid{
+  display:grid;
+  gap:14px;
+  margin-top:15px;
+}
+
+.factura-card{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:18px 22px;
+  background:#ffffff;
+  border-radius:14px;
+  box-shadow:0 6px 18px rgba(0,0,0,.08);
+  transition:.25s ease;
+  border:1px solid #e5e7eb;
+}
+
+.factura-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 12px 26px rgba(0,0,0,.12);
+}
+
+.factura-info{
+  display:flex;
+  flex-direction:column;
+}
+
+.factura-total{
+  font-size:18px;
+  font-weight:700;
+  color:#0c6cbd;
+  margin-top:4px;
+}
+
+.btn-usar{
+  background:linear-gradient(135deg,#00416A,#0c6cbd);
+  color:white;
+  border:none;
+  padding:10px 18px;
+  border-radius:10px;
+  font-weight:600;
+  cursor:pointer;
+  transition:.2s ease;
+}
+
+.btn-usar:hover{
+  opacity:.9;
+  transform:scale(1.05);
+}
+.factura-header{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin-bottom:6px;
+}
+
+.factura-proveedor{
+  background:#e6f0fa;
+  color:#00416A;
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:600;
+}
+
+.factura-fecha{
+  font-weight:500;
+  color:#555;
+  font-size:13px;
+}
+.factura-proveedor.ABARROTES{
+  background:#e6f0fa;
+  color:#00416A;
+}
+
+.factura-proveedor.DECASA{
+  background:#e8f8f0;
+  color:#0c6cbd;
+}
+
+.factura-proveedor.MASBODEGA{
+  background:#fff4e6;
+  color:#b36b00;
+}
+
+
+</style>
+
+</head>
+
+<body>
+<div class="container">
+<h2>📊 Comparador Cotización vs Factura (BD)</h2>
+
+<div style="margin-bottom:20px;">
+<label>Proveedor:</label>
+<select id="proveedor">
+  <option value="">-- Selecciona --</option>
+  <option value="ABARROTES">ABARROTES</option>
+  <option value="DECASA">DECASA</option>
+  <option value="MAS BODEGA">MAS BODEGA</option>
+</select>
+
+<button onclick="buscarFacturas()" class="primary">Buscar facturas</button>
+</div>
+
+<div id="listaFacturas"></div>
+
+<hr>
+
+<label>Cotización (Excel):</label>
+<input type="file" id="excelFile" accept=".xlsx,.xls">
+
+<table>
+<thead>
+<tr>
+  <th>Producto</th>
+  <th>Cotizado</th>
+  <th>Factura</th>
+  <th>Pzas x Caja</th>
+  <th>Diferencia</th>
+  <th>A descontar</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
+</table>
+
+<div class="total" id="total"></div>
+<button id="btnGuardar" class="success" onclick="guardarDescuento()">
+  💾 Guardar descuento
+</button>
+</div>  
+<script>
+/* ================= SUPABASE ================= */
+const supa = supabase.createClient(
+  "https://cvpbtjlupswbyxenugpz.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY"
+);
+
+let conceptosFactura = [];
+let cotizadosCache = [];
+let facturaActualUUID = null;
+
+
+/* ================= UTILIDADES ================= */
+function normalizar(t){
+  return String(t ?? "").toUpperCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\./g," ")
+    .replace(/[+]/g," ")
+    .replace(/[^A-Z0-9\s/]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+function limpiarNumero(v){
+  if (v === null || v === undefined) return 0;
+  // soporta "11.45", "$ 11.45", "11,45"
+  const s = String(v).replace(/\$/g,"").replace(/,/g,".").replace(/\s/g,"");
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function pickNum(obj, keys){
+  for(const k of keys){
+    if(obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return limpiarNumero(obj[k]);
+  }
+  return 0;
+}
+function pickPath(obj, path){
+  // path ejemplo: "impuestos.traslados"
+  try{
+    return path.split(".").reduce((a,k)=> (a && a[k] !== undefined ? a[k] : undefined), obj);
+  }catch(e){
+    return undefined;
+  }
+}
+function totalLineaConImpuestos(c){
+
+  const cantidad = pickNum(c, [
+    "cantidad","Cantidad","cant","Cant","CANT",
+    "cajas","Cajas","CAJAS",
+    "qty","Qty","QTY"
+  ]);
+
+  const cantSegura = (cantidad && cantidad > 0) ? cantidad : 1;
+
+  const unitario = pickNum(c, [
+    "valorUnitario","ValorUnitario","valor_unitario",
+    "unitario","Unitario","UNITARIO",
+    "precioUnitario","PrecioUnitario",
+    "precio","Precio","PRICE","price"
+  ]);
+
+  let subtotalLinea = pickNum(c, [
+    "subtotal","Subtotal","SUBTOTAL",
+    "importe","Importe","IMPORTE",
+    "base","Base"
+  ]);
+
+  if (!subtotalLinea || subtotalLinea <= 0){
+    subtotalLinea = unitario * cantSegura;
+  }
+
+  const iva  = pickNum(c, ["iva","IVA","importe_iva"]);
+  const ieps = pickNum(c, ["ieps","IEPS","importe_ieps"]);
+
+  return {
+    cantidad: cantSegura,
+    unitario,
+    subtotalLinea,
+    iva,
+    ieps,
+    totalLinea: subtotalLinea + iva + ieps
+  };
+}
+
+function precioPiezaConImpuestos(c, pzas){
+  const { cajas, totalLinea } = totalLineaConImpuestos(c);
+  const piezas = Math.max(1, parseInt(pzas) || 1);
+  return totalLinea / cajas / piezas; // ✅ precio por pieza con impuestos
+}
+
+  function extraerPiezas(desc){
+  const s = String(desc ?? "").toUpperCase();
+
+  // 1) formato promo 12/950
+  let m = s.match(/(\d+)\s*\/\s*\d+/);
+  if (m) return parseInt(m[1], 10);
+
+  // 2) "X 12", "X12"
+  m = s.match(/\bX\s*(\d+)\b/);
+  if (m) return parseInt(m[1], 10);
+
+  // 3) "12 PZ", "12 PZA", "12 PZAS", "12 PIEZAS"
+  m = s.match(/\b(\d+)\s*(PZAS?|PZA|PIEZAS?)\b/);
+  if (m) return parseInt(m[1], 10);
+
+  // 4) "PAQ 12", "PACK 12" (opcional)
+  m = s.match(/\b(PAQ|PAQUETE|PACK)\s*(\d+)\b/);
+  if (m) return parseInt(m[2], 10);
+
+  return null;
+}
+
+/* ---- tokens fuertes para matching ---- */
+/* ---- tokens fuertes para matching (CON MEDIDAS) ---- */
+const STOP = new Set([
+  "PARA","CON","DEL","DE","LA","EL","LOS","LAS","Y","EN","AL","UN","UNA","UNO",
+  "MAS","PROMO","PROMOCION","PRODUCTO","EXTRA","PACK","PAQ","PQT","CJA","CAJA"
+]);
+
+function tokenNorm(tok){
+  tok = String(tok || "").replace(/[^A-Z0-9]/g,"");
+  if (!tok) return "";
+
+  // Normaliza litros
+  tok = tok.replace(/LT$/,"L");
+  tok = tok.replace(/^(\d+(?:\.\d+)?)K$/,"$1KG");
+
+ // Normaliza unidades raras
+tok = tok.replace(/GRM$/,"GR");
+tok = tok.replace(/GRS$/,"GR");
+tok = tok.replace(/LT$/,"L");
+
+// Token de medida
+if (/^\d+(?:\.\d+)?(ML|GR|G|KG|L)$/.test(tok)) return tok;
+
+  // singular básico (GALLETAS->GALLETA)
+  if (tok.length >= 5 && tok.endsWith("S")) tok = tok.slice(0, -1);
+
+  if (STOP.has(tok)) return "";
+  if (tok.length < 3) return "";
+  return tok;
+}
+
+function tokensProducto(texto){
+  let s = normalizar(texto);
+  // Separar marcas compuestas conocidas
+s = s.replace(/ITALPASTA/g, "ITAL PASTA");
+s = s.replace(/LACOSTENA/g, "LA COSTENA");
+
+
+  // Convierte promos tipo "12/950 ML" -> "950ML" (nos interesa el tamaño real)
+  s = s.replace(/(\d+)\s*\/\s*(\d+)\s*(ML|GR|G|KG|LT|L)\b/g, "$2$3");
+
+  // Extrae medidas aunque vengan separadas "950 ML" o juntas "950ML"
+  const medidas = [];
+  s.replace(/(\d+(?:\.\d+)?)\s*(ML|GR|GRM|GRS|G|KG|K|LT|L)\b/g, (_, num, uni) => {
+uni = uni.replace("LT","L")
+         .replace("GRM","GR")
+         .replace("GRS","GR")
+         .replace(/^K$/,"KG");
+
+
+    medidas.push(tokenNorm(`${num}${uni}`));
+    return _;
+  });
+
+  // Quita las medidas del texto base para no duplicar
+  s = s.replace(/(\d+(?:\.\d+)?)\s*(ML|GR|GRM|GRS|G|KG|K|LT|L)\b/g,  " ");
+
+  // Quita números sueltos que no sean medidas (ej: "12" de promo)
+  s = s.replace(/\b\d+\b/g, " ");
+
+  // Tokens de palabras
+  const palabras = s.split(" ").map(tokenNorm).filter(Boolean);
+
+  // Unifica y regresa
+  return Array.from(new Set([...palabras, ...medidas].filter(Boolean)));
+}
+
+function scoreMatch(tokensA, tokensB){
+  if (!tokensA.length || !tokensB.length) return {score:0, hits:0};
+  const setB = new Set(tokensB);
+  let hits = 0;
+  for (const x of tokensA) if (setB.has(x)) hits++;
+  const score = hits / Math.max(tokensA.length, tokensB.length);
+  return {score, hits};
+}
+
+/* ================= BUSCAR FACTURAS ================= */
+async function buscarFacturas(){
+  const proveedorSel = document.getElementById("proveedor").value;
+  if(!proveedorSel){ 
+    alert("Selecciona proveedor"); 
+    return;
+  }
+
+  const { data, error } = await supa
+    .from("deuda_limpia_pdd")
+    .select("uuid_cfdi, fecha, total, conceptos_detalle, razon_social_emisor")
+    .ilike("razon_social_emisor", `%${proveedorSel}%`)
+    .order("fecha",{ascending:false})
+    .limit(10);
+
+  if(error){
+    console.error(error);
+    alert("Error al consultar BD");
+    return;
+  }
+
+  let html = `<div class="facturas-grid">`;
+
+  data.forEach(f=>{
+    const fecha = String(f.fecha).split("T")[0];
+    const total = Number(f.total).toLocaleString("es-MX", { minimumFractionDigits: 2 });
+    const proveedor = f.razon_social_emisor || "Proveedor";
+
+    html += `
+      <div class="factura-card">
+        <div class="factura-info">
+          <div class="factura-header">
+            <span class="factura-proveedor">${proveedor}</span>
+            <span class="factura-fecha">${fecha}</span>
+          </div>
+          <div class="factura-total">$ ${total}</div>
+        </div>
+        <button class="btn-usar"
+          onclick='usarFactura(${JSON.stringify(f.conceptos_detalle)}, "${f.uuid_cfdi}")'>
+          Usar
+        </button>
+      </div>
+    `;
+  });
+
+  html += `</div>`; // 🔥 cerrar grid
+
+  document.getElementById("listaFacturas").innerHTML = html;
+}
+
+/* ================= USAR FACTURA ================= */
+async function usarFactura(conceptos, uuid){
+// 🔍 Verificar si ya tiene descuento
+const { data, error } = await supa
+  .from("deuda_limpia_pdd")
+  .select("descuentos")
+  .eq("uuid_cfdi", uuid)
+  .single();
+
+if (error){
+  alert("Error verificando factura");
+  return;
+}
+
+if (data && data.descuentos){
+  alert("⚠️ Esta factura ya tiene un descuento registrado.");
+  return;
+}
+
+  facturaActualUUID = uuid;
+  // conceptos_detalle puede venir como array o como string JSON
+  let arr = conceptos;
+  if (typeof arr === "string") {
+    try { arr = JSON.parse(arr); } catch(e) { arr = []; }
+  }
+  if (!Array.isArray(arr)) arr = [];
+
+conceptosFactura = arr.map(c=>{
+  const pzasCaja = extraerPiezas(c.descripcion) || 1;
+  const calc = totalLineaConImpuestos(c);
+
+  return {
+    descripcionRaw: c.descripcion || "",
+    descripcion: normalizar(c.descripcion),
+    tokens: tokensProducto(c.descripcion),
+
+    cantidad: calc.cantidad || 0,   // ← Cant real (puede ser cajas o piezas)
+    piezasCaja: pzasCaja,           // ← pzas por caja (si aplica)
+
+    unitario: calc.unitario,
+    ivaLinea: calc.iva,
+    iepsLinea: calc.ieps,
+
+    subtotalLinea: calc.subtotalLinea,
+    totalLinea: calc.totalLinea
+  };
+});
+
+  procesar();
+}
+  function medidaPrincipal(tokens){
+  // busca tokens tipo 64GR / 1KG / 950ML / 2L
+  return tokens.find(t => /^\d+(\.\d+)?(ML|GR|G|KG|L)$/.test(t)) || null;
+}
+  
+function inferirTotalPiezas(item, precioCot){
+  const cant = item.cantidad > 0 ? item.cantidad : 1;
+  const pzasCaja = item.piezasCaja > 0 ? item.piezasCaja : 1;
+
+  // Si no hay cotizado, fallback simple
+  if (!precioCot || precioCot <= 0){
+    return (pzasCaja > 1) ? (cant * pzasCaja) : cant;
+  }
+
+  const unit = item.unitario || 0;
+
+  // Heurística:
+  // - si unitario ~ cotizado => Cant son piezas
+  // - si unitario ~ cotizado*pzasCaja => Cant son cajas
+  const rPieza = unit / precioCot;
+  const rCaja  = unit / (precioCot * pzasCaja);
+
+  const cerca = (r) => (r >= 0.60 && r <= 1.60);
+
+  if (cerca(rPieza)) return cant;              // Cant = piezas
+  if (cerca(rCaja))  return cant * pzasCaja;  // Cant = cajas
+
+  // fallback: si pzasCaja > 1 asumimos cajas
+  return (pzasCaja > 1) ? (cant * pzasCaja) : cant;
+}
+
+/* ================= PROCESAR ================= */
+async function procesar(){
+  const proveedorSel = document.getElementById("proveedor").value;
+  const file = document.getElementById("excelFile").files[0];
+
+  // si aún no hay factura o excel, no hagas nada (sin alert)
+  if (!conceptosFactura.length || !file) return;
+
+  cotizadosCache = await leerExcel(file, proveedorSel);
+  comparar(cotizadosCache, conceptosFactura);
+}
+
+
+/* ================= LEER EXCEL (MATRIZ POR PROVEEDOR) ================= */
+function leerExcel(file, proveedorSel){
+  return new Promise(resolve=>{
+    const r = new FileReader();
+    r.onload = e=>{
+      const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+
+      const prov = normalizar(proveedorSel);
+
+      // 1) Buscar una hoja donde en alguna fila esté el nombre del proveedor (encabezado matriz)
+      let best = null;
+
+      for (const shName of wb.SheetNames){
+        const ws = wb.Sheets[shName];
+        const rows = XLSX.utils.sheet_to_json(ws,{header:1, raw:true});
+
+        // Buscar fila que tenga "DESCRIPCION" y, arriba o en la misma, el proveedor
+        let headerRowIdx = -1;
+        for (let i=0; i<Math.min(rows.length, 20); i++){
+          const row = rows[i] || [];
+          const rowStr = row.map(x=>normalizar(x)).join(" | ");
+          if (rowStr.includes("DESCRIPCION")) { headerRowIdx = i; break; }
+        }
+        if (headerRowIdx === -1) continue;
+
+        // Buscar columna del proveedor en fila headerRowIdx-1 o headerRowIdx
+        const r1 = rows[headerRowIdx-1] || [];
+        const r2 = rows[headerRowIdx] || [];
+
+        let colProv = -1;
+
+        // intenta en fila de arriba (como tu matriz: fila 2 trae ABARROTES/DECASA)
+        for (let j=0; j<r1.length; j++){
+          if (normalizar(r1[j]) === prov) { colProv = j; break; }
+        }
+        // fallback: intenta en la misma fila
+        if (colProv === -1){
+          for (let j=0; j<r2.length; j++){
+            if (normalizar(r2[j]) === prov) { colProv = j; break; }
+          }
+        }
+
+        if (colProv === -1) continue;
+
+        best = {shName, rows, start: headerRowIdx+1, colDesc: 0, colPrice: colProv};
+        break;
+      }
+
+      // 2) Fallback si no se encontró estructura matriz: hoja 1, col A desc, col B precio
+      if (!best){
+        const shName = wb.SheetNames[0];
+        const ws = wb.Sheets[shName];
+        const rows = XLSX.utils.sheet_to_json(ws,{header:1, raw:true});
+        best = {shName, rows, start: 1, colDesc: 0, colPrice: 1};
+      }
+
+      const out = [];
+      for (let i=best.start; i<best.rows.length; i++){
+        const row = best.rows[i] || [];
+        const desc = row[best.colDesc];
+        if (!desc) continue;
+
+        const precio = limpiarNumero(row[best.colPrice]);
+        if (!precio || precio <= 0) continue;
+
+        const descNorm = normalizar(desc);
+
+        out.push({
+          descripcionRaw: String(desc),
+          descripcion: descNorm,
+          tokens: tokensProducto(descNorm),
+          precio
+        });
+      }
+
+      resolve(out);
+    };
+    r.readAsArrayBuffer(file);
+  });
+}
+
+/* ================= COMPARAR (MATCH POR SCORE) ================= */
+function comparar(cotizados, facturados){
+  const tbody = document.getElementById("tabla");
+  tbody.innerHTML = "";
+  let total = 0;
+
+  facturados.forEach((f, idx) => {
+    const pzasCaja = (f.piezasCaja && f.piezasCaja > 0) ? Number(f.piezasCaja) : 1;
+
+    // buscar mejor match
+    let best = null, bestScore = 0, bestHits = 0;
+let matchForzado = false;
+
+for (const x of cotizados){
+  // 🔥 MATCH DIRIGIDO ESPECÍFICO
+const descF = normalizar(f.descripcionRaw);
+const descX = normalizar(x.descripcionRaw);
+
+// 1️⃣ YEMINA CODO
+if (
+  descF.includes("YEMINA") &&
+  descF.includes("CODO") &&
+  descF.includes("LISO") &&
+  descX.includes("YEMINA") &&
+  descX.includes("CODO")
+) {
+  best = x;
+  bestScore = 1;
+  bestHits = 99;
+  matchForzado = true;
+  continue;
+}
+
+
+// 2️⃣ YEMINA FIDEO MEDIANO
+if (
+  descF.includes("YEMINA") &&
+  descF.includes("FIDEO") &&
+  descF.includes("MEDIANO") &&
+  descX.includes("YEMINA") &&
+  descX.includes("FIDEO")
+) {
+  best = x;
+  bestScore = 1;
+  bestHits = 99;
+  matchForzado = true;
+  continue;
+}
+
+
+// 3️⃣ HARINA SELECTA
+if (descF.includes("HARINA") && descF.includes("SELECTA") &&
+    descX.includes("SELECTA")) {
+  best = x;
+  bestScore = 1;
+  bestHits = 99;
+  matchForzado = true;
+  continue;
+}
+
+// 4️⃣ MASECA TAMAL
+if (descF.includes("MASECA") && descF.includes("TAMAL") &&
+    descX.includes("MASECA") && descX.includes("TAMAL")) {
+  best = x;
+  bestScore = 1;
+  bestHits = 99;
+  matchForzado = true;
+  continue;
+}
+
+  const medidaF = medidaPrincipal(f.tokens);
+  const medidaX = medidaPrincipal(x.tokens);
+
+  const esItalpasta =
+    normalizar(f.descripcionRaw).includes("ITALPASTA") &&
+    normalizar(x.descripcionRaw).includes("ITALPASTA");
+
+  if (medidaF) {
+    if (!medidaX && !esItalpasta) continue;
+    if (medidaX && medidaF !== medidaX) continue;
+  }
+
+  // 🔥 EXCEPCIÓN MARCA FUERTE
+  const marcasFuertes = ["YEMINA","MASECA","SELECTA"];
+
+  const coincideMarca = marcasFuertes.some(m =>
+    f.tokens.includes(m) && x.tokens.includes(m)
+  );
+
+  if (coincideMarca) {
+    const { score, hits } = scoreMatch(f.tokens, x.tokens);
+    if (hits >= 2) {
+      bestScore = score;
+      bestHits = hits;
+      best = x;
+      continue;
+    }
+  }
+
+  // 🔎 MATCH NORMAL
+  const { score, hits } = scoreMatch(f.tokens, x.tokens);
+
+  if (score > bestScore || (score === bestScore && hits > bestHits)){
+    bestScore = score;
+    bestHits = hits;
+    best = x;
+  }
+}
+
+
+let ok = false;
+
+if (best) {
+
+  if (matchForzado) {
+    ok = true;
+  } else {
+
+    const medidaF = medidaPrincipal(f.tokens);
+    const medidaX = medidaPrincipal(best.tokens);
+    const medidaCoincide = medidaF && medidaX && medidaF === medidaX;
+
+    if (medidaCoincide && bestHits >= 2) {
+      ok = true;
+    }
+    else if (bestHits >= 2 && bestScore >= 0.40) {
+      ok = true;
+    }
+  }
+}
+
+
+const precioExcel = ok ? best.precio : 0;
+
+// Solo asigna el precio del Excel la primera vez
+if (f.precioCot === undefined) {
+  f.precioCot = precioExcel;
+}
+
+// 🔥 ESTE ES EL QUE SE USA EN TODO EL CÁLCULO
+const precioCot = f.precioCot || 0;
+
+
+
+    // ✅ total piezas inferido
+    const totalPiezas = inferirTotalPiezas(f, precioCot);
+
+    // ✅ precio real por pieza (con impuestos) desde totalLinea
+    const precioUnitFact = (f.totalLinea > 0 && totalPiezas > 0)
+      ? (f.totalLinea / totalPiezas)
+      : 0;
+
+    const diferencia = precioUnitFact - precioCot;
+
+const descuento = diferencia > 0
+  ? (diferencia * totalPiezas)
+  : 0;
+
+
+    total += descuento;
+
+    tbody.innerHTML += `
+      <tr class="${(!ok && precioCot === 0) ? 'falta' : ''}">
+        <td>${f.descripcion}</td>
+<td>
+  <input type="number" step="0.01" min="0"
+    value="${precioCot.toFixed(2)}"
+    onchange="actualizarPrecioCot(${idx}, this.value)">
+</td>
+
+
+        <td>${precioUnitFact.toFixed(2)}</td>
+        <td>
+          <input type="number" min="1" value="${pzasCaja}"
+            onchange="actualizarPiezas(${idx}, this.value)">
+        </td>
+        <td>${diferencia.toFixed(2)}</td>
+        <td>${descuento.toFixed(2)}</td>
+      </tr>`;
+  });
+
+  document.getElementById("total").innerText =
+    "TOTAL A DESCONTAR: $ " + total.toFixed(2);
+}
+
+/* ================= RECALCULO PZAS ================= */
+function actualizarPiezas(idx, valor){
+  const pzas = Math.max(1, parseInt(valor) || 1);
+  conceptosFactura[idx].piezasCaja = pzas;
+  comparar(cotizadosCache, conceptosFactura);
+}
+function actualizarPrecioCot(idx, valor){
+  const nuevo = parseFloat(valor) || 0;
+  conceptosFactura[idx].precioCot = nuevo;
+  comparar(cotizadosCache, conceptosFactura);
+}
+
+async function generarPDFDescuento(uuid) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(14);
+  doc.text("DESCUENTO APLICADO A FACTURA", 14, 20);
+
+  doc.setFontSize(10);
+  doc.text(`UUID CFDI: ${uuid}`, 14, 30);
+  doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 36);
+
+  let y = 50;
+  doc.setFontSize(9);
+
+  doc.text("Producto", 14, y);
+  doc.text("Cotizado", 110, y);
+  doc.text("Factura", 135, y);
+  doc.text("Descuento", 165, y);
+  y += 6;
+
+  let total = 0;
+
+  conceptosFactura.forEach(f => {
+    const precioCot = f.precioCot || 0;
+    const totalPzas = inferirTotalPiezas(f, precioCot);
+    const precioFact = f.totalLinea / totalPzas;
+    const diff = precioFact - precioCot;
+    const desc = diff > 0 ? diff * totalPzas : 0;
+
+    if (desc <= 0) return;
+
+    total += desc;
+
+    doc.text(f.descripcion.substring(0, 45), 14, y);
+    doc.text(precioCot.toFixed(2), 110, y);
+    doc.text(precioFact.toFixed(2), 135, y);
+    doc.text(desc.toFixed(2), 165, y);
+
+    y += 6;
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+  });
+
+  doc.setFontSize(12);
+  doc.text(`TOTAL A DESCONTAR: $${total.toFixed(2)}`, 14, y + 10);
+
+  return { doc, total };
+}
+  async function subirPDFSupabase(doc, uuid) {
+  const blob = doc.output("blob");
+  const safeUUID = uuid.replace(/[^a-zA-Z0-9_-]/g, "");
+  const nombre = `descuento_${safeUUID}.pdf`;
+
+  const { error } = await supa.storage
+    .from("descuentos")
+    .upload(nombre, blob, {
+      contentType: "application/pdf",
+      upsert: true
+    });
+
+  if (error) throw error;
+
+  const { data } = supa.storage
+    .from("descuentos")
+    .getPublicUrl(nombre);
+
+  return data.publicUrl;
+}
+async function guardarURLDescuento(uuid, url) {
+  const { error } = await supa
+    .from("deuda_limpia_pdd")
+    .update({ descuentos: url })
+    .eq("uuid_cfdi", uuid);
+
+  if (error) throw error;
+}
+async function guardarDescuento() {
+  try {
+    const uuid = facturaActualUUID;
+
+    if (!uuid) {
+      alert("No se detectó UUID de la factura");
+      return;
+    }
+
+    // 📄 2. Generar PDF
+    const { doc } = await generarPDFDescuento(uuid);
+
+    // ☁️ 3. Subir PDF
+    const url = await subirPDFSupabase(doc, uuid);
+
+    // 💾 4. Guardar URL
+    await guardarURLDescuento(uuid, url);
+
+  alert("✅ Descuento guardado correctamente");
+limpiarTodo();
+
+  } catch (e) {
+    console.error(e);
+    alert("❌ Error al guardar descuento");
+  }
+}
+function limpiarTodo() {
+
+  // limpiar variables
+  conceptosFactura = [];
+  cotizadosCache = [];
+  facturaActualUUID = null;
+
+  // limpiar tabla
+  document.getElementById("tabla").innerHTML = "";
+
+  // limpiar total
+  document.getElementById("total").innerText = "";
+
+  // limpiar lista facturas
+  document.getElementById("listaFacturas").innerHTML = "";
+
+  // limpiar input file
+  document.getElementById("excelFile").value = "";
+
+  // reset proveedor
+  document.getElementById("proveedor").value = "";
+
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reporte por Artículo – Salidas Zapata</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body{
+    font-family:'Poppins',sans-serif;
+    margin:0; padding:20px;
+    background: linear-gradient(to right,#00416A,#E4E5E6);
+    color:white;
+  }
+
+  h2{ text-align:center; margin-bottom:10px; }
+
+  /* ==================== BUSCADOR ==================== */
+  #buscador{
+    width:100%;
+    max-width:500px;
+    display:block;
+    margin:0 auto 25px auto;
+    padding:10px 15px;
+    font-size:16px;
+    border-radius:8px;
+    border:none;
+    outline:none;
+    box-shadow:0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+    gap:20px;
+  }
+
+  .card{
+    background:white;
+    color:#222;
+    border-radius:10px;
+    padding:15px;
+    cursor:pointer;
+    box-shadow:0 4px 10px rgba(0,0,0,.2);
+    transition:.2s;
+  }
+  .card:hover{
+    transform:scale(1.03);
+  }
+
+  /* ================= MODAL =================*/
+  #modal{
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.6);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+  }
+
+  #modalContent{
+    background:white;
+    color:black;
+    max-width:600px;
+    width:100%;
+    max-height:90vh;
+    overflow-y:auto;
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 6px 20px rgba(0,0,0,.4);
+  }
+
+  .cerrar{
+    background:red; 
+    color:white;
+    border:none;
+    padding:8px 15px;
+    border-radius:6px;
+    float:right;
+    cursor:pointer;
+  }
+
+  .mov{
+    border-bottom:1px solid #ccc;
+    padding:10px 0;
+  }
+</style>
+</head>
+<body>
+
+<h2>Reporte Concentrado por Artículo</h2>
+
+<input id="buscador" type="text" placeholder="Buscar producto por nombre o código...">
+
+<div id="contenedor" class="grid"></div>
+
+<!-- =================== MODAL =================== -->
+<div id="modal">
+  <div id="modalContent"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { 
+  getFirestore, collection, getDocs, query, orderBy 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const contenedor = document.getElementById("contenedor");
+const modal = document.getElementById("modal");
+const modalContent = document.getElementById("modalContent");
+const buscador = document.getElementById("buscador");
+
+let listaArticulos = [];
+
+/* ===========================================================
+   🔵 CARGAR TODAS LAS SALIDAS Y AGRUPARLAS POR ARTÍCULO
+   =========================================================== */
+async function cargar() {
+  let movimientos = [];
+
+  const rutas = [
+    collection(db, "almacenes", "almacen_zapata", "salidas"),
+    collection(db, "almacenes", "almacen_zapata", "salidas1.0")
+  ];
+
+  for (let ruta of rutas) {
+    const q = query(ruta, orderBy("folio", "desc"));
+    const snap = await getDocs(q);
+
+    snap.forEach(doc => {
+      const data = doc.data();
+      (data.articulos || []).forEach(item => {
+        movimientos.push({
+          codigo: item.codigo || "",
+          nombre: item.nombre || "",
+          cantidad: item.cantidad || 0,
+          entrega: data.entrega || "N/D",
+          recibe: data.recibe || "N/D",
+          destino: data.destino || "N/D",
+          fecha: data.fecha || "",
+          folio: data.folio || ""
+        });
+      });
+    });
+  }
+
+  // Agrupación por código
+  let agrupado = {};
+  movimientos.forEach(m => {
+    if (!agrupado[m.codigo]) {
+      agrupado[m.codigo] = {
+        codigo: m.codigo,
+        nombre: m.nombre,
+        totalMov: 0,
+        lista: []
+      };
+    }
+    agrupado[m.codigo].totalMov += m.cantidad;
+    agrupado[m.codigo].lista.push(m);
+  });
+
+  listaArticulos = Object.values(agrupado);
+
+  render(listaArticulos);
+}
+
+/* ===========================================================
+   🔵 MOSTRAR TARJETAS (filtradas o todas)
+   =========================================================== */
+function render(lista) {
+  contenedor.innerHTML = "";
+
+  lista.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <h3>${item.nombre}</h3>
+      <p><strong>Código:</strong> ${item.codigo}</p>
+      <p><strong>Total movido:</strong> ${item.totalMov}</p>
+    `;
+
+    div.onclick = () => abrirModal(item);
+    contenedor.appendChild(div);
+  });
+}
+
+/* ===========================================================
+   🔵 FILTRAR PRODUCTOS POR BUSCADOR
+   =========================================================== */
+buscador.addEventListener("input", () => {
+  const txt = buscador.value.trim().toLowerCase();
+
+  if (txt === "") {
+    contenedor.innerHTML = ""; // no mostrar nada al inicio
+    return;
+  }
+
+  const filtrados = listaArticulos.filter(item =>
+    item.nombre.toLowerCase().includes(txt) ||
+    item.codigo.toLowerCase().includes(txt)
+  );
+
+  render(filtrados);
+});
+
+/* ===========================================================
+   🔵 MODAL (ORDENADO POR FECHA RECIENTE)
+   =========================================================== */
+function abrirModal(item) {
+  modal.style.display = "flex";
+
+  // 🔵 ORDENAR LISTA DE SALIDAS POR FECHA DESCENDENTE
+  item.lista.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+  modalContent.innerHTML = `
+    <button class="cerrar" onclick="cerrarModal()">Cerrar</button>
+    <h2>${item.nombre}</h2>
+    <p><strong>Código:</strong> ${item.codigo}</p>
+    <hr>
+
+    ${item.lista.map(m => `
+      <div class="mov">
+        <strong>Folio:</strong> ${m.folio}<br>
+        <strong>Entrega:</strong> ${m.entrega}<br>
+        <strong>Recibe:</strong> ${m.recibe}<br>
+        <strong>Destino:</strong> ${m.destino}<br>
+        <strong>Cantidad:</strong> ${m.cantidad}<br>
+        <strong>Fecha:</strong> ${m.fecha}<br>
+      </div>
+    `).join("")}
+  `;
+}
+
+window.cerrarModal = function(){
+  modal.style.display = "none";
+};
+
+cargar();
+</script>
+
+</body>
+</html>

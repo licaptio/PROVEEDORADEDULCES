@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PROVSOFT · Doble Check de Salidas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- Fuente -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --azul:#00416A;
+  --azul2:#0c6cbd;
+  --card:#ffffff;
+  --shadow:0 6px 18px rgba(0,0,0,.15);
+}
+body{
+  font-family:'Poppins',Arial,sans-serif;
+  background:linear-gradient(135deg,var(--azul),var(--azul2));
+  padding:20px;
+}
+.card{
+  background:var(--card);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  padding:20px;
+  max-width:1400px;
+  margin:auto;
+}
+h2,h3{color:var(--azul)}
+select,input,button{
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  margin:4px;
+}
+button{
+  background:var(--azul);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+button:hover{background:var(--azul2)}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:12px;
+}
+th{
+  background:var(--azul);
+  color:white;
+  padding:10px;
+}
+td{
+  padding:8px;
+  border:1px solid #ddd;
+  text-align:center;
+}
+.badge-ok{color:green;font-weight:600}
+.badge-pend{color:red;font-weight:600}
+
+  /* 🔵 Botón Cerrar Revisión (Modal flotante) */
+.acciones-revision{
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.btn-cerrar-revision{
+  background: linear-gradient(135deg, var(--azul), var(--azul2));
+  color: #fff;
+  font-size: 18px;
+  padding: 14px 36px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(0,0,0,.25);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.btn-cerrar-revision:hover{
+  transform: scale(1.05);
+  box-shadow: 0 10px 22px rgba(0,0,0,.35);
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>✔ PROVSOFT · Doble Check de Salidas</h2>
+
+<!-- LISTADO -->
+<h3>Salidas recientes</h3>
+
+<label>Almacén:</label>
+<select id="almacenSelect" onchange="cargarSalidas()">
+  <option value="Almacen_Dulces">MATRIZ</option>
+</select>
+
+<table>
+<thead>
+<tr>
+  <th>Fecha</th>
+  <th>Folio</th>
+  <th>Destino</th>
+  <th>Estado</th>
+  <th>Abrir</th>
+</tr>
+</thead>
+<tbody id="listaSalidas"></tbody>
+</table>
+
+<hr><br>
+
+<!-- BUSCAR -->
+<label>Buscar folio manual:</label><br>
+<input id="folioInput" placeholder="SAL-DUL-1332">
+<button onclick="buscarFolio()">Buscar</button>
+
+</div>
+<!-- MODAL DETALLE SALIDA -->
+<div id="modalDetalle" style="
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(0,0,0,.6);
+  justify-content:center;
+  align-items:center;
+  z-index:1000;
+">
+  <div style="
+    background:white;
+    padding:20px;
+    border-radius:16px;
+    width:95%;
+    max-width:1300px;
+    max-height:90vh;
+    overflow:auto;
+  ">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>Detalle de salida</h3>
+      <button onclick="cerrarDetalle()">✕</button>
+    </div>
+
+    <div id="info"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Enviado</th>
+          <th>Revisado OK</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+
+   <div class="acciones-revision">
+  <button class="btn-cerrar-revision" onclick="cerrarRevision()">
+    Cerrar revisión
+  </button>
+</div>
+  </div>
+</div>
+
+<!-- MODAL FIRMA -->
+<div id="modalFirma" style="
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(0,0,0,.6);
+  justify-content:center;
+  align-items:center;
+">
+
+  <div style="background:white;padding:20px;border-radius:12px;width:360px">
+    <h3>Firma de revisión</h3>
+    <canvas id="canvasFirma" width="320" height="160"
+      style="border:1px solid #ccc;border-radius:8px"></canvas><br><br>
+    <button onclick="limpiarFirma()">Limpiar</button>
+    <button onclick="guardarRevision()">Guardar revisión</button>
+  </div>
+</div>
+
+<script>
+// 🔥 Firebase
+firebase.initializeApp({
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+});
+const db = firebase.firestore();
+
+let salidaActual=null, docIdSalida=null, almacenActual="Almacen_Dulces";
+
+// 🔎 LISTADO
+async function cargarSalidas(){
+  const tbody=document.getElementById("listaSalidas");
+  tbody.innerHTML="";
+const snap = await db.collection("almacenes")
+  .doc(almacenActual)
+  .collection("salidas")
+  .where("destino", "==", "MATRIZ PISO")
+  .orderBy("timestamp","desc")
+  .limit(20)
+  .get();
+
+  snap.forEach(d=>{
+    const s=d.data();
+    tbody.innerHTML+=`
+      <tr>
+        <td>${s.fecha||""}</td>
+        <td><b>${s.folio}</b></td>
+        <td>${s.destino}</td>
+        <td>${s.revision?.revisado
+          ?'<span class="badge-ok">REVISADO</span>'
+          :'<span class="badge-pend">PENDIENTE</span>'}</td>
+        <td><button onclick="abrirDesdeLista('${d.id}')">Abrir</button></td>
+      </tr>`;
+  });
+}
+
+// 🔎 ABRIR
+async function abrirDesdeLista(id){
+  const d=await db.collection("almacenes")
+    .doc(almacenActual)
+    .collection("salidas")
+    .doc(id).get();
+  salidaActual=d.data();
+  docIdSalida=id;
+  mostrarSalida();
+}
+
+async function buscarFolio(){
+  const f=document.getElementById("folioInput").value.trim().toUpperCase();
+  const q=await db.collection("almacenes")
+    .doc(almacenActual)
+    .collection("salidas")
+    .where("folio","==",f).limit(1).get();
+  if(q.empty){alert("No encontrado");return;}
+  q.forEach(d=>{salidaActual=d.data();docIdSalida=d.id;});
+  mostrarSalida();
+}
+
+// 📋 MOSTRAR
+function mostrarSalida(){
+  document.getElementById("info").innerHTML = `
+    <b>Folio:</b> ${salidaActual.folio}<br>
+    <b>Destino:</b> ${salidaActual.destino}<br>
+    <b>Entrega:</b> ${salidaActual.entrega}<br>
+    <b>Recibe:</b> ${salidaActual.recibe}<br>
+  `;
+
+  const tb = document.getElementById("tbody");
+  tb.innerHTML = "";
+
+  salidaActual.productos.forEach((p,i)=>{
+    tb.innerHTML += `
+      <tr>
+        <td>${p.codigo}</td>
+        <td>${p.descripcion}</td>
+        <td>${p.cantidad}</td>
+        <td>
+          <input type="checkbox" id="chk-${i}" checked
+            ${salidaActual.revision?.revisado ? "disabled" : ""}>
+        </td>
+      </tr>
+    `;
+  });
+
+  // ✅ Mostrar modal flotante
+  document.getElementById("modalDetalle").style.display = "flex";
+}
+function cerrarDetalle(){
+  document.getElementById("modalDetalle").style.display = "none";
+}
+
+// ✍️ FIRMA
+const canvas=document.getElementById("canvasFirma");
+const ctx=canvas.getContext("2d");
+let dib=false;
+canvas.onmousedown=e=>{dib=true;ctx.moveTo(e.offsetX,e.offsetY);}
+canvas.onmousemove=e=>{if(dib){ctx.lineTo(e.offsetX,e.offsetY);ctx.stroke();}}
+canvas.onmouseup=()=>dib=false;
+function limpiarFirma(){ctx.clearRect(0,0,canvas.width,canvas.height);}
+function cerrarRevision(){
+  if(salidaActual.revision?.revisado){
+    alert("Esta salida ya fue revisada");
+    return;
+  }
+  document.getElementById("modalFirma").style.display = "flex";
+}
+
+// 💾 GUARDAR
+async function guardarRevision(){
+  const items=[];
+  salidaActual.productos.forEach((p,i)=>{
+    items.push({codigo:p.codigo,ok:document.getElementById(`chk-${i}`).checked});
+  });
+  const firma=canvas.toDataURL();
+  if(firma.length<200){alert("Firma obligatoria");return;}
+  await db.collection("almacenes").doc(almacenActual)
+    .collection("salidas").doc(docIdSalida).update({
+      revision:{
+        revisado:true,
+        fecha_revision:firebase.firestore.FieldValue.serverTimestamp(),
+        revisado_por:salidaActual.recibe,
+        firma_revisor:firma,
+        items
+      }
+    });
+alert("Revisión guardada");
+
+document.getElementById("modalFirma").style.display = "none";
+document.getElementById("modalDetalle").style.display = "none";
+limpiarFirma();
+location.reload();
+}
+
+cargarSalidas();
+</script>
+
+</body>
+</html>
