@@ -99,6 +99,7 @@ async function cargarFijacion(){
     .from("movimientos_inventario")
     .select("id,timestamp,nivel_alerta,productos,activa")
     .eq("tipo","FIJACION")
+    .eq("activa", true)
     .order("timestamp", { ascending: false })
 
   if(error){
@@ -108,7 +109,7 @@ async function cargarFijacion(){
   }
 
   if(!data || data.length === 0){
-    alert("No hay fijaciones registradas")
+    alert("No hay fijaciones activas")
     return false
   }
 
@@ -120,6 +121,7 @@ async function cargarFijacion(){
     const encontrado = lista.find(p =>
       String(p.codigo).trim() === CODIGO.trim()
     )
+
     if(encontrado){
       fijacion = f
       producto = encontrado
@@ -128,7 +130,7 @@ async function cargarFijacion(){
   }
 
   if(!producto){
-    alert("No existe fijación para este artículo")
+    alert("No existe fijación activa para este artículo")
     return false
   }
 
@@ -141,12 +143,11 @@ async function cargarFijacion(){
   document.getElementById("minimo").innerText = nivelAlerta
   document.getElementById("teorico").innerText = inventarioTeorico
 
-  setDebug(`Fijación usada: ${fechaFijacion.toLocaleString()} | Activa: ${fijacion.activa}`)
+  setDebug(`Fijación usada: ${fechaFijacion.toLocaleString()}`)
   verificarAlerta()
 
   return true
 }
-
 async function reconstruirSalidas(){
 
   const colecciones = [
