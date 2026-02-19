@@ -285,385 +285,494 @@
   </footer>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, addDoc, getDocs, getDoc, updateDoc,
-      query, where, doc, limit
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, getDoc, updateDoc,
+    query, where, doc, limit
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-      authDomain: "inventariopv-643f1.firebaseapp.com",
-      projectId: "inventariopv-643f1",
-      storageBucket: "inventariopv-643f1.appspot.com",
-      messagingSenderId: "96242533231",
-      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.appspot.com",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // ✅ NUEVA RAÍZ (aquí defines la “ruta” base)
+  const ROOT_INV = "inventarios2";
+
+  const DEC_CANTIDAD = 3;
+  const DELTA = 1;
+
+  const pad2 = (n) => String(n).padStart(2,'0');
+  const fechaLocal = (d = new Date()) =>
+    `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  const roundTo = (num, dec) => Math.round((Number(num) + Number.EPSILON) * 10**dec) / 10**dec;
+  const fmt = (num, dec) => Number(num ?? 0).toFixed(dec);
+  const $  = (id) => document.getElementById(id);
+
+  function generarFolio() {
+    const d = new Date(), P=n=>String(n).padStart(2,'0');
+    const ymd = `${d.getFullYear()}${P(d.getMonth()+1)}${P(d.getDate())}-${P(d.getHours())}${P(d.getMinutes())}${P(d.getSeconds())}`;
+    const r = new Uint32Array(1); (self.crypto||window.crypto).getRandomValues(r);
+    return `AnualesPDD-${ymd}-${(r[0]>>>0).toString(36).toUpperCase().slice(-5)}`;
+  }
+
+  function beep(ms=120, freq=880){
+    try{
+      const ctx=new (window.AudioContext||window.webkitAudioContext)();
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.frequency.value=freq; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.2, ctx.currentTime);
+      o.start();
+      setTimeout(()=>{o.stop(); ctx.close();}, ms);
+    }catch{}
+  }
+
+  /* DOM refs */
+  const appRoot=document.getElementById('appRoot');
+  const viewSetup=$("view-setup"), viewCaptura=$("view-captura"), viewCarrito=$("view-carrito");
+  const folioSpan=$("folio"), chipModo=$("chipModo");
+  const selectSucursal=$("sucursal"), selectUsuario=$("usuario"), btnContinuar=$("btnContinuar");
+
+  const inputCodigo=$("codigo"), inputCantidad=$("cantidad");
+  const previewBox=$("preview"), pDesc=$("pDesc"), pCodigo=$("pCodigo"), pPeso=$("pPeso"), pAviso=$("pAviso");
+  const tabla=$("tabla-productos");
+
+  // toolbar buttons
+  const tbBack=$("tbBack"), tbBuscar=$("tbBuscar"), tbScan=$("tbScan"), tbCart=$("tbCart"), tbAdd=$("tbAdd");
+
+  // modal
+  const modal=$("modal"), cerrarModalBtn=$("cerrarModal"), inputBuscador=$("buscador"), resultadosDiv=$("resultados");
+  const barraProgreso=$("barraProgreso"), estado=$("estado"), contador=$("contador"), btnPrev=$("prev"), btnNext=$("next");
+
+  // carrito
+  const divLector=$("lector"), tablaCarrito=$("tabla-carrito"), btnVolverCaptura=$("btnVolverCaptura");
+
+  /* Estado */
+  let folio = localStorage.getItem("folioInventarioAnuales") || generarFolio();
+  folioSpan.textContent = folio; chipModo.textContent="Modo: Acumular";
+
+  const usuarioPrevio = localStorage.getItem("usuarioInventarioAnuales") || "";
+  const sucursalPrev  = localStorage.getItem("sucursalInventarioAnuales") || "";
+  if (usuarioPrevio) selectUsuario.value = usuarioPrevio;
+  if (sucursalPrev)  selectSucursal.value = sucursalPrev;
+
+  let ultimoRegistro=null, productoPreview=null,
+      cacheProductos=JSON.parse(localStorage.getItem("cacheProductosAnuales")||"{}");
+
+  function persistLocal(){
+    localStorage.setItem("folioInventarioAnuales", folio);
+    localStorage.setItem("usuarioInventarioAnuales", selectUsuario.value);
+    localStorage.setItem("sucursalInventarioAnuales", selectSucursal.value);
+  }
+  selectUsuario.addEventListener("change", persistLocal);
+  selectSucursal.addEventListener("change", persistLocal);
+
+  /* Navegación + protección refresh */
+  function toggleBeforeUnload(enable){
+    const handler = (e)=>{ e.preventDefault(); e.returnValue=''; };
+    if(enable){ window.addEventListener('beforeunload', handler); }
+    else{ window.removeEventListener('beforeunload', handler); }
+  }
+  function setView(which){
+    viewSetup.classList.toggle("active", which==="setup");
+    viewCaptura.classList.toggle("active", which==="captura");
+    viewCarrito.classList.toggle("active", which==="carrito");
+    appRoot.classList.toggle('view-captura-active', which==="captura");
+    sessionStorage.setItem('lastView', which);
+    toggleBeforeUnload(which==="captura");
+  }
+  if(sessionStorage.getItem('lastView')==='captura'){ sessionStorage.setItem('lastView','setup'); }
+
+  btnContinuar.addEventListener("click", ()=>{
+    if(!selectSucursal.value) return alert("Selecciona una sucursal");
+    if(!selectUsuario.value) return alert("Selecciona un usuario");
+    persistLocal();
+    setView("captura");
+    setTimeout(()=>inputCodigo.focus(),100);
+  });
+
+  let lector=null;
+  async function backToSetup(){
+    try{ if(lector){ await lector.stop(); } }catch{}
+    lector=null; divLector.style.display="none";
+    setView("setup"); window.scrollTo({top:0,behavior:"instant"});
+  }
+  tbBack.addEventListener("click", backToSetup);
+  btnVolverCaptura.addEventListener("click", ()=> setView("captura"));
+
+  /* ------------ Resolución de producto ------------ */
+  function detectarCodigoPeso(codigoStr){
+    if(/^\d{13}$/.test(codigoStr) && codigoStr.startsWith("20")){
+      const base=codigoStr.substring(0,7);
+      const pesoNum=parseInt(codigoStr.substring(7,12),10);
+      return {base, pesoKg: pesoNum/1000};
+    }
+    return null;
+  }
+  async function buscarEnEquivalencias(code){
+    const q=query(collection(db,"productos"), where("codigosEquivalentes","array-contains",String(code).trim()));
+    const snap=await getDocs(q);
+    if(!snap.empty){
+      const d=snap.docs[0];
+      return {principal:d.id, data:d.data()};
+    }
+    return null;
+  }
+  async function getProductoPorId(id){
+    const r=doc(db,"productos",id);
+    const d=await getDoc(r);
+    return d.exists()?{id,...d.data()}:null;
+  }
+
+  async function resolverProducto(codigoInput){
+    const codigoStr=String(codigoInput).trim();
+    const det=detectarCodigoPeso(codigoStr);
+    if(det){
+      const eq=await buscarEnEquivalencias(det.base);
+      if(eq && eq.principal){
+        const d=eq.data || (await getProductoPorId(eq.principal));
+        if(d) return {descripcion:d.concepto ?? "Sin descripción", codigo:eq.principal, cantidad:roundTo(det.pesoKg,DEC_CANTIDAD), isPeso:true};
+      }
+    }
+    if(cacheProductos[codigoStr]) return cacheProductos[codigoStr];
+
+    let s1=await getDocs(query(collection(db,"productos"), where("activo","==",true), where("codigoBarra","==",codigoStr), limit(1)));
+    if(!s1.empty){
+      const d=s1.docs[0].data();
+      return {descripcion:d.concepto ?? "Sin desc", codigo:s1.docs[0].id};
+    }
+    const eq=await buscarEnEquivalencias(codigoStr);
+    if(eq && eq.principal){
+      const d=eq.data || (await getProductoPorId(eq.principal));
+      if(d) return {descripcion:d.concepto ?? "Sin desc", codigo:eq.principal};
+    }
+    const byId=await getProductoPorId(codigoStr);
+    if(byId) return {descripcion:byId.concepto ?? "Sin desc", codigo:byId.id};
+
+    throw new Error("Producto no encontrado");
+  }
+
+  /* ------------ Previsualización + guardado ------------ */
+  async function previsualizar(){
+    const codigo=(inputCodigo.value||"").trim();
+    if(!codigo){ ocultarPreview(); return; }
+    const p=await resolverProducto(codigo);
+
+    productoPreview={ descripcion:p.descripcion, codigo:p.codigo, cantidad:p.cantidad, isPeso:!!p.isPeso };
+    pDesc.textContent=p.descripcion || "SIN DESCRIPCIÓN";
+    pCodigo.textContent=`Código: ${p.codigo}`;
+
+    if(p.isPeso){
+      pPeso.style.display="inline-block";
+      pPeso.textContent=`Peso detectado: ${fmt(p.cantidad,DEC_CANTIDAD)} kg`;
+      inputCantidad.value=fmt(p.cantidad,DEC_CANTIDAD);
+      pAviso.innerHTML=`<span class="ok">✔ Código de balanza detectado.</span> Ajusta la cantidad y presiona <b>Agregar</b>.`;
+    }else{
+      pPeso.style.display="none";
+      inputCantidad.value="";
+      pAviso.innerHTML=`<span class="warn">⌛ Previsualización lista.</span> Captura la cantidad y presiona <b>Agregar</b>.`;
+    }
+    previewBox.style.display="block";
+  }
+  function ocultarPreview(){
+    previewBox.style.display="none";
+    pDesc.textContent=""; pCodigo.textContent=""; pPeso.textContent="";
+    pPeso.style.display="none"; pAviso.textContent="";
+    productoPreview=null;
+  }
+
+  inputCodigo.addEventListener("keydown", e=>{
+    if(e.key==="Enter"){
+      e.preventDefault();
+      previsualizar().then(()=> inputCantidad.focus());
+    }
+  });
+  inputCodigo.addEventListener("blur", ()=>{ if(inputCodigo.value.trim()) previsualizar(); });
+
+  // ✅ GUARDA EN inventarios2/...
+  async function guardarRegistroInmediato(item){
+    if(!selectSucursal.value) throw new Error("Selecciona una sucursal");
+    if(!selectUsuario.value) throw new Error("Selecciona un usuario");
+
+    const registro={
+      folioSesion: folio,
+      folioRegistro: generarFolio(),
+      fecha: fechaLocal(),
+      epochMs: Date.now(),
+      sucursal: selectSucursal.value,
+      usuario: selectUsuario.value,
+      descripcion: item.descripcion,
+      codigo: item.codigo,
+      cantidad: Number(item.cantidad || 0)
     };
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-    const DEC_CANTIDAD = 3;
-    const DELTA = 1;
 
-    const pad2 = (n) => String(n).padStart(2,'0');
-    const fechaLocal = (d = new Date()) =>
-      `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-    const roundTo = (num, dec) => Math.round((Number(num) + Number.EPSILON) * 10**dec) / 10**dec;
-    const fmt = (num, dec) => Number(num ?? 0).toFixed(dec);
-    const $  = (id) => document.getElementById(id);
+    await addDoc(
+      collection(db, ROOT_INV, selectSucursal.value, "usuarios", selectUsuario.value, "escaneos"),
+      registro
+    );
 
-    function generarFolio() {
-      const d = new Date(), P=n=>String(n).padStart(2,'0');
-      const ymd = `${d.getFullYear()}${P(d.getMonth()+1)}${P(d.getDate())}-${P(d.getHours())}${P(d.getMinutes())}${P(d.getSeconds())}`;
-      const r = new Uint32Array(1); (self.crypto||window.crypto).getRandomValues(r);
-      return `AnualesPDD-${ymd}-${(r[0]>>>0).toString(36).toUpperCase().slice(-5)}`;
+    ultimoRegistro=registro;
+    renderTablaUltimo();
+  }
+
+  function renderTablaUltimo(){
+    tabla.innerHTML="";
+    if(!ultimoRegistro) return;
+    const p=ultimoRegistro;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td data-label="#">1</td>
+      <td data-label="Desc" class="td-desc"><span class="ellipsis-2">${p.descripcion}</span></td>
+      <td data-label="Cod" class="ellipsis-1">${p.codigo}</td>
+      <td data-label="Cant">${fmt(p.cantidad, DEC_CANTIDAD)}</td>
+      <td class="fecha-cell">${p.fecha || ""}</td>
+    `;
+    tabla.appendChild(tr);
+    persistLocal();
+  }
+
+  const agregarYGuardar = async ()=>{
+    try{
+      let p=productoPreview;
+      if(!p){ await previsualizar(); p=productoPreview; }
+      if(!p) throw new Error("Primero escanea/escribe un código válido");
+
+      let cantidad=roundTo(parseFloat(inputCantidad.value || (p.cantidad ?? "1")), DEC_CANTIDAD);
+      if(isNaN(cantidad) || cantidad<=0) throw new Error("Cantidad inválida");
+
+      await guardarRegistroInmediato({ descripcion:p.descripcion, codigo:p.codigo, cantidad });
+      inputCodigo.value=""; inputCantidad.value=""; ocultarPreview(); inputCodigo.focus();
+    }catch(e){
+      alert(e.message || "Error al guardar");
     }
-    function beep(ms=120, freq=880){
-      try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain();
-        o.frequency.value=freq; o.connect(g); g.connect(ctx.destination); g.gain.setValueAtTime(0.2, ctx.currentTime);
-        o.start(); setTimeout(()=>{o.stop(); ctx.close();}, ms);
-      }catch{}
-    }
+  };
 
-    /* DOM refs */
-    const appRoot=document.getElementById('appRoot');
-    const viewSetup=$("view-setup"), viewCaptura=$("view-captura"), viewCarrito=$("view-carrito");
-    const folioSpan=$("folio"), chipModo=$("chipModo");
-    const selectSucursal=$("sucursal"), selectUsuario=$("usuario"), btnContinuar=$("btnContinuar");
+  let nextFocus = null; // 'codigo' | 'cantidad' | null
 
-    const inputCodigo=$("codigo"), inputCantidad=$("cantidad");
-    const previewBox=$("preview"), pDesc=$("pDesc"), pCodigo=$("pCodigo"), pPeso=$("pPeso"), pAviso=$("pAviso");
-    const tabla=$("tabla-productos");
-
-    // toolbar buttons
-    const tbBack=$("tbBack"), tbBuscar=$("tbBuscar"), tbScan=$("tbScan"), tbCart=$("tbCart"), tbAdd=$("tbAdd");
-
-    // modal
-    const modal=$("modal"), cerrarModalBtn=$("cerrarModal"), inputBuscador=$("buscador"), resultadosDiv=$("resultados");
-    const barraProgreso=$("barraProgreso"), estado=$("estado"), contador=$("contador"), btnPrev=$("prev"), btnNext=$("next");
-
-    // carrito
-    const divLector=$("lector"), tablaCarrito=$("tabla-carrito"), btnVolverCaptura=$("btnVolverCaptura");
-
-    /* Estado */
-    let folio = localStorage.getItem("folioInventarioAnuales") || generarFolio();
-    folioSpan.textContent = folio; chipModo.textContent="Modo: Acumular";
-    const usuarioPrevio = localStorage.getItem("usuarioInventarioAnuales") || "";
-    const sucursalPrev  = localStorage.getItem("sucursalInventarioAnuales") || "";
-    if (usuarioPrevio) selectUsuario.value = usuarioPrevio;
-    if (sucursalPrev)  selectSucursal.value = sucursalPrev;
-
-    let ultimoRegistro=null, productoPreview=null, cacheProductos=JSON.parse(localStorage.getItem("cacheProductosAnuales")||"{}");
-    function persistLocal(){
-      localStorage.setItem("folioInventarioAnuales", folio);
-      localStorage.setItem("usuarioInventarioAnuales", selectUsuario.value);
-      localStorage.setItem("sucursalInventarioAnuales", selectSucursal.value);
-    }
-    selectUsuario.addEventListener("change", persistLocal);
-    selectSucursal.addEventListener("change", persistLocal);
-
-    /* Navegación + protección refresh */
-    function toggleBeforeUnload(enable){
-      const handler = (e)=>{ e.preventDefault(); e.returnValue=''; };
-      if(enable){ window.addEventListener('beforeunload', handler); }
-      else{ window.removeEventListener('beforeunload', handler); }
-    }
-    function setView(which){
-      viewSetup.classList.toggle("active", which==="setup");
-      viewCaptura.classList.toggle("active", which==="captura");
-      viewCarrito.classList.toggle("active", which==="carrito");
-      // clase en root para ocultar título solo en captura
-      appRoot.classList.toggle('view-captura-active', which==="captura");
-      sessionStorage.setItem('lastView', which);
-      toggleBeforeUnload(which==="captura");
-    }
-    if(sessionStorage.getItem('lastView')==='captura'){ sessionStorage.setItem('lastView','setup'); }
-
-    btnContinuar.addEventListener("click", ()=>{
-      if(!selectSucursal.value) return alert("Selecciona una sucursal");
-      if(!selectUsuario.value) return alert("Selecciona un usuario");
-      persistLocal();
-      setView("captura");
-      setTimeout(()=>inputCodigo.focus(),100);
-    });
-
-    let lector=null;
-    async function backToSetup(){
-      try{ if(lector){ await lector.stop(); } }catch{}
-      lector=null; divLector.style.display="none";
-      setView("setup"); window.scrollTo({top:0,behavior:"instant"});
-    }
-    tbBack.addEventListener("click", backToSetup);
-    btnVolverCaptura.addEventListener("click", ()=> setView("captura"));
-
-    /* ------------ Resolución de producto ------------ */
-    function detectarCodigoPeso(codigoStr){
-      if(/^\d{13}$/.test(codigoStr) && codigoStr.startsWith("20")){
-        const base=codigoStr.substring(0,7); const pesoNum=parseInt(codigoStr.substring(7,12),10);
-        return {base, pesoKg: pesoNum/1000};
-      }
-      return null;
-    }
-    async function buscarEnEquivalencias(code){
-      const q=query(collection(db,"productos"), where("codigosEquivalentes","array-contains",String(code).trim()));
-      const snap=await getDocs(q); if(!snap.empty){ const d=snap.docs[0]; return {principal:d.id, data:d.data()} } return null;
-    }
-    async function getProductoPorId(id){ const r=doc(db,"productos",id); const d=await getDoc(r); return d.exists()?{id,...d.data()}:null; }
-
-    async function resolverProducto(codigoInput){
-      const codigoStr=String(codigoInput).trim();
-      const det=detectarCodigoPeso(codigoStr);
-      if(det){
-        const eq=await buscarEnEquivalencias(det.base);
-        if(eq && eq.principal){ const d=eq.data || (await getProductoPorId(eq.principal));
-          if(d) return {descripcion:d.concepto ?? "Sin descripción", codigo:eq.principal, cantidad:roundTo(det.pesoKg,DEC_CANTIDAD), isPeso:true};
-        }
-      }
-      if(cacheProductos[codigoStr]) return cacheProductos[codigoStr];
-      let s1=await getDocs(query(collection(db,"productos"), where("activo","==",true), where("codigoBarra","==",codigoStr), limit(1)));
-      if(!s1.empty){ const d=s1.docs[0].data(); return {descripcion:d.concepto ?? "Sin desc", codigo:s1.docs[0].id}; }
-      const eq=await buscarEnEquivalencias(codigoStr);
-      if(eq && eq.principal){ const d=eq.data || (await getProductoPorId(eq.principal)); if(d) return {descripcion:d.concepto ?? "Sin desc", codigo:eq.principal}; }
-      const byId=await getProductoPorId(codigoStr); if(byId) return {descripcion:byId.concepto ?? "Sin desc", codigo:byId.id};
-      throw new Error("Producto no encontrado");
-    }
-
-    /* ------------ Previsualización + guardado ------------ */
-    async function previsualizar(){
-      const codigo=(inputCodigo.value||"").trim(); if(!codigo){ ocultarPreview(); return; }
-      const p=await resolverProducto(codigo);
-      productoPreview={ descripcion:p.descripcion, codigo:p.codigo, cantidad:p.cantidad, isPeso:!!p.isPeso };
-      pDesc.textContent=p.descripcion || "SIN DESCRIPCIÓN";
-      pCodigo.textContent=`Código: ${p.codigo}`;
-      if(p.isPeso){
-        pPeso.style.display="inline-block";
-        pPeso.textContent=`Peso detectado: ${fmt(p.cantidad,DEC_CANTIDAD)} kg`;
-        inputCantidad.value=fmt(p.cantidad,DEC_CANTIDAD);
-        pAviso.innerHTML=`<span class="ok">✔ Código de balanza detectado.</span> Ajusta la cantidad y presiona <b>Agregar</b>.`;
-      }else{
-        pPeso.style.display="none"; inputCantidad.value="";
-        pAviso.innerHTML=`<span class="warn">⌛ Previsualización lista.</span> Captura la cantidad y presiona <b>Agregar</b>.`;
-      }
-      previewBox.style.display="block";
-    }
-    function ocultarPreview(){ previewBox.style.display="none"; pDesc.textContent=""; pCodigo.textContent=""; pPeso.textContent=""; pPeso.style.display="none"; pAviso.textContent=""; productoPreview=null; }
-
-    inputCodigo.addEventListener("keydown", e=>{
-      if(e.key==="Enter"){ e.preventDefault(); previsualizar().then(()=> inputCantidad.focus()); }
-    });
-    inputCodigo.addEventListener("blur", ()=>{ if(inputCodigo.value.trim()) previsualizar(); });
-
-    async function guardarRegistroInmediato(item){
-      if(!selectSucursal.value) throw new Error("Selecciona una sucursal");
-      if(!selectUsuario.value) throw new Error("Selecciona un usuario");
-      const registro={
-        folioSesion: folio, folioRegistro: generarFolio(), fecha: fechaLocal(), epochMs: Date.now(),
-        sucursal: selectSucursal.value, usuario: selectUsuario.value,
-        descripcion: item.descripcion, codigo: item.codigo, cantidad: Number(item.cantidad || 0)
-      };
-      await addDoc(collection(db,"inventarios", selectSucursal.value, "usuarios", selectUsuario.value, "escaneos"), registro);
-      ultimoRegistro=registro; renderTablaUltimo();
-    }
-
-    function renderTablaUltimo(){
-      tabla.innerHTML="";
-      if(!ultimoRegistro) return;
-      const p=ultimoRegistro;
-      const tr=document.createElement("tr");
-      tr.innerHTML=`
-        <td data-label="#">1</td>
-        <td data-label="Desc" class="td-desc"><span class="ellipsis-2">${p.descripcion}</span></td>
-        <td data-label="Cod" class="ellipsis-1">${p.codigo}</td>
-        <td data-label="Cant">${fmt(p.cantidad, DEC_CANTIDAD)}</td>
-        <td class="fecha-cell">${p.fecha || ""}</td>
-      `;
-      tabla.appendChild(tr);
-      persistLocal();
-    }
-
-    const agregarYGuardar = async ()=>{
-      try{
-        let p=productoPreview; if(!p){ await previsualizar(); p=productoPreview; }
-        if(!p) throw new Error("Primero escanea/escribe un código válido");
-        let cantidad=roundTo(parseFloat(inputCantidad.value || (p.cantidad ?? "1")), DEC_CANTIDAD);
-        if(isNaN(cantidad) || cantidad<=0) throw new Error("Cantidad inválida");
-
-        await guardarRegistroInmediato({ descripcion:p.descripcion, codigo:p.codigo, cantidad });
-        inputCodigo.value=""; inputCantidad.value=""; ocultarPreview(); inputCodigo.focus();
-      }catch(e){ alert(e.message || "Error al guardar"); }
-    };
-let nextFocus = null; // 'codigo' | 'cantidad' | null
-
-    /* ------------ Buscador ------------ */
+  /* ------------ Buscador ------------ */
   function abrirModal(){
-  nextFocus = 'codigo'; // por defecto, si se cierra sin elegir, vuelve a código
-  inputBuscador.value = "";
-  resultados = []; pagina = 0;
-  resultadosDiv.innerHTML = ""; contador.textContent = "";
-  estado.textContent = ""; barraProgreso.value = 0;
-  btnPrev.disabled = true; btnNext.disabled = true;
-
-  modal.style.display = "flex";
-  setTimeout(()=> inputBuscador.focus(), 50);
-}
+    nextFocus = 'codigo';
+    inputBuscador.value = "";
+    resultados = []; pagina = 0;
+    resultadosDiv.innerHTML = ""; contador.textContent = "";
+    estado.textContent = ""; barraProgreso.value = 0;
+    btnPrev.disabled = true; btnNext.disabled = true;
+    modal.style.display = "flex";
+    setTimeout(()=> inputBuscador.focus(), 50);
+  }
   function cerrarModal(){
-  modal.style.display = "none";
+    modal.style.display = "none";
+    inputBuscador.value = "";
+    resultados = []; pagina = 0;
+    resultadosDiv.innerHTML = "";
+    contador.textContent = "";
+    estado.textContent = "";
+    barraProgreso.value = 0;
+    btnPrev.disabled = true; btnNext.disabled = true;
+    inputBuscador.blur();
+    setTimeout(()=>{
+      if(nextFocus === 'cantidad') inputCantidad?.focus();
+      else inputCodigo?.focus();
+      nextFocus = null;
+    }, 50);
+  }
+  cerrarModalBtn.addEventListener("click", cerrarModal);
+  modal.addEventListener("click", (e)=>{ if(e.target===modal) cerrarModal(); });
 
-  inputBuscador.value = "";
-  resultados = []; pagina = 0;
-  resultadosDiv.innerHTML = "";
-  contador.textContent = "";
-  estado.textContent = "";
-  barraProgreso.value = 0;
-  btnPrev.disabled = true; btnNext.disabled = true;
+  let resultados=[], pagina=0; const porPagina=20; let debounceTimer;
 
-  inputBuscador.blur();
-  setTimeout(()=>{
-    if(nextFocus === 'cantidad') inputCantidad?.focus();
-    else inputCodigo?.focus();
-    nextFocus = null; // limpiar intención
-  }, 50);
-}
-    cerrarModalBtn.addEventListener("click", cerrarModal);
-    modal.addEventListener("click", (e)=>{ if(e.target===modal) cerrarModal(); });
-    let resultados=[], pagina=0; const porPagina=20; let debounceTimer;
-    inputBuscador.addEventListener("input", ()=>{ clearTimeout(debounceTimer); const t=inputBuscador.value.trim(); if(!t){ resultadosDiv.innerHTML=""; contador.textContent=""; return; } debounceTimer=setTimeout(()=>buscarProductos(t),600); });
-    btnPrev.addEventListener("click", ()=>mostrarPagina(pagina-1));
-    btnNext.addEventListener("click", ()=>mostrarPagina(pagina+1));
+  inputBuscador.addEventListener("input", ()=>{
+    clearTimeout(debounceTimer);
+    const t=inputBuscador.value.trim();
+    if(!t){ resultadosDiv.innerHTML=""; contador.textContent=""; return; }
+    debounceTimer=setTimeout(()=>buscarProductos(t),600);
+  });
+  btnPrev.addEventListener("click", ()=>mostrarPagina(pagina-1));
+  btnNext.addEventListener("click", ()=>mostrarPagina(pagina+1));
 
-    async function buscarProductos(termino){
-      resultados=[]; resultadosDiv.innerHTML="⏳ Buscando..."; barraProgreso.value=10; estado.textContent="";
-      if(/^\d+$/.test(termino)){
-        let s1=await getDocs(query(collection(db,"productos"), where("activo","==",true), where("codigoBarra","==",termino), limit(1)));
-        let encontradoEn="codigoBarra";
-        if(s1.empty){
-          const s2=await getDocs(query(collection(db,"productos"), where("activo","==",true), where("codigosEquivalentes","array-contains",termino), limit(1)));
-          if(!s2.empty){ s1=s2; encontradoEn="equivalente"; }
-        }
-        if(!s1.empty){
-          resultados=s1.docs.map(d=>({id:d.id, ...d.data(), coincidencia:encontradoEn, codigoBuscado:termino}));
-        }else{
-          resultadosDiv.innerHTML="❌ No se encontró este código"; contador.textContent=""; barraProgreso.value=100; return;
-        }
-        barraProgreso.value=100; mostrarPagina(0); return;
+  async function buscarProductos(termino){
+    resultados=[]; resultadosDiv.innerHTML="⏳ Buscando..."; barraProgreso.value=10; estado.textContent="";
+    if(/^\d+$/.test(termino)){
+      let s1=await getDocs(query(collection(db,"productos"), where("activo","==",true), where("codigoBarra","==",termino), limit(1)));
+      let encontradoEn="codigoBarra";
+      if(s1.empty){
+        const s2=await getDocs(query(collection(db,"productos"), where("activo","==",true), where("codigosEquivalentes","array-contains",termino), limit(1)));
+        if(!s2.empty){ s1=s2; encontradoEn="equivalente"; }
       }
-      barraProgreso.value=25; estado.textContent="Cargando productos activos…";
-      const snap=await getDocs(query(collection(db,"productos"), where("activo","==",true)));
-      const palabras=termino.toLowerCase().split(/\s+/).filter(Boolean);
-      resultados=[]; snap.forEach(docu=>{ const p={id:docu.id, ...docu.data()}; if(p.concepto && palabras.every(w=>String(p.concepto).toLowerCase().includes(w))) resultados.push(p); });
-      barraProgreso.value=100; estado.textContent="";
-      if(!resultados.length){ resultadosDiv.innerHTML="❌ Sin resultados"; contador.textContent=""; } else mostrarPagina(0);
-    }
-    function mostrarPagina(n){
-      pagina=n; resultadosDiv.innerHTML="";
-      const inicio=pagina*porPagina, fin=inicio+porPagina, lista=resultados.slice(inicio,fin);
-      lista.forEach(p=>{
-        const div=document.createElement("div"); div.className="producto-card";
-        const badge = p.coincidencia==="equivalente" ? `<div style="color:#b00; font-size:12px">🔗 Coincidencia en equivalente (${p.codigoBuscado})</div>` : "";
-        div.innerHTML=`
-          <b>${p.concepto || "SIN CONCEPTO"}</b><br>
-          Código: ${p.codigoBarra || p.id}
-          ${badge}
-          <div style="margin-top:8px"><button class="btn-ok">Usar en previsualización</button></div>
-        `;
-        div.querySelector(".btn-ok").addEventListener("click", ()=>{
-  productoPreview = { descripcion: p.concepto || "Sin desc", codigo: p.id };
-  pDesc.textContent = productoPreview.descripcion;
-  pCodigo.textContent = `Código: ${productoPreview.codigo}`;
-  pPeso.style.display = "none";
-  pAviso.innerHTML = `<span class="warn">⌛ Previsualización lista.</span> Captura la cantidad y presiona <b>Agregar</b>.`;
-  previewBox.style.display = "block";
-
-  inputCantidad.value = ""; // listo para escribir cantidad
-  nextFocus = 'cantidad';   // <<< queremos enfocar cantidad tras cerrar
-  cerrarModal();            // el foco se aplicará aquí
-});
-        resultadosDiv.appendChild(div);
-      });
-      contador.textContent=`Resultados: ${resultados.length} | Página ${pagina+1} de ${Math.max(1,Math.ceil(resultados.length/porPagina))}`;
-      btnPrev.disabled=pagina===0; btnNext.disabled=fin>=resultados.length;
+      if(!s1.empty){
+        resultados=s1.docs.map(d=>({id:d.id, ...d.data(), coincidencia:encontradoEn, codigoBuscado:termino}));
+      }else{
+        resultadosDiv.innerHTML="❌ No se encontró este código"; contador.textContent=""; barraProgreso.value=100; return;
+      }
+      barraProgreso.value=100; mostrarPagina(0); return;
     }
 
-    /* ------------ Escáner ------------ */
-    async function startStopCam(){
-      if(lector){ try{ await lector.stop(); }catch{} lector=null; divLector.style.display="none"; return; }
-      divLector.style.display="block"; lector=new Html5Qrcode("lector");
-      try{
-        const box=Math.floor(Math.min(window.innerWidth*0.8, 320));
-        await lector.start(
-          { facingMode:"environment" }, { fps:10, qrbox:box },
-          async codigo=>{
-            try{ await lector.stop(); }catch{} lector=null; divLector.style.display="none";
-            inputCodigo.value=codigo;
-            try{ await previsualizar(); beep(); inputCantidad.focus(); }
-            catch{ abrirModal(); inputBuscador.value=codigo; buscarProductos(codigo); }
-          }, err=>{}
-        );
-      }catch(e){ console.error("Error cámara:", e); alert("No se pudo abrir la cámara"); }
-    }
+    barraProgreso.value=25; estado.textContent="Cargando productos activos…";
+    const snap=await getDocs(query(collection(db,"productos"), where("activo","==",true)));
+    const palabras=termino.toLowerCase().split(/\s+/).filter(Boolean);
 
-    /* ------------ Carrito (por partidas) ------------ */
-    async function abrirCarrito(){
-      if(!selectSucursal.value || !selectUsuario.value){ alert("Selecciona sucursal y usuario."); return; }
-      await cargarCarritoPartidas();
-      setView("carrito");
-    }
-
-    async function cargarCarritoPartidas(){
-      tablaCarrito.innerHTML = "<tr><td colspan='5'>Cargando…</td></tr>";
-      const coll = collection(db,"inventarios", selectSucursal.value, "usuarios", selectUsuario.value, "escaneos");
-      const q = query(coll, where("folioSesion","==", folio));
-      const snap = await getDocs(q);
-      const rows = [];
-      snap.forEach(d=> rows.push({ id:d.id, ...d.data() }));
-     rows.sort((a,b)=> (b.epochMs ?? 0) - (a.epochMs ?? 0)); // últimos primero
-      if(!rows.length){ tablaCarrito.innerHTML = "<tr><td colspan='5'>Sin partidas en este folio.</td></tr>"; return; }
-
-      tablaCarrito.innerHTML = rows.map((r,i)=>{
-        const hora = (r.fecha||"").split(" ")[1] || "";
-        return `
-          <tr data-id="${r.id}">
-            <td data-label="#">${i+1}</td>
-            <td data-label="Código" class="ellipsis-1">${r.codigo||""}</td>
-            <td data-label="Descripción" class="td-desc"><span class="ellipsis-2">${r.descripcion||""}</span></td>
-            <td data-label="Cantidad">
-              <div class="qtyctrl">
-                <button class="btn-ghost" data-action="menos" data-id="${r.id}">−</button>
-                <strong>${fmt(r.cantidad, DEC_CANTIDAD)}</strong>
-                <button class="btn-ghost" data-action="mas" data-id="${r.id}">+</button>
-              </div>
-            </td>
-            <td data-label="Hora" class="fecha-cell">${hora}</td>
-          </tr>
-        `;
-      }).join("");
-    }
-
-    async function modificarCantidad(docId, delta){
-      const ref = doc(db,"inventarios", selectSucursal.value, "usuarios", selectUsuario.value, "escaneos", docId);
-      const snap = await getDoc(ref);
-      if(!snap.exists()) return;
-      let nueva = roundTo(Number(snap.data().cantidad||0) + delta, DEC_CANTIDAD);
-      if(nueva < 0) nueva = 0;
-      await updateDoc(ref, { cantidad: nueva, fecha: fechaLocal(), epochMs: Date.now() });
-      await cargarCarritoPartidas();
-    }
-
-    tablaCarrito.addEventListener("click", async (e)=>{
-      const btn = e.target.closest("button[data-action][data-id]");
-      if(!btn) return;
-      const id = btn.dataset.id;
-      const delta = btn.dataset.action === "mas" ? DELTA : -DELTA;
-      await modificarCantidad(id, delta);
+    resultados=[];
+    snap.forEach(docu=>{
+      const p={id:docu.id, ...docu.data()};
+      if(p.concepto && palabras.every(w=>String(p.concepto).toLowerCase().includes(w))) resultados.push(p);
     });
 
-    /* Toolbar actions */
-    tbAdd.addEventListener("click", agregarYGuardar);
-    tbBuscar.addEventListener("click", ()=> abrirModal());
-    tbScan.addEventListener("click", startStopCam);
-    tbCart.addEventListener("click", abrirCarrito);
+    barraProgreso.value=100; estado.textContent="";
+    if(!resultados.length){
+      resultadosDiv.innerHTML="❌ Sin resultados"; contador.textContent="";
+    } else {
+      mostrarPagina(0);
+    }
+  }
 
-    /* Inicia en setup */
-    setView("setup");
-  </script>
+  function mostrarPagina(n){
+    pagina=n; resultadosDiv.innerHTML="";
+    const inicio=pagina*porPagina, fin=inicio+porPagina, lista=resultados.slice(inicio,fin);
+
+    lista.forEach(p=>{
+      const div=document.createElement("div"); div.className="producto-card";
+      const badge = p.coincidencia==="equivalente"
+        ? `<div style="color:#b00; font-size:12px">🔗 Coincidencia en equivalente (${p.codigoBuscado})</div>` : "";
+
+      div.innerHTML=`
+        <b>${p.concepto || "SIN CONCEPTO"}</b><br>
+        Código: ${p.codigoBarra || p.id}
+        ${badge}
+        <div style="margin-top:8px"><button class="btn-ok">Usar en previsualización</button></div>
+      `;
+
+      div.querySelector(".btn-ok").addEventListener("click", ()=>{
+        productoPreview = { descripcion: p.concepto || "Sin desc", codigo: p.id };
+        pDesc.textContent = productoPreview.descripcion;
+        pCodigo.textContent = `Código: ${productoPreview.codigo}`;
+        pPeso.style.display = "none";
+        pAviso.innerHTML = `<span class="warn">⌛ Previsualización lista.</span> Captura la cantidad y presiona <b>Agregar</b>.`;
+        previewBox.style.display = "block";
+
+        inputCantidad.value = "";
+        nextFocus = 'cantidad';
+        cerrarModal();
+      });
+
+      resultadosDiv.appendChild(div);
+    });
+
+    contador.textContent=`Resultados: ${resultados.length} | Página ${pagina+1} de ${Math.max(1,Math.ceil(resultados.length/porPagina))}`;
+    btnPrev.disabled=pagina===0;
+    btnNext.disabled=fin>=resultados.length;
+  }
+
+  /* ------------ Escáner ------------ */
+  async function startStopCam(){
+    if(lector){
+      try{ await lector.stop(); }catch{}
+      lector=null; divLector.style.display="none"; return;
+    }
+    divLector.style.display="block"; lector=new Html5Qrcode("lector");
+    try{
+      const box=Math.floor(Math.min(window.innerWidth*0.8, 320));
+      await lector.start(
+        { facingMode:"environment" }, { fps:10, qrbox:box },
+        async codigo=>{
+          try{ await lector.stop(); }catch{}
+          lector=null; divLector.style.display="none";
+          inputCodigo.value=codigo;
+          try{ await previsualizar(); beep(); inputCantidad.focus(); }
+          catch{ abrirModal(); inputBuscador.value=codigo; buscarProductos(codigo); }
+        },
+        ()=>{}
+      );
+    }catch(e){
+      console.error("Error cámara:", e);
+      alert("No se pudo abrir la cámara");
+    }
+  }
+
+  /* ------------ Carrito (por partidas) ------------ */
+  async function abrirCarrito(){
+    if(!selectSucursal.value || !selectUsuario.value){
+      alert("Selecciona sucursal y usuario.");
+      return;
+    }
+    await cargarCarritoPartidas();
+    setView("carrito");
+  }
+
+  // ✅ LEE DESDE inventarios2/...
+  async function cargarCarritoPartidas(){
+    tablaCarrito.innerHTML = "<tr><td colspan='5'>Cargando…</td></tr>";
+
+    const coll = collection(db, ROOT_INV, selectSucursal.value, "usuarios", selectUsuario.value, "escaneos");
+    const q = query(coll, where("folioSesion","==", folio));
+    const snap = await getDocs(q);
+
+    const rows = [];
+    snap.forEach(d=> rows.push({ id:d.id, ...d.data() }));
+    rows.sort((a,b)=> (b.epochMs ?? 0) - (a.epochMs ?? 0));
+
+    if(!rows.length){
+      tablaCarrito.innerHTML = "<tr><td colspan='5'>Sin partidas en este folio.</td></tr>";
+      return;
+    }
+
+    tablaCarrito.innerHTML = rows.map((r,i)=>{
+      const hora = (r.fecha||"").split(" ")[1] || "";
+      return `
+        <tr data-id="${r.id}">
+          <td data-label="#">${i+1}</td>
+          <td data-label="Código" class="ellipsis-1">${r.codigo||""}</td>
+          <td data-label="Descripción" class="td-desc"><span class="ellipsis-2">${r.descripcion||""}</span></td>
+          <td data-label="Cantidad">
+            <div class="qtyctrl">
+              <button class="btn-ghost" data-action="menos" data-id="${r.id}">−</button>
+              <strong>${fmt(r.cantidad, DEC_CANTIDAD)}</strong>
+              <button class="btn-ghost" data-action="mas" data-id="${r.id}">+</button>
+            </div>
+          </td>
+          <td data-label="Hora" class="fecha-cell">${hora}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // ✅ UPDATE EN inventarios2/...
+  async function modificarCantidad(docId, delta){
+    const ref = doc(db, ROOT_INV, selectSucursal.value, "usuarios", selectUsuario.value, "escaneos", docId);
+    const snap = await getDoc(ref);
+    if(!snap.exists()) return;
+
+    let nueva = roundTo(Number(snap.data().cantidad||0) + delta, DEC_CANTIDAD);
+    if(nueva < 0) nueva = 0;
+
+    await updateDoc(ref, { cantidad: nueva, fecha: fechaLocal(), epochMs: Date.now() });
+    await cargarCarritoPartidas();
+  }
+
+  tablaCarrito.addEventListener("click", async (e)=>{
+    const btn = e.target.closest("button[data-action][data-id]");
+    if(!btn) return;
+    const id = btn.dataset.id;
+    const delta = btn.dataset.action === "mas" ? DELTA : -DELTA;
+    await modificarCantidad(id, delta);
+  });
+
+  /* Toolbar actions */
+  tbAdd.addEventListener("click", agregarYGuardar);
+  tbBuscar.addEventListener("click", ()=> abrirModal());
+  tbScan.addEventListener("click", startStopCam);
+  tbCart.addEventListener("click", abrirCarrito);
+
+  /* Inicia en setup */
+  setView("setup");
+</script>
+
 </body>
 </html>
+
