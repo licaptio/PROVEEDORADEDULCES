@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pedidos – PDD</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  margin:0;
+  padding:20px;
+}
+
+.container{
+  max-width:1000px;
+  margin:auto;
+}
+
+h2{
+  margin-top:0;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:15px;
+}
+
+.card{
+  background:#fff;
+  border-radius:12px;
+  padding:18px;
+  box-shadow:0 3px 12px rgba(0,0,0,.08);
+  cursor:pointer;
+  transition:.15s;
+}
+
+.card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 6px 16px rgba(0,0,0,.12);
+}
+
+.fecha{
+  font-size:13px;
+  color:#666;
+}
+
+.proveedor{
+  font-size:18px;
+  font-weight:bold;
+  margin-top:6px;
+}
+
+.badge{
+  margin-top:10px;
+  display:inline-block;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:12px;
+  background:#eee;
+}
+
+.badge.PENDIENTE{background:#ffe8cc;color:#a35a00;}
+.badge.SURTIDO{background:#d3f9d8;color:#1b7f35;}
+.badge.CANCELADO{background:#ffd6d6;color:#b00020;}
+
+.empty{
+  margin-top:20px;
+  color:#666;
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+button{
+  padding:8px 14px;
+  border-radius:10px;
+  border:0;
+  background:#111;
+  color:#fff;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="topbar">
+    <h2>Pedidos</h2>
+    <button onclick="location.href='pedido_nuevo.html'">+ Nuevo Pedido</button>
+  </div>
+
+  <div id="grid" class="grid"></div>
+  <div id="empty" class="empty" style="display:none">No hay pedidos registrados</div>
+
+</div>
+
+<script>
+const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function cargarPedidos(){
+
+  const { data, error } = await sb
+    .from("pedidos_pdd")
+    .select("id, proveedor_nombre, pedido_fecha, estatus")
+    .order("pedido_fecha", { ascending:false });
+
+  if(error){
+    document.getElementById("grid").innerHTML = "Error cargando pedidos";
+    return;
+  }
+
+  if(!data || data.length === 0){
+    document.getElementById("empty").style.display = "block";
+    return;
+  }
+
+  document.getElementById("grid").innerHTML = data.map(p => `
+    <div class="card" onclick="abrir('${p.id}')">
+      <div class="fecha">${p.pedido_fecha}</div>
+      <div class="proveedor">${p.proveedor_nombre}</div>
+      <div class="badge ${p.estatus}">${p.estatus}</div>
+    </div>
+  `).join("");
+}
+
+function abrir(id){
+  location.href = `pedido_visor.html?id=${id}`;
+}
+
+cargarPedidos();
+</script>
+
+</body>
+</html>
