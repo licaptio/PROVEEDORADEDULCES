@@ -1,219 +1,309 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Inventario Teórico – Aceite Kartamus</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>Inventario Teórico – Producto</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<style>
-body{font-family:Arial;background:#f4f6f9;padding:20px}
-.card{background:white;padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
-.blink{animation:blink 1s infinite}
-@keyframes blink{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}
-table{width:100%;border-collapse:collapse}
-th,td{padding:8px;border-bottom:1px solid #ddd;text-align:center}
-.alerta{font-size:22px;margin-left:10px}
-.small{font-size:12px;color:#666;margin-top:6px}
-</style>
+  <style>
+    body{font-family:Arial;background:#f4f6f9;padding:20px}
+    .card{background:#fff;padding:20px;border-radius:12px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+    .blink{animation:blink 1s infinite}
+    @keyframes blink{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;border-bottom:1px solid #e7e7e7;text-align:center}
+    th{background:#fafafa}
+    .alerta{font-size:22px;margin-left:10px}
+    .row{display:flex;gap:18px;flex-wrap:wrap}
+    .kpi{min-width:180px}
+    .muted{color:#6b7280;font-size:12px;margin-top:10px}
+    .empty{padding:14px;color:#6b7280;text-align:center}
+  </style>
 </head>
+
 <body>
 
-<div class="card">
-  <h2>ACEITE KARTAMUS 900 ML</h2>
-  <p><strong>Base:</strong> <span id="base">—</span></p>
-  <p><strong>Mínimo:</strong> <span id="minimo">—</span></p>
-  <h3>
-    Teórico: <span id="teorico">—</span>
-    <span id="icono" class="alerta">⚠</span>
-  </h3>
-  <div class="small" id="debug">—</div>
-</div>
+  <div class="card">
+    <h2 style="margin:0 0 10px 0;" id="titulo">PRODUCTO</h2>
 
-<div class="card">
-  <h3>Salidas detectadas</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Folio</th>
-        <th>Cantidad</th>
-        <th>Restante</th>
-      </tr>
-    </thead>
-    <tbody id="tablaEventos"></tbody>
-  </table>
-</div>
+    <div class="row">
+      <div class="kpi"><strong>Base:</strong> <span id="base">—</span></div>
+      <div class="kpi"><strong>Mínimo:</strong> <span id="minimo">—</span></div>
+      <div class="kpi"><strong>Fijación:</strong> <span id="fijacionFecha">—</span></div>
+    </div>
+
+    <h3 style="margin:14px 0 0 0;">
+      Teórico: <span id="teorico">—</span>
+      <span id="icono" class="alerta">⚠</span>
+    </h3>
+
+    <div class="muted" id="status">—</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Salidas detectadas</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Folio</th>
+          <th>Almacén</th>
+          <th>Cantidad</th>
+          <th>Restante</th>
+        </tr>
+      </thead>
+      <tbody id="tablaEventos"></tbody>
+    </table>
+  </div>
 
 <script type="module">
-import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+  import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
+  import {
+    getFirestore, collection, query, orderBy, getDocs,
+    where, limit, startAfter
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 
-const CODIGO = "7501048102501"
+  /* =========================
+     CONFIG
+     ========================= */
+  const CODIGO = "7501048102501"
+  const HUMAN_NAME = `PRODUCTO ${CODIGO}`
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false
-  }
-})
+  // ON por defecto (vuela). OFF solo si quieres ver TODO el historial.
+  const FILTRAR_DESDE_FIJACION = true
 
-const app = initializeApp(firebaseConfig)
-const db = getFirestore(app)
+  // Performance
+  const PAGE_SIZE = 500
+  const MAX_DOCS_TOTALES = 8000     // safety
+  const MAX_EVENTOS = 4000          // safety
 
-let inventarioBase = 0
-let inventarioTeorico = 0
-let nivelAlerta = 0
-let fechaFijacion = null
+  /* =========================
+     INIT CLIENTS
+     ========================= */
+  document.getElementById("titulo").innerText = HUMAN_NAME
 
-function parseProductosField(productosField){
-  if (Array.isArray(productosField)) return productosField
-  if (productosField && typeof productosField === "object") return productosField
-  if (typeof productosField === "string") {
-    try { return JSON.parse(productosField) } catch { return [] }
-  }
-  return []
-}
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false }
+  })
 
-function toDateSafe(v){
-  if (!v) return null
-  if (v?.toDate) return v.toDate()
-  if (v instanceof Date) return v
-  const d = new Date(v)
-  return isNaN(d.getTime()) ? null : d
-}
+  const fbApp = initializeApp(firebaseConfig)
+  const db = getFirestore(fbApp)
 
-function setDebug(msg){
-  document.getElementById("debug").innerText = msg
-}
+  /* =========================
+     STATE
+     ========================= */
+  let inventarioBase = 0
+  let inventarioTeorico = 0
+  let nivelAlerta = 0
+  let fechaFijacion = new Date(0)
 
-async function cargarFijacion(){
-  const { data, error } = await supabase
-    .from("movimientos_inventario")
-    .select("id,timestamp,nivel_alerta,productos")
-    .eq("tipo","FIJACION")
-    .eq("activa",true)
-    .order("timestamp", { ascending: false })
+  const $ = (id) => document.getElementById(id)
+  const setStatus = (msg) => $("status").innerText = msg
 
-  if(error){
-    console.error(error)
-    alert("Error leyendo fijaciones")
-    return false
+  function toDateSafe(v){
+    if (!v) return null
+    if (typeof v?.toDate === "function") return v.toDate()
+    if (v instanceof Date) return v
+    const d = new Date(v)
+    return isNaN(d.getTime()) ? null : d
   }
 
-  if(!data || data.length === 0){
-    alert("No hay fijaciones activas")
-    return false
+  function normalizeProductos(p){
+    if (!p) return []
+    if (Array.isArray(p)) return p
+    if (typeof p === "object") return Object.values(p)
+    if (typeof p === "string"){
+      try{
+        const parsed = JSON.parse(p)
+        if (Array.isArray(parsed)) return parsed
+        if (parsed && typeof parsed === "object") return Object.values(parsed)
+        return []
+      }catch{ return [] }
+    }
+    return []
   }
 
-  let fijacion = null
-  let producto = null
+  function codigoOf(p){
+    return String(
+      p?.codigo ??
+      p?.id ??
+      p?.codigo_barra ??
+      p?.codigoBarra ??
+      p?.sku ??
+      ""
+    ).trim()
+  }
 
-  for(const f of data){
-    const lista = parseProductosField(f.productos)
-    const encontrado = lista.find(p =>
-      String(p.codigo).trim() === CODIGO.trim()
-    )
-
-    if(encontrado){
-      fijacion = f
-      producto = encontrado
-      break
+  function verificarAlerta(){
+    const icono = $("icono")
+    if (inventarioTeorico <= nivelAlerta){
+      icono.classList.add("blink")
+      icono.style.color = "red"
+    }else{
+      icono.classList.remove("blink")
+      icono.style.color = "green"
     }
   }
 
-  if(!producto){
-    alert("No existe fijación activa para este artículo")
-    return false
+  /* =========================
+     1) FIJACIÓN (SUPABASE)
+     ========================= */
+  async function cargarFijacionActiva(){
+    const { data, error } = await supabase
+      .from("movimientos_inventario")
+      .select("timestamp,nivel_alerta,productos,tipo,activa")
+      .eq("tipo","FIJACION")
+      .eq("activa", true)
+      .order("timestamp", { ascending:false })
+      .limit(30)
+
+    if (error) throw error
+    if (!data || data.length === 0) throw new Error("No hay fijación activa")
+
+    let fijacion = null
+    let producto = null
+
+    for (const f of data){
+      const lista = normalizeProductos(f.productos)
+      const encontrado = lista.find(p => String(p?.codigo ?? "").trim() === String(CODIGO).trim())
+      if (encontrado){
+        fijacion = f
+        producto = encontrado
+        break
+      }
+    }
+
+    if (!producto) throw new Error("La fijación activa no contiene este artículo")
+
+    inventarioBase = Number(producto.cantidad || 0)
+    inventarioTeorico = inventarioBase
+    nivelAlerta = Number(fijacion.nivel_alerta || 0)
+    fechaFijacion = toDateSafe(fijacion.timestamp) || new Date(0)
+
+    $("base").innerText = inventarioBase
+    $("minimo").innerText = nivelAlerta
+    $("teorico").innerText = inventarioTeorico
+    $("fijacionFecha").innerText = fechaFijacion.toLocaleString()
+
+    verificarAlerta()
   }
 
-  inventarioBase = Number(producto.cantidad || 0)
-  inventarioTeorico = inventarioBase
-  nivelAlerta = Number(fijacion.nivel_alerta || 0)
-  fechaFijacion = toDateSafe(fijacion.timestamp) || new Date(0)
+  /* =========================
+     2) SALIDAS (FIRESTORE) FAST
+     ========================= */
+  async function reconstruirSalidasFirestore(){
+    const sources = [
+      { almacen:"Almacen_Dulces",   col: collection(db, "almacenes", "Almacen_Dulces", "salidas") },
+      { almacen:"Almacen_Liquidos", col: collection(db, "almacenes", "Almacen_Liquidos", "salidas") }
+    ]
 
-  document.getElementById("base").innerText = inventarioBase
-  document.getElementById("minimo").innerText = nivelAlerta
-  document.getElementById("teorico").innerText = inventarioTeorico
+    const t0 = performance.now()
+    let eventos = []
+    let totalDocs = 0
 
-  setDebug(`Fijación usada: ${fechaFijacion.toLocaleString()}`)
-  verificarAlerta()
-  return true
-}
+    for (const src of sources){
+      let lastDoc = null
+      let done = false
 
-async function reconstruirSalidas(){
-  const colecciones = [
-    { nombre: "Almacen_Dulces", ref: collection(db, "almacenes", "Almacen_Dulces", "salidas") },
-    { nombre: "Almacen_Liquidos", ref: collection(db, "almacenes", "Almacen_Liquidos", "salidas") }
-  ]
+      while (!done){
+        if (totalDocs >= MAX_DOCS_TOTALES) break
+        if (eventos.length >= MAX_EVENTOS) break
 
-  let eventos = []
+        let qBase
+        if (FILTRAR_DESDE_FIJACION){
+          qBase = query(
+            src.col,
+            where("timestamp", ">=", fechaFijacion),
+            orderBy("timestamp"),
+            limit(PAGE_SIZE)
+          )
+        } else {
+          qBase = query(
+            src.col,
+            orderBy("timestamp"),
+            limit(PAGE_SIZE)
+          )
+        }
 
-  for(const c of colecciones){
-    const snapshot = await getDocs(c.ref)
+        const qPage = lastDoc ? query(qBase, startAfter(lastDoc)) : qBase
+        const snap = await getDocs(qPage)
 
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data()
-      if(!data || !data.productos) return
+        if (snap.empty){ done = true; break }
+        lastDoc = snap.docs[snap.docs.length - 1]
 
-      const lista = Array.isArray(data.productos) ? data.productos : []
-      const prod = lista.find(p => String(p.codigo).trim() === CODIGO.trim())
-      if(!prod) return
+        for (const docSnap of snap.docs){
+          totalDocs++
+          const data = docSnap.data()
+          if (!data?.productos) continue
 
-      const fechaSalida = toDateSafe(data.timestamp)
-      if(!fechaSalida) return
-      if(fechaSalida < fechaFijacion) return
+          const fechaDoc = toDateSafe(data.timestamp)
+          if (!fechaDoc) continue
 
-      eventos.push({
-        fecha: fechaSalida,
-        folio: data.folio || "",
-        cantidad: Number(prod.cantidad || 0),
-        almacen: c.nombre
-      })
-    })
+          // doble seguro
+          if (FILTRAR_DESDE_FIJACION && fechaDoc < fechaFijacion) continue
+
+          const lista = normalizeProductos(data.productos)
+          const prod = lista.find(p => codigoOf(p) === String(CODIGO).trim())
+          if (!prod) continue
+
+          eventos.push({
+            fecha: fechaDoc,
+            folio: data.folio || "",
+            cantidad: Number(prod.cantidad || 0),
+            almacen: src.almacen
+          })
+        }
+      }
+    }
+
+    eventos.sort((a,b) => a.fecha - b.fecha)
+
+    inventarioTeorico = inventarioBase
+
+    if (eventos.length === 0){
+      $("tablaEventos").innerHTML = `<tr><td class="empty" colspan="5">Sin salidas desde la fijación.</td></tr>`
+      $("teorico").innerText = inventarioTeorico
+      verificarAlerta()
+      setStatus(`OK: 0 salidas | t=${Math.round(performance.now()-t0)}ms`)
+      return
+    }
+
+    let html = ""
+    for (const ev of eventos){
+      inventarioTeorico -= ev.cantidad
+      html += `
+        <tr>
+          <td>${ev.fecha.toLocaleString()}</td>
+          <td>${ev.folio}</td>
+          <td>${ev.almacen}</td>
+          <td>${ev.cantidad}</td>
+          <td>${inventarioTeorico}</td>
+        </tr>
+      `
+    }
+
+    $("tablaEventos").innerHTML = html
+    $("teorico").innerText = inventarioTeorico
+    verificarAlerta()
+
+    setStatus(`OK: ${eventos.length} salidas | t=${Math.round(performance.now()-t0)}ms`)
   }
 
-  eventos.sort((a,b) => a.fecha - b.fecha)
-
-  const tabla = document.getElementById("tablaEventos")
-  tabla.innerHTML = ""
-
-  inventarioTeorico = inventarioBase
-
-  for(const ev of eventos){
-    inventarioTeorico -= ev.cantidad
-
-    tabla.innerHTML += `
-      <tr>
-        <td>${ev.fecha.toLocaleString()}</td>
-        <td>${ev.folio} <span class="small">(${ev.almacen})</span></td>
-        <td>${ev.cantidad}</td>
-        <td>${inventarioTeorico}</td>
-      </tr>
-    `
+  /* =========================
+     RUN
+     ========================= */
+  try{
+    setStatus("Cargando fijación…")
+    await cargarFijacionActiva()
+    setStatus("Leyendo salidas…")
+    await reconstruirSalidasFirestore()
+  }catch(err){
+    console.error(err)
+    alert(err?.message || "Error")
+    setStatus("Error. Revisa consola.")
   }
-
-  document.getElementById("teorico").innerText = inventarioTeorico
-  verificarAlerta()
-}
-
-function verificarAlerta(){
-  const icono = document.getElementById("icono")
-  if(inventarioTeorico <= nivelAlerta){
-    icono.classList.add("blink")
-    icono.style.color = "red"
-  }else{
-    icono.classList.remove("blink")
-    icono.style.color = "green"
-  }
-}
-
-const ok = await cargarFijacion()
-if(ok){
-  await reconstruirSalidas()
-}
 </script>
 
 </body>
