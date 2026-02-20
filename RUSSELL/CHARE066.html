@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Inventario Teórico – Producto (ZAPATA)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --orange:#ff7a00;
+    --orange-dark:#e66300;
+    --orange-soft:#fff4ea;
+    --bg:#f5f6f8;
+    --card:#ffffff;
+    --text:#1f2937;
+    --muted:#6b7280;
+  }
+  body{
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background:var(--bg);
+    margin:0;
+    padding:15px;
+    color:var(--text);
+  }
+  .card{
+    background:var(--card);
+    padding:18px;
+    border-radius:18px;
+    margin-bottom:18px;
+    box-shadow:0 6px 18px rgba(0,0,0,.08);
+  }
+  h2{
+    margin:0 0 12px 0;
+    font-size:22px;
+    font-weight:700;
+    color:var(--orange-dark);
+  }
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .kpi{
+    flex:1;min-width:120px;background:var(--orange-soft);
+    padding:10px;border-radius:12px;font-size:14px;
+  }
+  .kpi strong{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  .kpi span{font-weight:600;font-size:16px}
+  h3{margin:16px 0 6px 0}
+  #teorico{font-size:26px;font-weight:700;color:var(--orange-dark)}
+  .alerta{font-size:22px;margin-left:8px}
+  .blink{animation:blink 1s infinite}
+  @keyframes blink{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead{background:var(--orange);color:#fff}
+  th,td{padding:8px;text-align:center}
+  tbody tr:nth-child(even){background:#fafafa}
+  .muted{color:var(--muted);font-size:12px;margin-top:10px}
+  .empty{padding:14px;color:var(--muted);text-align:center}
+  @media(max-width:600px){
+    body{padding:10px}
+    h2{font-size:20px}
+    #teorico{font-size:22px}
+    th,td{padding:6px;font-size:12px}
+  }
+</style>
+</head>
+
+<body>
+  <div class="card">
+    <h2 style="margin:0 0 10px 0;" id="titulo">PRODUCTO</h2>
+    <div class="row">
+      <div class="kpi"><strong>Base:</strong> <span id="base">—</span></div>
+      <div class="kpi"><strong>Mínimo:</strong> <span id="minimo">—</span></div>
+      <div class="kpi"><strong>Fijación:</strong> <span id="fijacionFecha">—</span></div>
+      <div class="kpi"><strong>Folio FIJ:</strong> <span id="fijacionFolio">—</span></div>
+      <div class="kpi"><strong>Activa:</strong> <span id="fijacionActiva">—</span></div>
+    </div>
+
+    <h3 style="margin:14px 0 0 0;">
+      Teórico: <span id="teorico">—</span>
+      <span id="icono" class="alerta">⚠</span>
+    </h3>
+
+    <div class="muted" id="status">—</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Salidas detectadas (ZAPATA)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Folio</th>
+          <th>Cantidad</th>
+          <th>Restante</th>
+        </tr>
+      </thead>
+      <tbody id="tablaEventos"></tbody>
+    </table>
+  </div>
+
+<script type="module">
+  import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
+  import {
+    getFirestore, collection, query, orderBy, getDocs,
+    where, limit, startAfter
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+
+  /* =========================
+     CONFIG
+     ========================= */
+  const CODIGO = "355"
+  const HUMAN_NAME = "REYMA CHAROLA 066 C/500 BLANCA"
+
+  const FILTRAR_DESDE_FIJACION = true
+  const PERMITIR_FIJACION_NO_ACTIVA = true
+
+  const FIRESTORE_ALMACEN_LABEL = "ZAPATA"
+  const fbApp = initializeApp(firebaseConfig)
+  const db = getFirestore(fbApp)
+  const FIRESTORE_SALIDAS_COLLECTION = collection(db, "almacenes", "almacen_zapata", "salidas1.0")
+
+  const PAGE_SIZE = 500
+  const MAX_DOCS_TOTALES = 12000
+  const MAX_EVENTOS = 6000
+
+  document.getElementById("titulo").innerText = `${HUMAN_NAME} (COD ${CODIGO})`
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false }
+  })
+
+  /* =========================
+     STATE
+     ========================= */
+  let inventarioBase = 0
+  let inventarioTeorico = 0
+  let nivelAlerta = 0
+  let fechaFijacion = new Date(0)
+
+  const $ = (id) => document.getElementById(id)
+  const setStatus = (msg) => $("status").innerText = msg
+
+  function toDateSafe(v){
+    if (!v) return null
+    if (typeof v?.toDate === "function") return v.toDate()         // Firestore Timestamp
+    if (v instanceof Date) return v
+    const d = new Date(v)                                          // string / number
+    return isNaN(d.getTime()) ? null : d
+  }
+
+  function normalizeArrayField(p){
+    // soporta array, object-map, json string
+    if (!p) return []
+    if (Array.isArray(p)) return p
+    if (typeof p === "object") return Object.values(p)
+    if (typeof p === "string"){
+      try{
+        const parsed = JSON.parse(p)
+        if (Array.isArray(parsed)) return parsed
+        if (parsed && typeof parsed === "object") return Object.values(parsed)
+        return []
+      }catch{ return [] }
+    }
+    return []
+  }
+
+  function codigoOf(p){
+    return String(
+      p?.codigo ??
+      p?.id ??
+      p?.codigo_barra ??
+      p?.codigoBarra ??
+      p?.sku ??
+      ""
+    ).trim()
+  }
+
+  function verificarAlerta(){
+    const icono = $("icono")
+    if (inventarioTeorico <= nivelAlerta){
+      icono.classList.add("blink")
+      icono.style.color = "red"
+    }else{
+      icono.classList.remove("blink")
+      icono.style.color = "green"
+    }
+  }
+
+  /* =========================
+     1) FIJACIÓN (SUPABASE)
+     ========================= */
+  async function cargarFijacion(){
+    const baseQuery = () => supabase
+      .from("movimientos_inventario")
+      .select("timestamp,nivel_alerta,productos,tipo,activa,folio,almacen,usuario")
+      .eq("tipo","FIJACION")
+      .order("timestamp", { ascending:false })
+      .limit(80)
+
+    // A) activas
+    let { data, error } = await baseQuery().eq("activa", true)
+    if (error) throw error
+
+    const buscarEnLista = (rows) => {
+      for (const f of (rows || [])){
+        const lista = normalizeArrayField(f.productos)
+        const encontrado = lista.find(p => codigoOf(p) === String(CODIGO).trim())
+        if (encontrado) return { f, p: encontrado }
+      }
+      return null
+    }
+
+    let res = buscarEnLista(data)
+
+    // B) fallback no-activa
+    if (!res && PERMITIR_FIJACION_NO_ACTIVA){
+      const r2 = await baseQuery()
+      if (r2.error) throw r2.error
+      res = buscarEnLista(r2.data)
+    }
+
+    if (!res) throw new Error("No encontré una FIJACION que contenga este artículo (ni activa ni histórica).")
+
+    const fijacion = res.f
+    const producto = res.p
+
+    inventarioBase = Number(producto.cantidad || 0)
+    inventarioTeorico = inventarioBase
+    nivelAlerta = Number(fijacion.nivel_alerta || 0)
+    fechaFijacion = toDateSafe(fijacion.timestamp) || new Date(0)
+
+    $("base").innerText = inventarioBase
+    $("minimo").innerText = nivelAlerta
+    $("teorico").innerText = inventarioTeorico
+    $("fijacionFecha").innerText = fechaFijacion.toLocaleString()
+    $("fijacionFolio").innerText = fijacion.folio || "—"
+    $("fijacionActiva").innerText = fijacion.activa ? "SI" : "NO"
+
+    verificarAlerta()
+    return fijacion
+  }
+
+  /* =========================
+     2) SALIDAS (FIRESTORE)
+     - CORREGIDO: en tu Firestore es "articulos" (no "productos")
+     - soporta ambos por si hay docs viejos/nuevos
+     ========================= */
+  async function reconstruirSalidasFirestore(){
+    const t0 = performance.now()
+    let eventos = []
+    let totalDocs = 0
+    let lastDoc = null
+    let done = false
+
+    while (!done){
+      if (totalDocs >= MAX_DOCS_TOTALES) break
+      if (eventos.length >= MAX_EVENTOS) break
+
+      let qBase
+      if (FILTRAR_DESDE_FIJACION){
+        qBase = query(
+          FIRESTORE_SALIDAS_COLLECTION,
+          where("timestamp", ">=", fechaFijacion),
+          orderBy("timestamp"),
+          limit(PAGE_SIZE)
+        )
+      } else {
+        qBase = query(
+          FIRESTORE_SALIDAS_COLLECTION,
+          orderBy("timestamp"),
+          limit(PAGE_SIZE)
+        )
+      }
+
+      const qPage = lastDoc ? query(qBase, startAfter(lastDoc)) : qBase
+      const snap = await getDocs(qPage)
+
+      if (snap.empty){ done = true; break }
+      lastDoc = snap.docs[snap.docs.length - 1]
+
+      for (const docSnap of snap.docs){
+        totalDocs++
+        const data = docSnap.data()
+
+        // ✅ CORRECCIÓN: Firestore trae "articulos"
+        const rawLista = data?.articulos ?? data?.productos
+        if (!rawLista) continue
+
+        const fechaDoc = toDateSafe(data.timestamp)
+        if (!fechaDoc) continue
+
+        // doble seguro
+        if (FILTRAR_DESDE_FIJACION && fechaDoc < fechaFijacion) continue
+
+        const lista = normalizeArrayField(rawLista)
+        const prod = lista.find(p => codigoOf(p) === String(CODIGO).trim())
+        if (!prod) continue
+
+        eventos.push({
+          fecha: fechaDoc,
+          folio: data.folio || "",
+          cantidad: Number(prod.cantidad || 0),
+          _docId: docSnap.id
+        })
+      }
+    }
+
+    eventos.sort((a,b) => a.fecha - b.fecha)
+    inventarioTeorico = inventarioBase
+
+    if (eventos.length === 0){
+      $("tablaEventos").innerHTML =
+        `<tr><td class="empty" colspan="4">Sin salidas desde la fijación (docs leídos: ${totalDocs}).</td></tr>`
+      $("teorico").innerText = inventarioTeorico
+      verificarAlerta()
+      setStatus(`OK ${FIRESTORE_ALMACEN_LABEL}: 0 salidas | docs=${totalDocs} | t=${Math.round(performance.now()-t0)}ms | fijación=${fechaFijacion.toISOString()}`)
+      return
+    }
+
+    let html = ""
+    for (const ev of eventos){
+      inventarioTeorico -= ev.cantidad
+      html += `
+        <tr title="doc: ${ev._docId}">
+          <td>${ev.fecha.toLocaleString()}</td>
+          <td>${ev.folio}</td>
+          <td>${ev.cantidad}</td>
+          <td>${inventarioTeorico}</td>
+        </tr>
+      `
+    }
+
+    $("tablaEventos").innerHTML = html
+    $("teorico").innerText = inventarioTeorico
+    verificarAlerta()
+
+    setStatus(`OK ${FIRESTORE_ALMACEN_LABEL}: ${eventos.length} salidas | docs=${totalDocs} | t=${Math.round(performance.now()-t0)}ms`)
+  }
+
+  /* =========================
+     RUN
+     ========================= */
+  try{
+    setStatus("Cargando fijación…")
+    await cargarFijacion()
+    setStatus("Leyendo salidas…")
+    await reconstruirSalidasFirestore()
+  }catch(err){
+    console.error(err)
+    alert(err?.message || "Error")
+    setStatus("Error. Revisa consola.")
+  }
+</script>
+</body>
+</html>
