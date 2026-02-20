@@ -5,20 +5,132 @@
   <title>Inventario Teórico – Producto</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <style>
-    body{font-family:Arial;background:#f4f6f9;padding:20px}
-    .card{background:#fff;padding:20px;border-radius:12px;margin-bottom:18px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
-    .blink{animation:blink 1s infinite}
-    @keyframes blink{0%{opacity:1}50%{opacity:.2}100%{opacity:1}}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px;border-bottom:1px solid #e7e7e7;text-align:center}
-    th{background:#fafafa}
-    .alerta{font-size:22px;margin-left:10px}
-    .row{display:flex;gap:18px;flex-wrap:wrap}
-    .kpi{min-width:180px}
-    .muted{color:#6b7280;font-size:12px;margin-top:10px}
-    .empty{padding:14px;color:#6b7280;text-align:center}
-  </style>
+<style>
+  :root{
+    --orange:#ff7a00;
+    --orange-dark:#e66300;
+    --orange-soft:#fff4ea;
+    --bg:#f5f6f8;
+    --card:#ffffff;
+    --text:#1f2937;
+    --muted:#6b7280;
+  }
+
+  body{
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background:var(--bg);
+    margin:0;
+    padding:15px;
+    color:var(--text);
+  }
+
+  .card{
+    background:var(--card);
+    padding:18px;
+    border-radius:18px;
+    margin-bottom:18px;
+    box-shadow:0 6px 18px rgba(0,0,0,.08);
+  }
+
+  h2{
+    margin:0 0 12px 0;
+    font-size:22px;
+    font-weight:700;
+    color:var(--orange-dark);
+  }
+
+  .row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .kpi{
+    flex:1;
+    min-width:100px;
+    background:var(--orange-soft);
+    padding:10px;
+    border-radius:12px;
+    font-size:14px;
+  }
+
+  .kpi strong{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:4px;
+  }
+
+  .kpi span{
+    font-weight:600;
+    font-size:16px;
+  }
+
+  h3{
+    margin:16px 0 6px 0;
+  }
+
+  #teorico{
+    font-size:26px;
+    font-weight:700;
+    color:var(--orange-dark);
+  }
+
+  .alerta{
+    font-size:22px;
+    margin-left:8px;
+  }
+
+  .blink{
+    animation:blink 1s infinite;
+  }
+
+  @keyframes blink{
+    0%{opacity:1}
+    50%{opacity:.2}
+    100%{opacity:1}
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+
+  thead{
+    background:var(--orange);
+    color:#fff;
+  }
+
+  th,td{
+    padding:8px;
+    text-align:center;
+  }
+
+  tbody tr:nth-child(even){
+    background:#fafafa;
+  }
+
+  .muted{
+    color:var(--muted);
+    font-size:12px;
+    margin-top:10px;
+  }
+
+  .empty{
+    padding:14px;
+    color:var(--muted);
+    text-align:center;
+  }
+
+  /* MOBILE OPTIMIZATION */
+  @media(max-width:600px){
+    body{padding:10px}
+    h2{font-size:20px}
+    #teorico{font-size:22px}
+    th,td{padding:6px;font-size:12px}
+  }
+</style>
 </head>
 
 <body>
@@ -69,7 +181,7 @@
      CONFIG
      ========================= */
   const CODIGO = "7501048102501"
-  const HUMAN_NAME = `PRODUCTO ${CODIGO}`
+  const HUMAN_NAME = `TRACK KARTAMUS`
 
   // ON por defecto (vuela). OFF solo si quieres ver TODO el historial.
   const FILTRAR_DESDE_FIJACION = true
