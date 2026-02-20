@@ -338,13 +338,22 @@ const ventasParaFactura = ventasCache;
   ].join("|"));
 
   // 01 CFDI40
-  lineas.push([
-    "01","CFDI40","01","INFO_GLOBAL",
-    "01","01", new Date().getFullYear(),
-    "EMISOR","",
-    "RECEPTOR","67700","616"
-  ].join("|"));
+// 01 CFDI40
+const fechaSeleccionada = document.getElementById("fecha").value;
+const fechaObj = new Date(fechaSeleccionada);
 
+const anioPeriodo = fechaObj.getFullYear();
+const mesPeriodo  = String(fechaObj.getMonth() + 1).padStart(2, "0");
+
+lineas.push([
+  "01","CFDI40","01","INFO_GLOBAL",
+  "01",
+  mesPeriodo,
+  anioPeriodo,
+  "EMISOR","",
+  "RECEPTOR","67700","616"
+].join("|"));
+  
   // ===============================
   // 03 y 03-IMP
   // ===============================
@@ -459,3 +468,4 @@ function descargar(contenido, nombreArchivo) {
 </body>
 
 </html>
+
