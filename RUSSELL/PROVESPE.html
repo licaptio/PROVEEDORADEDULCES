@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Deuda Proveedores Especiales</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f4f4;
+  padding:20px;
+  margin:0;
+}
+
+h2{margin-top:0}
+
+.box-total{
+  background:#fff;
+  padding:15px;
+  border-radius:8px;
+  margin-bottom:15px;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+}
+
+th,td{
+  padding:8px;
+  border:1px solid #ccc;
+  font-size:0.85em;
+}
+
+th{
+  background:#007bff;
+  color:white;
+}
+
+td.numero{text-align:right}
+
+.btn-pagar{
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  border:none;
+  background:#28a745;
+  cursor:pointer;
+}
+
+.btn-pagar:disabled{
+  background:#6c757d;
+}
+.cardProveedor{
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:20px;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+
+.headerProveedor{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+.vencido{
+  border:2px solid red;
+  animation:parpadeo 1s infinite;
+}
+
+@keyframes parpadeo{
+  0%{ box-shadow:0 0 5px red; }
+  50%{ box-shadow:0 0 20px red; }
+  100%{ box-shadow:0 0 5px red; }
+}
+</style>
+</head>
+<body>
+
+<h2>📌 Proveedores Especiales - Pendientes</h2>
+
+<div id="totalBox"></div>
+<div id="tabla"></div>
+
+<script type="module">
+
+import { supabaseUrl, supabaseAnonKey } from './config.js';
+
+const supabase = window.supabase.createClient(
+  supabaseUrl,
+  supabaseAnonKey
+);
+
+const proveedoresEspeciales = {
+  "ROBERTO CANTU OZUNA": 12,
+  "DECASA DEL CENTRO": 20,
+  "DULCES LAS DELICIAS": 27,
+  "GUSTAVO MARTINEZ PLATAS": 10,
+  "EDDY HERNANDEZ VILLARREAL": 7,
+  "DISTRIBUIDORA DE DULCES DEL NORTE": 27,
+  "INOCENCIO DELGADO MARQUEZ": 15,
+  "DUL-TAM PAVITO": 7,
+  "LOCALIZACION ESPECIALIZADA GPS": 2,
+  "LUIS FERNANDO KARR GARCIA": 2, 
+  "DISTRIBUIDORA DE PRODUCTOS DESHIDRATADOS": 28,
+  "DETALLE Y DISTRIBUCIONES": 20,
+  "PRODUCTOS VIGAR": 15,
+  "DISTRIBUIDORA DE LA ROSA": 15,
+  "COMERCIALIZADORA INDUSTRIAL IDALI": 15,
+  "MAXILUM": 15,
+  "DESFICO": 7,
+  "GRUPO CHI-SO": 15,
+  "ABARROTES": 20
+};
+
+function fechaYMD(v){
+  return v ? v.split("T")[0] : "";
+}
+
+function calcularDias(fechaStr){
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  const [y,m,d] = fechaStr.split("-").map(Number);
+  const f = new Date(y,m-1,d);
+  f.setHours(0,0,0,0);
+
+  return Math.floor((hoy - f) / 86400000);
+}
+
+function proveedorReal(f){
+  return (f.proveedor && f.proveedor.trim() !== "")
+    ? f.proveedor.trim()
+    : (f.razon_social_emisor || "");
+}
+
+async function cargar(){
+
+  const { data, error } = await supabase
+    .from("v_deuda_proveedores")
+    .select("*")
+    .neq("factura_pagada","SI");
+
+  if(error){
+    alert("Error cargando datos");
+    return;
+  }
+
+  const contenedor = document.getElementById("tabla");
+  contenedor.innerHTML = "";
+
+  for(const proveedorNombre in proveedoresEspeciales){
+
+    const diasPermitidos = proveedoresEspeciales[proveedorNombre];
+
+    const facturas = (data || []).filter(f=>{
+      return proveedorReal(f) === proveedorNombre;
+    });
+
+    let diasMayor = 0;
+
+    facturas.forEach(f=>{
+      const dias = calcularDias(fechaYMD(f.fecha));
+      if(dias > diasMayor) diasMayor = dias;
+    });
+
+    const diasVencidos = diasMayor - diasPermitidos;
+    const estaVencido = diasVencidos > 0;
+
+    let html = `
+      <div class="cardProveedor ${estaVencido ? 'vencido' : ''}">
+        <div class="headerProveedor">
+          <div>
+            <strong>${proveedorNombre}</strong><br>
+            Límite: ${diasPermitidos} días
+          </div>
+          <div>
+            Días transcurridos: <strong>${diasMayor}</strong><br>
+            ${
+              estaVencido
+                ? `<span style="color:red">Vencido por ${diasVencidos} días</span>`
+                : `<span style="color:green">En tiempo</span>`
+            }
+          </div>
+        </div>
+    `;
+
+    if(facturas.length === 0){
+      html += `<div style="padding:10px;color:#777">Sin facturas pendientes</div>`;
+    } else {
+
+      html += `
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Días</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      facturas.sort((a,b)=>{
+        return calcularDias(fechaYMD(b.fecha)) - calcularDias(fechaYMD(a.fecha));
+      });
+
+      for(const f of facturas){
+
+        const dias = calcularDias(fechaYMD(f.fecha));
+
+        html += `
+          <tr>
+            <td>${fechaYMD(f.fecha)}</td>
+            <td>${dias}</td>
+            <td>${Number(f.total||0).toLocaleString("es-MX",{minimumFractionDigits:2})}</td>
+          </tr>
+        `;
+      }
+
+      html += `</tbody></table>`;
+    }
+
+    html += `</div>`;
+
+    contenedor.innerHTML += html;
+  }
+}
+
+cargar();
+
+</script>
+</body>
+</html>
