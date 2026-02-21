@@ -260,7 +260,16 @@
       icono.style.color = "green"
     }
   }
+function pintarTeorico(){
+  const cajas = inventarioTeorico / PIEZAS_POR_CAJA
+  const tarimas = cajas / CAJAS_POR_TARIMA
 
+  $("teorico").innerHTML = `
+    = RESULTADO ${inventarioTeorico.toLocaleString()} PZAS<br>
+    = CAJAS (${inventarioTeorico}/${PIEZAS_POR_CAJA}) ${cajas.toFixed(2)} CAJAS<br>
+    = TARIMAS (${cajas.toFixed(2)}/${CAJAS_POR_TARIMA}) ${tarimas.toFixed(4)} TARIMAS
+  `
+}
   /* =========================
      1) FIJACIÓN (SUPABASE)
      ========================= */
@@ -297,20 +306,9 @@
     fechaFijacion = toDateSafe(fijacion.timestamp) || new Date(0)
 
     $("base").innerText = inventarioBase
-    $("minimo").innerText = nivelAlerta
-    function pintarTeorico(){
-
-  const cajas = inventarioTeorico / PIEZAS_POR_CAJA
-  const tarimas = cajas / CAJAS_POR_TARIMA
-
-  $("teorico").innerHTML = `
-    = RESULTADO ${inventarioTeorico.toLocaleString()} PZAS<br>
-    = CAJAS (${inventarioTeorico}/${PIEZAS_POR_CAJA}) ${cajas.toFixed(2)} CAJAS<br>
-    = TARIMAS (${cajas.toFixed(2)}/${CAJAS_POR_TARIMA}) ${tarimas.toFixed(4)} TARIMAS
-  `
-}
-    $("fijacionFecha").innerText = fechaFijacion.toLocaleString()
-
+$("minimo").innerText = nivelAlerta
+$("fijacionFecha").innerText = fechaFijacion.toLocaleString()
+pintarTeorico()
     verificarAlerta()
   }
 
