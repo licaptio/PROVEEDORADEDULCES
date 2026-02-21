@@ -176,7 +176,8 @@ import { getFirestore, collection, query, where, orderBy, getDocs }
 from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 
 const CODIGO = "7501020540666"
-
+const PIEZAS_POR_CAJA = 12
+const CAJAS_POR_TARIMA = 90
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { persistSession:false }
 })
@@ -218,8 +219,23 @@ function verificarAlerta(){
     icono.style.color = "green"
   }
 }
+function pintarTeorico(){
 
-async function cargarFijacionActiva(){
+  const piezas = inventarioTeorico
+
+  const cajasEnteras = Math.floor(piezas / PIEZAS_POR_CAJA)
+  const piezasSueltas = piezas % PIEZAS_POR_CAJA
+
+  const tarimasEnteras = Math.floor(cajasEnteras / CAJAS_POR_TARIMA)
+  const cajasSueltas = cajasEnteras % CAJAS_POR_TARIMA
+
+  $("teorico").innerHTML = `
+    ${piezas.toLocaleString()} PZAS<br>
+    ${cajasEnteras} CAJAS (${piezasSueltas} SUELTAS)<br>
+    ${tarimasEnteras} TARIMAS (${cajasSueltas} CAJAS)
+  `
+}
+  async function cargarFijacionActiva(){
 
   const { data, error } = await supabase
     .from("movimientos_inventario")
@@ -258,7 +274,7 @@ async function cargarFijacionActiva(){
 
   $("base").innerText = inventarioBase
   $("minimo").innerText = nivelAlerta
-  $("teorico").innerText = inventarioTeorico
+pintarTeorico()  
   $("fijacionFecha").innerText = fechaFijacion.toLocaleString()
 
   verificarAlerta()
@@ -327,7 +343,7 @@ async function reconstruirSalidasFirestore(){
     `
   }
 
-  $("teorico").innerText = inventarioTeorico
+  pintarTeorico()
   verificarAlerta()
 }
 
@@ -529,4 +545,5 @@ if (ok){
 
 </body>
 </html>
+
 
