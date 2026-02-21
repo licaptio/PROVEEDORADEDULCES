@@ -228,7 +228,7 @@ iframe{
   <button onclick="prev()">⬅</button>
   <button onclick="next()">➡</button>
 </div>
-
+<div id="overlay" onclick="closeConfig()"></div>
 <script>
 const defaultPages = [
   { id:"VDulce", file:"VDulce.html", enabled:true },
@@ -262,8 +262,28 @@ if(!Array.isArray(config)){
 /* ===============================
    PANEL
 =================================*/
+function openConfig(){
+  const panel = document.getElementById("configPanel");
+  const overlay = document.getElementById("overlay");
+
+  panel.classList.add("open");
+  overlay.classList.add("show");
+  overlay.style.pointerEvents = "auto";
+}
+function closeConfig(){
+  const panel = document.getElementById("configPanel");
+  const overlay = document.getElementById("overlay");
+
+  panel.classList.remove("open");
+  overlay.classList.remove("show");
+
+  // Fuerza limpieza por si algo quedó bloqueado
+  overlay.style.pointerEvents = "none";
+}
+
 function toggleConfig(){
-  document.getElementById("configPanel").classList.toggle("open");
+  const panel = document.getElementById("configPanel");
+  panel.classList.contains("open") ? closeConfig() : openConfig();
 }
 
 function renderConfig(){
@@ -288,7 +308,11 @@ function toggleModule(i,el){
   localStorage.setItem("provsoft_pages",JSON.stringify(config));
   buildSlides();
 }
-
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    closeConfig();
+  }
+});
 /* ===============================
    CARRUSEL
 =================================*/
@@ -334,8 +358,15 @@ function showSlide(n){
   slides[index].classList.add("active");
 }
 
-function next(){ showSlide(index+1); }
-function prev(){ showSlide(index-1); }
+function next(){
+  if(document.getElementById("configPanel").classList.contains("open")) return;
+  showSlide(index+1);
+}
+
+function prev(){
+  if(document.getElementById("configPanel").classList.contains("open")) return;
+  showSlide(index-1);
+}
 
 /* ===============================
    SWIPE
@@ -361,5 +392,6 @@ buildSlides();
 
 </body>
 </html>
+
 
 
