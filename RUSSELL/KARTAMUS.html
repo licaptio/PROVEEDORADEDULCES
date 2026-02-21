@@ -261,13 +261,15 @@
     }
   }
 function pintarTeorico(){
-  const cajas = inventarioTeorico / PIEZAS_POR_CAJA
-  const tarimas = cajas / CAJAS_POR_TARIMA
+
+  const piezas = inventarioTeorico
+
+  const cajasEnteras = Math.floor(piezas / PIEZAS_POR_CAJA)
+  const piezasSueltas = piezas % PIEZAS_POR_CAJA
 
   $("teorico").innerHTML = `
-    = RESULTADO ${inventarioTeorico.toLocaleString()} PZAS<br>
-    = CAJAS (${inventarioTeorico}/${PIEZAS_POR_CAJA}) ${cajas.toFixed(2)} CAJAS<br>
-    = TARIMAS (${cajas.toFixed(2)}/${CAJAS_POR_TARIMA}) ${tarimas.toFixed(4)} TARIMAS
+    ${piezas.toLocaleString()} PZAS<br>
+    ${cajasEnteras} CAJAS (${piezasSueltas} PZAS SUELTAS)
   `
 }
   /* =========================
