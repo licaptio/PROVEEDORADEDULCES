@@ -14,5 +14,5 @@
   { "nombre": "SALIDAS ALMACEN LIQUIDO", "archivo": "VLiquidos.html" },
   { "nombre": "VENTAS RUTAS MOBIL", "archivo": "VRutaVTAMOB.html" },
   { "nombre": "CHECHIFRESCO ZAPATA", "archivo": "CHECHI.html" },
-  { "nombre": "VENTAS GENERALES PDD 2026", "archivo": "Vventaspdd26.html" },
+  { "nombre": "VENTAS GENERALES PDD 2026", "archivo": "Vventaspdd26.html" }
 ]
