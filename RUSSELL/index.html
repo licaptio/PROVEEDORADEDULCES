@@ -265,8 +265,9 @@ async function loadManifest(){
       localStorage.setItem("provsoft_pages", JSON.stringify(config));
     }
 
-loadManifest();
-    
+renderConfig();
+    buildSlides();
+
   }catch(err){
     console.error("Error cargando manifest:", err);
     document.getElementById("container").innerHTML =
@@ -415,16 +416,12 @@ document.addEventListener("touchend",e=>{
   if(diff<-60) prev();
 },{passive:true});
 
-/* ===============================
-   INIT
-=================================*/
-renderConfig();
-buildSlides();
-
+loadManifest();
 </script>
 
 </body>
 </html>
+
 
 
 
