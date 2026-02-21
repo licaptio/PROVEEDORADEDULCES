@@ -10,9 +10,13 @@ html,body{
   margin:0;
   padding:0;
   height:100%;
-  overflow:hidden;
   background:#000;
   font-family:Arial, sans-serif;
+  overflow:hidden;
+}
+
+body{
+  height:100dvh; /* clave para Android moderno */
 }
 
 /* CONTENEDOR */
@@ -46,6 +50,7 @@ iframe{
   height:100%;
   border:none;
   background:#fff;
+  display:block;
 }
 
 /* ===============================
@@ -263,22 +268,40 @@ if(!Array.isArray(config)){
    PANEL
 =================================*/
 function openConfig(){
+
+  // Quitar foco del input activo (cierra teclado)
+  if(document.activeElement){
+    document.activeElement.blur();
+  }
+
+  // Forzar blur también dentro de iframes
+  document.querySelectorAll("iframe").forEach(f=>{
+    try{
+      f.contentWindow.document.activeElement?.blur();
+    }catch(e){}
+  });
+
   const panel = document.getElementById("configPanel");
   const overlay = document.getElementById("overlay");
 
   panel.classList.add("open");
   overlay.classList.add("show");
   overlay.style.pointerEvents = "auto";
+
+  // Bloquear scroll del body mientras panel abierto
+  document.body.style.overflow = "hidden";
 }
 function closeConfig(){
+
   const panel = document.getElementById("configPanel");
   const overlay = document.getElementById("overlay");
 
   panel.classList.remove("open");
   overlay.classList.remove("show");
-
-  // Fuerza limpieza por si algo quedó bloqueado
   overlay.style.pointerEvents = "none";
+
+  // Restaurar scroll
+  document.body.style.overflow = "hidden";
 }
 
 function toggleConfig(){
@@ -388,10 +411,12 @@ document.addEventListener("touchend",e=>{
 =================================*/
 renderConfig();
 buildSlides();
+
 </script>
 
 </body>
 </html>
+
 
 
 
