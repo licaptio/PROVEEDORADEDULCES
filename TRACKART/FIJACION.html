@@ -449,12 +449,11 @@ function rowTemplate(item){
     </td>
   `;
 
-  tr.querySelector(".btn-editar").onclick = () => activarEdicion(tr);
-  tr.querySelector(".btn-cancelar").onclick = () => cancelarEdicion(tr, item);
-  tr.querySelector(".btn-guardar").onclick = () => 
-        (tr);
-  tr.querySelector(".btn-eliminar").onclick = () => eliminarSoftFila(tr);
-
+tr.querySelector(".btn-editar").onclick = () => activarEdicion(tr);
+tr.querySelector(".btn-cancelar").onclick = () => cancelarEdicion(tr, item);
+tr.querySelector(".btn-guardar").onclick = () => guardarEdicionFila(tr);
+tr.querySelector(".btn-eliminar").onclick = () => eliminarSoftFila(tr);
+     
   return tr;
 }
 async function cargarFijaciones(){
@@ -525,10 +524,9 @@ async function guardarEdicionFila(tr){
   const id = tr.dataset.id;
   const msg = tr.querySelector(".msg-row");
 
-  const folio = tr.querySelector("td .mono")?.textContent?.trim() || null;
-
   const dtLocal = tr.querySelector(".inp-ts").value;
   const timestampISO = dtLocalToIsoWithTZ(dtLocal);
+
   if(!dtLocal || !timestampISO){
     msg.textContent = "Timestamp inválido.";
     msg.style.color = "var(--bad)";
@@ -541,18 +539,12 @@ async function guardarEdicionFila(tr){
   const descripcion = tr.querySelector(".inp-descripcion").value.trim();
   const cantidad = parseFloat(tr.querySelector(".inp-cantidad").value);
 
-  if(!codigo){
-    msg.textContent = "Código requerido.";
-    msg.style.color = "var(--bad)";
-    return;
-  }
-  if(isNaN(cantidad)){
-    msg.textContent = "Cantidad inválida.";
+  if(!codigo || isNaN(cantidad)){
+    msg.textContent = "Datos inválidos.";
     msg.style.color = "var(--bad)";
     return;
   }
 
-  // reconstruir productos[]
   const productos = [{
     codigo,
     descripcion,
@@ -566,11 +558,10 @@ async function guardarEdicionFila(tr){
   const { error } = await supabase
     .from("movimientos_inventario")
     .update({
-      // folio NO lo cambio aquí (si lo quieres editable, dímelo)
       almacen,
       usuario,
       timestamp: timestampISO,
-      productos,
+      productos
     })
     .eq("id", id);
 
@@ -583,18 +574,16 @@ async function guardarEdicionFila(tr){
 
   msg.textContent = "Guardado ✅";
   msg.style.color = "var(--ok)";
+
+  // 🔒 BLOQUEAR OTRA VEZ
+  tr.querySelectorAll("input").forEach(i => i.disabled = true);
+
+  tr.querySelector(".btn-editar").style.display = "inline-block";
+  tr.querySelector(".btn-guardar").style.display = "none";
+  tr.querySelector(".btn-cancelar").style.display = "none";
+  tr.querySelector(".btn-eliminar").disabled = false;
 }
-
-// bloquear nuevamente
-tr.querySelectorAll("input").forEach(i => i.disabled = true);
-
-tr.querySelector(".btn-editar").style.display = "inline-block";
-tr.querySelector(".btn-guardar").style.display = "none";
-tr.querySelector(".btn-cancelar").style.display = "none";
-
-// 🔓 reactivar eliminar
-tr.querySelector(".btn-eliminar").disabled = false;
-
+     
 async function eliminarSoftFila(tr){
   const id = tr.dataset.id;
   const msg = tr.querySelector(".msg-row");
@@ -757,11 +746,8 @@ function cancelarEdicion(tr, originalItem){
   // 🔓 reactivar eliminar
   tr.querySelector(".btn-eliminar").disabled = false;
 }
-     
+    
 </script>
 </body>
 </html>
-
-
-
 
