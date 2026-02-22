@@ -1,8 +1,7 @@
 <!-- =========================
      Panel de Fijación – PROVSOFT
-     1 movimiento = 1 producto (FIJACION)
-     Captura: artículo + cantidad + FECHA/HORA REAL (manual)
-     Guarda en Supabase: movimientos_inventario
+     + Listado/Edición de FIJACIONES (Supabase)
+     Tabla: movimientos_inventario
      ========================= -->
 <!DOCTYPE html>
 <html lang="es">
@@ -12,41 +11,121 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
-  body{font-family:Arial;background:#f4f6f9;padding:40px}
-  .card{background:#fff;padding:25px;border-radius:12px;max-width:650px;margin:auto;box-shadow:0 6px 18px rgba(0,0,0,.1);position:relative}
-  input,button,select{width:100%;padding:10px;margin-top:10px;border-radius:6px;border:1px solid #ccc}
-  button{background:#F57C00;color:#fff;font-weight:bold;border:none;cursor:pointer}
-  button:hover{background:#EF6C00}
-  h2{margin-top:0}
+  :root{
+    --orange:#F57C00;
+    --orange2:#EF6C00;
+    --bg:#f4f6f9;
+    --card:#fff;
+    --muted:#6b7280;
+    --line:#e7e7e7;
+    --ok:#16a34a;
+    --bad:#dc2626;
+  }
+  body{font-family:Arial;background:var(--bg);padding:40px;margin:0}
+  .card{
+    background:var(--card);
+    padding:25px;
+    border-radius:12px;
+    max-width:1100px;
+    margin:0 auto 18px auto;
+    box-shadow:0 6px 18px rgba(0,0,0,.1);
+    position:relative;
+  }
+  input,button,select{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    border-radius:8px;
+    border:1px solid #ccc;
+    box-sizing:border-box;
+  }
+  button{
+    background:var(--orange);
+    color:#fff;
+    font-weight:bold;
+    border:none;
+    cursor:pointer;
+  }
+  button:hover{background:var(--orange2)}
+  h2{margin:0 0 8px 0}
+  .sub{color:var(--muted);font-size:13px;margin-top:0}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row > *{flex:1;min-width:220px}
+  .hint{font-size:12px;color:#555;margin-top:6px}
+  #estado{margin-top:15px;font-weight:bold}
 
   /* AUTOCOMPLETE */
   .sugerencias{
     position:absolute;background:#fff;border:1px solid #ddd;max-height:260px;overflow:auto;
-    border-radius:8px;display:none;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:9999
+    border-radius:10px;display:none;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:9999
   }
   .sugerencia-item{padding:10px;cursor:pointer;border-bottom:1px solid #eee;font-size:14px}
   .sugerencia-item:hover{background:#f2f2f2}
 
-  #estado{margin-top:15px;font-weight:bold}
-  .row{display:flex;gap:10px;flex-wrap:wrap}
-  .row > *{flex:1;min-width:220px}
-  .hint{font-size:12px;color:#555;margin-top:6px}
+  /* LISTADO */
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .toolbar .field{flex:1;min-width:220px}
+  .toolbar button{width:auto; padding:10px 14px; margin-top:10px}
+  .btn-ghost{
+    background:#111827;
+  }
+  .btn-ghost:hover{background:#0b1220}
+  .btn-danger{background:var(--bad)}
+  .btn-danger:hover{filter:brightness(.92)}
+  .btn-ok{background:var(--ok)}
+  .btn-ok:hover{filter:brightness(.92)}
+  .tag{
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:999px;
+    font-size:12px;
+    border:1px solid var(--line);
+    color:#111827;
+    background:#fff;
+  }
+  .tag.off{color:#991b1b;border-color:#fecaca;background:#fff5f5}
+  .tag.on{color:#065f46;border-color:#bbf7d0;background:#f0fdf4}
+
+  .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:12px}
+  table{width:100%;border-collapse:collapse;min-width:980px;background:#fff}
+  th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{background:#fafafa;font-size:12px;color:#374151;position:sticky;top:0;z-index:1}
+  td input, td select{
+    margin-top:0;
+    padding:8px;
+    border-radius:8px;
+  }
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .actions button{margin-top:0; padding:8px 10px; font-size:12px}
+  .mini{font-size:12px;color:var(--muted)}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px}
+  .right{ text-align:right }
 </style>
 </head>
 
 <body>
+
+<!-- =========================
+     CAPTURA FIJACIÓN
+     ========================= -->
 <div class="card">
   <h2>Fijación Física (1 producto = 1 movimiento)</h2>
+  <p class="sub">Guarda en Supabase: <span class="mono">movimientos_inventario</span> (tipo = <b>FIJACION</b>)</p>
 
   <label>Buscar producto (código o concepto)</label>
   <input type="text" id="buscar" placeholder="Ej: nutri leche o 7501020540666" autocomplete="off" />
   <div id="sugerencias" class="sugerencias"></div>
 
-  <label>Código</label>
-  <input type="text" id="codigo" readonly placeholder="Se llena al seleccionar" />
-
-  <label>Descripción</label>
-  <input type="text" id="descripcion" readonly placeholder="Se llena al seleccionar" />
+  <div class="row">
+    <div>
+      <label>Código</label>
+      <input type="text" id="codigo" readonly placeholder="Se llena al seleccionar" />
+    </div>
+    <div>
+      <label>Descripción</label>
+      <input type="text" id="descripcion" readonly placeholder="Se llena al seleccionar" />
+    </div>
+  </div>
 
   <div class="row">
     <div>
@@ -72,9 +151,67 @@
   </div>
 
   <button id="btnFijar">Guardar FIJACIÓN</button>
-
   <div id="estado"></div>
 </div>
+
+
+<!-- =========================
+     LISTADO / EDICIÓN FIJACIONES
+     ========================= -->
+<div class="card">
+  <h2>Listado de FIJACIONES (editar / eliminar)</h2>
+  <p class="sub">Se leen de <span class="mono">movimientos_inventario</span> y puedes editar campos y guardar.</p>
+
+  <div class="toolbar">
+    <div class="field">
+      <label>Filtro (código / descripción / folio)</label>
+      <input id="filtroTexto" type="text" placeholder="Ej: 7501048102501 o aceite o FIJ-202602..." />
+    </div>
+    <div class="field">
+      <label>Almacén</label>
+      <input id="filtroAlmacen" type="text" placeholder="Ej: MATRIZ PISO" />
+    </div>
+    <div class="field">
+      <label>Mostrar</label>
+      <select id="filtroActiva">
+        <option value="all">Todas</option>
+        <option value="true" selected>Solo activas</option>
+        <option value="false">Solo inactivas</option>
+      </select>
+      <div class="mini">“Eliminar” pone activa=false (soft delete).</div>
+    </div>
+
+    <button class="btn-ghost" id="btnRefrescar">Refrescar</button>
+  </div>
+
+  <div id="estadoLista" class="mini" style="margin-top:10px;"></div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:140px;">Folio</th>
+          <th style="width:190px;">Timestamp</th>
+          <th style="width:150px;">Almacén</th>
+          <th style="width:120px;">Usuario</th>
+          <th style="width:140px;">Código</th>
+          <th>Descripción</th>
+          <th style="width:110px;" class="right">Cantidad</th>
+          <th style="width:120px;">Activa</th>
+          <th style="width:240px;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyFijaciones">
+        <tr><td colspan="9" class="mini">Cargando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mini" style="margin-top:10px;">
+    Nota: si en tu tabla <span class="mono">productos</span> está guardado como string (como en tu ejemplo), aquí lo parseo y lo re-escribo como JSON válido al guardar.
+  </div>
+</div>
+
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -117,7 +254,7 @@ function filtrarProductos(texto){
 function posicionarSugerencias(){
   const buscar = document.getElementById("buscar");
   const cont = document.getElementById("sugerencias");
-  const card = document.querySelector(".card");
+  const card = document.querySelectorAll(".card")[0];
 
   const rInput = buscar.getBoundingClientRect();
   const rCard  = card.getBoundingClientRect();
@@ -162,26 +299,56 @@ function seleccionarProducto(p){
 }
 
 function folioFijacion(dtLocal){
-  // dtLocal = "YYYY-MM-DDTHH:MM"
-  // lo convertimos a FIJ-YYYYMMDD-HHMMSS (SS=00)
-  const safe = (dtLocal || "").replace("T","").replace(/[-:]/g,"");
-  // safe: YYYYMMDDHHMM
+  const safe = (dtLocal || "").replace("T","").replace(/[-:]/g,""); // YYYYMMDDHHMM
   return `FIJ-${safe || Date.now()}`;
 }
 
 function dtLocalToIsoWithTZ(dtLocal){
-  // Convierte datetime-local (sin zona) a ISO real con tu zona local del navegador
-  // Ej: "2026-02-08T19:30" -> "2026-02-09T01:30:00.000Z" (en UTC)
   const d = new Date(dtLocal);
   if(isNaN(d.getTime())) return null;
   return d.toISOString();
+}
+
+function isoToDtLocal(iso){
+  // iso: "2026-02-19T14:00:00.000Z" o "2026-02-19 14:00:00+00"
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return "";
+  const pad=(n)=>String(n).padStart(2,"0");
+  // datetime-local requiere hora local del navegador
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function parseProductosField(prodField){
+  // prodField puede venir como:
+  // 1) array JSON (jsonb) -> [{...}]
+  // 2) string JSON -> "[{...}]"
+  // 3) null
+  try{
+    if(Array.isArray(prodField)) return prodField;
+    if(typeof prodField === "string"){
+      const t = prodField.trim();
+      if(!t) return [];
+      return JSON.parse(t);
+    }
+    return [];
+  }catch(e){
+    console.warn("No se pudo parsear productos:", prodField);
+    return [];
+  }
+}
+
+function setEstado(el, msg, ok=null){
+  el.textContent = msg;
+  if(ok === true) el.style.color = "var(--ok)";
+  else if(ok === false) el.style.color = "var(--bad)";
+  else el.style.color = "var(--muted)";
 }
 
 /* =========================
    CARGA DE PRODUCTOS ACTIVOS (Firebase)
    ========================= */
 async function cargarProductosActivos(){
-  // Solo activos = true
   const q = query(collection(db, "productos"), where("activo", "==", true));
   const snapshot = await getDocs(q);
   productosCache = snapshot.docs.map(d => d.data());
@@ -189,7 +356,7 @@ async function cargarProductosActivos(){
 }
 
 /* =========================
-   GUARDAR FIJACIÓN EN SUPA
+   GUARDAR FIJACIÓN (INSERT)
    ========================= */
 async function guardarFijacion(){
   const codigo = document.getElementById("codigo").value.trim();
@@ -198,7 +365,7 @@ async function guardarFijacion(){
   const almacen = document.getElementById("almacen").value.trim() || null;
   const usuario = document.getElementById("usuario").value.trim() || null;
 
-  const dtLocal = document.getElementById("fechaConteo").value; // requerido
+  const dtLocal = document.getElementById("fechaConteo").value;
   const timestampISO = dtLocalToIsoWithTZ(dtLocal);
 
   if(!codigo) return alert("Selecciona un producto desde el buscador.");
@@ -206,16 +373,14 @@ async function guardarFijacion(){
   if(!dtLocal || !timestampISO) return alert("Selecciona la fecha y hora real del conteo (datetime).");
 
   const estado = document.getElementById("estado");
-  estado.innerText = "Guardando FIJACIÓN...";
+  setEstado(estado, "Guardando FIJACIÓN...");
 
   const folio = folioFijacion(dtLocal);
 
-  // Un solo producto dentro de productos[]
   const productos = [{
     codigo,
     descripcion,
     cantidad,
-    // unidad opcional: si quieres, cámbialo a dinámico al cargar producto seleccionado
     unidad: "H87"
   }];
 
@@ -226,32 +391,285 @@ async function guardarFijacion(){
       folio,
       almacen,
       usuario,
-      timestamp: timestampISO,   // 👈 ESTE es el punto: fecha/hora manual
-      productos
+      timestamp: timestampISO,
+      productos,
+      activa: true
     }]);
 
   if(error){
     console.error(error);
-    estado.innerText = "Error al guardar ❌";
+    setEstado(estado, "Error al guardar ❌", false);
     return alert("No se pudo guardar. Revisa consola (F12).");
   }
 
-  estado.innerText = `FIJACIÓN guardada ✅ (${folio})`;
-
-  // Limpieza rápida
+  setEstado(estado, `FIJACIÓN guardada ✅ (${folio})`, true);
   document.getElementById("cantidad").value = "";
-  // no borro buscar/codigo/descripcion por si vas a fijar variaciones rápidas
+
+  // refrescar listado
+  await cargarFijaciones();
+}
+
+/* =========================
+   LISTAR / EDITAR FIJACIONES
+   ========================= */
+function rowTemplate(item){
+  const productos = parseProductosField(item.productos);
+  const p0 = productos[0] || {};
+  const codigo = p0.codigo ?? "";
+  const descripcion = p0.descripcion ?? "";
+  const cantidad = (p0.cantidad ?? "");
+  const activa = item.activa !== false;
+
+  const tr = document.createElement("tr");
+  tr.dataset.id = item.id;
+
+  tr.innerHTML = `
+    <td>
+      <div class="mono">${item.folio ?? ""}</div>
+      <div class="mini mono">${(item.id ?? "").slice(0,8)}...</div>
+    </td>
+
+    <td>
+      <input type="datetime-local" class="inp-ts" value="${isoToDtLocal(item.timestamp)}" />
+      <div class="mini">Editable</div>
+    </td>
+
+    <td><input type="text" class="inp-almacen" value="${(item.almacen ?? "")}" /></td>
+    <td><input type="text" class="inp-usuario" value="${(item.usuario ?? "")}" /></td>
+
+    <td><input type="text" class="inp-codigo mono" value="${codigo}" /></td>
+    <td><input type="text" class="inp-descripcion" value="${descripcion.replaceAll('"','&quot;')}" /></td>
+
+    <td class="right">
+      <input type="number" step="0.01" class="inp-cantidad" value="${cantidad}" />
+    </td>
+
+    <td>
+      <select class="inp-activa">
+        <option value="true" ${activa ? "selected":""}>true</option>
+        <option value="false" ${!activa ? "selected":""}>false</option>
+      </select>
+      <div style="margin-top:6px;">
+        <span class="tag ${activa ? "on":"off"}">${activa ? "ACTIVA" : "INACTIVA"}</span>
+      </div>
+    </td>
+
+    <td>
+      <div class="actions">
+        <button class="btn-ok btn-guardar">Guardar</button>
+        <button class="btn-danger btn-eliminar">Eliminar</button>
+        <button class="btn-ghost btn-borrar">Borrar definitivo</button>
+      </div>
+      <div class="mini msg-row" style="margin-top:6px;"></div>
+    </td>
+  `;
+
+  // eventos
+  tr.querySelector(".btn-guardar").addEventListener("click", () => guardarEdicionFila(tr));
+  tr.querySelector(".btn-eliminar").addEventListener("click", () => eliminarSoftFila(tr));
+  tr.querySelector(".btn-borrar").addEventListener("click", () => borrarDefinitivoFila(tr));
+
+  // refrescar tag al cambiar activa
+  tr.querySelector(".inp-activa").addEventListener("change", (e)=>{
+    const tag = tr.querySelector(".tag");
+    const on = e.target.value === "true";
+    tag.textContent = on ? "ACTIVA" : "INACTIVA";
+    tag.classList.toggle("on", on);
+    tag.classList.toggle("off", !on);
+  });
+
+  return tr;
+}
+
+async function cargarFijaciones(){
+  const estadoLista = document.getElementById("estadoLista");
+  const tbody = document.getElementById("tbodyFijaciones");
+
+  const filtroTexto = normalizar(document.getElementById("filtroTexto").value);
+  const filtroAlmacen = normalizar(document.getElementById("filtroAlmacen").value);
+  const filtroActiva = document.getElementById("filtroActiva").value; // all/true/false
+
+  setEstado(estadoLista, "Cargando fijaciones...");
+
+  // consulta base
+  let q = supabase
+    .from("movimientos_inventario")
+    .select("id,tipo,folio,almacen,usuario,timestamp,productos,nivel_alerta,activa")
+    .eq("tipo", "FIJACION")
+    .order("timestamp", { ascending: false })
+    .limit(200);
+
+  if(filtroActiva !== "all"){
+    q = q.eq("activa", filtroActiva === "true");
+  }
+
+  const { data, error } = await q;
+
+  if(error){
+    console.error(error);
+    tbody.innerHTML = `<tr><td colspan="9" class="mini" style="color:var(--bad)">Error al cargar (ver consola).</td></tr>`;
+    setEstado(estadoLista, "Error al cargar ❌", false);
+    return;
+  }
+
+  // filtrar en front (por texto en folio o productos)
+  const filtradas = (data || []).filter(item => {
+    let ok = true;
+
+    if(filtroAlmacen){
+      ok = ok && normalizar(item.almacen).includes(filtroAlmacen);
+    }
+
+    if(filtroTexto){
+      const productos = parseProductosField(item.productos);
+      const p0 = productos[0] || {};
+      const blob = [
+        item.folio ?? "",
+        p0.codigo ?? "",
+        p0.descripcion ?? ""
+      ].join(" ");
+      ok = ok && normalizar(blob).includes(filtroTexto);
+    }
+
+    return ok;
+  });
+
+  tbody.innerHTML = "";
+  if(!filtradas.length){
+    tbody.innerHTML = `<tr><td colspan="9" class="mini">Sin resultados.</td></tr>`;
+    setEstado(estadoLista, "0 fijaciones encontradas.", true);
+    return;
+  }
+
+  filtradas.forEach(item => tbody.appendChild(rowTemplate(item)));
+  setEstado(estadoLista, `${filtradas.length} fijaciones cargadas.`, true);
+}
+
+async function guardarEdicionFila(tr){
+  const id = tr.dataset.id;
+  const msg = tr.querySelector(".msg-row");
+
+  const folio = tr.querySelector("td .mono")?.textContent?.trim() || null;
+
+  const dtLocal = tr.querySelector(".inp-ts").value;
+  const timestampISO = dtLocalToIsoWithTZ(dtLocal);
+  if(!dtLocal || !timestampISO){
+    msg.textContent = "Timestamp inválido.";
+    msg.style.color = "var(--bad)";
+    return;
+  }
+
+  const almacen = tr.querySelector(".inp-almacen").value.trim() || null;
+  const usuario = tr.querySelector(".inp-usuario").value.trim() || null;
+  const activa = tr.querySelector(".inp-activa").value === "true";
+
+  const codigo = tr.querySelector(".inp-codigo").value.trim();
+  const descripcion = tr.querySelector(".inp-descripcion").value.trim();
+  const cantidad = parseFloat(tr.querySelector(".inp-cantidad").value);
+
+  if(!codigo){
+    msg.textContent = "Código requerido.";
+    msg.style.color = "var(--bad)";
+    return;
+  }
+  if(isNaN(cantidad)){
+    msg.textContent = "Cantidad inválida.";
+    msg.style.color = "var(--bad)";
+    return;
+  }
+
+  // reconstruir productos[]
+  const productos = [{
+    codigo,
+    descripcion,
+    cantidad,
+    unidad: "H87"
+  }];
+
+  msg.textContent = "Guardando...";
+  msg.style.color = "var(--muted)";
+
+  const { error } = await supabase
+    .from("movimientos_inventario")
+    .update({
+      // folio NO lo cambio aquí (si lo quieres editable, dímelo)
+      almacen,
+      usuario,
+      timestamp: timestampISO,
+      productos,
+      activa
+    })
+    .eq("id", id);
+
+  if(error){
+    console.error(error);
+    msg.textContent = "Error al guardar ❌";
+    msg.style.color = "var(--bad)";
+    return;
+  }
+
+  msg.textContent = "Guardado ✅";
+  msg.style.color = "var(--ok)";
+}
+
+async function eliminarSoftFila(tr){
+  const id = tr.dataset.id;
+  const msg = tr.querySelector(".msg-row");
+  if(!confirm("Esto pondrá activa=false (soft delete). ¿Continuar?")) return;
+
+  msg.textContent = "Eliminando (soft)...";
+  msg.style.color = "var(--muted)";
+
+  const { error } = await supabase
+    .from("movimientos_inventario")
+    .update({ activa: false })
+    .eq("id", id);
+
+  if(error){
+    console.error(error);
+    msg.textContent = "Error al eliminar ❌";
+    msg.style.color = "var(--bad)";
+    return;
+  }
+
+  // reflejar en UI
+  tr.querySelector(".inp-activa").value = "false";
+  tr.querySelector(".inp-activa").dispatchEvent(new Event("change"));
+  msg.textContent = "Inactivada ✅";
+  msg.style.color = "var(--ok)";
+}
+
+async function borrarDefinitivoFila(tr){
+  const id = tr.dataset.id;
+  const msg = tr.querySelector(".msg-row");
+  if(!confirm("BORRADO DEFINITIVO (DELETE). ¿Seguro?")) return;
+
+  msg.textContent = "Borrando definitivo...";
+  msg.style.color = "var(--muted)";
+
+  const { error } = await supabase
+    .from("movimientos_inventario")
+    .delete()
+    .eq("id", id);
+
+  if(error){
+    console.error(error);
+    msg.textContent = "Error al borrar ❌";
+    msg.style.color = "var(--bad)";
+    return;
+  }
+
+  tr.remove();
 }
 
 /* =========================
    UI EVENTS
    ========================= */
 function initUI(){
+  // Autocomplete
   const buscar = document.getElementById("buscar");
   const cont = document.getElementById("sugerencias");
-  const btn = document.getElementById("btnFijar");
 
-  // Autocomplete realtime
   buscar.addEventListener("input", () => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
@@ -260,7 +678,6 @@ function initUI(){
     }, 120);
   });
 
-  // Enter / Escape
   buscar.addEventListener("keydown", (e) => {
     if(e.key === "Enter"){
       e.preventDefault();
@@ -272,13 +689,11 @@ function initUI(){
     }
   });
 
-  // Click fuera
   document.addEventListener("click", (e) => {
     const dentro = cont.contains(e.target) || buscar.contains(e.target);
     if(!dentro) ocultarSugerencias();
   });
 
-  // Reposicionar en resize/scroll
   window.addEventListener("resize", () => {
     if(cont.style.display === "block") posicionarSugerencias();
   });
@@ -286,13 +701,26 @@ function initUI(){
     if(cont.style.display === "block") posicionarSugerencias();
   }, true);
 
-  btn.addEventListener("click", guardarFijacion);
+  document.getElementById("btnFijar").addEventListener("click", guardarFijacion);
 
   // Default fechaConteo = ahora (editable)
   const now = new Date();
   const pad = (n)=>String(n).padStart(2,"0");
   const local = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
   document.getElementById("fechaConteo").value = local;
+
+  // Listado
+  document.getElementById("btnRefrescar").addEventListener("click", cargarFijaciones);
+
+  // recargar al teclear filtros (debounce)
+  let t = null;
+  const onFilter = () => {
+    clearTimeout(t);
+    t = setTimeout(cargarFijaciones, 250);
+  };
+  document.getElementById("filtroTexto").addEventListener("input", onFilter);
+  document.getElementById("filtroAlmacen").addEventListener("input", onFilter);
+  document.getElementById("filtroActiva").addEventListener("change", cargarFijaciones);
 }
 
 /* =========================
@@ -301,7 +729,9 @@ function initUI(){
 window.addEventListener("DOMContentLoaded", async () => {
   await cargarProductosActivos();
   initUI();
+  await cargarFijaciones();
 });
 </script>
+
 </body>
 </html>
