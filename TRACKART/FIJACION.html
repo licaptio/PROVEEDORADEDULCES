@@ -156,7 +156,20 @@
   padding:8px 14px;
   font-size:13px;
 }
-     
+.card-grid textarea{
+  width:100%;
+  resize:none;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-family:inherit;
+  line-height:1.4;
+  min-height:42px;
+}
+
+.auto-grow{
+  overflow:hidden;
+}
 </style>
 </head>
 
@@ -178,11 +191,11 @@
       <label>Código</label>
       <input type="text" id="codigo" readonly placeholder="Se llena al seleccionar" />
     </div>
-    <div>
-      <label>Descripción</label>
-      <input type="text" id="descripcion" readonly placeholder="Se llena al seleccionar" />
-    </div>
-  </div>
+<div style="grid-column:1 / -1;">
+  <label>Descripción</label>
+  <textarea class="inp-descripcion auto-grow" rows="2" disabled>${p0.descripcion ?? ""}</textarea>
+</div>
+</div>
 
   <div class="row">
     <div>
@@ -509,10 +522,17 @@ function rowTemplate(item){
   div.querySelector(".btn-cancelar").onclick = () => cancelarEdicion(div, item);
   div.querySelector(".btn-guardar").onclick = () => guardarEdicionFila(div);
   div.querySelector(".btn-eliminar").onclick = () => eliminarSoftFila(div);
+setTimeout(() => {
+    const ta = div.querySelector(".auto-grow");
+    if(ta){
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
+    }
+  }, 0);
 
   return div;
 }
-
+ 
 async function cargarFijaciones(){
   const estadoLista = document.getElementById("estadoLista");
   const container = document.getElementById("cardsFijaciones");
@@ -802,9 +822,20 @@ function cancelarEdicion(tr, originalItem){
   // 🔓 reactivar eliminar
   tr.querySelector(".btn-eliminar").disabled = false;
 }
-    
+function autoResizeTextarea(el){
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+// aplicar a todos los textarea
+document.addEventListener("input", function(e){
+  if(e.target.classList.contains("auto-grow")){
+    autoResizeTextarea(e.target);
+  }
+});    
 </script>
 </body>
 </html>
+
 
 
