@@ -56,6 +56,34 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth:{persistSession:false}
 })
 
+function normalizarProductos(raw){
+
+  if (!raw) return []
+
+  // Caso 1: ya viene como array (jsonb correcto)
+  if (Array.isArray(raw)) return raw
+
+  // Caso 2: viene como objeto {0:{},1:{}}
+  if (typeof raw === "object") return Object.values(raw)
+
+  // Caso 3: viene como string JSON
+  if (typeof raw === "string") {
+    try{
+      const parsed = JSON.parse(raw)
+
+      if (Array.isArray(parsed)) return parsed
+      if (typeof parsed === "object") return Object.values(parsed)
+
+      return []
+    }catch{
+      console.warn("productos mal formado:", raw)
+      return []
+    }
+  }
+
+  return []
+}
+
 async function cargarFijaciones(){
 
   const { data, error } = await supabase
@@ -73,7 +101,9 @@ async function cargarFijaciones(){
 
   for(const row of data){
 
-    const productos = JSON.parse(row.productos)
+    const productos = normalizarProductos(row.productos)
+
+    if(productos.length === 0) continue
 
     for(const p of productos){
 
@@ -81,14 +111,15 @@ async function cargarFijaciones(){
       card.className="card"
 
       card.innerHTML = `
-        <h3>${p.descripcion}</h3>
-        <div class="kpi">${p.cantidad} piezas</div>
+        <h3>${p.descripcion ?? "SIN DESCRIPCIÓN"}</h3>
+        <div class="kpi">${Number(p.cantidad ?? 0)} piezas</div>
         <div class="small">
-          Código: ${p.codigo}<br>
+          Código: ${p.codigo ?? "-"}<br>
           Fijación: ${new Date(row.timestamp).toLocaleString()}<br>
-          Folio: ${row.folio}
+          Folio: ${row.folio ?? "-"}
         </div>
       `
+
       contenedor.appendChild(card)
     }
   }
@@ -97,10 +128,9 @@ async function cargarFijaciones(){
 try{
   await cargarFijaciones()
 }catch(e){
-  alert("Error")
+  alert("Error cargando fijaciones")
   console.error(e)
 }
 </script>
-
 </body>
 </html>
