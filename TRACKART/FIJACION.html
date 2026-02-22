@@ -415,72 +415,48 @@ async function guardarFijacion(){
 function rowTemplate(item){
   const productos = parseProductosField(item.productos);
   const p0 = productos[0] || {};
-  const codigo = p0.codigo ?? "";
-  const descripcion = p0.descripcion ?? "";
-  const cantidad = (p0.cantidad ?? "");
   const activa = item.activa !== false;
 
   const tr = document.createElement("tr");
   tr.dataset.id = item.id;
+  tr.dataset.editing = "false";
 
   tr.innerHTML = `
-    <td>
-      <div class="mono">${item.folio ?? ""}</div>
-      <div class="mini mono">${(item.id ?? "").slice(0,8)}...</div>
-    </td>
+    <td class="mono">${item.folio ?? ""}</td>
 
     <td>
-      <input type="datetime-local" class="inp-ts" value="${isoToDtLocal(item.timestamp)}" />
-      <div class="mini">Editable</div>
+      <input type="datetime-local" class="inp-ts" value="${isoToDtLocal(item.timestamp)}" disabled />
     </td>
 
-    <td><input type="text" class="inp-almacen" value="${(item.almacen ?? "")}" /></td>
-    <td><input type="text" class="inp-usuario" value="${(item.usuario ?? "")}" /></td>
-
-    <td><input type="text" class="inp-codigo mono" value="${codigo}" /></td>
-    <td><input type="text" class="inp-descripcion" value="${descripcion.replaceAll('"','&quot;')}" /></td>
-
-    <td class="right">
-      <input type="number" step="0.01" class="inp-cantidad" value="${cantidad}" />
-    </td>
+    <td><input type="text" class="inp-almacen" value="${item.almacen ?? ""}" disabled /></td>
+    <td><input type="text" class="inp-usuario" value="${item.usuario ?? ""}" disabled /></td>
+    <td><input type="text" class="inp-codigo mono" value="${p0.codigo ?? ""}" disabled /></td>
+    <td><input type="text" class="inp-descripcion" value="${(p0.descripcion ?? "").replaceAll('"','&quot;')}" disabled /></td>
+    <td><input type="number" step="0.01" class="inp-cantidad" value="${p0.cantidad ?? ""}" disabled /></td>
 
     <td>
-      <select class="inp-activa">
-        <option value="true" ${activa ? "selected":""}>true</option>
-        <option value="false" ${!activa ? "selected":""}>false</option>
-      </select>
-      <div style="margin-top:6px;">
-        <span class="tag ${activa ? "on":"off"}">${activa ? "ACTIVA" : "INACTIVA"}</span>
-      </div>
+      <span class="tag ${activa ? "on":"off"}">${activa ? "ACTIVA" : "INACTIVA"}</span>
     </td>
 
     <td>
       <div class="actions">
-        <button class="btn-ok btn-guardar">Guardar</button>
+        <button class="btn-editar">Editar</button>
+        <button class="btn-guardar" style="display:none;">Guardar</button>
+        <button class="btn-cancelar" style="display:none;">Cancelar</button>
         <button class="btn-danger btn-eliminar">Eliminar</button>
-        <button class="btn-ghost btn-borrar">Borrar definitivo</button>
       </div>
-      <div class="mini msg-row" style="margin-top:6px;"></div>
+      <div class="mini msg-row"></div>
     </td>
   `;
 
-  // eventos
-  tr.querySelector(".btn-guardar").addEventListener("click", () => guardarEdicionFila(tr));
-  tr.querySelector(".btn-eliminar").addEventListener("click", () => eliminarSoftFila(tr));
-  tr.querySelector(".btn-borrar").addEventListener("click", () => borrarDefinitivoFila(tr));
-
-  // refrescar tag al cambiar activa
-  tr.querySelector(".inp-activa").addEventListener("change", (e)=>{
-    const tag = tr.querySelector(".tag");
-    const on = e.target.value === "true";
-    tag.textContent = on ? "ACTIVA" : "INACTIVA";
-    tag.classList.toggle("on", on);
-    tag.classList.toggle("off", !on);
-  });
+  tr.querySelector(".btn-editar").onclick = () => activarEdicion(tr);
+  tr.querySelector(".btn-cancelar").onclick = () => cancelarEdicion(tr, item);
+  tr.querySelector(".btn-guardar").onclick = () => 
+        (tr);
+  tr.querySelector(".btn-eliminar").onclick = () => eliminarSoftFila(tr);
 
   return tr;
 }
-
 async function cargarFijaciones(){
   const estadoLista = document.getElementById("estadoLista");
   const tbody = document.getElementById("tbodyFijaciones");
@@ -561,8 +537,6 @@ async function guardarEdicionFila(tr){
 
   const almacen = tr.querySelector(".inp-almacen").value.trim() || null;
   const usuario = tr.querySelector(".inp-usuario").value.trim() || null;
-  const activa = tr.querySelector(".inp-activa").value === "true";
-
   const codigo = tr.querySelector(".inp-codigo").value.trim();
   const descripcion = tr.querySelector(".inp-descripcion").value.trim();
   const cantidad = parseFloat(tr.querySelector(".inp-cantidad").value);
@@ -597,7 +571,6 @@ async function guardarEdicionFila(tr){
       usuario,
       timestamp: timestampISO,
       productos,
-      activa
     })
     .eq("id", id);
 
@@ -611,6 +584,16 @@ async function guardarEdicionFila(tr){
   msg.textContent = "Guardado ✅";
   msg.style.color = "var(--ok)";
 }
+
+// bloquear nuevamente
+tr.querySelectorAll("input").forEach(i => i.disabled = true);
+
+tr.querySelector(".btn-editar").style.display = "inline-block";
+tr.querySelector(".btn-guardar").style.display = "none";
+tr.querySelector(".btn-cancelar").style.display = "none";
+
+// 🔓 reactivar eliminar
+tr.querySelector(".btn-eliminar").disabled = false;
 
 async function eliminarSoftFila(tr){
   const id = tr.dataset.id;
@@ -633,9 +616,10 @@ async function eliminarSoftFila(tr){
   }
 
   // reflejar en UI
-  tr.querySelector(".inp-activa").value = "false";
-  tr.querySelector(".inp-activa").dispatchEvent(new Event("change"));
-  msg.textContent = "Inactivada ✅";
+tr.querySelector(".tag").textContent = "INACTIVA";
+tr.querySelector(".tag").classList.remove("on");
+tr.querySelector(".tag").classList.add("off");
+msg.textContent = "Inactivada ✅";
   msg.style.color = "var(--ok)";
 }
 
@@ -731,9 +715,53 @@ window.addEventListener("DOMContentLoaded", async () => {
   initUI();
   await cargarFijaciones();
 });
+function activarEdicion(tr){
+
+  // no permitir editar si está inactiva
+  if(tr.querySelector(".tag").textContent === "INACTIVA"){
+    alert("No se puede editar una fijación inactiva.");
+    return;
+  }
+
+  tr.dataset.editing = "true";
+
+  // habilitar inputs
+  tr.querySelectorAll("input").forEach(i => i.disabled = false);
+
+  // botones
+  tr.querySelector(".btn-editar").style.display = "none";
+  tr.querySelector(".btn-guardar").style.display = "inline-block";
+  tr.querySelector(".btn-cancelar").style.display = "inline-block";
+
+  // 🔒 desactivar eliminar mientras edita
+  tr.querySelector(".btn-eliminar").disabled = true;
+}     
+function cancelarEdicion(tr, originalItem){
+
+  const productos = parseProductosField(originalItem.productos);
+  const p0 = productos[0] || {};
+
+  tr.querySelector(".inp-ts").value = isoToDtLocal(originalItem.timestamp);
+  tr.querySelector(".inp-almacen").value = originalItem.almacen ?? "";
+  tr.querySelector(".inp-usuario").value = originalItem.usuario ?? "";
+  tr.querySelector(".inp-codigo").value = p0.codigo ?? "";
+  tr.querySelector(".inp-descripcion").value = p0.descripcion ?? "";
+  tr.querySelector(".inp-cantidad").value = p0.cantidad ?? "";
+
+  tr.querySelectorAll("input").forEach(i => i.disabled = true);
+
+  tr.querySelector(".btn-editar").style.display = "inline-block";
+  tr.querySelector(".btn-guardar").style.display = "none";
+  tr.querySelector(".btn-cancelar").style.display = "none";
+
+  // 🔓 reactivar eliminar
+  tr.querySelector(".btn-eliminar").disabled = false;
+}
+     
 </script>
 </body>
 </html>
+
 
 
 
