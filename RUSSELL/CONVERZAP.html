@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Inventario Teórico – ZAPATA MULTI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --orange:#ff7a00;
+  --bg:#f5f6f8;
+  --card:#fff;
+  --muted:#6b7280;
+}
+body{
+  font-family:Segoe UI,Arial;
+  background:var(--bg);
+  margin:0;
+  padding:15px;
+}
+.container{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+  gap:15px;
+}
+.card{
+  background:var(--card);
+  padding:16px;
+  border-radius:16px;
+  box-shadow:0 6px 18px rgba(0,0,0,.08);
+}
+.card h3{
+  margin:0 0 8px 0;
+  color:var(--orange);
+}
+.kpi{
+  font-size:18px;
+  font-weight:bold;
+}
+.small{
+  font-size:12px;
+  color:var(--muted);
+}
+</style>
+</head>
+<body>
+
+<h2>INVENTARIO TEÓRICO ZAPATA</h2>
+
+<div class="container" id="contenedor"></div>
+
+<script type="module">
+import { supabaseUrl, supabaseAnonKey } from './config.js'
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth:{persistSession:false}
+})
+
+async function cargarFijaciones(){
+
+  const { data, error } = await supabase
+    .from("movimientos_inventario")
+    .select("timestamp,folio,productos")
+    .eq("tipo","FIJACION")
+    .eq("almacen","ZAPATA")
+    .order("timestamp",{ascending:false})
+    .limit(20)
+
+  if(error) throw error
+
+  const contenedor = document.getElementById("contenedor")
+  contenedor.innerHTML=""
+
+  for(const row of data){
+
+    const productos = JSON.parse(row.productos)
+
+    for(const p of productos){
+
+      const card = document.createElement("div")
+      card.className="card"
+
+      card.innerHTML = `
+        <h3>${p.descripcion}</h3>
+        <div class="kpi">${p.cantidad} piezas</div>
+        <div class="small">
+          Código: ${p.codigo}<br>
+          Fijación: ${new Date(row.timestamp).toLocaleString()}<br>
+          Folio: ${row.folio}
+        </div>
+      `
+      contenedor.appendChild(card)
+    }
+  }
+}
+
+try{
+  await cargarFijaciones()
+}catch(e){
+  alert("Error")
+  console.error(e)
+}
+</script>
+
+</body>
+</html>
