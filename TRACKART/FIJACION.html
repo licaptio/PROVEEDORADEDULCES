@@ -193,8 +193,11 @@
     </div>
 <div style="grid-column:1 / -1;">
   <label>Descripción</label>
-  <textarea class="inp-descripcion auto-grow" rows="2" disabled>${p0.descripcion ?? ""}</textarea>
+<div>
+  <label>Descripción</label>
+  <textarea id="descripcion" readonly></textarea>
 </div>
+
 </div>
 
   <div class="row">
@@ -497,10 +500,13 @@ function rowTemplate(item){
         <input type="text" class="inp-codigo mono" value="${p0.codigo ?? ""}" disabled>
       </div>
 
-      <div>
-        <label>Descripción</label>
-        <input type="text" class="inp-descripcion" value="${p0.descripcion ?? ""}" disabled>
-      </div>
+<div style="grid-column:1 / -1;">
+  <label>Descripción</label>
+  <textarea 
+    class="inp-descripcion auto-grow"
+    rows="2"
+    disabled>${p0.descripcion ?? ""}</textarea>
+</div>
 
       <div>
         <label>Cantidad</label>
@@ -836,6 +842,3 @@ document.addEventListener("input", function(e){
 </script>
 </body>
 </html>
-
-
-
