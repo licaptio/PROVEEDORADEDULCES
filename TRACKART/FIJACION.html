@@ -100,6 +100,63 @@
   .mini{font-size:12px;color:var(--muted)}
   .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px}
   .right{ text-align:right }
+/* ===============================
+   CARDS FIJACIONES
+=================================*/
+
+.cards-container{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  margin-top:18px;
+}
+
+.card-fijacion{
+  background:#fff;
+  border-radius:14px;
+  padding:18px;
+  box-shadow:0 4px 14px rgba(0,0,0,.08);
+  border:1px solid var(--line);
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.card-folio{
+  font-weight:bold;
+  font-size:14px;
+}
+
+.card-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+  gap:12px;
+}
+
+.card-grid input{
+  width:100%;
+}
+
+.card-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.card-actions button{
+  width:auto;
+  padding:8px 14px;
+  font-size:13px;
+}
+     
 </style>
 </head>
 
@@ -186,32 +243,11 @@
 
   <div id="estadoLista" class="mini" style="margin-top:10px;"></div>
 
-  <div class="tablewrap">
-    <table>
-      <thead>
-        <tr>
-          <th style="width:140px;">Folio</th>
-          <th style="width:190px;">Timestamp</th>
-          <th style="width:150px;">Almacén</th>
-          <th style="width:120px;">Usuario</th>
-          <th style="width:140px;">Código</th>
-          <th>Descripción</th>
-          <th style="width:110px;" class="right">Cantidad</th>
-          <th style="width:120px;">Activa</th>
-          <th style="width:240px;">Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="tbodyFijaciones">
-        <tr><td colspan="9" class="mini">Cargando...</td></tr>
-      </tbody>
-    </table>
-  </div>
+<div id="cardsFijaciones" class="cards-container"></div>
 
-  <div class="mini" style="margin-top:10px;">
-    Nota: si en tu tabla <span class="mono">productos</span> está guardado como string (como en tu ejemplo), aquí lo parseo y lo re-escribo como JSON válido al guardar.
-  </div>
+<div class="mini" style="margin-top:10px;">
+  Nota: si en tu tabla <span class="mono">productos</span> está guardado como string (como en tu ejemplo), aquí lo parseo y lo re-escribo como JSON válido al guardar.
 </div>
-
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -417,48 +453,69 @@ function rowTemplate(item){
   const p0 = productos[0] || {};
   const activa = item.activa !== false;
 
-  const tr = document.createElement("tr");
-  tr.dataset.id = item.id;
-  tr.dataset.editing = "false";
+  const div = document.createElement("div");
+  div.className = "card-fijacion";
+  div.dataset.id = item.id;
 
-  tr.innerHTML = `
-    <td class="mono">${item.folio ?? ""}</td>
-
-    <td>
-      <input type="datetime-local" class="inp-ts" value="${isoToDtLocal(item.timestamp)}" disabled />
-    </td>
-
-    <td><input type="text" class="inp-almacen" value="${item.almacen ?? ""}" disabled /></td>
-    <td><input type="text" class="inp-usuario" value="${item.usuario ?? ""}" disabled /></td>
-    <td><input type="text" class="inp-codigo mono" value="${p0.codigo ?? ""}" disabled /></td>
-    <td><input type="text" class="inp-descripcion" value="${(p0.descripcion ?? "").replaceAll('"','&quot;')}" disabled /></td>
-    <td><input type="number" step="0.01" class="inp-cantidad" value="${p0.cantidad ?? ""}" disabled /></td>
-
-    <td>
+  div.innerHTML = `
+    <div class="card-header">
+      <div class="card-folio mono">${item.folio ?? ""}</div>
       <span class="tag ${activa ? "on":"off"}">${activa ? "ACTIVA" : "INACTIVA"}</span>
-    </td>
+    </div>
 
-    <td>
-      <div class="actions">
-        <button class="btn-editar">Editar</button>
-        <button class="btn-guardar" style="display:none;">Guardar</button>
-        <button class="btn-cancelar" style="display:none;">Cancelar</button>
-        <button class="btn-danger btn-eliminar">Eliminar</button>
+    <div class="card-grid">
+      <div>
+        <label>Timestamp</label>
+        <input type="datetime-local" class="inp-ts" value="${isoToDtLocal(item.timestamp)}" disabled>
       </div>
-      <div class="mini msg-row"></div>
-    </td>
+
+      <div>
+        <label>Almacén</label>
+        <input type="text" class="inp-almacen" value="${item.almacen ?? ""}" disabled>
+      </div>
+
+      <div>
+        <label>Usuario</label>
+        <input type="text" class="inp-usuario" value="${item.usuario ?? ""}" disabled>
+      </div>
+
+      <div>
+        <label>Código</label>
+        <input type="text" class="inp-codigo mono" value="${p0.codigo ?? ""}" disabled>
+      </div>
+
+      <div>
+        <label>Descripción</label>
+        <input type="text" class="inp-descripcion" value="${p0.descripcion ?? ""}" disabled>
+      </div>
+
+      <div>
+        <label>Cantidad</label>
+        <input type="number" step="0.01" class="inp-cantidad" value="${p0.cantidad ?? ""}" disabled>
+      </div>
+    </div>
+
+    <div class="card-actions">
+      <button class="btn-editar">Editar</button>
+      <button class="btn-guardar" style="display:none;">Guardar</button>
+      <button class="btn-cancelar" style="display:none;">Cancelar</button>
+      <button class="btn-danger btn-eliminar">Eliminar</button>
+    </div>
+
+    <div class="mini msg-row"></div>
   `;
 
-tr.querySelector(".btn-editar").onclick = () => activarEdicion(tr);
-tr.querySelector(".btn-cancelar").onclick = () => cancelarEdicion(tr, item);
-tr.querySelector(".btn-guardar").onclick = () => guardarEdicionFila(tr);
-tr.querySelector(".btn-eliminar").onclick = () => eliminarSoftFila(tr);
-     
-  return tr;
+  div.querySelector(".btn-editar").onclick = () => activarEdicion(div);
+  div.querySelector(".btn-cancelar").onclick = () => cancelarEdicion(div, item);
+  div.querySelector(".btn-guardar").onclick = () => guardarEdicionFila(div);
+  div.querySelector(".btn-eliminar").onclick = () => eliminarSoftFila(div);
+
+  return div;
 }
+
 async function cargarFijaciones(){
   const estadoLista = document.getElementById("estadoLista");
-  const tbody = document.getElementById("tbodyFijaciones");
+  const container = document.getElementById("cardsFijaciones");
 
   const filtroTexto = normalizar(document.getElementById("filtroTexto").value);
   const filtroAlmacen = normalizar(document.getElementById("filtroAlmacen").value);
@@ -480,13 +537,12 @@ async function cargarFijaciones(){
 
   const { data, error } = await q;
 
-  if(error){
-    console.error(error);
-    tbody.innerHTML = `<tr><td colspan="9" class="mini" style="color:var(--bad)">Error al cargar (ver consola).</td></tr>`;
-    setEstado(estadoLista, "Error al cargar ❌", false);
-    return;
-  }
-
+if(error){
+  console.error(error);
+  container.innerHTML = `<div class="mini" style="color:var(--bad)">Error al cargar.</div>`;
+  setEstado(estadoLista, "Error al cargar ❌", false);
+  return;
+}
   // filtrar en front (por texto en folio o productos)
   const filtradas = (data || []).filter(item => {
     let ok = true;
@@ -509,14 +565,14 @@ async function cargarFijaciones(){
     return ok;
   });
 
-  tbody.innerHTML = "";
-  if(!filtradas.length){
-    tbody.innerHTML = `<tr><td colspan="9" class="mini">Sin resultados.</td></tr>`;
-    setEstado(estadoLista, "0 fijaciones encontradas.", true);
-    return;
-  }
+  container.innerHTML = "";
+if(!filtradas.length){
+  container.innerHTML = `<div class="mini">Sin resultados.</div>`;
+  setEstado(estadoLista, "0 fijaciones encontradas.", true);
+  return;
+}
 
-  filtradas.forEach(item => tbody.appendChild(rowTemplate(item)));
+  filtradas.forEach(item => container.appendChild(rowTemplate(item)));
   setEstado(estadoLista, `${filtradas.length} fijaciones cargadas.`, true);
 }
 
@@ -750,4 +806,5 @@ function cancelarEdicion(tr, originalItem){
 </script>
 </body>
 </html>
+
 
