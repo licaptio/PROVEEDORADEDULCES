@@ -2,134 +2,452 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Inventario Teórico – ZAPATA MULTI</title>
+<title>CONVERMEX – Auditor ZAPATA (4 SKUs)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
 :root{
   --orange:#ff7a00;
   --bg:#f5f6f8;
   --card:#fff;
   --muted:#6b7280;
+  --text:#1f2937;
 }
 body{
   font-family:Segoe UI,Arial;
   background:var(--bg);
   margin:0;
   padding:15px;
+  color:var(--text);
 }
-.container{
+.header{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:12px;
+}
+.header h2{ margin:0; }
+.badge{
+  background:#fff;
+  border-radius:12px;
+  padding:8px 12px;
+  box-shadow:0 6px 18px rgba(0,0,0,.08);
+  font-size:12px;
+  color:var(--muted);
+}
+.grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(380px,1fr));
   gap:15px;
 }
 .card{
   background:var(--card);
-  padding:16px;
   border-radius:16px;
+  padding:14px;
   box-shadow:0 6px 18px rgba(0,0,0,.08);
+  display:flex;
+  flex-direction:column;
+  max-height:620px; /* scroll interno */
+  overflow:hidden;
 }
 .card h3{
-  margin:0 0 8px 0;
+  margin:0 0 6px 0;
   color:var(--orange);
+  font-size:16px;
 }
-.kpi{
-  font-size:18px;
-  font-weight:bold;
-}
-.small{
+.meta{
   font-size:12px;
   color:var(--muted);
+  line-height:1.35;
 }
+.kpis{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:10px;
+}
+.kpi{
+  background:#fff4ea;
+  border-radius:12px;
+  padding:10px;
+}
+.kpi .lbl{
+  font-size:11px;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+.kpi .val{
+  font-size:16px;
+  font-weight:700;
+}
+.kpi .val.orange{ color:#e66300; }
+.kpi .val.red{ color:#d32f2f; }
+.kpi .val.green{ color:#2e7d32; }
+
+.scroll{
+  margin-top:10px;
+  border-top:1px solid #eee;
+  overflow:auto;
+  flex:1;
+}
+table{
+  width:100%;
+  font-size:12px;
+  border-collapse:collapse;
+}
+thead{
+  background:var(--orange);
+  color:#fff;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+th,td{
+  padding:7px 6px;
+  text-align:center;
+  border-bottom:1px solid #f0f0f0;
+  white-space:nowrap;
+}
+tbody tr:nth-child(even){ background:#fafafa; }
+.empty{
+  padding:12px;
+  text-align:center;
+  color:var(--muted);
+}
+small.note{ color:var(--muted); }
 </style>
 </head>
+
 <body>
+  <div class="header">
+    <h2>CONVERMEX – ZAPATA (4 SKUs)</h2>
+    <div class="badge" id="status">Cargando…</div>
+  </div>
 
-<h2>INVENTARIO TEÓRICO ZAPATA</h2>
-
-<div class="container" id="contenedor"></div>
+  <div class="grid" id="grid"></div>
 
 <script type="module">
-import { supabaseUrl, supabaseAnonKey } from './config.js'
+import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
+import {
+  getFirestore, collection, query, where, orderBy, getDocs
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 
+/* =========================
+   CONFIG
+   ========================= */
+// Tus 4 SKUs CONVERMEX:
+const CODIGOS = ["716716","732732","110110","112112"]
+
+// Firestore ZAPATA:
+const FIRESTORE_COL = ["almacenes","almacen_zapata","salidas1.0"]
+
+// Supabase: de dónde sale la fijación/base
+const SUPA_TABLE = "movimientos_inventario"
+const SUPA_ALMACEN = "ZAPATA"
+const SUPA_TIPO = "FIJACION"
+
+/* =========================
+   INIT
+   ========================= */
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth:{persistSession:false}
+  auth:{ persistSession:false, autoRefreshToken:false, detectSessionInUrl:false }
 })
 
-function normalizarProductos(raw){
+const fbApp = initializeApp(firebaseConfig)
+const db = getFirestore(fbApp)
 
-  if (!raw) return []
+const $ = (id) => document.getElementById(id)
+const grid = $("grid")
 
-  // Caso 1: ya viene como array (jsonb correcto)
-  if (Array.isArray(raw)) return raw
-
-  // Caso 2: viene como objeto {0:{},1:{}}
-  if (typeof raw === "object") return Object.values(raw)
-
-  // Caso 3: viene como string JSON
-  if (typeof raw === "string") {
+/* =========================
+   HELPERS
+   ========================= */
+function normalizarArray(raw){
+  if(!raw) return []
+  if(Array.isArray(raw)) return raw
+  if(typeof raw === "object") return Object.values(raw)
+  if(typeof raw === "string"){
     try{
       const parsed = JSON.parse(raw)
-
-      if (Array.isArray(parsed)) return parsed
-      if (typeof parsed === "object") return Object.values(parsed)
-
+      if(Array.isArray(parsed)) return parsed
+      if(parsed && typeof parsed === "object") return Object.values(parsed)
       return []
     }catch{
-      console.warn("productos mal formado:", raw)
       return []
     }
   }
-
   return []
 }
 
-async function cargarFijaciones(){
+function codigoOf(p){
+  return String(
+    p?.codigo ??
+    p?.id ??
+    p?.codigo_barra ??
+    p?.codigoBarra ??
+    p?.sku ??
+    ""
+  ).trim()
+}
 
+function toDateSafe(v){
+  if(!v) return null
+  if(typeof v?.toDate === "function") return v.toDate()
+  const d = new Date(v)
+  return isNaN(d.getTime()) ? null : d
+}
+
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]))
+}
+
+/* =========================
+   1) Cargar últimas FIJACIONES por SKU (una por código)
+   ========================= */
+async function cargarUltimasFijacionesPorSku(){
+  // Traemos varias y nos quedamos con la última por código
   const { data, error } = await supabase
-    .from("movimientos_inventario")
-    .select("timestamp,folio,productos")
-    .eq("tipo","FIJACION")
-    .eq("almacen","ZAPATA")
-    .order("timestamp",{ascending:false})
-    .limit(20)
+    .from(SUPA_TABLE)
+    .select("timestamp,folio,productos,nivel_alerta,activa,usuario,almacen")
+    .eq("tipo", SUPA_TIPO)
+    .eq("almacen", SUPA_ALMACEN)
+    .order("timestamp", { ascending:false })
+    .limit(200)
 
   if(error) throw error
 
-  const contenedor = document.getElementById("contenedor")
-  contenedor.innerHTML=""
+  // Map sku -> fijación {row, producto}
+  const bySku = new Map()
 
-  for(const row of data){
-
-    const productos = normalizarProductos(row.productos)
-
-    if(productos.length === 0) continue
-
-    for(const p of productos){
-
-      const card = document.createElement("div")
-      card.className="card"
-
-      card.innerHTML = `
-        <h3>${p.descripcion ?? "SIN DESCRIPCIÓN"}</h3>
-        <div class="kpi">${Number(p.cantidad ?? 0)} piezas</div>
-        <div class="small">
-          Código: ${p.codigo ?? "-"}<br>
-          Fijación: ${new Date(row.timestamp).toLocaleString()}<br>
-          Folio: ${row.folio ?? "-"}
-        </div>
-      `
-
-      contenedor.appendChild(card)
+  for(const row of (data || [])){
+    const lista = normalizarArray(row.productos)
+    for(const p of lista){
+      const cod = codigoOf(p)
+      if(!CODIGOS.includes(cod)) continue
+      if(bySku.has(cod)) continue // ya tenemos la más reciente por el order desc
+      bySku.set(cod, { row, prod: p })
+      if(bySku.size === CODIGOS.length) break
     }
+    if(bySku.size === CODIGOS.length) break
   }
+
+  return bySku
+}
+
+/* =========================
+   2) Salidas desde fijación (por SKU)
+   ========================= */
+async function cargarSalidasDesdeFijacion(codigo, fechaFijacion){
+  const col = collection(db, ...FIRESTORE_COL)
+
+  const q = query(
+    col,
+    where("timestamp", ">=", fechaFijacion),
+    orderBy("timestamp")
+  )
+
+  const snap = await getDocs(q)
+
+  // Extraer solo docs que traen el sku
+  const eventos = []
+  snap.forEach(docSnap=>{
+    const data = docSnap.data()
+    const fecha = toDateSafe(data.timestamp)
+    if(!fecha) return
+
+    const lista = normalizarArray(data?.articulos ?? data?.productos)
+    const item = lista.find(x => codigoOf(x) === String(codigo))
+    if(!item) return
+
+    eventos.push({
+      fecha,
+      folio: data.folio || "",
+      cantidad: Number(item.cantidad || 0),
+      docId: docSnap.id
+    })
+  })
+
+  eventos.sort((a,b)=>a.fecha-b.fecha)
+  return eventos
+}
+
+/* =========================
+   UI: construir tarjeta
+   ========================= */
+function crearCardSkeleton({codigo, desc, folioFij, fechaFij, activa, base, minimo}){
+  const id = `sku_${codigo}`
+  const div = document.createElement("div")
+  div.className = "card"
+  div.id = id
+
+  div.innerHTML = `
+    <h3>${esc(desc || "SIN DESCRIPCIÓN")}</h3>
+    <div class="meta">
+      <div><b>SKU:</b> ${esc(codigo)}</div>
+      <div><b>Fijación:</b> ${esc(folioFij || "—")} · ${fechaFij ? fechaFij.toLocaleString() : "—"} · <b>Activa:</b> ${activa ? "SI" : "NO"}</div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi">
+        <div class="lbl">Base</div>
+        <div class="val orange" id="${id}_base">${Number(base||0)}</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Mínimo</div>
+        <div class="val" id="${id}_min">${Number(minimo||0)}</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Teórico</div>
+        <div class="val" id="${id}_teo">—</div>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Folio</th>
+            <th>Salida</th>
+            <th>Restante</th>
+          </tr>
+        </thead>
+        <tbody id="${id}_tbody">
+          <tr><td class="empty" colspan="4">Cargando salidas…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <small class="note" id="${id}_note"></small>
+  `
+  return div
+}
+
+function pintarCard({codigo, base, minimo, eventos, fechaFij}){
+  const id = `sku_${codigo}`
+  const $base = document.getElementById(`${id}_base`)
+  const $min  = document.getElementById(`${id}_min`)
+  const $teo  = document.getElementById(`${id}_teo`)
+  const tbody = document.getElementById(`${id}_tbody`)
+  const note  = document.getElementById(`${id}_note`)
+
+  $base.textContent = Number(base||0)
+  $min.textContent  = Number(minimo||0)
+
+  let teorico = Number(base||0)
+
+  if(!eventos || eventos.length === 0){
+    tbody.innerHTML = `<tr><td class="empty" colspan="4">Sin salidas desde fijación.</td></tr>`
+    $teo.textContent = teorico
+    $teo.className = "val " + (teorico <= minimo ? "red" : "green")
+    note.textContent = `Docs desde: ${fechaFij.toLocaleString()}`
+    return
+  }
+
+  let html = ""
+  for(const ev of eventos){
+    teorico -= Number(ev.cantidad||0)
+    html += `
+      <tr title="doc: ${esc(ev.docId)}">
+        <td>${ev.fecha.toLocaleString()}</td>
+        <td>${esc(ev.folio)}</td>
+        <td>${Number(ev.cantidad||0)}</td>
+        <td>${teorico}</td>
+      </tr>
+    `
+  }
+
+  tbody.innerHTML = html
+  $teo.textContent = teorico
+  $teo.className = "val " + (teorico <= minimo ? "red" : "green")
+  note.textContent = `Eventos: ${eventos.length} · Corte: ${fechaFij.toLocaleString()}`
+}
+
+/* =========================
+   RUN
+   ========================= */
+async function main(){
+  $("status").textContent = "Leyendo fijaciones…"
+
+  const bySku = await cargarUltimasFijacionesPorSku()
+
+  grid.innerHTML = ""
+
+  // Si falta alguno, igual lo pintamos como "faltante"
+  for(const codigo of CODIGOS){
+    const found = bySku.get(codigo)
+
+    if(!found){
+      const card = crearCardSkeleton({
+        codigo,
+        desc:"SIN FIJACIÓN",
+        folioFij:"—",
+        fechaFij:null,
+        activa:false,
+        base:0,
+        minimo:0
+      })
+      grid.appendChild(card)
+
+      // sin fijación => sin salidas
+      const id = `sku_${codigo}`
+      document.getElementById(`${id}_tbody`).innerHTML =
+        `<tr><td class="empty" colspan="4">No existe FIJACIÓN para este SKU.</td></tr>`
+      const $teo  = document.getElementById(`${id}_teo`)
+      $teo.textContent = "—"
+      document.getElementById(`${id}_note`).textContent = "Crea/activa una fijación que contenga este SKU."
+      continue
+    }
+
+    const row = found.row
+    const prod = found.prod
+
+    const fechaFij = toDateSafe(row.timestamp) || new Date(0)
+    const base = Number(prod.cantidad || 0)
+    const minimo = Number(row.nivel_alerta || 0)
+
+    const card = crearCardSkeleton({
+      codigo,
+      desc: prod.descripcion || "CONVERMEX",
+      folioFij: row.folio || "—",
+      fechaFij,
+      activa: !!row.activa,
+      base,
+      minimo
+    })
+    grid.appendChild(card)
+  }
+
+  $("status").textContent = "Leyendo salidas…"
+
+  // Cargar salidas por SKU (secuencial para no saturar)
+  for(const codigo of CODIGOS){
+    const found = bySku.get(codigo)
+    if(!found) continue
+
+    const fechaFij = toDateSafe(found.row.timestamp) || new Date(0)
+    const base = Number(found.prod.cantidad || 0)
+    const minimo = Number(found.row.nivel_alerta || 0)
+
+    const eventos = await cargarSalidasDesdeFijacion(codigo, fechaFij)
+    pintarCard({ codigo, base, minimo, eventos, fechaFij })
+  }
+
+  $("status").textContent = "OK"
 }
 
 try{
-  await cargarFijaciones()
-}catch(e){
-  alert("Error cargando fijaciones")
-  console.error(e)
+  await main()
+}catch(err){
+  console.error(err)
+  $("status").textContent = "Error"
+  alert(err?.message || "Error")
 }
 </script>
 </body>
