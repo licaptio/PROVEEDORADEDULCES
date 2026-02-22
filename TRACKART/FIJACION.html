@@ -454,11 +454,28 @@ async function guardarFijacion(){
     return alert("No se pudo guardar. Revisa consola (F12).");
   }
 
-  setEstado(estado, `FIJACIÓN guardada ✅ (${folio})`, true);
-  document.getElementById("cantidad").value = "";
+setEstado(estado, `FIJACIÓN guardada ✅ (${folio})`, true);
 
-  // refrescar listado
-  await cargarFijaciones();
+// 🔄 LIMPIAR FORMULARIO COMPLETO
+document.getElementById("buscar").value = "";
+document.getElementById("codigo").value = "";
+document.getElementById("descripcion").value = "";
+document.getElementById("cantidad").value = "";
+
+// Reset fecha a "ahora"
+const now = new Date();
+const pad = (n)=>String(n).padStart(2,"0");
+const local = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+document.getElementById("fechaConteo").value = local;
+
+// ocultar sugerencias por si quedaron abiertas
+ocultarSugerencias();
+
+// 🎯 Regresar foco al buscador
+document.getElementById("buscar").focus();
+
+// refrescar listado
+await cargarFijaciones();
 }
 
 /* =========================
@@ -842,3 +859,4 @@ document.addEventListener("input", function(e){
 </script>
 </body>
 </html>
+
