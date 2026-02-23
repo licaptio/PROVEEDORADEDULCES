@@ -2,157 +2,184 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>Resumen Deudas No Pagadas</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<style>
-  body { 
-    font-family: sans-serif; 
-    background: #f4f4f4; 
-    margin: 0; 
-    padding: 1rem; 
-  }
 
-  h2{
-    margin-top:0;
-  }
-
-  .toolbar{
-    display:flex;
-    gap:10px;
-    align-items:center;
-    flex-wrap:wrap;
-    margin: 10px 0 14px;
-    position: sticky;
-    top:0;
-    background:#f4f4f4;
-    padding:10px 0;
-    z-index:100;
-  }
-
-  button {
-    padding: 10px 16px;
-    background: #28a745;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9em;
-  }
-
-  button:hover { background: #218838; }
-
-  .pill{
-    padding:8px 12px;
-    border-radius:999px;
-    background:#fff;
-    box-shadow:0 2px 4px rgba(0,0,0,0.12);
-    font-size:0.85em;
-  }
-
-  table { 
-    width: 100%; 
-    border-collapse: collapse; 
-    background: white; 
-  }
-
-  th, td { 
-    padding: 8px; 
-    border: 1px solid #ccc; 
-    font-size: 0.85em; 
-  }
-
-  th { 
-    background-color: #007bff; 
-    color: white; 
-    position: sticky; 
-    top: 60px; 
-    z-index: 50;
-  }
-
-  td.numero { text-align: right; }
-
-  .btn-pagar {
-    width: 22px; 
-    height: 22px;
-    border-radius: 50%;
-    border: none; 
-    cursor: pointer;
-    background-color: #28a745;
-  }
-
-  .uuid-corto {
-    max-width: 150px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: inline-block;
-  }
-
-  /* ============================= */
-  /* 📱 MOBILE OPTIMIZATION */
-  /* ============================= */
-
-  @media (max-width: 768px){
-
+  <style>
     body{
-      padding:10px;
-    }
-
-    table, thead, tbody, th, td, tr { 
-      display: block; 
-      width:100%;
-    }
-
-    thead { 
-      display:none; 
-    }
-
-    tr{
-      margin-bottom:15px;
-      background:white;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:#eef1f5;
+      margin:0;
       padding:12px;
-      border-radius:10px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.12);
     }
 
-    td{
-      border:none;
-      padding:6px 0;
-      font-size:0.9em;
+    h2{
+      margin:0 0 10px 0;
+      font-size:1.4rem;
+    }
+
+    .toolbar{
       display:flex;
-      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin: 10px 0 14px;
+      position: sticky;
+      top:0;
+      background:#eef1f5;
+      padding:10px 0;
+      z-index:100;
     }
 
-    td::before{
-      font-weight:bold;
-      color:#555;
+    button{
+      padding:12px 18px;
+      font-size:0.95rem;
+      border-radius:10px;
+      border:none;
+      background:#0d6efd;
+      color:white;
+      cursor:pointer;
     }
 
-    td:nth-child(1)::before{ content:"Fecha"; }
-    td:nth-child(2)::before{ content:"Días"; }
-    td:nth-child(3)::before{ content:"UUID"; }
-    td:nth-child(4)::before{ content:"RFC"; }
-    td:nth-child(5)::before{ content:"Proveedor"; }
-    td:nth-child(6)::before{ content:"Folio"; }
-    td:nth-child(7)::before{ content:"Total"; }
-    td:nth-child(8)::before{ content:"Física"; }
-    td:nth-child(9)::before{ content:"Fotos"; }
-    td:nth-child(10)::before{ content:"Acción"; }
+    button:hover{ filter:brightness(0.95); }
 
-    .btn-pagar{
-      width:28px;
-      height:28px;
+    button:active{ transform:scale(0.98); }
+
+    .pill{
+      background:#fff;
+      padding:8px 14px;
+      border-radius:999px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+      font-size:0.8rem;
+    }
+
+    /* ====== TOTAL GLOBAL ====== */
+    #totalGlobalBox{
+      background:white;
+      padding:18px;
+      border-radius:14px;
+      margin-bottom:15px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* ====== DESKTOP TABLA NORMAL ====== */
+    @media (min-width:900px){
+      table{
+        width:100%;
+        border-collapse:collapse;
+        background:white;
+      }
+
+      th,td{
+        padding:8px;
+        border:1px solid #ddd;
+        font-size:0.85rem;
+      }
+
+      th{
+        background:#0d6efd;
+        color:white;
+        position:sticky;
+        top:60px;
+        z-index:50;
+      }
+
+      td.numero{ text-align:right; }
     }
 
     .uuid-corto{
-      max-width:130px;
+      max-width:150px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      display:inline-block;
     }
 
-  }
+    .btn-pagar{
+      width:22px;
+      height:22px;
+      border-radius:50%;
+      border:none;
+      cursor:pointer;
+      background:#28a745;
+    }
 
-</style>
+    /* ====== ANDROID CARD MODE ====== */
+    @media (max-width:899px){
+
+      table, thead, tbody, th, td, tr{
+        display:block;
+        width:100%;
+      }
+
+      thead{ display:none; }
+
+      tr{
+        background:white;
+        margin-bottom:14px;
+        padding:14px;
+        border-radius:16px;
+        box-shadow:0 5px 14px rgba(0,0,0,0.12);
+      }
+
+      td{
+        border:none;
+        padding:6px 0;
+        font-size:0.9rem;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:10px;
+      }
+
+      td::before{
+        font-weight:600;
+        color:#555;
+        flex:0 0 auto;
+      }
+
+      td:nth-child(1)::before{content:"Fecha";}
+      td:nth-child(2)::before{content:"Días";}
+      td:nth-child(3)::before{content:"UUID";}
+      td:nth-child(4)::before{content:"RFC";}
+      td:nth-child(5)::before{content:"Proveedor";}
+      td:nth-child(6)::before{content:"Folio";}
+      td:nth-child(7)::before{content:"Total";}
+      td:nth-child(8)::before{content:"Física";}
+      td:nth-child(9)::before{content:"Fotos";}
+      td:nth-child(10)::before{content:"Pagar";}
+
+      .btn-pagar{
+        width:38px;
+        height:38px;
+        border-radius:50%;
+        background:#28a745;
+      }
+
+      .uuid-corto{ max-width:130px; }
+    }
+
+    /* ====== VENCIDO PARPADEO AMARILLO (>=30 días) ====== */
+    @keyframes parpadeoVencido{
+      0%{background:#fff3cd;}
+      50%{background:#ffe066;}
+      100%{background:#fff3cd;}
+    }
+
+    .vencido{
+      animation:parpadeoVencido 1.2s infinite;
+    }
+
+    /* ====== FADE AL ELIMINAR ====== */
+    .desintegrando{
+      opacity:0;
+      transition:all 1.2s ease;
+      transform:translateY(6px);
+    }
+  </style>
 </head>
+
 <body>
   <h2>📌 Facturas Pendientes</h2>
 
@@ -233,7 +260,6 @@
     function fechaYMD(value) {
       if (!value) return "";
       if (typeof value === "string") return value.split("T")[0];
-      // Date
       if (value instanceof Date && !isNaN(value)) {
         const y = value.getFullYear();
         const m = String(value.getMonth() + 1).padStart(2, "0");
@@ -290,18 +316,10 @@
       return Math.floor(diff / 86400000);
     }
 
-    function obtenerClaseVencimiento(d) {
-      if (d > 90) return "vencida-mas";
-      if (d > 60) return "vencida-90";
-      if (d > 30) return "vencida-60";
-      return "vencida-30";
-    }
-
     function ordenarDatos(arr, modo) {
       const copia = [...arr];
 
       if (modo === ORDEN.DIAS_DESC) {
-        // Más días primero (más vieja primero). Si empata: proveedor, total desc
         copia.sort((a, b) => {
           const da = calcularDias(a.fecha);
           const db = calcularDias(b.fecha);
@@ -315,7 +333,6 @@
       }
 
       if (modo === ORDEN.PROVEEDOR_ASC_DIAS_DESC) {
-        // Proveedor A→Z y dentro del proveedor: más días primero
         copia.sort((a, b) => {
           const pa = proveedorReal(a).toLowerCase();
           const pb = proveedorReal(b).toLowerCase();
@@ -349,18 +366,15 @@
 
       if (error) return alert("Error cargando datos");
 
-      // 3) FILTRO DE NO PAGADAS DEL SUPABASE (NUEVO)
       const noPagadasSupabase = (data || []).filter(f =>
         (f.factura_pagada || "NO").toUpperCase().trim() !== "SI"
       );
 
-      // 4) UNIR AMBAS FUENTES (VIEJO + NUEVO) NORMALIZADAS
       const unidas = [
         ...datosViejos.map(normalizarFactura),
         ...noPagadasSupabase.map(normalizarFactura)
       ];
 
-      // 5) QUITAR DUPLICADOS POR uuid_cfdi (si no hay uuid, se conserva como único)
       const unicas = Object.values(
         unidas.reduce((acc, f) => {
           const key = f.uuid_cfdi || crypto.randomUUID();
@@ -369,17 +383,14 @@
         }, {})
       );
 
-      // Guardar dataset base
       DATA_FINAL = unicas;
 
-      // Render inicial (más días primero)
       setEstadoOrden();
       render();
       pintarTotalGlobal();
     }
 
     function pintarTotalGlobal() {
-      // quitar bloque previo si existe
       const prev = document.getElementById("totalGlobalBox");
       if (prev) prev.remove();
 
@@ -387,15 +398,9 @@
       const sumaGlobal = ordenados.reduce((acc, f) => acc + (parseFloat(f.total) || 0), 0);
 
       document.getElementById("tabla").insertAdjacentHTML("beforebegin", `
-        <div id="totalGlobalBox" style="
-          background:#fff;
-          padding:15px;
-          margin-bottom:12px;
-          border-radius:8px;
-          box-shadow:0 2px 4px rgba(0,0,0,0.15);
-        ">
-          <strong style="font-size:1.1em;">💰 TOTAL GLOBAL PENDIENTE:</strong><br>
-          <span style="font-size:1.6em; font-weight:bold; color:#0a6c21;">
+        <div id="totalGlobalBox">
+          <strong style="font-size:1.05rem;">💰 TOTAL GLOBAL PENDIENTE:</strong><br>
+          <span style="font-size:1.7rem; font-weight:800; color:#0a6c21;">
             $${sumaGlobal.toLocaleString("es-MX",{ minimumFractionDigits:2 })}
           </span>
         </div>
@@ -426,10 +431,11 @@
         const proveedor = proveedorReal(f);
         const folioFinal = f.serie_folio || "—";
 
-        const clase30 = dias >= 30 ? "dias-30-morado" : "";
+        // ✅ VENCIDO PARPADEO AMARILLO (>=30 días)
+        const claseVencido = dias >= 30 ? "vencido" : "";
 
         html += `
-          <tr class="${clase30}">
+          <tr class="${claseVencido}">
             <td class="col-fecha">${fechaYMD(f.fecha)}</td>
             <td>${dias}</td>
             <td>
@@ -468,7 +474,7 @@
       const fila = boton.closest("tr");
 
       boton.disabled = true;
-      boton.style.backgroundColor = "#6c757d";
+      boton.style.background = "#6c757d";
 
       const { error } = await _supabase
         .from("deuda_limpia_pdd")
@@ -479,7 +485,7 @@
         alert("❌ Error al marcar como pagada");
         console.error(error);
         boton.disabled = false;
-        boton.style.backgroundColor = "#28a745";
+        boton.style.background = "#28a745";
         return;
       }
 
