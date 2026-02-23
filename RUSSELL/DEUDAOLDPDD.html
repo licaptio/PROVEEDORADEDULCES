@@ -58,59 +58,73 @@ button{
   font-size:2.2rem !important;
 }
 
-/* ===== MODO CARD GENERAL ===== */
+/* ===== TABLET 7-10 PULGADAS ===== */
+@media (min-width:601px) and (max-width:1024px){
 
-table, thead, tbody, th, td, tr{
-  display:block;
-  width:100%;
+  table, thead, tbody, th, td, tr{
+    display:block;
+    width:100%;
+  }
+
+  thead{ display:none; }
+
+  tr{
+    background:white;
+    margin-bottom:16px;
+    padding:16px 20px;
+    border-radius:16px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.12);
+
+    /* 👇 CLAVE: horizontal compact */
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    grid-row-gap:6px;
+    grid-column-gap:20px;
+    align-items:center;
+  }
+
+  td{
+    border:none;
+    padding:2px 0;
+    font-size:0.95rem;
+    display:flex;
+    justify-content:space-between;
+  }
+
+  td::before{
+    font-weight:600;
+    color:#666;
+  }
+
+  td:nth-child(1)::before{content:"Fecha";}
+  td:nth-child(2)::before{content:"Días";}
+  td:nth-child(3)::before{content:"UUID";}
+  td:nth-child(4)::before{content:"RFC";}
+  td:nth-child(5)::before{content:"Proveedor";}
+  td:nth-child(6)::before{content:"Folio";}
+  td:nth-child(7)::before{content:"Total";}
+  td:nth-child(8)::before{content:"Física";}
+  td:nth-child(9)::before{content:"Fotos";}
+  td:nth-child(10)::before{content:"Pagar";}
+
+  /* 👇 Total más visible */
+  td:nth-child(7){
+    font-weight:bold;
+    font-size:1.05rem;
+    color:#0a6c21;
+  }
+
+  /* 👇 Botón compacto */
+  .btn-pagar{
+    width:40px;
+    height:40px;
+  }
+
+  /* UUID menos largo */
+  .uuid-corto{
+    max-width:180px;
+  }
 }
-
-thead{ display:none; }
-
-tr{
-  background:white;
-  margin-bottom:22px;
-  padding:22px;
-  border-radius:22px;
-  box-shadow:0 8px 20px rgba(0,0,0,0.15);
-}
-
-td{
-  border:none;
-  padding:10px 0;
-  font-size:1.05rem;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-td::before{
-  font-weight:700;
-  color:#555;
-}
-
-td:nth-child(1)::before{content:"Fecha";}
-td:nth-child(2)::before{content:"Días";}
-td:nth-child(3)::before{content:"UUID";}
-td:nth-child(4)::before{content:"RFC";}
-td:nth-child(5)::before{content:"Proveedor";}
-td:nth-child(6)::before{content:"Folio";}
-td:nth-child(7)::before{content:"Total";}
-td:nth-child(8)::before{content:"Física";}
-td:nth-child(9)::before{content:"Fotos";}
-td:nth-child(10)::before{content:"Pagar";}
-
-.uuid-corto{
-  max-width:220px;
-}
-
-.btn-pagar{
-  width:52px;
-  height:52px;
-  border-radius:50%;
-  background:#28a745;
-}
-
 /* ===== VENCIDO PARPADEO AMARILLO ===== */
 @keyframes parpadeoVencido{
   0%{background:#fff3cd;}
