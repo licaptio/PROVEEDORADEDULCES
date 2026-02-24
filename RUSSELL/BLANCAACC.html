@@ -11,7 +11,7 @@
   --card:#ffffff;
   --border:#dfe6ee;
   --text:#0f172a;
-  --accent:#7c3aed; /* morado elegante */
+  --accent:#7c3aed;
   --radius:16px;
 }
 
@@ -25,13 +25,13 @@ body{
   color:var(--text);
 }
 
-.wrapper{max-width:1200px;margin:auto}
+.wrapper{max-width:1100px;margin:auto}
 
 h1{
   text-align:center;
   color:var(--accent);
-  margin-bottom:25px;
-  font-size:30px;
+  margin-bottom:30px;
+  font-size:28px;
   font-weight:900;
 }
 
@@ -39,9 +39,9 @@ h1{
   background:var(--card);
   border:1px solid var(--border);
   border-radius:var(--radius);
-  padding:24px;
-  margin-bottom:45px;
-  box-shadow:0 8px 25px rgba(0,0,0,.05);
+  padding:22px;
+  margin-bottom:40px;
+  box-shadow:0 6px 20px rgba(0,0,0,.04);
 }
 
 .ticker-row{
@@ -52,17 +52,17 @@ h1{
 }
 
 .ticker{
-  font-size:22px;
+  font-size:20px;
   font-weight:900;
 }
 
 .cost-badge{
   background:var(--accent);
   color:white;
-  padding:8px 16px;
+  padding:6px 14px;
   border-radius:999px;
   font-weight:900;
-  font-size:14px;
+  font-size:13px;
 }
 
 .section-title{
@@ -74,11 +74,12 @@ h1{
 
 .chart-box{
   width:100%;
-  height:650px;
+  height:420px;
   border-radius:12px;
   overflow:hidden;
   border:1px solid var(--border);
   margin-bottom:20px;
+  background:#f8fafc;
 }
 </style>
 </head>
@@ -95,9 +96,9 @@ h1{
     <div class="cost-badge">Costo: $205.450 MXN</div>
   </div>
   <div class="section-title">Diaria</div>
-  <div id="ac_d" class="chart-box"></div>
+  <div id="ac_d" class="chart-box" data-symbol="BIVA:AC" data-interval="D"></div>
   <div class="section-title">Mensual</div>
-  <div id="ac_m" class="chart-box"></div>
+  <div id="ac_m" class="chart-box" data-symbol="BIVA:AC" data-interval="M"></div>
 </div>
 
 <!-- AMZN -->
@@ -107,9 +108,9 @@ h1{
     <div class="cost-badge">Costo: $3,449.680 MXN</div>
   </div>
   <div class="section-title">Diaria</div>
-  <div id="amzn_d" class="chart-box"></div>
+  <div id="amzn_d" class="chart-box" data-symbol="BIVA:AMZN" data-interval="D"></div>
   <div class="section-title">Mensual</div>
-  <div id="amzn_m" class="chart-box"></div>
+  <div id="amzn_m" class="chart-box" data-symbol="BIVA:AMZN" data-interval="M"></div>
 </div>
 
 <!-- FEMSA -->
@@ -119,9 +120,9 @@ h1{
     <div class="cost-badge">Costo: $195.220 MXN</div>
   </div>
   <div class="section-title">Diaria</div>
-  <div id="femsa_d" class="chart-box"></div>
+  <div id="femsa_d" class="chart-box" data-symbol="BIVA:FEMSA/UBD" data-interval="D"></div>
   <div class="section-title">Mensual</div>
-  <div id="femsa_m" class="chart-box"></div>
+  <div id="femsa_m" class="chart-box" data-symbol="BIVA:FEMSA/UBD" data-interval="M"></div>
 </div>
 
 <!-- GFNORTE -->
@@ -131,9 +132,9 @@ h1{
     <div class="cost-badge">Costo: $200.460 MXN</div>
   </div>
   <div class="section-title">Diaria</div>
-  <div id="gfnorte_d" class="chart-box"></div>
+  <div id="gfnorte_d" class="chart-box" data-symbol="BIVA:GFNORTE/O" data-interval="D"></div>
   <div class="section-title">Mensual</div>
-  <div id="gfnorte_m" class="chart-box"></div>
+  <div id="gfnorte_m" class="chart-box" data-symbol="BIVA:GFNORTE/O" data-interval="M"></div>
 </div>
 
 <!-- LIVEPOL -->
@@ -143,9 +144,9 @@ h1{
     <div class="cost-badge">Costo: $102.800 MXN</div>
   </div>
   <div class="section-title">Diaria</div>
-  <div id="livepol_d" class="chart-box"></div>
+  <div id="livepol_d" class="chart-box" data-symbol="BIVA:LIVEPOL/C-1" data-interval="D"></div>
   <div class="section-title">Mensual</div>
-  <div id="livepol_m" class="chart-box"></div>
+  <div id="livepol_m" class="chart-box" data-symbol="BIVA:LIVEPOL/C-1" data-interval="M"></div>
 </div>
 
 <!-- NAFTRAC -->
@@ -155,9 +156,9 @@ h1{
     <div class="cost-badge">Costo: $69.549 MXN</div>
   </div>
   <div class="section-title">Diaria</div>
-  <div id="naf_d" class="chart-box"></div>
+  <div id="naf_d" class="chart-box" data-symbol="BIVA:NAFTRAC/ISHRS" data-interval="D"></div>
   <div class="section-title">Mensual</div>
-  <div id="naf_m" class="chart-box"></div>
+  <div id="naf_m" class="chart-box" data-symbol="BIVA:NAFTRAC/ISHRS" data-interval="M"></div>
 </div>
 
 <!-- PGJ -->
@@ -167,9 +168,9 @@ h1{
     <div class="cost-badge">Costo: $500.000 MXN</div>
   </div>
   <div class="section-title">Diaria</div>
-  <div id="pgj_d" class="chart-box"></div>
+  <div id="pgj_d" class="chart-box" data-symbol="BIVA:PGJ" data-interval="D"></div>
   <div class="section-title">Mensual</div>
-  <div id="pgj_m" class="chart-box"></div>
+  <div id="pgj_m" class="chart-box" data-symbol="BIVA:PGJ" data-interval="M"></div>
 </div>
 
 </div>
@@ -177,51 +178,40 @@ h1{
 <script src="https://s3.tradingview.com/tv.js"></script>
 
 <script>
-const SYMBOLS = {
-  AC: "BIVA:AC",
-  AMZN: "BIVA:AMZN",
-  FEMSA: "BIVA:FEMSA/UBD",
-  GFNORTE: "BIVA:GFNORTE/O",
-  LIVEPOL: "BIVA:LIVEPOL/C-1",
-  NAFTRAC: "BIVA:NAFTRAC/ISHRS",
-  PGJ: "BIVA:PGJ"
-};
-
 function build(id, symbol, interval){
   new TradingView.widget({
     container_id:id,
     width:"100%",
-    height:650,
+    height:420,
     symbol:symbol,
     interval:interval,
     timezone:"America/Mexico_City",
     theme:"light",
     style:"1",
     locale:"es",
-    allow_symbol_change:false
+    toolbar_bg:"#f1f3f6",
+    hide_top_toolbar:true,
+    hide_legend:true,
+    allow_symbol_change:false,
+    save_image:false
   });
 }
 
-build("ac_d",SYMBOLS.AC,"D");
-build("ac_m",SYMBOLS.AC,"M");
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      const el = entry.target;
+      const symbol = el.dataset.symbol;
+      const interval = el.dataset.interval;
+      build(el.id, symbol, interval);
+      observer.unobserve(el);
+    }
+  });
+},{threshold:0.25});
 
-build("amzn_d",SYMBOLS.AMZN,"D");
-build("amzn_m",SYMBOLS.AMZN,"M");
-
-build("femsa_d",SYMBOLS.FEMSA,"D");
-build("femsa_m",SYMBOLS.FEMSA,"M");
-
-build("gfnorte_d",SYMBOLS.GFNORTE,"D");
-build("gfnorte_m",SYMBOLS.GFNORTE,"M");
-
-build("livepol_d",SYMBOLS.LIVEPOL,"D");
-build("livepol_m",SYMBOLS.LIVEPOL,"M");
-
-build("naf_d",SYMBOLS.NAFTRAC,"D");
-build("naf_m",SYMBOLS.NAFTRAC,"M");
-
-build("pgj_d",SYMBOLS.PGJ,"D");
-build("pgj_m",SYMBOLS.PGJ,"M");
+document.querySelectorAll(".chart-box").forEach(box=>{
+  observer.observe(box);
+});
 </script>
 
 </body>
