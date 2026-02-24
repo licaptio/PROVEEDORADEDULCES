@@ -25,10 +25,10 @@ h2{
 
 .grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  grid-template-columns:repeat(3,1fr);
   gap:15px;
 }
-
+  
 .card{
   background:#fff;
   border-radius:12px;
@@ -113,8 +113,7 @@ async function cargarPedidos(){
 
   const { data, error } = await sb
     .from("pedidos_pdd")
-    .select("id, proveedor_nombre, pedido_fecha, estatus")
-    .order("pedido_fecha", { ascending:false });
+    .select("id, proveedor_nombre, pedido_fecha, estatus");
 
   if(error){
     document.getElementById("grid").innerHTML = "Error cargando pedidos";
@@ -126,7 +125,12 @@ async function cargarPedidos(){
     return;
   }
 
-  document.getElementById("grid").innerHTML = data.map(p => `
+  // Orden seguro por fecha descendente
+  const ordenados = data.sort((a,b)=>
+    new Date(b.pedido_fecha) - new Date(a.pedido_fecha)
+  );
+
+  document.getElementById("grid").innerHTML = ordenados.map(p => `
     <div class="card" onclick="abrir('${p.id}')">
       <div class="fecha">${p.pedido_fecha}</div>
       <div class="proveedor">${p.proveedor_nombre}</div>
@@ -134,7 +138,6 @@ async function cargarPedidos(){
     </div>
   `).join("");
 }
-
 function abrir(id){
   location.href = `pedido_visor.html?id=${id}`;
 }
@@ -143,4 +146,5 @@ cargarPedidos();
 </script>
 
 </body>
+
 </html>
