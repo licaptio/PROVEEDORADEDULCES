@@ -48,10 +48,10 @@ button{
 
 .grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  grid-template-columns:1fr; /* SIEMPRE una columna */
   gap:18px;
 }
-
+  
 .card{
   background:#fff;
   border-radius:16px;
@@ -156,7 +156,9 @@ async function cargarPedidos(){
     return;
   }
 
-  const pendientes = data.filter(p => p.estatus !== "SURTIDO");
+  const pendientes = data
+  .filter(p => p.estatus !== "SURTIDO")
+  .sort((a,b)=> new Date(b.pedido_fecha) - new Date(a.pedido_fecha));
 
   if(pendientes.length === 0){
     document.getElementById("empty").style.display = "block";
