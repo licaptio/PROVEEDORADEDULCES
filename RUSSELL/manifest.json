@@ -1,5 +1,4 @@
 [
-  { "nombre": "DEUDA ALUMINIO", "archivo": "ALUMINIO.html" },
   { "nombre": "ZAPATA CHARE066", "archivo": "CHARE066.html" },
   { "nombre": "DEUDAS VIEJAS", "archivo": "DEUDAOLDPDD.html" },
   { "nombre": "KARDEX KARTAMUS LIQUIDO", "archivo": "KARTAMUS.html" },
@@ -8,8 +7,8 @@
   { "nombre": "CONVERMEX ZAPATA KADEX", "archivo": "CONVERZAP.html" },
   { "nombre": "PRONTOS PAGO", "archivo": "PPAGOPDD.html" },
   { "nombre": "PROVEEDORES ESPECIALES", "archivo": "PROVESPE.html" },
-  { "nombre": "TAURO DEUDA", "archivo": "TAUROCARLRUSSELL.html" },
   { "nombre": "ACCIONES INVERTIDAS", "archivo": "VacacionesAC.html" },
+  { "nombre": "PEDIDOS PDD", "archivo": "PEDIDOPDD26.html" },
   { "nombre": "SALIDAS CIGARRO", "archivo": "VCigarro.html" },
   { "nombre": "SALIDAS ALMACEN DULCE", "archivo": "VDulce.html" },
   { "nombre": "SALIDAS ALMACEN LIQUIDO", "archivo": "VLiquidos.html" },
