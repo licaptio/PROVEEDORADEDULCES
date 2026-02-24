@@ -136,10 +136,7 @@ const inputProv = $("proveedor");
 const listProv  = $("proveedorList");
 
 async function cargarProveedores(){
-  const { data, error } = await sb
-    .from("deuda_limpia_pdd")
-    .select("razon_social_emisor")
-    .order("razon_social_emisor", { ascending:true });
+  const { data, error } = await sb.rpc("get_proveedores");
 
   if(error){
     console.error(error);
@@ -147,11 +144,7 @@ async function cargarProveedores(){
     return;
   }
 
-  proveedoresCache = [...new Set(
-    (data||[])
-      .map(x => (x.razon_social_emisor||"").trim())
-      .filter(Boolean)
-  )];
+  proveedoresCache = data.map(x => x.razon_social_emisor.trim());
 }
 cargarProveedores();
 
@@ -416,3 +409,4 @@ $("guardar").addEventListener("click", async ()=>{
 
 </body>
 </html>
+
