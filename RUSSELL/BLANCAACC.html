@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PORTAFOLIO BLANCA VERÓNICA MARTÍNEZ</title>
+
+<style>
+:root{
+  --bg:#eef2f7;
+  --card:#ffffff;
+  --border:#dfe6ee;
+  --text:#0f172a;
+  --accent:#7c3aed; /* morado elegante */
+  --radius:16px;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:"Segoe UI", Arial, sans-serif;
+  background:var(--bg);
+  padding:28px;
+  color:var(--text);
+}
+
+.wrapper{max-width:1200px;margin:auto}
+
+h1{
+  text-align:center;
+  color:var(--accent);
+  margin-bottom:25px;
+  font-size:30px;
+  font-weight:900;
+}
+
+.stock-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:24px;
+  margin-bottom:45px;
+  box-shadow:0 8px 25px rgba(0,0,0,.05);
+}
+
+.ticker-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:15px;
+}
+
+.ticker{
+  font-size:22px;
+  font-weight:900;
+}
+
+.cost-badge{
+  background:var(--accent);
+  color:white;
+  padding:8px 16px;
+  border-radius:999px;
+  font-weight:900;
+  font-size:14px;
+}
+
+.section-title{
+  font-weight:900;
+  margin:18px 0 8px;
+  padding-left:10px;
+  border-left:5px solid var(--accent);
+}
+
+.chart-box{
+  width:100%;
+  height:650px;
+  border-radius:12px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  margin-bottom:20px;
+}
+</style>
+</head>
+
+<body>
+<div class="wrapper">
+
+<h1>PORTAFOLIO BLANCA VERÓNICA MARTÍNEZ</h1>
+
+<!-- AC -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">AC</div>
+    <div class="cost-badge">Costo: $205.450 MXN</div>
+  </div>
+  <div class="section-title">Diaria</div>
+  <div id="ac_d" class="chart-box"></div>
+  <div class="section-title">Mensual</div>
+  <div id="ac_m" class="chart-box"></div>
+</div>
+
+<!-- AMZN -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">AMZN</div>
+    <div class="cost-badge">Costo: $3,449.680 MXN</div>
+  </div>
+  <div class="section-title">Diaria</div>
+  <div id="amzn_d" class="chart-box"></div>
+  <div class="section-title">Mensual</div>
+  <div id="amzn_m" class="chart-box"></div>
+</div>
+
+<!-- FEMSA -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">FEMSA UBD</div>
+    <div class="cost-badge">Costo: $195.220 MXN</div>
+  </div>
+  <div class="section-title">Diaria</div>
+  <div id="femsa_d" class="chart-box"></div>
+  <div class="section-title">Mensual</div>
+  <div id="femsa_m" class="chart-box"></div>
+</div>
+
+<!-- GFNORTE -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">GFNORTE O</div>
+    <div class="cost-badge">Costo: $200.460 MXN</div>
+  </div>
+  <div class="section-title">Diaria</div>
+  <div id="gfnorte_d" class="chart-box"></div>
+  <div class="section-title">Mensual</div>
+  <div id="gfnorte_m" class="chart-box"></div>
+</div>
+
+<!-- LIVEPOL -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">LIVEPOL C-1</div>
+    <div class="cost-badge">Costo: $102.800 MXN</div>
+  </div>
+  <div class="section-title">Diaria</div>
+  <div id="livepol_d" class="chart-box"></div>
+  <div class="section-title">Mensual</div>
+  <div id="livepol_m" class="chart-box"></div>
+</div>
+
+<!-- NAFTRAC -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">NAFTRAC ISHRS</div>
+    <div class="cost-badge">Costo: $69.549 MXN</div>
+  </div>
+  <div class="section-title">Diaria</div>
+  <div id="naf_d" class="chart-box"></div>
+  <div class="section-title">Mensual</div>
+  <div id="naf_m" class="chart-box"></div>
+</div>
+
+<!-- PGJ -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">PGJ</div>
+    <div class="cost-badge">Costo: $500.000 MXN</div>
+  </div>
+  <div class="section-title">Diaria</div>
+  <div id="pgj_d" class="chart-box"></div>
+  <div class="section-title">Mensual</div>
+  <div id="pgj_m" class="chart-box"></div>
+</div>
+
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<script>
+const SYMBOLS = {
+  AC: "BIVA:AC",
+  AMZN: "BIVA:AMZN",
+  FEMSA: "BIVA:FEMSA/UBD",
+  GFNORTE: "BIVA:GFNORTE/O",
+  LIVEPOL: "BIVA:LIVEPOL/C-1",
+  NAFTRAC: "BIVA:NAFTRAC/ISHRS",
+  PGJ: "BIVA:PGJ"
+};
+
+function build(id, symbol, interval){
+  new TradingView.widget({
+    container_id:id,
+    width:"100%",
+    height:650,
+    symbol:symbol,
+    interval:interval,
+    timezone:"America/Mexico_City",
+    theme:"light",
+    style:"1",
+    locale:"es",
+    allow_symbol_change:false
+  });
+}
+
+build("ac_d",SYMBOLS.AC,"D");
+build("ac_m",SYMBOLS.AC,"M");
+
+build("amzn_d",SYMBOLS.AMZN,"D");
+build("amzn_m",SYMBOLS.AMZN,"M");
+
+build("femsa_d",SYMBOLS.FEMSA,"D");
+build("femsa_m",SYMBOLS.FEMSA,"M");
+
+build("gfnorte_d",SYMBOLS.GFNORTE,"D");
+build("gfnorte_m",SYMBOLS.GFNORTE,"M");
+
+build("livepol_d",SYMBOLS.LIVEPOL,"D");
+build("livepol_m",SYMBOLS.LIVEPOL,"M");
+
+build("naf_d",SYMBOLS.NAFTRAC,"D");
+build("naf_m",SYMBOLS.NAFTRAC,"M");
+
+build("pgj_d",SYMBOLS.PGJ,"D");
+build("pgj_m",SYMBOLS.PGJ,"M");
+</script>
+
+</body>
+</html>
