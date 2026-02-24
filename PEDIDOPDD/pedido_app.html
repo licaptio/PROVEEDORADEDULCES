@@ -518,17 +518,11 @@ $("guardar").addEventListener("click", async ()=>{
 
     setMsg(`✅ Pedido creado: ${pedidoActualId}`, true);
 
-    // reset formulario (manteniendo el "pedidoActualId" para poder borrar)
-    $("notas").value = "";
-    $("estatus").value = "PENDIENTE";
-    $("proveedor").value = "";
-    archivosSeleccionados = [];
-    renderFiles();
-    $("progressBox").style.display = "none";
+setMsg(`✅ Pedido creado: ${pedidoActualId}`, true);
 
-    // refrescar lista de subidos desde DB (por si hubo triggers)
-    await cargarArchivosPedido(pedidoActualId);
-
+// Reset TOTAL para nuevo pedido
+resetFormularioCompleto();
+    
   }catch(err){
     console.error(err);
     setMsg("❌ " + (err.message || err), false);
@@ -537,6 +531,22 @@ $("guardar").addEventListener("click", async ()=>{
     saving = false;
   }
 });
+function resetFormularioCompleto(){
+  pedidoActualId = null;
+  uploadedPaths = [];
+  archivosSeleccionados = [];
+
+  $("proveedor").value = "";
+  $("notas").value = "";
+  $("estatus").value = "PENDIENTE";
+  $("fecha").value = new Date().toISOString().split("T")[0];
+
+  renderFiles();
+  renderUploaded();
+
+  $("progressBox").style.display = "none";
+  $("pedidoInfo").textContent = "";
+}
 </script>
 
 <!--
@@ -551,4 +561,5 @@ IMPORTANTES (DB + PERMISOS):
 -->
 </body>
 </html>
+
 
