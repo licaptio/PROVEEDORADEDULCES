@@ -129,7 +129,13 @@ header button:disabled{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { 
+  getFirestore, 
+  collection, 
+  getDocs, 
+  query, 
+  where 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -146,118 +152,126 @@ const $meta = document.getElementById("meta");
 const $btn = document.getElementById("btn");
 
 const norm = c => (c ?? "").toString().trim().padStart(12,"0");
-const esc = s => (s ?? "").toString().replace(/[&<>"']/g, m => (
-  m==="&"?"&amp;":m==="<"?"&lt;":m===">"?"&gt;":m==='"'?"&quot;":"&#39;"
-));
 
-// toma descripción de varios campos (tu colección viene variada)
 function pickDesc(x){
-  return (
-    x.descripcion ??
-    x.concepto ??
-    x.nombre ??
-    x.producto ??
-    x.desc ??
-    x.descripcionCorta ??
-    "-"
-  );
+  return x.descripcion ?? x.concepto ?? x.nombre ?? x.producto ?? "-";
 }
 
 async function cargar(){
   $btn.disabled = true;
-  $estado.textContent = "Cargando datos…";
+  $estado.textContent = "Cargando...";
   $lista.innerHTML = "";
   const t0 = performance.now();
 
   try{
+
+    // 🔹 Solo productos necesarios
+    const qProductos = query(
+      collection(db,"productos"),
+      where("activo","==",true),
+      where("departamento","==","CIGARROS")
+    );
+
     const [productosSnap, entradasSnap, salidasSnap, baseSnap] = await Promise.all([
-      getDocs(collection(db,"productos")),
+      getDocs(qProductos),
       getDocs(collection(db,"almacenes/almacen_cigarro/entradas")),
       getDocs(collection(db,"almacenes/almacen_cigarro/salidas1.0")),
       getDocs(collection(db,"almacenes/almacen_cigarro/inventario_base")),
     ]);
 
-    const productos = {};
-    const entradas  = {};
-    const salidas   = {};
-    const iniciales = {};
+    const productos = new Map();
+    const entradas  = new Map();
+    const salidas   = new Map();
+    const iniciales = new Map();
 
     productosSnap.forEach(d=>{
       const x = d.data();
-      if(x.activo !== true) return;
-      if(x.departamento !== "CIGARROS") return;
-
       const codigo = norm(x.codigoBarra || x.productoId || x.codigo);
-      productos[codigo] = pickDesc(x);
+      productos.set(codigo, pickDesc(x));
     });
 
     entradasSnap.forEach(d=>{
-      (d.data().items || []).forEach(i=>{
+      const items = d.data().items;
+      if(!items) return;
+      for(const i of items){
         const c = norm(i.productoId || i.codigo);
-        entradas[c] = (entradas[c] || 0) + Number(i.cantidadTotal || 0);
-      });
+        entradas.set(c, (entradas.get(c) || 0) + (i.cantidadTotal || 0));
+      }
     });
 
     salidasSnap.forEach(d=>{
-      (d.data().productos || []).forEach(i=>{
+      const items = d.data().productos;
+      if(!items) return;
+      for(const i of items){
         const c = norm(i.codigo);
-        salidas[c] = (salidas[c] || 0) + Number(i.cantidad || 0);
-      });
+        salidas.set(c, (salidas.get(c) || 0) + (i.cantidad || 0));
+      }
     });
 
     baseSnap.forEach(d=>{
-      iniciales[norm(d.id)] = Number(d.data().existencia || 0);
+      iniciales.set(norm(d.id), d.data().existencia || 0);
     });
 
-    dibujar(productos, entradas, salidas, iniciales);
+    render(productos, entradas, salidas, iniciales);
 
     const ms = Math.round(performance.now() - t0);
-    const now = new Date();
-    $meta.textContent = `Actualizado: ${now.toLocaleTimeString()} · ${Object.keys(productos).length} productos · ${ms}ms`;
+    $meta.textContent = `Actualizado · ${productos.size} productos · ${ms}ms`;
     $estado.textContent = "";
+
   }catch(e){
     console.error(e);
-    $estado.textContent = "Error cargando datos (revisa consola / permisos / red).";
-    $meta.textContent = "Sin actualizar";
-  }finally{
-    $btn.disabled = false;
+    $estado.textContent = "Error cargando datos";
   }
+
+  $btn.disabled = false;
 }
 
-function dibujar(productos, entradas, salidas, iniciales){
-  const items = Object.entries(productos).map(([c, desc])=>{
-    const ini = iniciales[c] || 0;
-    const ent = entradas[c]  || 0;
-    const sal = salidas[c]   || 0;
-    const act = ini + ent - sal;
-    return { c, desc, act };
+function render(productos, entradas, salidas, iniciales){
+
+  const fragment = document.createDocumentFragment();
+
+  const items = [];
+
+  productos.forEach((desc, c)=>{
+    const act =
+      (iniciales.get(c) || 0) +
+      (entradas.get(c) || 0) -
+      (salidas.get(c) || 0);
+
+    items.push({c, desc, act});
   });
 
-  // orden por descripción
-  items.sort((a,b)=>(a.desc||"").localeCompare(b.desc||"","es"));
+  items.sort((a,b)=>a.desc.localeCompare(b.desc,"es"));
 
-  let html = "";
   for(const it of items){
-    let cls = "cero";
-    if(it.act > 0) cls = "pos";
-    if(it.act < 0) cls = "neg";
 
-    html += `
-      <div class="card">
-        <div class="nombre">
-          ${esc(it.desc)}
-          <small>${esc(it.c)}</small>
-        </div>
-        <div class="saldo ${cls}">${it.act}</div>
-      </div>
-    `;
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const nombre = document.createElement("div");
+    nombre.className = "nombre";
+    nombre.innerHTML = `${it.desc}<small>${it.c}</small>`;
+
+    const saldo = document.createElement("div");
+    saldo.className = "saldo";
+    saldo.textContent = it.act;
+
+    if(it.act > 0) saldo.classList.add("pos");
+    else if(it.act < 0) saldo.classList.add("neg");
+    else saldo.classList.add("cero");
+
+    card.appendChild(nombre);
+    card.appendChild(saldo);
+    fragment.appendChild(card);
   }
-  $lista.innerHTML = html || `<div id="estado">Sin datos</div>`;
+
+  requestAnimationFrame(()=>{
+    $lista.innerHTML = "";
+    $lista.appendChild(fragment);
+  });
 }
 
 $btn.addEventListener("click", cargar);
-
-// carga única al abrir
 cargar();
 </script>
 
