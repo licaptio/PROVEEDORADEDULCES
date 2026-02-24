@@ -26,15 +26,14 @@ body{
   color:var(--text);
 }
 
-.wrapper{max-width:1200px;margin:0 auto}
+.wrapper{max-width:1100px;margin:auto}
 
 h1{
   text-align:center;
   color:var(--accent);
-  margin:0 0 22px 0;
-  font-size:30px;
+  margin-bottom:25px;
+  font-size:28px;
   font-weight:900;
-  letter-spacing:.4px;
 }
 
 .topbar{
@@ -50,217 +49,159 @@ h1{
   background:#fff;
   border:1px solid var(--border);
   border-radius:999px;
-  padding:10px 12px;
+  padding:8px 12px;
   font-size:13px;
   font-weight:800;
-  color:#111827;
 }
 
 .select{
   appearance:none;
   background:#fff;
   border:1px solid var(--border);
-  border-radius:12px;
-  padding:10px 12px;
+  border-radius:10px;
+  padding:6px 10px;
   font-size:13px;
   font-weight:800;
-  color:#111827;
 }
 
 .stock-card{
   background:var(--card);
   border:1px solid var(--border);
   border-radius:var(--radius);
-  padding:24px;
+  padding:22px;
   margin-bottom:40px;
-  box-shadow:0 6px 20px rgba(0,0,0,.06);
-}
-
-.stock-header{
-  display:flex;
-  flex-wrap:wrap;
-  gap:12px;
-  align-items:baseline;
-  justify-content:space-between;
-  margin-bottom:10px;
+  box-shadow:0 6px 18px rgba(0,0,0,.05);
 }
 
 .ticker{
-  font-size:22px;
-  font-weight:950;
+  font-size:20px;
+  font-weight:900;
+  margin-bottom:10px;
 }
 
 .section-title{
-  font-size:15px;
+  font-size:14px;
   font-weight:900;
-  margin:16px 0 8px;
+  margin:14px 0 6px;
   padding-left:10px;
   border-left:5px solid var(--accent);
 }
 
 .cost-label{
-  font-size:14px;
+  font-size:13px;
   font-weight:900;
-  color:#0b1220;
-  margin:0 0 8px 0;
+  margin-bottom:8px;
 }
 
 .chart-box{
   width:100%;
-  height:700px; /* MISMO ALTO PC y TABLET */
+  height:420px; /* reducido para tablet */
   border-radius:12px;
   overflow:hidden;
   border:1px solid var(--border);
   margin-bottom:16px;
-}
-
-.note{
-  text-align:center;
-  color:var(--muted);
-  font-size:12px;
-  margin-top:10px;
+  background:#f8fafc;
 }
 </style>
 </head>
 
 <body>
 <div class="wrapper">
-  <h1>PORTAFOLIO SERGIO AGUAYO</h1>
 
-  <div class="topbar">
-    <div class="pill" id="lastRefresh">Última actualización: —</div>
+<h1>PORTAFOLIO SERGIO AGUAYO</h1>
 
-    <label class="pill">
-      Auto-refresco:
-      <select class="select" id="refreshSelect">
-        <option value="30">Cada 30s</option>
-        <option value="60" selected>Cada 60s</option>
-        <option value="120">Cada 2 min</option>
-        <option value="300">Cada 5 min</option>
-      </select>
-    </label>
+<div class="topbar">
+  <div class="pill" id="lastRefresh">Última actualización: —</div>
 
-    <div class="pill">Moneda objetivo: MXN (usa símbolos BIVA/BMV)</div>
-  </div>
+  <label class="pill">
+    Auto-refresco:
+    <select class="select" id="refreshSelect">
+      <option value="30">Cada 30s</option>
+      <option value="60" selected>Cada 60s</option>
+      <option value="120">Cada 2 min</option>
+      <option value="300">Cada 5 min</option>
+    </select>
+  </label>
+</div>
 
-  <!-- ================= AC ================= -->
-  <div class="stock-card">
-    <div class="stock-header">
-      <div class="ticker">AC</div>
-    </div>
+<!-- AC -->
+<div class="stock-card">
+  <div class="ticker">AC</div>
+  <div class="section-title">Diaria</div>
+  <div class="cost-label">$207.580 MXN</div>
+  <div id="ac_d" class="chart-box" data-symbol="BIVA:AC" data-interval="D"></div>
 
-    <div class="section-title">Gráfica Diaria</div>
-    <div class="cost-label">Costo Promedio: $207.580 MXN</div>
-    <div id="ac_d" class="chart-box"></div>
+  <div class="section-title">Mensual</div>
+  <div class="cost-label">$207.580 MXN</div>
+  <div id="ac_m" class="chart-box" data-symbol="BIVA:AC" data-interval="M"></div>
+</div>
 
-    <div class="section-title">Gráfica Mensual</div>
-    <div class="cost-label">Costo Promedio: $207.580 MXN</div>
-    <div id="ac_m" class="chart-box"></div>
-  </div>
+<!-- AMZN -->
+<div class="stock-card">
+  <div class="ticker">AMZN</div>
+  <div class="section-title">Diaria</div>
+  <div class="cost-label">$3,449.680 MXN</div>
+  <div id="amzn_d" class="chart-box" data-symbol="BIVA:AMZN" data-interval="D"></div>
 
-  <!-- ================= AMZN ================= -->
-  <div class="stock-card">
-    <div class="stock-header">
-      <div class="ticker">AMZN</div>
-    </div>
+  <div class="section-title">Mensual</div>
+  <div class="cost-label">$3,449.680 MXN</div>
+  <div id="amzn_m" class="chart-box" data-symbol="BIVA:AMZN" data-interval="M"></div>
+</div>
 
-    <div class="section-title">Gráfica Diaria</div>
-    <div class="cost-label">Costo Promedio: $3,449.680 MXN</div>
-    <div id="amzn_d" class="chart-box"></div>
+<!-- LIVEPOL -->
+<div class="stock-card">
+  <div class="ticker">LIVEPOL C-1</div>
+  <div class="section-title">Diaria</div>
+  <div class="cost-label">$105.960 MXN</div>
+  <div id="livepol_d" class="chart-box" data-symbol="BIVA:LIVEPOL/C-1" data-interval="D"></div>
 
-    <div class="section-title">Gráfica Mensual</div>
-    <div class="cost-label">Costo Promedio: $3,449.680 MXN</div>
-    <div id="amzn_m" class="chart-box"></div>
-  </div>
+  <div class="section-title">Mensual</div>
+  <div class="cost-label">$105.960 MXN</div>
+  <div id="livepol_m" class="chart-box" data-symbol="BIVA:LIVEPOL/C-1" data-interval="M"></div>
+</div>
 
-  <!-- ================= LIVEPOL ================= -->
-  <div class="stock-card">
-    <div class="stock-header">
-      <div class="ticker">LIVEPOL C-1</div>
-    </div>
+<!-- NAFTRAC -->
+<div class="stock-card">
+  <div class="ticker">NAFTRAC ISHRS</div>
+  <div class="section-title">Diaria</div>
+  <div class="cost-label">$66.868 MXN</div>
+  <div id="naf_d" class="chart-box" data-symbol="BIVA:NAFTRAC/ISHRS" data-interval="D"></div>
 
-    <div class="section-title">Gráfica Diaria</div>
-    <div class="cost-label">Costo Promedio: $105.960 MXN</div>
-    <div id="livepol_d" class="chart-box"></div>
+  <div class="section-title">Mensual</div>
+  <div class="cost-label">$66.868 MXN</div>
+  <div id="naf_m" class="chart-box" data-symbol="BIVA:NAFTRAC/ISHRS" data-interval="M"></div>
+</div>
 
-    <div class="section-title">Gráfica Mensual</div>
-    <div class="cost-label">Costo Promedio: $105.960 MXN</div>
-    <div id="livepol_m" class="chart-box"></div>
-  </div>
+<!-- VOO -->
+<div class="stock-card">
+  <div class="ticker">VOO</div>
+  <div class="section-title">Diaria</div>
+  <div class="cost-label">$10,862.500 MXN</div>
+  <div id="voo_d" class="chart-box" data-symbol="BIVA:VOO" data-interval="D"></div>
 
-  <!-- ================= NAFTRAC ================= -->
-  <div class="stock-card">
-    <div class="stock-header">
-      <div class="ticker">NAFTRAC ISHRS</div>
-    </div>
+  <div class="section-title">Mensual</div>
+  <div class="cost-label">$10,862.500 MXN</div>
+  <div id="voo_m" class="chart-box" data-symbol="BIVA:VOO" data-interval="M"></div>
+</div>
 
-    <div class="section-title">Gráfica Diaria</div>
-    <div class="cost-label">Costo Promedio: $66.868 MXN</div>
-    <div id="naf_d" class="chart-box"></div>
-
-    <div class="section-title">Gráfica Mensual</div>
-    <div class="cost-label">Costo Promedio: $66.868 MXN</div>
-    <div id="naf_m" class="chart-box"></div>
-  </div>
-
-  <!-- ================= VOO ================= -->
-  <div class="stock-card">
-    <div class="stock-header">
-      <div class="ticker">VOO</div>
-    </div>
-
-    <div class="section-title">Gráfica Diaria</div>
-    <div class="cost-label">Costo Promedio: $10,862.500 MXN</div>
-    <div id="voo_d" class="chart-box"></div>
-
-    <div class="section-title">Gráfica Mensual</div>
-    <div class="cost-label">Costo Promedio: $10,862.500 MXN</div>
-    <div id="voo_m" class="chart-box"></div>
-  </div>
-
-  <div class="note">
-    Tip: si tu objetivo es “trading” intradía, conviene agregar gráficos 1m/5m/15m además de Diario/Mensual.
-  </div>
 </div>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
 
 <script>
-/*
-  IMPORTANTE (MXN):
-  - Para que sea MXN, el símbolo debe ser el que cotiza en MXN en BIVA/BMV.
-  - Si algún símbolo te aparece en otra divisa o no carga, cámbialo a BMV:* o al ticker correcto de SIC/mercado.
-*/
-const SYMBOLS = {
-  AC:      "BIVA:AC",
-  AMZN:    "BIVA:AMZN",
-  LIVEPOL: "BIVA:LIVEPOL/C-1",
-  NAFTRAC: "BIVA:NAFTRAC/ISHRS",
-  VOO:     "BIVA:VOO"
-};
+const loadedCharts = new Set();
 
-const CHARTS = [
-  { id:"ac_d",      symbol: SYMBOLS.AC,      interval:"D" },
-  { id:"ac_m",      symbol: SYMBOLS.AC,      interval:"M" },
-  { id:"amzn_d",    symbol: SYMBOLS.AMZN,    interval:"D" },
-  { id:"amzn_m",    symbol: SYMBOLS.AMZN,    interval:"M" },
-  { id:"livepol_d", symbol: SYMBOLS.LIVEPOL, interval:"D" },
-  { id:"livepol_m", symbol: SYMBOLS.LIVEPOL, interval:"M" },
-  { id:"naf_d",     symbol: SYMBOLS.NAFTRAC, interval:"D" },
-  { id:"naf_m",     symbol: SYMBOLS.NAFTRAC, interval:"M" },
-  { id:"voo_d",     symbol: SYMBOLS.VOO,     interval:"D" },
-  { id:"voo_m",     symbol: SYMBOLS.VOO,     interval:"M" }
-];
+function buildWidget(el){
+  const id = el.id;
+  const symbol = el.dataset.symbol;
+  const interval = el.dataset.interval;
 
-function buildWidget(container_id, symbol, interval){
-  // Limpia el contenedor para recrear el widget (refresco real)
-  const el = document.getElementById(container_id);
-  if (el) el.innerHTML = "";
+  el.innerHTML = "";
 
   new TradingView.widget({
-    container_id,
+    container_id: id,
     width: "100%",
-    height: 700,
+    height: 420,
     symbol,
     interval,
     timezone: "America/Mexico_City",
@@ -268,33 +209,54 @@ function buildWidget(container_id, symbol, interval){
     style: "1",
     locale: "es",
     allow_symbol_change: false,
-    hide_top_toolbar: false
+    hide_top_toolbar: true,
+    hide_legend: true
   });
+
+  loadedCharts.add(id);
 }
 
-function renderAll(){
-  for (const c of CHARTS) buildWidget(c.id, c.symbol, c.interval);
+// Lazy load
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      buildWidget(entry.target);
+      observer.unobserve(entry.target);
+    }
+  });
+},{threshold:0.25});
 
-  const now = new Date();
-  const stamp = now.toLocaleString("es-MX", { hour12:false });
-  document.getElementById("lastRefresh").textContent = "Última actualización: " + stamp;
-}
-
-// ===== Auto-refresco configurable =====
-let timer = null;
-
-function setAutoRefresh(seconds){
-  if (timer) clearInterval(timer);
-  timer = setInterval(renderAll, seconds * 1000);
-}
-
-document.getElementById("refreshSelect").addEventListener("change", (e)=>{
-  setAutoRefresh(Number(e.target.value));
+document.querySelectorAll(".chart-box").forEach(box=>{
+  observer.observe(box);
 });
 
-// Inicial
-renderAll();
+// Auto refresh solo de los ya cargados
+function refreshVisibleCharts(){
+  loadedCharts.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) buildWidget(el);
+  });
+
+  const now = new Date();
+  document.getElementById("lastRefresh").textContent =
+    "Última actualización: " +
+    now.toLocaleString("es-MX",{hour12:false});
+}
+
+let timer=null;
+
+function setAutoRefresh(seconds){
+  if(timer) clearInterval(timer);
+  timer = setInterval(refreshVisibleCharts, seconds*1000);
+}
+
+document.getElementById("refreshSelect")
+  .addEventListener("change",(e)=>{
+    setAutoRefresh(Number(e.target.value));
+  });
+
 setAutoRefresh(Number(document.getElementById("refreshSelect").value));
 </script>
+
 </body>
 </html>
