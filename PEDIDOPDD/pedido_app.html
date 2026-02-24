@@ -48,10 +48,8 @@ progress{width:100%}
   <h2>Nuevo Pedido</h2>
 
   <label>Proveedor</label>
-  <select id="proveedor">
-    <option value="">Cargando proveedores...</option>
-  </select>
-
+<input id="proveedor" list="proveedoresList" placeholder="Escribe o selecciona proveedor">
+<datalist id="proveedoresList"></datalist>
   <label>Fecha</label>
   <input type="date" id="fecha">
 
@@ -117,9 +115,10 @@ async function cargarProveedores(){
 
   const unicos = [...new Set((data||[]).map(x => (x.razon_social_emisor||"").trim()).filter(Boolean))];
 
-  $("proveedor").innerHTML =
-    "<option value=''>Seleccionar proveedor</option>" +
-    unicos.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+const list = document.getElementById("proveedoresList");
+list.innerHTML = unicos
+  .map(p => `<option value="${escapeHtml(p)}"></option>`)
+  .join("");
 }
 cargarProveedores();
 
@@ -306,3 +305,4 @@ $("guardar").addEventListener("click", async ()=>{
 
 </body>
 </html>
+
