@@ -29,11 +29,16 @@ button:disabled{opacity:.6}
   user-select:none;
 }
 .dropzone.dragover{border-color:#111;background:#f0f0f0}
+
 .fileList{margin-top:10px;font-size:14px}
 .fileItem{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #eee}
 .fileItem small{color:#777}
 .fileItem button{padding:6px 10px;border-radius:10px;border:0;background:#e9e9e9;cursor:pointer}
 .fileItem button:hover{background:#dedede}
+
+.sectionTitle{margin-top:18px;font-weight:bold}
+.badge{display:inline-block;margin-left:8px;font-size:12px;color:#333;background:#f2f2f2;border:1px solid #e6e6e6;border-radius:999px;padding:2px 8px}
+
 .progress{margin-top:10px}
 progress{width:100%}
 .kbd{
@@ -54,6 +59,13 @@ progress{width:100%}
 .provItem{padding:10px 12px;cursor:pointer}
 .provItem:hover,.provItem.active{background:#f3f4f6}
 .provEmpty{padding:10px 12px;color:#777}
+
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row > *{flex:1}
+.btnLite{background:#e9e9e9;color:#111}
+.btnDanger{background:#b00020;color:#fff}
+.linkBtn{background:transparent;border:0;color:#0b57d0;cursor:pointer;padding:0}
+hr{border:0;border-top:1px solid #eee;margin:18px 0}
 </style>
 </head>
 <body>
@@ -67,18 +79,23 @@ progress{width:100%}
     <div id="proveedorList" class="provList"></div>
   </div>
 
-  <label>Fecha</label>
-  <input type="date" id="fecha">
+  <div class="row">
+    <div>
+      <label>Fecha</label>
+      <input type="date" id="fecha">
+    </div>
+    <div>
+      <label>Estatus</label>
+      <select id="estatus">
+        <option value="PENDIENTE">PENDIENTE</option>
+        <option value="SURTIDO">SURTIDO</option>
+        <option value="CANCELADO">CANCELADO</option>
+      </select>
+    </div>
+  </div>
 
   <label>Notas</label>
   <textarea id="notas" placeholder="Notas del pedido..."></textarea>
-
-  <label>Estatus</label>
-  <select id="estatus">
-    <option value="PENDIENTE">PENDIENTE</option>
-    <option value="SURTIDO">SURTIDO</option>
-    <option value="CANCELADO">CANCELADO</option>
-  </select>
 
   <label>Archivos del Pedido</label>
   <div id="dropzone" class="dropzone">
@@ -87,6 +104,7 @@ progress{width:100%}
     <input type="file" id="files" multiple hidden>
   </div>
 
+  <div class="sectionTitle">Pendientes por subir <span class="badge" id="pendCount">0</span></div>
   <div id="fileList" class="fileList"></div>
 
   <div class="progress" id="progressBox" style="display:none">
@@ -96,13 +114,22 @@ progress{width:100%}
 
   <button id="guardar">Guardar Pedido</button>
 
+  <hr>
+
+  <div class="sectionTitle">
+    Archivos ya subidos <span class="badge" id="upCount">0</span>
+    <span class="muted" id="pedidoInfo" style="margin-left:10px"></span>
+  </div>
+  <div class="muted" style="margin-top:6px">Aquí sí elimina del bucket (Supabase Storage) y actualiza la tabla.</div>
+  <div id="uploadedList" class="fileList"></div>
+
   <div class="msg" id="msg"></div>
 </div>
 
 <script>
 // ================= CONFIG =================
 const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
+const SUPABASE_ANON_KEY = "TU_ANON_KEY_AQUI";
 const BUCKET = "pedidospdd";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -127,24 +154,21 @@ function safeName(name){
 // ================= FECHA AUTO =================
 $("fecha").value = new Date().toISOString().split("T")[0];
 
-// ================= PROVEEDORES AUTOCOMPLETE (CONTIENE) =================
+// ================= PROVEEDORES AUTOCOMPLETE =================
 let proveedoresCache = [];
 let provActiveIndex = -1;
 let provResults = [];
-
 const inputProv = $("proveedor");
 const listProv  = $("proveedorList");
 
 async function cargarProveedores(){
   const { data, error } = await sb.rpc("get_proveedores");
-
   if(error){
     console.error(error);
     inputProv.placeholder = "Error cargando proveedores";
     return;
   }
-
-  proveedoresCache = data.map(x => x.razon_social_emisor.trim());
+  proveedoresCache = (data||[]).map(x => (x.razon_social_emisor||"").trim()).filter(Boolean);
 }
 cargarProveedores();
 
@@ -154,9 +178,8 @@ function hideProvList(){
   provActiveIndex = -1;
   provResults = [];
 }
-function showProvList(){
-  listProv.style.display = "block";
-}
+function showProvList(){ listProv.style.display = "block"; }
+
 function renderProvList(items, term){
   provResults = items;
   provActiveIndex = -1;
@@ -167,12 +190,10 @@ function renderProvList(items, term){
     return;
   }
 
-  // resaltar coincidencia (simple)
-  const safeTerm = escapeHtml(term);
   listProv.innerHTML = items.map((p, idx)=>{
     const ep = escapeHtml(p);
     const lowP = p.toLowerCase();
-    const lowT = term.toLowerCase();
+    const lowT = (term||"").toLowerCase();
     const at = lowP.indexOf(lowT);
     let html = ep;
     if(at >= 0 && term){
@@ -190,12 +211,10 @@ function renderProvList(items, term){
 inputProv.addEventListener("input", ()=>{
   const term = inputProv.value.trim();
   if(!term){ hideProvList(); return; }
-
   const low = term.toLowerCase();
   const filtrados = proveedoresCache
     .filter(p => p.toLowerCase().includes(low))
     .slice(0, 30);
-
   renderProvList(filtrados, term);
 });
 
@@ -212,7 +231,6 @@ listProv.addEventListener("mousedown", (e)=>{
 
 inputProv.addEventListener("keydown", (e)=>{
   if(listProv.style.display !== "block") return;
-
   const items = Array.from(listProv.querySelectorAll(".provItem"));
   if(items.length === 0) return;
 
@@ -249,12 +267,14 @@ document.addEventListener("click", (e)=>{
   hideProvList();
 });
 
-// ================= DROPEADOR + PASTE =================
+// ================= ARCHIVOS (ANTES DE SUBIR) =================
 const dropzone = $("dropzone");
 const fileInput = $("files");
 const fileList = $("fileList");
 
 let archivosSeleccionados = [];
+let pedidoActualId = null;
+let uploadedPaths = []; // paths reales en storage (ej: pedidoId/123_nombre.png)
 
 dropzone.addEventListener("click", ()=> fileInput.click());
 
@@ -268,9 +288,7 @@ dropzone.addEventListener("dragover", (e)=>{
   e.preventDefault();
   dropzone.classList.add("dragover");
 });
-dropzone.addEventListener("dragleave", ()=>{
-  dropzone.classList.remove("dragover");
-});
+dropzone.addEventListener("dragleave", ()=> dropzone.classList.remove("dragover"));
 dropzone.addEventListener("drop", (e)=>{
   e.preventDefault();
   dropzone.classList.remove("dragover");
@@ -279,7 +297,6 @@ dropzone.addEventListener("drop", (e)=>{
   renderFiles();
 });
 
-// Pegar imágenes (Win+Shift+S -> Ctrl+V)
 document.addEventListener("paste", (event) => {
   const items = event.clipboardData?.items || [];
   let added = 0;
@@ -288,10 +305,8 @@ document.addEventListener("paste", (event) => {
     if (item.type && item.type.indexOf("image") !== -1) {
       const blob = item.getAsFile();
       if(!blob) continue;
-
       const timestamp = Date.now();
       const file = new File([blob], `recorte_${timestamp}.png`, { type: blob.type || "image/png" });
-
       archivosSeleccionados.push(file);
       added++;
     }
@@ -304,6 +319,7 @@ document.addEventListener("paste", (event) => {
 });
 
 function renderFiles(){
+  $("pendCount").textContent = String(archivosSeleccionados.length);
   if(archivosSeleccionados.length===0){
     fileList.innerHTML = `<div class="muted">Sin archivos todavía.</div>`;
     return;
@@ -315,22 +331,74 @@ function renderFiles(){
         <div>${escapeHtml(f.name)}</div>
         <small>${humanSize(f.size || 0)}</small>
       </div>
-      <button type="button" onclick="removeFile(${idx})">Quitar</button>
+      <button type="button" class="btnLite" onclick="removePending(${idx})">Quitar</button>
     </div>
   `).join("");
 }
-window.removeFile = function(i){
+window.removePending = function(i){
   archivosSeleccionados.splice(i,1);
   renderFiles();
 };
 renderFiles();
 
-// ================= SUBIR ARCHIVOS =================
+// ================= LISTA DE SUBIDOS (DESPUÉS) =================
+function filenameFromPath(path){
+  const parts = String(path||"").split("/");
+  return parts[parts.length-1] || path;
+}
+
+function renderUploaded(){
+  $("upCount").textContent = String(uploadedPaths.length);
+  if(!pedidoActualId){
+    $("pedidoInfo").textContent = "";
+  }else{
+    $("pedidoInfo").textContent = `Pedido: ${pedidoActualId}`;
+  }
+
+  const box = $("uploadedList");
+  if(uploadedPaths.length === 0){
+    box.innerHTML = `<div class="muted">Aún no hay archivos subidos para este pedido.</div>`;
+    return;
+  }
+
+  box.innerHTML = uploadedPaths.map((p, idx)=>`
+    <div class="fileItem">
+      <div>
+        <div>${escapeHtml(filenameFromPath(p))}</div>
+        <small>${escapeHtml(p)}</small>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button type="button" class="btnDanger" onclick="deleteUploaded(${idx})">Eliminar</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function cargarArchivosPedido(pedidoId){
+  // lee fotos desde la tabla (si existe columna fotos)
+  const { data, error } = await sb
+    .from("pedidos_pdd")
+    .select("fotos")
+    .eq("id", pedidoId)
+    .single();
+
+  if(error){
+    console.error(error);
+    return;
+  }
+
+  uploadedPaths = (data?.fotos || []).filter(Boolean);
+  renderUploaded();
+}
+
+// ================= SUBIDA =================
 async function uploadAll(pedidoId, files){
-  if(!files || files.length===0) return;
+  if(!files || files.length===0) return [];
 
   $("progressBox").style.display = "block";
   $("pg").value = 0;
+
+  const paths = [];
 
   for(let i=0;i<files.length;i++){
     const file = files[i];
@@ -345,14 +413,64 @@ async function uploadAll(pedidoId, files){
 
     if(error) throw error;
 
+    paths.push(path);
     $("pg").value = Math.round(((i+1)/files.length)*100);
   }
 
   $("pgText").textContent = `Subida completa (${files.length} archivo(s)).`;
+  return paths;
 }
 
+// ================= ELIMINAR SUBIDO (STORAGE + DB) =================
+let deleting = false;
+
+window.deleteUploaded = async function(idx){
+  if(deleting) return;
+  if(!pedidoActualId) return;
+
+  const path = uploadedPaths[idx];
+  if(!path) return;
+
+  const ok = confirm(`Eliminar archivo?\n\n${path}\n\nEsto borra del bucket y de la tabla.`);
+  if(!ok) return;
+
+  deleting = true;
+  setMsg("Eliminando archivo...", true);
+
+  try{
+    // 1) borrar del bucket
+    const { error: e1 } = await sb.storage.from(BUCKET).remove([path]);
+    if(e1) throw e1;
+
+    // 2) actualizar tabla (quitar path del array)
+    const nuevo = uploadedPaths.filter((_, i)=> i !== idx);
+
+    const { error: e2 } = await sb
+      .from("pedidos_pdd")
+      .update({ fotos: nuevo })
+      .eq("id", pedidoActualId);
+
+    if(e2) throw e2;
+
+    uploadedPaths = nuevo;
+    renderUploaded();
+    setMsg("✅ Archivo eliminado.", true);
+
+  }catch(err){
+    console.error(err);
+    setMsg("❌ No se pudo eliminar: " + (err.message || err), false);
+  }finally{
+    deleting = false;
+  }
+};
+
 // ================= GUARDAR PEDIDO =================
+let saving = false;
+
 $("guardar").addEventListener("click", async ()=>{
+  if(saving) return;
+  saving = true;
+
   $("guardar").disabled = true;
   setMsg("Guardando...", true);
 
@@ -365,48 +483,71 @@ $("guardar").addEventListener("click", async ()=>{
     if(!proveedor_nombre) throw new Error("Escribe o selecciona proveedor");
     if(!pedido_fecha) throw new Error("Selecciona fecha");
 
+    // 1) Crear pedido
     const { data, error } = await sb
       .from("pedidos_pdd")
       .insert([{
         proveedor_nombre,
         pedido_fecha,
         notas,
-        estatus
+        estatus,
+        // fotos: []  // si tu columna existe, puedes dejarlo explícito
       }])
       .select("id")
       .single();
 
     if(error) throw error;
 
-    const pedidoId = data.id;
+    pedidoActualId = data.id;
 
-    await uploadAll(pedidoId, archivosSeleccionados);
+    // 2) Subir archivos
+    const nuevosPaths = await uploadAll(pedidoActualId, archivosSeleccionados);
+
+    // 3) Persistir paths en tabla + bucket_path
+    uploadedPaths = [...uploadedPaths, ...nuevosPaths];
 
     const { error: e2 } = await sb
       .from("pedidos_pdd")
-      .update({ bucket_path: `pedidospdd/${pedidoId}/` })
-      .eq("id", pedidoId);
+      .update({
+        bucket_path: `${BUCKET}/${pedidoActualId}/`,
+        fotos: uploadedPaths
+      })
+      .eq("id", pedidoActualId);
 
     if(e2) throw e2;
 
-    setMsg(`✅ Pedido creado: ${pedidoId}`, true);
+    setMsg(`✅ Pedido creado: ${pedidoActualId}`, true);
 
+    // reset formulario (manteniendo el "pedidoActualId" para poder borrar)
     $("notas").value = "";
     $("estatus").value = "PENDIENTE";
     $("proveedor").value = "";
     archivosSeleccionados = [];
     renderFiles();
     $("progressBox").style.display = "none";
-    $("guardar").disabled = false;
+
+    // refrescar lista de subidos desde DB (por si hubo triggers)
+    await cargarArchivosPedido(pedidoActualId);
 
   }catch(err){
     console.error(err);
     setMsg("❌ " + (err.message || err), false);
+  }finally{
     $("guardar").disabled = false;
+    saving = false;
   }
 });
 </script>
 
+<!--
+IMPORTANTES (DB + PERMISOS):
+
+1) Asegura que pedidos_pdd tenga columna fotos (text[]):
+   alter table pedidos_pdd add column if not exists fotos text[] default '{}'::text[];
+
+2) Para poder BORRAR del bucket desde el navegador con ANON_KEY,
+   tu Storage policy debe permitir DELETE en ese bucket.
+   (Si no, el remove() fallará aunque el código esté bien.)
+-->
 </body>
 </html>
-
