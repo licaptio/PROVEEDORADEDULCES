@@ -113,7 +113,8 @@ async function cargarPedidos(){
 
   const { data, error } = await sb
     .from("pedidos_pdd")
-    .select("id, proveedor_nombre, pedido_fecha, estatus");
+    .select("id, proveedor_nombre, pedido_fecha, estatus, created_at")
+    .order("created_at", { ascending:false });
 
   if(error){
     document.getElementById("grid").innerHTML = "Error cargando pedidos";
@@ -125,19 +126,17 @@ async function cargarPedidos(){
     return;
   }
 
-  // Orden seguro por fecha descendente
-  const ordenados = data.sort((a,b)=>
-    new Date(b.pedido_fecha) - new Date(a.pedido_fecha)
-  );
-
-  document.getElementById("grid").innerHTML = ordenados.map(p => `
+  document.getElementById("grid").innerHTML = data.map(p => `
     <div class="card" onclick="abrir('${p.id}')">
-      <div class="fecha">${p.pedido_fecha}</div>
+      <div class="fecha">
+        ${new Date(p.created_at).toLocaleString()}
+      </div>
       <div class="proveedor">${p.proveedor_nombre}</div>
       <div class="badge ${p.estatus}">${p.estatus}</div>
     </div>
   `).join("");
 }
+  
 function abrir(id){
   location.href = `pedido_visor.html?id=${id}`;
 }
@@ -148,3 +147,4 @@ cargarPedidos();
 </body>
 
 </html>
+
