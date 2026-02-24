@@ -8,16 +8,49 @@
 
 <style>
 body{font-family:Arial;background:#f4f6f9;margin:0;padding:20px}
-.card{max-width:1000px;margin:auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 3px 12px rgba(0,0,0,.08)}
+.card{max-width:1100px;margin:auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 3px 12px rgba(0,0,0,.08)}
 h2{margin-top:0}
-.label{font-weight:bold;margin-top:10px}
+.label{font-weight:bold;margin-top:8px}
 .badge{display:inline-block;padding:6px 12px;border-radius:999px;background:#eee;font-size:13px}
-.preview{
+.backBtn{margin-bottom:15px;padding:8px 14px;border-radius:10px;border:0;background:#111;color:#fff;cursor:pointer}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:12px;
   margin-top:15px;
+}
+
+.thumb{
+  background:#fafafa;
   border:1px solid #ddd;
   border-radius:10px;
-  padding:10px;
+  padding:6px;
+  cursor:pointer;
+  transition:.15s;
+}
+.thumb:hover{transform:scale(1.03)}
+.thumb img{
+  width:100%;
+  height:120px;
+  object-fit:cover;
+  border-radius:6px;
+}
+.thumbName{
+  font-size:12px;
+  margin-top:5px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.preview{
+  margin-top:20px;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:12px;
   background:#fafafa;
+  display:none;
 }
 .preview img{
   max-width:100%;
@@ -28,52 +61,38 @@ h2{margin-top:0}
   height:600px;
   border:0;
 }
-.fileItem{
-  padding:8px;
-  border-bottom:1px solid #eee;
-  cursor:pointer;
-}
-.fileItem:hover{
-  background:#f2f2f2;
-}
-.backBtn{
-  margin-bottom:15px;
-  padding:8px 14px;
-  border-radius:10px;
-  border:0;
-  background:#111;
-  color:#fff;
-  cursor:pointer;
-}
 </style>
 </head>
 <body>
 
 <div class="card">
+
 <button class="backBtn" onclick="history.back()">← Volver</button>
 
 <h2>Visor de Pedido</h2>
 
 <div id="info"></div>
 
-<div style="margin-top:20px">
-  <h3>Archivos</h3>
-  <div id="files"></div>
-</div>
+<h3 style="margin-top:20px">Archivos</h3>
+<div id="grid" class="grid"></div>
 
-<div class="preview" id="preview" style="display:none"></div>
+<div id="preview" class="preview"></div>
 
 </div>
 
 <script>
 const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
-const SUPABASE_ANON_KEY = "TU_ANON_KEY";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
 const BUCKET = "pedidospdd";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function qp(name){
   return new URLSearchParams(window.location.search).get(name);
+}
+
+function getPublicUrl(path){
+  return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
 async function cargarPedido(){
@@ -84,7 +103,6 @@ async function cargarPedido(){
     return;
   }
 
-  // 1️⃣ Traer pedido
   const { data, error } = await sb
     .from("pedidos_pdd")
     .select("*")
@@ -103,41 +121,47 @@ async function cargarPedido(){
     <div><span class="label">Notas:</span> ${data.notas || ""}</div>
   `;
 
-  // 2️⃣ Listar archivos
-  const { data: files, error: err2 } = await sb
-    .storage
-    .from(BUCKET)
-    .list(`${id}/`, { limit: 100 });
+  const fotos = data.fotos || [];
 
-  if(err2){
-    document.getElementById("files").innerHTML = "Error leyendo bucket";
+  if(fotos.length === 0){
+    document.getElementById("grid").innerHTML = "Sin archivos";
     return;
   }
 
-  if(!files || files.length === 0){
-    document.getElementById("files").innerHTML = "Sin archivos";
-    return;
-  }
+  document.getElementById("grid").innerHTML = fotos.map(path=>{
+    const url = getPublicUrl(path);
+    const name = path.split("/").pop();
+    const ext = name.split('.').pop().toLowerCase();
 
-  document.getElementById("files").innerHTML = files.map(f => `
-    <div class="fileItem" onclick="previewFile('${id}','${f.name}')">
-      ${f.name}
-    </div>
-  `).join("");
+    if(["png","jpg","jpeg","webp"].includes(ext)){
+      return `
+        <div class="thumb" onclick="previewFile('${path}')">
+          <img src="${url}">
+          <div class="thumbName">${name}</div>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="thumb" onclick="previewFile('${path}')">
+          <div style="height:120px;display:flex;align-items:center;justify-content:center;background:#eaeaea;border-radius:6px">
+            📄
+          </div>
+          <div class="thumbName">${name}</div>
+        </div>
+      `;
+    }
+
+  }).join("");
 }
 
-async function previewFile(folder, fileName){
+function previewFile(path){
 
-  const path = `${folder}/${fileName}`;
-
-  const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
-
-  const url = data.publicUrl;
+  const url = getPublicUrl(path);
+  const name = path.split("/").pop();
+  const ext = name.split('.').pop().toLowerCase();
 
   const preview = document.getElementById("preview");
   preview.style.display = "block";
-
-  const ext = fileName.split('.').pop().toLowerCase();
 
   if(["png","jpg","jpeg","webp"].includes(ext)){
     preview.innerHTML = `<img src="${url}">`;
@@ -151,6 +175,8 @@ async function previewFile(folder, fileName){
       <a href="${url}" target="_blank">Descargar archivo</a>
     `;
   }
+
+  preview.scrollIntoView({behavior:"smooth"});
 }
 
 cargarPedido();
