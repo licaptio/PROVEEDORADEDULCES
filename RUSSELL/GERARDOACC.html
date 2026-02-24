@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PORTAFOLIO GERARDO RÍOS QUEZADA</title>
+
+<style>
+:root{
+  --bg:#eef2f7;
+  --card:#ffffff;
+  --border:#dfe6ee;
+  --text:#0f172a;
+  --accent:#0c4a6e;
+  --radius:16px;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:"Segoe UI", Arial, sans-serif;
+  background:var(--bg);
+  padding:28px;
+  color:var(--text);
+}
+
+.wrapper{max-width:1200px;margin:auto}
+
+h1{
+  text-align:center;
+  color:var(--accent);
+  margin-bottom:25px;
+  font-size:30px;
+  font-weight:900;
+}
+
+.topbar{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  align-items:center;
+  margin-bottom:30px;
+  flex-wrap:wrap;
+}
+
+.pill{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:8px 14px;
+  font-size:13px;
+  font-weight:800;
+}
+
+.select{
+  border:none;
+  font-weight:800;
+  background:transparent;
+}
+
+.stock-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:24px;
+  margin-bottom:45px;
+  box-shadow:0 8px 25px rgba(0,0,0,.05);
+}
+
+.ticker-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:15px;
+}
+
+.ticker{
+  font-size:22px;
+  font-weight:900;
+}
+
+.cost-badge{
+  background:var(--accent);
+  color:white;
+  padding:8px 16px;
+  border-radius:999px;
+  font-weight:900;
+  font-size:14px;
+  box-shadow:0 4px 10px rgba(0,0,0,.15);
+}
+
+.section-title{
+  font-weight:900;
+  margin:18px 0 8px;
+  padding-left:10px;
+  border-left:5px solid var(--accent);
+}
+
+.chart-box{
+  width:100%;
+  height:700px;
+  border-radius:12px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  margin-bottom:20px;
+}
+
+.note{
+  text-align:center;
+  font-size:12px;
+  color:#6b7280;
+}
+</style>
+</head>
+
+<body>
+<div class="wrapper">
+
+<h1>PORTAFOLIO GERARDO RÍOS QUEZADA</h1>
+
+<div class="topbar">
+  <div class="pill" id="lastRefresh">Última actualización: —</div>
+  <div class="pill">
+    Auto-refresco:
+    <select id="refreshSelect" class="select">
+      <option value="30">30s</option>
+      <option value="60" selected>60s</option>
+      <option value="120">2 min</option>
+      <option value="300">5 min</option>
+    </select>
+  </div>
+  <div class="pill">Moneda: MXN</div>
+</div>
+
+<!-- GFNORTE -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">GFNORTE O</div>
+    <div class="cost-badge">Costo: $180.544 MXN</div>
+  </div>
+  <div class="section-title">Gráfica Diaria</div>
+  <div id="gfnorte_d" class="chart-box"></div>
+  <div class="section-title">Gráfica Mensual</div>
+  <div id="gfnorte_m" class="chart-box"></div>
+</div>
+
+<!-- NAFTRAC -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">NAFTRAC ISHRS</div>
+    <div class="cost-badge">Costo: $69.215 MXN</div>
+  </div>
+  <div class="section-title">Gráfica Diaria</div>
+  <div id="naf_d" class="chart-box"></div>
+  <div class="section-title">Gráfica Mensual</div>
+  <div id="naf_m" class="chart-box"></div>
+</div>
+
+<!-- PGJ -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">PGJ</div>
+    <div class="cost-badge">Costo: $573.750 MXN</div>
+  </div>
+  <div class="section-title">Gráfica Diaria</div>
+  <div id="pgj_d" class="chart-box"></div>
+  <div class="section-title">Gráfica Mensual</div>
+  <div id="pgj_m" class="chart-box"></div>
+</div>
+
+<!-- VOO -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">VOO</div>
+    <div class="cost-badge">Costo: $10,225.270 MXN</div>
+  </div>
+  <div class="section-title">Gráfica Diaria</div>
+  <div id="voo_d" class="chart-box"></div>
+  <div class="section-title">Gráfica Mensual</div>
+  <div id="voo_m" class="chart-box"></div>
+</div>
+
+<!-- VUAA -->
+<div class="stock-card">
+  <div class="ticker-row">
+    <div class="ticker">VUAA N</div>
+    <div class="cost-badge">Costo: $1,868.580 MXN</div>
+  </div>
+  <div class="section-title">Gráfica Diaria</div>
+  <div id="vuaa_d" class="chart-box"></div>
+  <div class="section-title">Gráfica Mensual</div>
+  <div id="vuaa_m" class="chart-box"></div>
+</div>
+
+<div class="note">
+Dashboard con TradingView – Refresco automático activo.
+</div>
+
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<script>
+const SYMBOLS = {
+  GFNORTE: "BIVA:GFNORTE/O",
+  NAFTRAC: "BIVA:NAFTRAC/ISHRS",
+  PGJ:     "BIVA:PGJ",
+  VOO:     "BIVA:VOO",
+  VUAA:    "BIVA:VUAA/N"
+};
+
+const CHARTS = [
+  { id:"gfnorte_d", symbol: SYMBOLS.GFNORTE, interval:"D" },
+  { id:"gfnorte_m", symbol: SYMBOLS.GFNORTE, interval:"M" },
+  { id:"naf_d", symbol: SYMBOLS.NAFTRAC, interval:"D" },
+  { id:"naf_m", symbol: SYMBOLS.NAFTRAC, interval:"M" },
+  { id:"pgj_d", symbol: SYMBOLS.PGJ, interval:"D" },
+  { id:"pgj_m", symbol: SYMBOLS.PGJ, interval:"M" },
+  { id:"voo_d", symbol: SYMBOLS.VOO, interval:"D" },
+  { id:"voo_m", symbol: SYMBOLS.VOO, interval:"M" },
+  { id:"vuaa_d", symbol: SYMBOLS.VUAA, interval:"D" },
+  { id:"vuaa_m", symbol: SYMBOLS.VUAA, interval:"M" }
+];
+
+function buildWidget(container_id, symbol, interval){
+  const el = document.getElementById(container_id);
+  el.innerHTML = "";
+
+  new TradingView.widget({
+    container_id,
+    width: "100%",
+    height: 700,
+    symbol,
+    interval,
+    timezone: "America/Mexico_City",
+    theme: "light",
+    style: "1",
+    locale: "es",
+    allow_symbol_change: false
+  });
+}
+
+function renderAll(){
+  CHARTS.forEach(c => buildWidget(c.id, c.symbol, c.interval));
+  document.getElementById("lastRefresh").textContent =
+    "Última actualización: " +
+    new Date().toLocaleString("es-MX",{hour12:false});
+}
+
+let timer;
+function setAutoRefresh(sec){
+  clearInterval(timer);
+  timer = setInterval(renderAll, sec * 1000);
+}
+
+document.getElementById("refreshSelect").addEventListener("change",(e)=>{
+  setAutoRefresh(Number(e.target.value));
+});
+
+renderAll();
+setAutoRefresh(Number(document.getElementById("refreshSelect").value));
+</script>
+
+</body>
+</html>
