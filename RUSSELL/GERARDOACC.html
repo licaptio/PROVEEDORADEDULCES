@@ -25,13 +25,13 @@ body{
   color:var(--text);
 }
 
-.wrapper{max-width:1200px;margin:auto}
+.wrapper{max-width:1100px;margin:auto}
 
 h1{
   text-align:center;
   color:var(--accent);
   margin-bottom:25px;
-  font-size:30px;
+  font-size:28px;
   font-weight:900;
 }
 
@@ -40,7 +40,7 @@ h1{
   gap:10px;
   justify-content:center;
   align-items:center;
-  margin-bottom:30px;
+  margin-bottom:25px;
   flex-wrap:wrap;
 }
 
@@ -63,47 +63,43 @@ h1{
   background:var(--card);
   border:1px solid var(--border);
   border-radius:var(--radius);
-  padding:24px;
-  margin-bottom:45px;
-  box-shadow:0 8px 25px rgba(0,0,0,.05);
-}
-
-.ticker-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:15px;
+  padding:22px;
+  margin-bottom:40px;
+  box-shadow:0 6px 18px rgba(0,0,0,.05);
 }
 
 .ticker{
-  font-size:22px;
+  font-size:20px;
   font-weight:900;
+  margin-bottom:10px;
 }
 
 .cost-badge{
   background:var(--accent);
   color:white;
-  padding:8px 16px;
+  padding:6px 14px;
   border-radius:999px;
   font-weight:900;
-  font-size:14px;
-  box-shadow:0 4px 10px rgba(0,0,0,.15);
+  font-size:13px;
+  margin-bottom:12px;
+  display:inline-block;
 }
 
 .section-title{
   font-weight:900;
-  margin:18px 0 8px;
+  margin:16px 0 6px;
   padding-left:10px;
   border-left:5px solid var(--accent);
 }
 
 .chart-box{
   width:100%;
-  height:700px;
+  height:420px; /* optimizado */
   border-radius:12px;
   overflow:hidden;
   border:1px solid var(--border);
-  margin-bottom:20px;
+  margin-bottom:18px;
+  background:#f8fafc;
 }
 
 .note{
@@ -135,66 +131,66 @@ h1{
 
 <!-- GFNORTE -->
 <div class="stock-card">
-  <div class="ticker-row">
-    <div class="ticker">GFNORTE O</div>
-    <div class="cost-badge">Costo: $180.544 MXN</div>
-  </div>
-  <div class="section-title">Gráfica Diaria</div>
-  <div id="gfnorte_d" class="chart-box"></div>
-  <div class="section-title">Gráfica Mensual</div>
-  <div id="gfnorte_m" class="chart-box"></div>
+  <div class="ticker">GFNORTE O</div>
+  <div class="cost-badge">$180.544 MXN</div>
+
+  <div class="section-title">Diaria</div>
+  <div id="gfnorte_d" class="chart-box" data-symbol="BIVA:GFNORTE/O" data-interval="D"></div>
+
+  <div class="section-title">Mensual</div>
+  <div id="gfnorte_m" class="chart-box" data-symbol="BIVA:GFNORTE/O" data-interval="M"></div>
 </div>
 
 <!-- NAFTRAC -->
 <div class="stock-card">
-  <div class="ticker-row">
-    <div class="ticker">NAFTRAC ISHRS</div>
-    <div class="cost-badge">Costo: $69.215 MXN</div>
-  </div>
-  <div class="section-title">Gráfica Diaria</div>
-  <div id="naf_d" class="chart-box"></div>
-  <div class="section-title">Gráfica Mensual</div>
-  <div id="naf_m" class="chart-box"></div>
+  <div class="ticker">NAFTRAC ISHRS</div>
+  <div class="cost-badge">$69.215 MXN</div>
+
+  <div class="section-title">Diaria</div>
+  <div id="naf_d" class="chart-box" data-symbol="BIVA:NAFTRAC/ISHRS" data-interval="D"></div>
+
+  <div class="section-title">Mensual</div>
+  <div id="naf_m" class="chart-box" data-symbol="BIVA:NAFTRAC/ISHRS" data-interval="M"></div>
 </div>
 
 <!-- PGJ -->
 <div class="stock-card">
-  <div class="ticker-row">
-    <div class="ticker">PGJ</div>
-    <div class="cost-badge">Costo: $573.750 MXN</div>
-  </div>
-  <div class="section-title">Gráfica Diaria</div>
-  <div id="pgj_d" class="chart-box"></div>
-  <div class="section-title">Gráfica Mensual</div>
-  <div id="pgj_m" class="chart-box"></div>
+  <div class="ticker">PGJ</div>
+  <div class="cost-badge">$573.750 MXN</div>
+
+  <div class="section-title">Diaria</div>
+  <div id="pgj_d" class="chart-box" data-symbol="BIVA:PGJ" data-interval="D"></div>
+
+  <div class="section-title">Mensual</div>
+  <div id="pgj_m" class="chart-box" data-symbol="BIVA:PGJ" data-interval="M"></div>
 </div>
 
 <!-- VOO -->
 <div class="stock-card">
-  <div class="ticker-row">
-    <div class="ticker">VOO</div>
-    <div class="cost-badge">Costo: $10,225.270 MXN</div>
-  </div>
-  <div class="section-title">Gráfica Diaria</div>
-  <div id="voo_d" class="chart-box"></div>
-  <div class="section-title">Gráfica Mensual</div>
-  <div id="voo_m" class="chart-box"></div>
+  <div class="ticker">VOO</div>
+  <div class="cost-badge">$10,225.270 MXN</div>
+
+  <div class="section-title">Diaria</div>
+  <div id="voo_d" class="chart-box" data-symbol="BIVA:VOO" data-interval="D"></div>
+
+  <div class="section-title">Mensual</div>
+  <div id="voo_m" class="chart-box" data-symbol="BIVA:VOO" data-interval="M"></div>
 </div>
 
 <!-- VUAA -->
 <div class="stock-card">
-  <div class="ticker-row">
-    <div class="ticker">VUAA N</div>
-    <div class="cost-badge">Costo: $1,868.580 MXN</div>
-  </div>
-  <div class="section-title">Gráfica Diaria</div>
-  <div id="vuaa_d" class="chart-box"></div>
-  <div class="section-title">Gráfica Mensual</div>
-  <div id="vuaa_m" class="chart-box"></div>
+  <div class="ticker">VUAA N</div>
+  <div class="cost-badge">$1,868.580 MXN</div>
+
+  <div class="section-title">Diaria</div>
+  <div id="vuaa_d" class="chart-box" data-symbol="BIVA:VUAA/N" data-interval="D"></div>
+
+  <div class="section-title">Mensual</div>
+  <div id="vuaa_m" class="chart-box" data-symbol="BIVA:VUAA/N" data-interval="M"></div>
 </div>
 
 <div class="note">
-Dashboard con TradingView – Refresco automático activo.
+Dashboard optimizado con carga diferida.
 </div>
 
 </div>
@@ -202,47 +198,54 @@ Dashboard con TradingView – Refresco automático activo.
 <script src="https://s3.tradingview.com/tv.js"></script>
 
 <script>
-const SYMBOLS = {
-  GFNORTE: "BIVA:GFNORTE/O",
-  NAFTRAC: "BIVA:NAFTRAC/ISHRS",
-  PGJ:     "BIVA:PGJ",
-  VOO:     "BIVA:VOO",
-  VUAA:    "BIVA:VUAA/N"
-};
+const loadedCharts = new Set();
 
-const CHARTS = [
-  { id:"gfnorte_d", symbol: SYMBOLS.GFNORTE, interval:"D" },
-  { id:"gfnorte_m", symbol: SYMBOLS.GFNORTE, interval:"M" },
-  { id:"naf_d", symbol: SYMBOLS.NAFTRAC, interval:"D" },
-  { id:"naf_m", symbol: SYMBOLS.NAFTRAC, interval:"M" },
-  { id:"pgj_d", symbol: SYMBOLS.PGJ, interval:"D" },
-  { id:"pgj_m", symbol: SYMBOLS.PGJ, interval:"M" },
-  { id:"voo_d", symbol: SYMBOLS.VOO, interval:"D" },
-  { id:"voo_m", symbol: SYMBOLS.VOO, interval:"M" },
-  { id:"vuaa_d", symbol: SYMBOLS.VUAA, interval:"D" },
-  { id:"vuaa_m", symbol: SYMBOLS.VUAA, interval:"M" }
-];
+function buildWidget(el){
+  const id = el.id;
+  const symbol = el.dataset.symbol;
+  const interval = el.dataset.interval;
 
-function buildWidget(container_id, symbol, interval){
-  const el = document.getElementById(container_id);
   el.innerHTML = "";
 
   new TradingView.widget({
-    container_id,
+    container_id: id,
     width: "100%",
-    height: 700,
+    height: 420,
     symbol,
     interval,
     timezone: "America/Mexico_City",
     theme: "light",
     style: "1",
     locale: "es",
-    allow_symbol_change: false
+    allow_symbol_change: false,
+    hide_top_toolbar: true,
+    hide_legend: true
   });
+
+  loadedCharts.add(id);
 }
 
-function renderAll(){
-  CHARTS.forEach(c => buildWidget(c.id, c.symbol, c.interval));
+// Lazy load
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      buildWidget(entry.target);
+      observer.unobserve(entry.target);
+    }
+  });
+},{threshold:0.25});
+
+document.querySelectorAll(".chart-box").forEach(box=>{
+  observer.observe(box);
+});
+
+// Refresco inteligente
+function refreshVisible(){
+  loadedCharts.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) buildWidget(el);
+  });
+
   document.getElementById("lastRefresh").textContent =
     "Última actualización: " +
     new Date().toLocaleString("es-MX",{hour12:false});
@@ -251,14 +254,14 @@ function renderAll(){
 let timer;
 function setAutoRefresh(sec){
   clearInterval(timer);
-  timer = setInterval(renderAll, sec * 1000);
+  timer = setInterval(refreshVisible, sec*1000);
 }
 
-document.getElementById("refreshSelect").addEventListener("change",(e)=>{
-  setAutoRefresh(Number(e.target.value));
-});
+document.getElementById("refreshSelect")
+  .addEventListener("change",(e)=>{
+    setAutoRefresh(Number(e.target.value));
+  });
 
-renderAll();
 setAutoRefresh(Number(document.getElementById("refreshSelect").value));
 </script>
 
