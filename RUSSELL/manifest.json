@@ -1,8 +1,9 @@
 [
-  { "nombre": "BLANCA ACC", "archivo": "BLANCAACC.html" },
+  { "nombre": "BLANCA VERONICA PORFOLIO", "archivo": "BLANCAACC.html" },
+  { "nombre": "GERARDO RIOS PORTAFOLIO", "archivo": "GERARDOACC.html" },
+  { "nombre": "SERGIO ACC", "archivo": "SERGIOACC.html" },
   { "nombre": "CONVERZAP", "archivo": "CONVERZAP.html" },
   { "nombre": "DEUDA OLD PDD", "archivo": "DEUDAOLDPDD.html" },
-  { "nombre": "GERARDO ACC", "archivo": "GERARDOACC.html" },
   { "nombre": "INVENTARIO TEORICO CIG PDD", "archivo": "INVTEORICOCIGPDD.html" },
   { "nombre": "KARTAMUS", "archivo": "KARTAMUS.html" },
   { "nombre": "NUTRI", "archivo": "NUTRI.html" },
@@ -10,9 +11,7 @@
   { "nombre": "PEDIDO PDD 26", "archivo": "PEDIDOPDD26.html" },
   { "nombre": "PRONTOS PAGO", "archivo": "PPPAGOPDD.html" },
   { "nombre": "PROVEEDORES ESPECIALES", "archivo": "PROVESPE.html" },
-  { "nombre": "SERGIO ACC", "archivo": "SERGIOACC.html" },
   { "nombre": "TAURO CAR RUSSELL", "archivo": "TAUROCARRUSSELL.html" },
-  { "nombre": "ACCIONES", "archivo": "VAccionesAC.html" },
   { "nombre": "SALIDAS CIGARRO", "archivo": "VCigarro.html" },
   { "nombre": "SALIDAS DULCE", "archivo": "VDulce.html" },
   { "nombre": "SALIDAS LIQUIDO", "archivo": "VLiquidos.html" },
@@ -20,6 +19,4 @@
   { "nombre": "ZAPATA", "archivo": "VZapata.html" },
   { "nombre": "VENTAS PDD 26", "archivo": "Vventaspdd26.html" },
   { "nombre": "LIQUIDOS TRACK", "archivo": "liquidosTrack.html" },
-  { "nombre": "KARDEX GENERAL", "archivo": "kardex.html" },
-  { "nombre": "PEDIDO VISOR", "archivo": "pedido_visor.html" }
 ]
