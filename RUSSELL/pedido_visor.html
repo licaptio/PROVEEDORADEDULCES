@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Visor Pedido – PDD</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{font-family:Arial;background:#f4f6f9;margin:0;padding:20px}
+.card{max-width:1100px;margin:auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 3px 12px rgba(0,0,0,.08)}
+.label{font-weight:bold}
+.badge{display:inline-block;padding:6px 12px;border-radius:999px;background:#eee;font-size:13px}
+button{padding:6px 12px;border-radius:8px;border:0;background:#111;color:#fff;cursor:pointer}
+.btnDanger{background:#b00020}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:15px}
+.thumb{background:#fafafa;border:1px solid #ddd;border-radius:10px;padding:8px}
+.thumb img{width:100%;height:130px;object-fit:cover;border-radius:6px}
+.thumbName{font-size:12px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.actions{display:flex;justify-content:space-between;margin-top:6px}
+input[type=file]{display:none}
+.topActions{margin-top:15px;display:flex;gap:10px}
+</style>
+</head>
+<body>
+
+<div class="card">
+
+<button onclick="history.back()">← Volver</button>
+
+<h2>Visor de Pedido</h2>
+
+<div id="info"></div>
+
+<div class="topActions">
+  <button onclick="document.getElementById('fileInput').click()">+ Agregar Fotos</button>
+  <input type="file" id="fileInput" multiple>
+</div>
+
+<h3 style="margin-top:20px">Archivos</h3>
+<div id="grid" class="grid"></div>
+
+</div>
+
+<script>
+const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
+const BUCKET = "pedidospdd";
+  
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let pedidoActual = null;
+
+function qp(name){
+  return new URLSearchParams(window.location.search).get(name);
+}
+
+function getPublicUrl(path){
+  return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+async function cargarPedido(){
+
+  const id = qp("id");
+
+  const { data, error } = await sb
+    .from("pedidos_pdd")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if(error){
+    document.getElementById("info").innerHTML = "Error cargando pedido";
+    return;
+  }
+
+  pedidoActual = data;
+
+  document.getElementById("info").innerHTML = `
+    <div><span class="label">Proveedor:</span> ${data.proveedor_nombre}</div>
+    <div><span class="label">Fecha:</span> ${data.pedido_fecha}</div>
+    <div><span class="label">Estatus:</span> <span class="badge">${data.estatus}</span></div>
+    <div><span class="label">Notas:</span> ${data.notas || ""}</div>
+  `;
+
+  renderFotos();
+}
+
+function renderFotos(){
+
+  const grid = document.getElementById("grid");
+  const fotos = pedidoActual.fotos || [];
+
+  if(fotos.length === 0){
+    grid.innerHTML = "Sin archivos";
+    return;
+  }
+
+  grid.innerHTML = fotos.map(path=>{
+    const url = getPublicUrl(path);
+    const name = path.split("/").pop();
+
+    return `
+      <div class="thumb">
+        <img src="${url}" onclick="window.open('${url}','_blank')">
+        <div class="thumbName">${name}</div>
+        <div class="actions">
+          <button onclick="window.open('${url}','_blank')">Abrir</button>
+          <button class="btnDanger" onclick="eliminarFoto('${path}')">Eliminar</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function eliminarFoto(path){
+
+  if(!confirm("¿Eliminar esta foto?")) return;
+
+  // 1️⃣ borrar del bucket
+  const { error } = await sb.storage.from(BUCKET).remove([path]);
+  if(error){
+    alert("Error eliminando archivo");
+    return;
+  }
+
+  // 2️⃣ quitar del array
+  pedidoActual.fotos = pedidoActual.fotos.filter(f => f !== path);
+
+  // 3️⃣ actualizar tabla
+  const { error: e2 } = await sb
+    .from("pedidos_pdd")
+    .update({ fotos: pedidoActual.fotos })
+    .eq("id", pedidoActual.id);
+
+  if(e2){
+    alert("Error actualizando base");
+    return;
+  }
+
+  renderFotos();
+}
+
+document.getElementById("fileInput").addEventListener("change", async (e)=>{
+
+  const files = Array.from(e.target.files || []);
+  if(files.length === 0) return;
+
+  for(let file of files){
+
+    const path = `${pedidoActual.id}/${Date.now()}_${file.name}`;
+
+    const { error } = await sb.storage
+      .from(BUCKET)
+      .upload(path, file, { upsert:false });
+
+    if(error){
+      alert("Error subiendo archivo");
+      return;
+    }
+
+    pedidoActual.fotos = pedidoActual.fotos || [];
+    pedidoActual.fotos.push(path);
+  }
+
+  await sb
+    .from("pedidos_pdd")
+    .update({ fotos: pedidoActual.fotos })
+    .eq("id", pedidoActual.id);
+
+  renderFotos();
+  e.target.value = "";
+});
+
+cargarPedido();
+</script>
+
+</body>
+</html>
