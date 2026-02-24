@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PORTAFOLIO SERGIO AGUAYO</title>
+
+<style>
+:root{
+  --bg:#eef2f7;
+  --card:#ffffff;
+  --border:#dfe6ee;
+  --text:#0f172a;
+  --muted:#6b7280;
+  --accent:#ff6b00;
+  --radius:16px;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:"Segoe UI", Arial, sans-serif;
+  background:var(--bg);
+  padding:28px;
+  color:var(--text);
+}
+
+.wrapper{max-width:1200px;margin:0 auto}
+
+h1{
+  text-align:center;
+  color:var(--accent);
+  margin:0 0 22px 0;
+  font-size:30px;
+  font-weight:900;
+  letter-spacing:.4px;
+}
+
+.topbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  align-items:center;
+  margin-bottom:22px;
+}
+
+.pill{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:10px 12px;
+  font-size:13px;
+  font-weight:800;
+  color:#111827;
+}
+
+.select{
+  appearance:none;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px 12px;
+  font-size:13px;
+  font-weight:800;
+  color:#111827;
+}
+
+.stock-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:24px;
+  margin-bottom:40px;
+  box-shadow:0 6px 20px rgba(0,0,0,.06);
+}
+
+.stock-header{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:baseline;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+.ticker{
+  font-size:22px;
+  font-weight:950;
+}
+
+.section-title{
+  font-size:15px;
+  font-weight:900;
+  margin:16px 0 8px;
+  padding-left:10px;
+  border-left:5px solid var(--accent);
+}
+
+.cost-label{
+  font-size:14px;
+  font-weight:900;
+  color:#0b1220;
+  margin:0 0 8px 0;
+}
+
+.chart-box{
+  width:100%;
+  height:700px; /* MISMO ALTO PC y TABLET */
+  border-radius:12px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  margin-bottom:16px;
+}
+
+.note{
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+<div class="wrapper">
+  <h1>PORTAFOLIO SERGIO AGUAYO</h1>
+
+  <div class="topbar">
+    <div class="pill" id="lastRefresh">Última actualización: —</div>
+
+    <label class="pill">
+      Auto-refresco:
+      <select class="select" id="refreshSelect">
+        <option value="30">Cada 30s</option>
+        <option value="60" selected>Cada 60s</option>
+        <option value="120">Cada 2 min</option>
+        <option value="300">Cada 5 min</option>
+      </select>
+    </label>
+
+    <div class="pill">Moneda objetivo: MXN (usa símbolos BIVA/BMV)</div>
+  </div>
+
+  <!-- ================= AC ================= -->
+  <div class="stock-card">
+    <div class="stock-header">
+      <div class="ticker">AC</div>
+    </div>
+
+    <div class="section-title">Gráfica Diaria</div>
+    <div class="cost-label">Costo Promedio: $207.580 MXN</div>
+    <div id="ac_d" class="chart-box"></div>
+
+    <div class="section-title">Gráfica Mensual</div>
+    <div class="cost-label">Costo Promedio: $207.580 MXN</div>
+    <div id="ac_m" class="chart-box"></div>
+  </div>
+
+  <!-- ================= AMZN ================= -->
+  <div class="stock-card">
+    <div class="stock-header">
+      <div class="ticker">AMZN</div>
+    </div>
+
+    <div class="section-title">Gráfica Diaria</div>
+    <div class="cost-label">Costo Promedio: $3,449.680 MXN</div>
+    <div id="amzn_d" class="chart-box"></div>
+
+    <div class="section-title">Gráfica Mensual</div>
+    <div class="cost-label">Costo Promedio: $3,449.680 MXN</div>
+    <div id="amzn_m" class="chart-box"></div>
+  </div>
+
+  <!-- ================= LIVEPOL ================= -->
+  <div class="stock-card">
+    <div class="stock-header">
+      <div class="ticker">LIVEPOL C-1</div>
+    </div>
+
+    <div class="section-title">Gráfica Diaria</div>
+    <div class="cost-label">Costo Promedio: $105.960 MXN</div>
+    <div id="livepol_d" class="chart-box"></div>
+
+    <div class="section-title">Gráfica Mensual</div>
+    <div class="cost-label">Costo Promedio: $105.960 MXN</div>
+    <div id="livepol_m" class="chart-box"></div>
+  </div>
+
+  <!-- ================= NAFTRAC ================= -->
+  <div class="stock-card">
+    <div class="stock-header">
+      <div class="ticker">NAFTRAC ISHRS</div>
+    </div>
+
+    <div class="section-title">Gráfica Diaria</div>
+    <div class="cost-label">Costo Promedio: $66.868 MXN</div>
+    <div id="naf_d" class="chart-box"></div>
+
+    <div class="section-title">Gráfica Mensual</div>
+    <div class="cost-label">Costo Promedio: $66.868 MXN</div>
+    <div id="naf_m" class="chart-box"></div>
+  </div>
+
+  <!-- ================= VOO ================= -->
+  <div class="stock-card">
+    <div class="stock-header">
+      <div class="ticker">VOO</div>
+    </div>
+
+    <div class="section-title">Gráfica Diaria</div>
+    <div class="cost-label">Costo Promedio: $10,862.500 MXN</div>
+    <div id="voo_d" class="chart-box"></div>
+
+    <div class="section-title">Gráfica Mensual</div>
+    <div class="cost-label">Costo Promedio: $10,862.500 MXN</div>
+    <div id="voo_m" class="chart-box"></div>
+  </div>
+
+  <div class="note">
+    Tip: si tu objetivo es “trading” intradía, conviene agregar gráficos 1m/5m/15m además de Diario/Mensual.
+  </div>
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+
+<script>
+/*
+  IMPORTANTE (MXN):
+  - Para que sea MXN, el símbolo debe ser el que cotiza en MXN en BIVA/BMV.
+  - Si algún símbolo te aparece en otra divisa o no carga, cámbialo a BMV:* o al ticker correcto de SIC/mercado.
+*/
+const SYMBOLS = {
+  AC:      "BIVA:AC",
+  AMZN:    "BIVA:AMZN",
+  LIVEPOL: "BIVA:LIVEPOL/C-1",
+  NAFTRAC: "BIVA:NAFTRAC/ISHRS",
+  VOO:     "BIVA:VOO"
+};
+
+const CHARTS = [
+  { id:"ac_d",      symbol: SYMBOLS.AC,      interval:"D" },
+  { id:"ac_m",      symbol: SYMBOLS.AC,      interval:"M" },
+  { id:"amzn_d",    symbol: SYMBOLS.AMZN,    interval:"D" },
+  { id:"amzn_m",    symbol: SYMBOLS.AMZN,    interval:"M" },
+  { id:"livepol_d", symbol: SYMBOLS.LIVEPOL, interval:"D" },
+  { id:"livepol_m", symbol: SYMBOLS.LIVEPOL, interval:"M" },
+  { id:"naf_d",     symbol: SYMBOLS.NAFTRAC, interval:"D" },
+  { id:"naf_m",     symbol: SYMBOLS.NAFTRAC, interval:"M" },
+  { id:"voo_d",     symbol: SYMBOLS.VOO,     interval:"D" },
+  { id:"voo_m",     symbol: SYMBOLS.VOO,     interval:"M" }
+];
+
+function buildWidget(container_id, symbol, interval){
+  // Limpia el contenedor para recrear el widget (refresco real)
+  const el = document.getElementById(container_id);
+  if (el) el.innerHTML = "";
+
+  new TradingView.widget({
+    container_id,
+    width: "100%",
+    height: 700,
+    symbol,
+    interval,
+    timezone: "America/Mexico_City",
+    theme: "light",
+    style: "1",
+    locale: "es",
+    allow_symbol_change: false,
+    hide_top_toolbar: false
+  });
+}
+
+function renderAll(){
+  for (const c of CHARTS) buildWidget(c.id, c.symbol, c.interval);
+
+  const now = new Date();
+  const stamp = now.toLocaleString("es-MX", { hour12:false });
+  document.getElementById("lastRefresh").textContent = "Última actualización: " + stamp;
+}
+
+// ===== Auto-refresco configurable =====
+let timer = null;
+
+function setAutoRefresh(seconds){
+  if (timer) clearInterval(timer);
+  timer = setInterval(renderAll, seconds * 1000);
+}
+
+document.getElementById("refreshSelect").addEventListener("change", (e)=>{
+  setAutoRefresh(Number(e.target.value));
+});
+
+// Inicial
+renderAll();
+setAutoRefresh(Number(document.getElementById("refreshSelect").value));
+</script>
+</body>
+</html>
