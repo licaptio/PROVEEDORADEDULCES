@@ -149,16 +149,14 @@ async function cargarPedidos(){
   const { data, error } = await sb
     .from("pedidos_pdd")
     .select("*")
-    .order("pedido_fecha", { ascending:false });
+    .order("created_at", { ascending:false });
 
   if(error){
     console.error(error);
     return;
   }
 
-  const pendientes = data
-  .filter(p => p.estatus !== "SURTIDO")
-  .sort((a,b)=> new Date(b.pedido_fecha) - new Date(a.pedido_fecha));
+  const pendientes = data.filter(p => p.estatus !== "SURTIDO");
 
   if(pendientes.length === 0){
     document.getElementById("empty").style.display = "block";
@@ -167,7 +165,9 @@ async function cargarPedidos(){
 
   document.getElementById("grid").innerHTML = pendientes.map(p => `
     <div class="card" id="card-${p.id}">
-      <div class="fecha">${p.pedido_fecha}</div>
+      <div class="fecha">
+        ${new Date(p.created_at).toLocaleString('es-MX',{timeZone:'America/Monterrey'})}
+      </div>
       <div class="proveedor">${p.proveedor_nombre}</div>
       <div class="badge">${p.estatus}</div>
 
