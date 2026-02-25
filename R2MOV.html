@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Conexión Firestore</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#f4f6f9;
+      padding:40px;
+    }
+    .card{
+      background:white;
+      padding:30px;
+      border-radius:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,.08);
+      max-width:500px;
+    }
+    .ok{color:#16a34a;}
+    .error{color:#dc2626;}
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Test Firestore</h2>
+  <div id="status">Conectando...</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const status = document.getElementById("status");
+
+console.log("Proyecto activo:", app.options.projectId);
+
+async function testConnection(){
+  try {
+    const testRef = collection(db, "inventarios2");
+    const snap = await getDocs(testRef);
+
+    status.innerHTML = `
+      <p class="ok">✔ Conexión exitosa</p>
+      <p>Documentos encontrados: <strong>${snap.size}</strong></p>
+    `;
+
+    console.log("Conexión OK. Documentos encontrados:", snap.size);
+
+  } catch (e) {
+    status.innerHTML = `
+      <p class="error">✖ Error de conexión</p>
+      <pre>${e.message}</pre>
+    `;
+
+    console.error("Error real:", e);
+  }
+}
+
+testConnection();
+</script>
+
+</body>
+</html>
