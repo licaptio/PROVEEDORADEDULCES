@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Cerrar Toma Física</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  padding:40px;
+}
+.card{
+  background:#fff;
+  padding:30px;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,.08);
+  max-width:600px;
+}
+button{
+  padding:12px 20px;
+  font-size:15px;
+  border:none;
+  background:#0c4a6e;
+  color:white;
+  border-radius:8px;
+  cursor:pointer;
+}
+button:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+.progress-container{
+  width:100%;
+  background:#ddd;
+  border-radius:8px;
+  margin-top:20px;
+  overflow:hidden;
+}
+.progress-bar{
+  height:22px;
+  width:0%;
+  background:#16a34a;
+  transition:width .3s ease;
+}
+#status{
+  margin-top:12px;
+  font-size:14px;
+}
+.ok{color:#16a34a;}
+.error{color:#dc2626;}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Cerrar Toma Física</h2>
+  <button id="startBtn">Iniciar proceso</button>
+
+  <div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <div id="status">Esperando acción...</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  writeBatch,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const btn = document.getElementById("startBtn");
+const progressBar = document.getElementById("progressBar");
+const status = document.getElementById("status");
+
+function sleep(ms){
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function commitWithRetry(batch, retries = 3){
+  for(let i=0;i<retries;i++){
+    try{
+      await batch.commit();
+      return;
+    }catch(e){
+      console.warn("Retry", i+1);
+      await sleep(1500);
+    }
+  }
+  throw new Error("Falló definitivamente el batch");
+}
+
+btn.addEventListener("click", async () => {
+
+  btn.disabled = true;
+  progressBar.style.width = "0%";
+  status.innerHTML = "Leyendo documentos...";
+
+  try {
+
+    const origenRef = collection(
+      db,
+      "inventarios2",
+      "Ruta 2 Venta",
+      "usuarios",
+      "Gibran",
+      "escaneos"
+    );
+
+    const snapshot = await getDocs(origenRef);
+
+    if(snapshot.empty){
+      status.innerHTML = "No hay registros para procesar.";
+      btn.disabled = false;
+      return;
+    }
+
+    const total = snapshot.size;
+    let procesados = 0;
+
+    const corteId = new Date()
+      .toISOString()
+      .replace(/T/, "_")
+      .replace(/:/g,"-")
+      .split(".")[0];
+
+    const destinoDoc = doc(
+      db,
+      "almacenes",
+      "Almacen_Ruta_2",
+      "tomafisica",
+      corteId
+    );
+
+    await setDoc(destinoDoc,{
+      fecha: new Date().toLocaleDateString(),
+      hora: new Date().toLocaleTimeString(),
+      creadoEn: serverTimestamp()
+    });
+
+    const docs = snapshot.docs;
+    const chunkSize = 300; // seguro
+
+    for(let i=0;i<docs.length;i+=chunkSize){
+
+      const batch = writeBatch(db);
+      const chunk = docs.slice(i,i+chunkSize);
+
+      chunk.forEach(documento => {
+
+        const destinoEscaneo = doc(
+          db,
+          "almacenes",
+          "Almacen_Ruta_2",
+          "tomafisica",
+          corteId,
+          "escaneos",
+          documento.id
+        );
+
+        batch.set(destinoEscaneo, documento.data());
+        procesados++;
+      });
+
+      await commitWithRetry(batch);
+
+      // Anti saturación
+      await sleep(700);
+
+      let porcentaje = Math.round((procesados/total)*100);
+      progressBar.style.width = porcentaje + "%";
+      status.innerHTML = `Procesados ${procesados} de ${total} (${porcentaje}%)`;
+    }
+
+    status.innerHTML = `<span class="ok">✔ Proceso completado correctamente</span>`;
+
+  } catch (e){
+    console.error(e);
+    status.innerHTML = `<span class="error">✖ Error: ${e.message}</span>`;
+  }
+
+  btn.disabled = false;
+
+});
+</script>
+
+</body>
+</html>
