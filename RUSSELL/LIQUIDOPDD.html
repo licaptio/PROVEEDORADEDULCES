@@ -117,12 +117,18 @@ function showError(msg){
  *  ========================= */
 async function cargarFijaciones(){
   try{
-    const { data, error } = await supabase
-      .from('movimientos_inventario')
-      .select('id,tipo,folio,almacen,usuario,timestamp,productos,nivel_alerta,activa')
-      .eq('tipo','FIJACION')
-      .eq('activa', true)
-      .order('timestamp', { ascending: false });
+const { data, error } = await supabase
+  .from('movimientos_inventario')
+  .select('*')
+  .in('id', [
+    '0457da79-ef2b-4a22-b280-237c2c48b8dc',
+    '33ced1e7-0bb5-44d0-85db-4c54a0a5e0ea',
+    '3fe1773f-ce2f-4b99-a46c-5118bd4f26b8',
+    '4152f230-9d6d-4a04-8b1c-c21e07161336',
+    '72f7ec81-cda9-4453-b751-05ced6f7e606',
+    '85b595ad-6893-479d-b79f-b2215a95dd4e'
+  ])
+  .order('timestamp', { ascending: false });
 
     if(error){
       showError("Error leyendo fijaciones Supabase: " + (error.message || error));
@@ -232,7 +238,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           const obj = resultados.get(sku);
           obj.total += cant;
           obj.eventos.push({
-            fecha: fmtFecha(data.timestamp),
+            fecha: data.fecha || "",
             almacen: src.almacen,
             cantidad: cant
           });
@@ -257,7 +263,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   FIJACIONES.forEach(item=>{
 
-    const info = resultados.get(item.codigo) || { total:0, eventos:[] };
+    const rawInfo = resultados.get(item.codigo) || { total:0, eventos:[] };
+
+const fechaFijacion = new Date(item._timestamp);
+
+const eventosFiltrados = rawInfo.eventos.filter(ev=>{
+  if(!ev.fecha) return false;
+  const fechaSalida = new Date(ev.fecha);
+  return fechaSalida >= fechaFijacion;
+});
+
+const totalFiltrado = eventosFiltrados.reduce((acc,e)=>acc + e.cantidad, 0);
+
+const info = {
+  total: totalFiltrado,
+  eventos: eventosFiltrados
+};
     const restante = item.base - info.total;
 
     const card = document.createElement("div");
@@ -280,7 +301,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const colorRestante = (restante < 0) ? "#b00020" : "#0a6c21";
-
+    const fechaFijacionTexto = fmtFecha(item._timestamp);
     card.innerHTML = `
       <h3 style="margin:0 0 10px 0">${item.desc || "(Sin descripción)"}</h3>
 
@@ -291,7 +312,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div class="kpi"><strong>Restante</strong><span style="color:${colorRestante}">${restante}</span></div>
 
         <!-- extras PC (no estorban en móvil) -->
-        <div class="kpi"><strong>Folio</strong><span>${item._folio || "-"}</span></div>
+        <div class="kpi">
+  <strong>Fecha Fijación</strong>
+  <span>${fechaFijacionTexto}</span>
+</div>
         <div class="kpi"><strong>Almacén (Supa)</strong><span>${item._almacen || "-"}</span></div>
       </div>
 
