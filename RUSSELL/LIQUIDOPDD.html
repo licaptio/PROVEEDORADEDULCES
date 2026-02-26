@@ -69,18 +69,13 @@
 /** =========================
  *  IMPORTS
  *  ========================= */
-import { firebaseConfig } from './config.js'
+import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 
 // Supabase (ESM)
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
-/** =========================
- *  CONFIG SUPABASE (Pega tus credenciales)
- *  ========================= */
-const SUPABASE_URL = "PEGA_AQUI_TU_SUPABASE_URL";
-const SUPABASE_ANON_KEY = "PEGA_AQUI_TU_SUPABASE_ANON_KEY";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /** =========================
