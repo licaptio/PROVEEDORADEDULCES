@@ -1,5 +1,76 @@
-<!-- (Recomendado) contenedores -->
-<div id="errores" style="display:none;margin:12px 0;"></div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Fijaciones Descuentos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#eef1f5;
+      margin:0;
+      padding:20px;
+    }
+
+    .card{
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,.12);
+      padding:14px;
+      margin:12px 0;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+
+    th, td{
+      padding:8px;
+      border-bottom:1px solid #e5e7eb;
+    }
+
+    th{
+      text-align:left;
+    }
+
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+      margin-bottom:12px;
+    }
+
+    .kpi{
+      background:#f6f7fb;
+      border-radius:12px;
+      padding:10px;
+    }
+
+    .kpi strong{
+      display:block;
+      font-size:12px;
+      color:#555;
+    }
+
+    .kpi span{
+      font-weight:700;
+    }
+
+    #errores{
+      display:none;
+      margin-bottom:10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Control de Fijaciones</h2>
+
+<div id="errores"></div>
 <div id="grid"></div>
 
 <script type="module">
@@ -7,9 +78,6 @@ import { firebaseConfig } from './config.js'
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 
-// =====================
-// CONFIG / DATA
-// =====================
 const FIJACIONES = [
   {"codigo":"010040","base":65,"desc":"HARI MASA 10/1 KGR"},
   {"codigo":"7501048102501","base":1200,"desc":"ACEITE KARTAMUS 900 ML"},
@@ -19,9 +87,6 @@ const FIJACIONES = [
   {"codigo":"7501020540666","base":6480,"desc":"LECHE NUTRI LECHE 1 LTO"}
 ];
 
-// =====================
-// HELPERS
-// =====================
 function normalize(p){
   if(!p) return [];
   if(Array.isArray(p)) return p;
@@ -32,196 +97,126 @@ function normalize(p){
   return [];
 }
 
-function skuKey(x){
-  return String(x ?? "").trim();
-}
-
 function fmtFecha(ts){
   try{
     if(ts?.toDate) return ts.toDate().toLocaleString();
-    if(ts instanceof Date) return ts.toLocaleString();
-    if(typeof ts === "string") return ts;
   }catch{}
   return "";
 }
 
-function showError(titulo, err){
-  console.error(titulo, err);
+function showError(msg){
   const box = document.getElementById("errores");
-  if(!box) { alert(titulo); return; }
   box.style.display = "block";
-  box.innerHTML += `
-    <div style="background:#fff3cd;border:1px solid #ffe69c;padding:10px;border-radius:12px;margin:8px 0;">
-      <strong>${titulo}</strong><br>
-      <small>${(err && (err.message || JSON.stringify(err))) || ""}</small>
-    </div>
-  `;
+  box.innerHTML += `<div style="background:#fff3cd;padding:10px;border-radius:10px;margin:8px 0;">${msg}</div>`;
 }
 
-function esc(s){
-  return String(s ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-// =====================
-// MAIN
-// =====================
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1) grid seguro (si no existe, lo creo)
-  let grid = document.getElementById("grid");
-  if(!grid){
-    grid = document.createElement("div");
-    grid.id = "grid";
-    document.body.appendChild(grid);
-  }
 
-  // loader
-  grid.innerHTML = `
-    <div style="padding:14px;background:#fff;border-radius:14px;box-shadow:0 3px 10px rgba(0,0,0,.12);">
-      Cargando salidas...
-    </div>
-  `;
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "Cargando...";
 
-  // 2) init firebase
   let db;
+
   try{
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
   }catch(e){
-    showError("Falla al inicializar Firebase. Revisa ./config.js (ruta y export firebaseConfig).", e);
-    grid.innerHTML = "";
+    showError("Error inicializando Firebase. Revisa config.js");
     return;
   }
 
-  // 3) fuentes (colecciones)
   const sources = [
-    { almacen:"Almacen_Dulces",   col: collection(db, "almacenes", "Almacen_Dulces", "salidas") },
-    { almacen:"Almacen_Liquidos", col: collection(db, "almacenes", "Almacen_Liquidos", "salidas") }
+    { almacen:"Almacen_Dulces", col: collection(db,"almacenes","Almacen_Dulces","salidas") },
+    { almacen:"Almacen_Liquidos", col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
   ];
 
-  // 4) mapa de resultados por SKU
-  const skuSet = new Set(FIJACIONES.map(x => skuKey(x.codigo)));
-  const res = new Map(); // sku -> { totalDescuento, eventos[] }
+  const resultados = new Map();
 
-  function ensureSKU(sku){
-    if(!res.has(sku)){
-      res.set(sku, { totalDescuento: 0, eventos: [] });
-    }
-    return res.get(sku);
-  }
-
-  // 5) leer cada fuente UNA sola vez (en paralelo)
-  await Promise.all(sources.map(async (src) => {
+  await Promise.all(sources.map(async src=>{
     try{
       const snap = await getDocs(src.col);
 
-      snap.forEach(docSnap => {
-        const data = docSnap.data();
+      snap.forEach(doc=>{
+        const data = doc.data();
         const lista = normalize(data.productos);
 
-        // timestamp documento (si aplica)
-        const fechaDoc = fmtFecha(data.timestamp);
+        lista.forEach(p=>{
+          const sku = String(p.codigo || "").trim();
+          if(!sku) return;
 
-        for(const p of lista){
-          const sku = skuKey(p?.codigo);
-          if(!skuSet.has(sku)) continue;
+          const cant = Number(p.cantidad || 0);
+          if(!resultados.has(sku)){
+            resultados.set(sku,{ total:0, eventos:[] });
+          }
 
-          const cant = Number(p?.cantidad || 0);
-          if(!cant) continue;
-
-          const bucket = ensureSKU(sku);
-          bucket.totalDescuento += cant;
-          bucket.eventos.push({
-            fecha: fechaDoc,
+          resultados.get(sku).total += cant;
+          resultados.get(sku).eventos.push({
+            fecha: fmtFecha(data.timestamp),
             almacen: src.almacen,
             cantidad: cant
           });
-        }
+        });
       });
 
     }catch(e){
-      showError(`No pude leer Firestore en ${src.almacen}/salidas (rules o ruta).`, e);
+      showError("Error leyendo Firestore en " + src.almacen);
     }
   }));
 
-  // 6) render
   grid.innerHTML = "";
-  const frag = document.createDocumentFragment();
 
-  for(const item of FIJACIONES){
-    const sku = skuKey(item.codigo);
-    const info = res.get(sku) || { totalDescuento: 0, eventos: [] };
+  FIJACIONES.forEach(item=>{
 
-    const base = Number(item.base || 0);
-    const totalDescuento = Number(info.totalDescuento || 0);
-    const restante = base - totalDescuento;
+    const info = resultados.get(item.codigo) || { total:0, eventos:[] };
+    const restante = item.base - info.total;
 
-    // filas
-    let rows = "";
-    if(info.eventos.length === 0){
-      rows = `<tr><td colspan="3">Sin salidas</td></tr>`;
+    const card = document.createElement("div");
+    card.className="card";
+
+    let rows="";
+
+    if(info.eventos.length===0){
+      rows=`<tr><td colspan="3">Sin salidas</td></tr>`;
     } else {
-      // opcional: ordenar eventos por texto
-      info.eventos.forEach(ev => {
-        rows += `
-          <tr>
-            <td>${esc(ev.fecha)}</td>
-            <td>${esc(ev.almacen)}</td>
-            <td style="text-align:right">${esc(ev.cantidad)}</td>
-          </tr>
-        `;
+      info.eventos.forEach(ev=>{
+        rows+=`
+        <tr>
+          <td>${ev.fecha}</td>
+          <td>${ev.almacen}</td>
+          <td style="text-align:right">${ev.cantidad}</td>
+        </tr>`;
       });
     }
 
-    const card = document.createElement("div");
-    card.className = "card";
-    card.style.cssText = "background:#fff;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.12);padding:14px;margin:12px 0;";
+    card.innerHTML=`
+      <h3>${item.desc}</h3>
 
-    card.innerHTML = `
-      <h3 style="margin:0 0 10px;font-size:16px;">${esc(item.desc)}</h3>
-
-      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px;">
-        <div style="background:#f6f7fb;border-radius:12px;padding:10px;">
-          <strong style="display:block;font-size:12px;color:#555;">SKU</strong>
-          <span style="font-weight:700;">${esc(item.codigo)}</span>
-        </div>
-        <div style="background:#f6f7fb;border-radius:12px;padding:10px;">
-          <strong style="display:block;font-size:12px;color:#555;">Base</strong>
-          <span style="font-weight:700;">${esc(base)}</span>
-        </div>
-        <div style="background:#f6f7fb;border-radius:12px;padding:10px;">
-          <strong style="display:block;font-size:12px;color:#555;">Descuentos</strong>
-          <span style="font-weight:700;">${esc(totalDescuento)}</span>
-        </div>
-        <div style="background:#f6f7fb;border-radius:12px;padding:10px;">
-          <strong style="display:block;font-size:12px;color:#555;">Restante</strong>
-          <span style="font-weight:900;color:${restante < 0 ? "#b00020" : "#0a6c21"};">${esc(restante)}</span>
-        </div>
+      <div class="kpis">
+        <div class="kpi"><strong>SKU</strong><span>${item.codigo}</span></div>
+        <div class="kpi"><strong>Base</strong><span>${item.base}</span></div>
+        <div class="kpi"><strong>Descuentos</strong><span>${info.total}</span></div>
+        <div class="kpi"><strong>Restante</strong><span style="color:${restante<0?'#b00020':'#0a6c21'}">${restante}</span></div>
       </div>
 
-      <div style="overflow:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead>
-            <tr>
-              <th style="text-align:left;border-bottom:1px solid #e5e7eb;padding:8px;">Fecha</th>
-              <th style="text-align:left;border-bottom:1px solid #e5e7eb;padding:8px;">Almacén</th>
-              <th style="text-align:right;border-bottom:1px solid #e5e7eb;padding:8px;">Salida</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Almacén</th>
+            <th style="text-align:right">Salida</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
     `;
 
-    frag.appendChild(card);
-  }
+    grid.appendChild(card);
+  });
 
-  frag.childNodes.length ? grid.appendChild(frag) : (grid.innerHTML = "Sin datos.");
 });
 </script>
+
+</body>
+</html>
