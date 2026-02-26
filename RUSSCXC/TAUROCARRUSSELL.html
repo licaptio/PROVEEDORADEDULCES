@@ -69,9 +69,10 @@ td.numero{
 
 <script>
 
-const _supabase = window.supabase.createClient( 'https://cvpbtjlupswbyxenugpz.supabase.co', 
-'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY' );
-
+const _supabase = window.supabase.createClient(
+  'https://cvpbtjlupswbyxenugpz.supabase.co', 
+  'TU_PUBLIC_ANON_KEY_AQUI'
+);
 
 async function cargar(){
 
@@ -79,8 +80,8 @@ async function cargar(){
     .from("v_deuda_proveedores")
     .select("*")
     .eq("rfc_emisor", "BTA010327AD3")
-    .order("fecha", { ascending: false })
-    .limit(20);
+    .eq("factura_pagada", "NO")   // 🔴 SOLO NO PAGADAS
+    .order("fecha", { ascending: true }); // 📅 MÁS VIEJA → MÁS NUEVA
 
   if(error){
     alert("Error cargando datos");
@@ -89,7 +90,8 @@ async function cargar(){
   }
 
   if(!data || data.length === 0){
-    document.getElementById("tabla").innerHTML = "Sin registros";
+    document.getElementById("tabla").innerHTML = "Sin deuda pendiente";
+    document.getElementById("total").innerHTML = "";
     return;
   }
 
@@ -97,7 +99,7 @@ async function cargar(){
 
   document.getElementById("total").innerHTML = `
     <div class="total-box">
-      <strong>Últimos 20 registros</strong><br>
+      <strong>Deuda Total Pendiente</strong><br>
       Total acumulado:<br>
       <span>$${totalGlobal.toLocaleString("es-MX",{minimumFractionDigits:2})}</span>
     </div>
@@ -111,7 +113,6 @@ async function cargar(){
       <th>UUID</th>
       <th>Serie/Folio</th>
       <th>Total</th>
-      <th>Pagada</th>
     </tr>
   </thead>
   <tbody>
@@ -122,7 +123,6 @@ async function cargar(){
     const fecha = f.fecha ? f.fecha.split("T")[0] : "";
     const folio = f.serie_folio || "—";
     const total = Number(f.total||0).toLocaleString("es-MX",{minimumFractionDigits:2});
-    const pagada = (f.factura_pagada || "NO") === "SI" ? "✅" : "❌";
 
     html += `
       <tr>
@@ -130,7 +130,6 @@ async function cargar(){
         <td>${f.uuid_cfdi}</td>
         <td>${folio}</td>
         <td class="numero">$${total}</td>
-        <td style="text-align:center">${pagada}</td>
       </tr>
     `;
   });
