@@ -331,6 +331,7 @@ async function cargarListas(){
     .from("lista_precios_proveedor")
     .select("fecha_lista")
     .eq("rfc_proveedor", RFC_TAURO)
+    .eq("activa", true) // 🔥 SOLO ACTIVAS
     .order("fecha_lista", { ascending:false });
 
   if (error){ console.error(error); alert(error.message); return; }
@@ -381,14 +382,14 @@ async function cargarListaSeleccionada(){
     .from("lista_precios_proveedor")
     .select("id,descripcion,descripcion_cfdi,costo_neto")
     .eq("rfc_proveedor", RFC_TAURO)
-    .eq("fecha_lista", fecha);
+    .eq("fecha_lista", fecha)
+    .eq("activa", true); // 🔥 SOLO ACTIVAS
 
   if (error){ console.error(error); alert(error.message); return; }
 
   lista = data || [];
   buildListaMaps(lista);
 }
-
 /*** BUILD ARTICULOS ***/
 function construirArticulosSeleccionados(){
   const checks = [...document.querySelectorAll("#facturasBody input[type=checkbox]:checked")];
