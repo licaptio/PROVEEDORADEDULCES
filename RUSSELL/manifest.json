@@ -6,6 +6,7 @@
   { "nombre": "INVENTARIO TEORICO CIG PDD", "archivo": "INVTEORICOCIGPDD.html" },
   { "nombre": "ALMACEN LIQUIDO", "archivo": "LIQUIDOPDD.html" },
   { "nombre": "SALIDAS CIGARRO", "archivo": "VCigarro.html" },
+  { "nombre": "PEDIDOS PDD 26", "archivo": "PEDIDOPDD26.html" },
   { "nombre": "VENTA RUTA VTA MOB", "archivo": "VRutaVTAMOB.html" },
   { "nombre": "VENTAS PDD 26", "archivo": "Vventaspdd26.html" },
   { "nombre": "ALMACEN ZAPATA", "archivo": "liquidosTrack.html" }
