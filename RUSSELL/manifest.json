@@ -6,18 +6,13 @@
   { "nombre": "DEUDA OLD PDD", "archivo": "DEUDAOLDPDD.html" },
   { "nombre": "INVENTARIO TEORICO CIG PDD", "archivo": "INVTEORICOCIGPDD.html" },
   { "nombre": "ALMACEN LIQUIDO", "archivo": "LIQUIDOPDD.html" },
-  { "nombre": "KARTAMUS", "archivo": "KARTAMUS.html" },
-  { "nombre": "NUTRI", "archivo": "NUTRI.html" },
   { "nombre": "PAGO CONTADO", "archivo": "PAGOCONTA.html" },
   { "nombre": "PEDIDO PDD 26", "archivo": "PEDIDOPDD26.html" },
   { "nombre": "PRONTOS PAGO", "archivo": "PPPAGOPDD.html" },
   { "nombre": "PROVEEDORES ESPECIALES", "archivo": "PROVESPE.html" },
   { "nombre": "TAURO CAR RUSSELL", "archivo": "TAUROCARRUSSELL.html" },
   { "nombre": "SALIDAS CIGARRO", "archivo": "VCigarro.html" },
-  { "nombre": "SALIDAS DULCE", "archivo": "VDulce.html" },
-  { "nombre": "SALIDAS LIQUIDO", "archivo": "VLiquidos.html" },
   { "nombre": "VENTA RUTA VTA MOB", "archivo": "VRutaVTAMOB.html" },
-  { "nombre": "ZAPATA", "archivo": "VZapata.html" },
   { "nombre": "VENTAS PDD 26", "archivo": "Vventaspdd26.html" },
   { "nombre": "ALMACEN ZAPATA", "archivo": "liquidosTrack.html" }
 ]
