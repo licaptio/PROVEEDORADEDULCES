@@ -4,6 +4,4 @@
   { "nombre": "PRONTOS PAGO", "archivo": "PPAGOPDD.html" },
   { "nombre": "PROVEEDORES ESPECIALES", "archivo": "PROVESPE.html" },
   { "nombre": "TAURO CAR RUSSELL", "archivo": "TAUROCARUSSELL.html" },
-  { "nombre": "CONFIG", "archivo": "config.js" },
-  { "nombre": "INICIO", "archivo": "index.html" }
 ]
