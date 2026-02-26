@@ -1,134 +1,227 @@
+<!-- (Recomendado) contenedores -->
+<div id="errores" style="display:none;margin:12px 0;"></div>
+<div id="grid"></div>
+
 <script type="module">
 import { firebaseConfig } from './config.js'
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
-import {
-  getFirestore, collection, getDocs
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 
-const app = initializeApp(firebaseConfig)
-const db = getFirestore(app)
-
+// =====================
+// CONFIG / DATA
+// =====================
 const FIJACIONES = [
-{"codigo":"010040","base":65,"desc":"HARI MASA 10/1 KGR"},
-{"codigo":"7501048102501","base":1200,"desc":"ACEITE KARTAMUS 900 ML"},
-{"codigo":"2836","base":20,"desc":"HIGIENICO VOGUE C/80 PZ"},
-{"codigo":"7501011900332","base":75,"desc":"CHILE FARO RODAJAS BOLSA 3K"},
-{"codigo":"5160","base":140,"desc":"HIGIENICO KLEENEX C/80 (T)"},
-{"codigo":"7501020540666","base":6480,"desc":"LECHE NUTRI LECHE 1 LTO"}
-]
+  {"codigo":"010040","base":65,"desc":"HARI MASA 10/1 KGR"},
+  {"codigo":"7501048102501","base":1200,"desc":"ACEITE KARTAMUS 900 ML"},
+  {"codigo":"2836","base":20,"desc":"HIGIENICO VOGUE C/80 PZ"},
+  {"codigo":"7501011900332","base":75,"desc":"CHILE FARO RODAJAS BOLSA 3K"},
+  {"codigo":"5160","base":140,"desc":"HIGIENICO KLEENEX C/80 (T)"},
+  {"codigo":"7501020540666","base":6480,"desc":"LECHE NUTRI LECHE 1 LTO"}
+];
 
-const sources = [
-  { almacen:"Almacen_Dulces", col: collection(db, "almacenes", "Almacen_Dulces", "salidas") },
-  { almacen:"Almacen_Liquidos", col: collection(db, "almacenes", "Almacen_Liquidos", "salidas") }
-]
-
-const grid = document.getElementById("grid")
-
+// =====================
+// HELPERS
+// =====================
 function normalize(p){
-  if(!p) return []
-  if(Array.isArray(p)) return p
-  if(typeof p === "object") return Object.values(p)
+  if(!p) return [];
+  if(Array.isArray(p)) return p;
+  if(typeof p === "object") return Object.values(p);
   if(typeof p === "string"){
     try { return JSON.parse(p) } catch { return [] }
   }
-  return []
+  return [];
 }
 
-async function calcularDescuentos(sku){
+function skuKey(x){
+  return String(x ?? "").trim();
+}
 
-  let totalDescuento = 0
-  let eventos = []
+function fmtFecha(ts){
+  try{
+    if(ts?.toDate) return ts.toDate().toLocaleString();
+    if(ts instanceof Date) return ts.toLocaleString();
+    if(typeof ts === "string") return ts;
+  }catch{}
+  return "";
+}
 
-  for(const src of sources){
-    const snap = await getDocs(src.col)
+function showError(titulo, err){
+  console.error(titulo, err);
+  const box = document.getElementById("errores");
+  if(!box) { alert(titulo); return; }
+  box.style.display = "block";
+  box.innerHTML += `
+    <div style="background:#fff3cd;border:1px solid #ffe69c;padding:10px;border-radius:12px;margin:8px 0;">
+      <strong>${titulo}</strong><br>
+      <small>${(err && (err.message || JSON.stringify(err))) || ""}</small>
+    </div>
+  `;
+}
 
-    snap.forEach(docSnap => {
-      const data = docSnap.data()
-      if(!data.productos) return
+function esc(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 
-      const lista = normalize(data.productos)
-      const prod = lista.find(p => String(p.codigo).trim() === String(sku).trim())
-      if(!prod) return
-
-      const cant = Number(prod.cantidad || 0)
-      totalDescuento += cant
-
-      eventos.push({
-        fecha: data.timestamp?.toDate?.()?.toLocaleString() || "",
-        almacen: src.almacen,
-        cantidad: cant
-      })
-    })
+// =====================
+// MAIN
+// =====================
+document.addEventListener("DOMContentLoaded", async () => {
+  // 1) grid seguro (si no existe, lo creo)
+  let grid = document.getElementById("grid");
+  if(!grid){
+    grid = document.createElement("div");
+    grid.id = "grid";
+    document.body.appendChild(grid);
   }
 
-  return { totalDescuento, eventos }
-}
+  // loader
+  grid.innerHTML = `
+    <div style="padding:14px;background:#fff;border-radius:14px;box-shadow:0 3px 10px rgba(0,0,0,.12);">
+      Cargando salidas...
+    </div>
+  `;
 
-async function render(){
+  // 2) init firebase
+  let db;
+  try{
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+  }catch(e){
+    showError("Falla al inicializar Firebase. Revisa ./config.js (ruta y export firebaseConfig).", e);
+    grid.innerHTML = "";
+    return;
+  }
+
+  // 3) fuentes (colecciones)
+  const sources = [
+    { almacen:"Almacen_Dulces",   col: collection(db, "almacenes", "Almacen_Dulces", "salidas") },
+    { almacen:"Almacen_Liquidos", col: collection(db, "almacenes", "Almacen_Liquidos", "salidas") }
+  ];
+
+  // 4) mapa de resultados por SKU
+  const skuSet = new Set(FIJACIONES.map(x => skuKey(x.codigo)));
+  const res = new Map(); // sku -> { totalDescuento, eventos[] }
+
+  function ensureSKU(sku){
+    if(!res.has(sku)){
+      res.set(sku, { totalDescuento: 0, eventos: [] });
+    }
+    return res.get(sku);
+  }
+
+  // 5) leer cada fuente UNA sola vez (en paralelo)
+  await Promise.all(sources.map(async (src) => {
+    try{
+      const snap = await getDocs(src.col);
+
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        const lista = normalize(data.productos);
+
+        // timestamp documento (si aplica)
+        const fechaDoc = fmtFecha(data.timestamp);
+
+        for(const p of lista){
+          const sku = skuKey(p?.codigo);
+          if(!skuSet.has(sku)) continue;
+
+          const cant = Number(p?.cantidad || 0);
+          if(!cant) continue;
+
+          const bucket = ensureSKU(sku);
+          bucket.totalDescuento += cant;
+          bucket.eventos.push({
+            fecha: fechaDoc,
+            almacen: src.almacen,
+            cantidad: cant
+          });
+        }
+      });
+
+    }catch(e){
+      showError(`No pude leer Firestore en ${src.almacen}/salidas (rules o ruta).`, e);
+    }
+  }));
+
+  // 6) render
+  grid.innerHTML = "";
+  const frag = document.createDocumentFragment();
 
   for(const item of FIJACIONES){
+    const sku = skuKey(item.codigo);
+    const info = res.get(sku) || { totalDescuento: 0, eventos: [] };
 
-    const { totalDescuento, eventos } = await calcularDescuentos(item.codigo)
+    const base = Number(item.base || 0);
+    const totalDescuento = Number(info.totalDescuento || 0);
+    const restante = base - totalDescuento;
 
-    const restante = item.base - totalDescuento
-
-    const card = document.createElement("div")
-    card.className = "card"
-
-    let rows = ""
-
-    if(eventos.length === 0){
-      rows = `<tr><td colspan="3">Sin salidas</td></tr>`
+    // filas
+    let rows = "";
+    if(info.eventos.length === 0){
+      rows = `<tr><td colspan="3">Sin salidas</td></tr>`;
     } else {
-      eventos.forEach(ev=>{
+      // opcional: ordenar eventos por texto
+      info.eventos.forEach(ev => {
         rows += `
-        <tr>
-          <td>${ev.fecha}</td>
-          <td>${ev.almacen}</td>
-          <td>${ev.cantidad}</td>
-        </tr>`
-      })
+          <tr>
+            <td>${esc(ev.fecha)}</td>
+            <td>${esc(ev.almacen)}</td>
+            <td style="text-align:right">${esc(ev.cantidad)}</td>
+          </tr>
+        `;
+      });
     }
 
-    card.innerHTML = `
-      <h3>${item.desc}</h3>
+    const card = document.createElement("div");
+    card.className = "card";
+    card.style.cssText = "background:#fff;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.12);padding:14px;margin:12px 0;";
 
-      <div class="kpis">
-        <div class="kpi">
-          <strong>SKU</strong>
-          <span>${item.codigo}</span>
+    card.innerHTML = `
+      <h3 style="margin:0 0 10px;font-size:16px;">${esc(item.desc)}</h3>
+
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px;">
+        <div style="background:#f6f7fb;border-radius:12px;padding:10px;">
+          <strong style="display:block;font-size:12px;color:#555;">SKU</strong>
+          <span style="font-weight:700;">${esc(item.codigo)}</span>
         </div>
-        <div class="kpi">
-          <strong>Base</strong>
-          <span>${item.base}</span>
+        <div style="background:#f6f7fb;border-radius:12px;padding:10px;">
+          <strong style="display:block;font-size:12px;color:#555;">Base</strong>
+          <span style="font-weight:700;">${esc(base)}</span>
         </div>
-        <div class="kpi">
-          <strong>Descuentos</strong>
-          <span>${totalDescuento}</span>
+        <div style="background:#f6f7fb;border-radius:12px;padding:10px;">
+          <strong style="display:block;font-size:12px;color:#555;">Descuentos</strong>
+          <span style="font-weight:700;">${esc(totalDescuento)}</span>
         </div>
-        <div class="kpi">
-          <strong>Restante</strong>
-          <span>${restante}</span>
+        <div style="background:#f6f7fb;border-radius:12px;padding:10px;">
+          <strong style="display:block;font-size:12px;color:#555;">Restante</strong>
+          <span style="font-weight:900;color:${restante < 0 ? "#b00020" : "#0a6c21"};">${esc(restante)}</span>
         </div>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Almacén</th>
-            <th>Salida</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-    `
+      <div style="overflow:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr>
+              <th style="text-align:left;border-bottom:1px solid #e5e7eb;padding:8px;">Fecha</th>
+              <th style="text-align:left;border-bottom:1px solid #e5e7eb;padding:8px;">Almacén</th>
+              <th style="text-align:right;border-bottom:1px solid #e5e7eb;padding:8px;">Salida</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+    `;
 
-    grid.appendChild(card)
+    frag.appendChild(card);
   }
-}
 
-render()
+  frag.childNodes.length ? grid.appendChild(frag) : (grid.innerHTML = "Sin datos.");
+});
 </script>
