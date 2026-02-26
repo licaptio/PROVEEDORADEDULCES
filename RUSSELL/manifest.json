@@ -5,7 +5,7 @@
   { "nombre": "CONVERZAP", "archivo": "CONVERZAP.html" },
   { "nombre": "DEUDA OLD PDD", "archivo": "DEUDAOLDPDD.html" },
   { "nombre": "INVENTARIO TEORICO CIG PDD", "archivo": "INVTEORICOCIGPDD.html" },
-  { "nombre": "LIQUIDOTRACK", "archivo": "LIQUIDOPDD.html" },
+  { "nombre": "ALMACEN LIQUIDO", "archivo": "LIQUIDOPDD.html" },
   { "nombre": "KARTAMUS", "archivo": "KARTAMUS.html" },
   { "nombre": "NUTRI", "archivo": "NUTRI.html" },
   { "nombre": "PAGO CONTADO", "archivo": "PAGOCONTA.html" },
@@ -19,5 +19,5 @@
   { "nombre": "VENTA RUTA VTA MOB", "archivo": "VRutaVTAMOB.html" },
   { "nombre": "ZAPATA", "archivo": "VZapata.html" },
   { "nombre": "VENTAS PDD 26", "archivo": "Vventaspdd26.html" },
-  { "nombre": "LIQUIDOS TRACK", "archivo": "liquidosTrack.html" }
+  { "nombre": "ALMACEN ZAPATA", "archivo": "liquidosTrack.html" }
 ]
