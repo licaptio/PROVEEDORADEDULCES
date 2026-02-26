@@ -118,7 +118,7 @@ function showError(msg){
 async function cargarFijaciones(){
   try{
     const { data, error } = await supabase
-      .from('movimientos')
+      .from('movimientos_inventario')
       .select('id,tipo,folio,almacen,usuario,timestamp,productos,nivel_alerta,activa')
       .eq('tipo','FIJACION')
       .eq('activa', true)
