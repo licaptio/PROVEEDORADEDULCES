@@ -719,11 +719,14 @@ async function guardarPago(){
   if(!seleccionadas.length){ alert("Seleccione al menos una factura"); return; }
 
   // Si queda algún sin enlace, no deja pagar
-  if(document.querySelectorAll("#articulosBody .no").length > 0){
-    alert("Hay conceptos sin enlace. Usa 🔗 para enlazar.");
-    return;
-  }
-
+// ⚠️ Ya NO bloqueamos pago por conceptos sin enlace
+/*
+if(document.querySelectorAll("#articulosBody .no").length > 0){
+  alert("Hay conceptos sin enlace. Usa 🔗 para enlazar.");
+  return;
+}
+*/
+  
   const banco = document.getElementById("banco").value;
   const fechaPago = document.getElementById("fechaPago").value;
   const comprobante = (document.getElementById("comprobante").value || "").trim();
