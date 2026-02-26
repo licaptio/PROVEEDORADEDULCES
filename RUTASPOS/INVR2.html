@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Inventario Teórico — Kardex Horizontal</title>
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#fff; --txt:#0f172a; --muted:#64748b;
+      --border:#e2e8f0; --accent:#0c4a6e; --ok:#16a34a; --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+    header{padding:16px 18px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+    h1{margin:0 0 10px;font-size:18px;font-weight:900}
+    .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .bar > *{height:38px}
+    input,button,select{
+      border:1px solid var(--border);border-radius:10px;padding:0 12px;background:#fff;color:var(--txt);
+      font-weight:600;
+    }
+    button{background:var(--accent);color:#fff;border:none;cursor:pointer;padding:0 14px}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .chip{padding:8px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--muted);font-size:12px}
+    .wrap{max-width:1400px;margin:14px auto;padding:0 14px}
+    .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
+    .status{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+    .status .ok{color:var(--ok);font-weight:800}
+    .status .bad{color:var(--bad);font-weight:800}
+    .tableWrap{margin-top:14px;border:1px solid var(--border);border-radius:14px;overflow:auto;background:#fff;max-height:70vh}
+    table{border-collapse:separate;border-spacing:0;min-width:900px;width:max-content}
+    th,td{border-bottom:1px solid var(--border);padding:10px 10px;white-space:nowrap;text-align:center;font-size:13px}
+    th{position:sticky;top:0;background:#fbfdff;z-index:10;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+    /* sticky first columns */
+    th.sticky1, td.sticky1{position:sticky;left:0;z-index:20;background:#fff}
+    th.sticky2, td.sticky2{position:sticky;left:140px;z-index:20;background:#fff}
+    th.sticky1{background:#fbfdff}
+    th.sticky2{background:#fbfdff}
+    td.sticky1, td.sticky2{border-right:1px solid var(--border)}
+    .codeCol{min-width:140px;text-align:left;font-weight:800}
+    .initCol{min-width:90px}
+    .num{font-variant-numeric:tabular-nums}
+    .neg{color:var(--bad);font-weight:800}
+    .pos{color:var(--ok);font-weight:800}
+    .totalCol{min-width:90px;font-weight:900}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Inventario Teórico — Kardex Horizontal</h1>
+    <div class="bar">
+      <label class="chip">RutaId</label>
+      <input id="rutaId" value="Almacen_Ruta_2" style="min-width:220px" />
+      <button id="btnCargar">Cargar</button>
+      <button id="btnCSV" disabled>Exportar CSV</button>
+      <label class="chip">
+        <input id="chkCeros" type="checkbox" style="height:auto;margin-right:8px" />
+        Mostrar ceros
+      </label>
+    </div>
+
+    <div class="status">
+      <span class="chip" id="chipToma">Toma: —</span>
+      <span class="chip" id="chipCorte">Corte: —</span>
+      <span class="chip" id="chipStats">—</span>
+      <span class="chip" id="chipMsg">Listo.</span>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="muted small">
+        Columnas: <b>Código</b> | <b>Inicial</b> | <b>+ fecha</b> | <b>- fecha</b> … | <b>Total</b>.
+        (Movimientos consolidados por día y por tipo).
+      </div>
+
+      <div class="tableWrap" id="tableWrap">
+        <table id="tabla">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import {
+      getFirestore, collection, query, where, orderBy, limit, getDocs,
+      documentId, Timestamp
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const $ = (id) => document.getElementById(id);
+    const btnCargar = $("btnCargar");
+    const btnCSV = $("btnCSV");
+    const chkCeros = $("chkCeros");
+
+    const chipToma = $("chipToma");
+    const chipCorte = $("chipCorte");
+    const chipStats = $("chipStats");
+    const chipMsg = $("chipMsg");
+
+    const thead = $("thead");
+    const tbody = $("tbody");
+
+    function pad2(n){ return String(n).padStart(2,"0"); }
+
+    // YYYY-MM-DD (local)
+    function dateKeyLocal(d){
+      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    }
+
+    function parseTomaIdToDate(tomaId){
+      // "2026-02-25_19-29-48" -> Date local
+      try{
+        const [ymd, hms] = tomaId.split("_");
+        if(!ymd || !hms) return null;
+        const time = hms.replaceAll("-", ":");
+        const dt = new Date(`${ymd}T${time}`);
+        return isNaN(dt.getTime()) ? null : dt;
+      }catch{ return null; }
+    }
+
+    function formatHeaderDate(yyyy_mm_dd){
+      const [y,m,d] = yyyy_mm_dd.split("-").map(Number);
+      const dt = new Date(y, m-1, d);
+      return dt.toLocaleDateString("es-MX", { day:"2-digit", month:"short" }).replace(".", "");
+    }
+
+    function nnum(x){
+      const v = Number(x);
+      return Number.isFinite(v) ? v : 0;
+    }
+
+    function setMsg(text, ok=true){
+      chipMsg.textContent = text;
+      chipMsg.style.color = ok ? "var(--ok)" : "var(--bad)";
+      chipMsg.style.fontWeight = "800";
+    }
+
+async function getUltimaToma(rutaId){
+  const tomaCol = collection(db, "almacenes", rutaId, "tomafisica");
+  const q = query(tomaCol, orderBy(documentId(), "desc"), limit(1));
+  const snap = await getDocs(q);
+  if(snap.empty) return null;
+
+  const d = snap.docs[0];
+  const tomaId = d.id;
+
+  // ahora leemos escaneos para obtener epoch real
+  const escCol = collection(db, "almacenes", rutaId, "tomafisica", tomaId, "escaneos");
+  const escSnap = await getDocs(escCol);
+
+  let corteMs = Infinity;
+
+  escSnap.forEach(docu => {
+    const x = docu.data();
+    if(x.epochMs && x.epochMs < corteMs){
+      corteMs = x.epochMs;
+    }
+  });
+
+  const corte = corteMs !== Infinity ? new Date(corteMs) : new Date(0);
+
+  return { tomaId, corte };
+}
+
+    async function getInventarioInicial(rutaId, tomaId){
+      const esc = collection(db, "almacenes", rutaId, "tomafisica", tomaId, "escaneos");
+      const snap = await getDocs(esc);
+
+      const inicial = new Map(); // codigo -> { inicial, descripcion }
+      snap.forEach(docu => {
+        const x = docu.data() || {};
+        const codigo = String(x.codigo || "").trim();
+        if(!codigo) return;
+
+        const qty = nnum(x.cantidad);
+        const desc = String(x.descripcion || x.concepto || x.nombre || "").trim();
+
+        const prev = inicial.get(codigo) || { inicial: 0, descripcion: "" };
+        prev.inicial += qty;
+        if(!prev.descripcion && desc) prev.descripcion = desc;
+        inicial.set(codigo, prev);
+      });
+
+      return inicial;
+    }
+
+    async function getEntradasPosteriores(rutaId, corte){
+      const colE = collection(db, "almacenes", rutaId, "entradas");
+      const corteISO = corte.toISOString();
+
+      // fecha es string ISO (ej: 2025-11-28T17:25:04.872Z)
+      const q = query(colE, where("fecha", ">", corteISO), orderBy("fecha", "asc"));
+      const snap = await getDocs(q);
+
+      const out = [];
+      snap.forEach(d => {
+        const x = d.data() || {};
+        const fechaStr = x.fecha;
+        const fecha = new Date(fechaStr);
+        if(isNaN(fecha.getTime())) return;
+        out.push({
+          id: d.id,
+          fecha,
+          items: Array.isArray(x.items) ? x.items : []
+        });
+      });
+
+      return out;
+    }
+
+    async function getVentasPosteriores(rutaId, corte){
+      const colV = collection(db, "ventas_rutav2");
+      const corteTs = Timestamp.fromDate(corte);
+
+      // OJO: esto normalmente pide índice compuesto (rutaId + fecha). Si te marca error,
+      // Firestore te da el link directo para crearlo.
+      const q = query(
+        colV,
+        where("rutaId", "==", rutaId),
+        where("fecha", ">", corteTs),
+        orderBy("fecha", "asc")
+      );
+
+      const snap = await getDocs(q);
+
+      const out = [];
+      snap.forEach(d => {
+        const x = d.data() || {};
+        const fecha = x.fecha?.toDate ? x.fecha.toDate() : null;
+        if(!fecha) return;
+
+        out.push({
+          id: d.id,
+          fecha,
+          detalle: Array.isArray(x.detalle) ? x.detalle : []
+        });
+      });
+
+      return out;
+    }
+
+    function construirMatriz(inicialMap, entradasDocs, ventasDocs){
+      // perCode: codigo -> { inicial, descripcion, dias: { dateKey: {in,out} } }
+      const perCode = new Map();
+      const dateSet = new Set();
+
+      // seed desde toma
+      for (const [codigo, info] of inicialMap.entries()){
+        perCode.set(codigo, { inicial: info.inicial, descripcion: info.descripcion || "", dias: {} });
+      }
+
+      // entradas
+      for (const docE of entradasDocs){
+        const dk = dateKeyLocal(docE.fecha);
+        dateSet.add(dk);
+
+        for (const it of docE.items){
+          const codigo = String(it.codigo || "").trim();
+          if(!codigo) continue;
+          const qty = nnum(it.cantidad);
+          if(qty === 0) continue;
+
+          const desc = String(it.concepto || it.descripcion || it.nombre || "").trim();
+
+          if(!perCode.has(codigo)){
+            perCode.set(codigo, { inicial: 0, descripcion: desc || "", dias: {} });
+          } else if(desc && !perCode.get(codigo).descripcion){
+            perCode.get(codigo).descripcion = desc;
+          }
+
+          const rec = perCode.get(codigo);
+          rec.dias[dk] = rec.dias[dk] || { in: 0, out: 0 };
+          rec.dias[dk].in += qty;
+        }
+      }
+
+      // ventas
+      for (const docV of ventasDocs){
+        const dk = dateKeyLocal(docV.fecha);
+        dateSet.add(dk);
+
+        for (const det of docV.detalle){
+          const codigo = String(det.codigo || det.id || "").trim();
+          if(!codigo) continue;
+          const qty = nnum(det.cantidad);
+          if(qty === 0) continue;
+
+          const desc = String(det.nombre || det.descripcion || "").trim();
+
+          if(!perCode.has(codigo)){
+            perCode.set(codigo, { inicial: 0, descripcion: desc || "", dias: {} });
+          } else if(desc && !perCode.get(codigo).descripcion){
+            perCode.get(codigo).descripcion = desc;
+          }
+
+          const rec = perCode.get(codigo);
+          rec.dias[dk] = rec.dias[dk] || { in: 0, out: 0 };
+          rec.dias[dk].out += qty;
+        }
+      }
+
+      const dateKeys = Array.from(dateSet).sort(); // asc
+
+      const codes = Array.from(perCode.keys()).sort((a,b) => a.localeCompare(b, "es", { numeric:true }));
+      const rows = codes.map(codigo => {
+        const rec = perCode.get(codigo);
+        let total = nnum(rec.inicial);
+
+        const cols = [];
+        for (const dk of dateKeys){
+          const d = rec.dias[dk] || { in: 0, out: 0 };
+          const vin = nnum(d.in);
+          const vout = nnum(d.out);
+          total += vin - vout;
+          cols.push({ in: vin, out: vout });
+        }
+        return { codigo, inicial: nnum(rec.inicial), cols, total };
+      });
+
+      return { dateKeys, rows };
+    }
+
+    function renderTable(dateKeys, rows){
+      const showZeros = chkCeros.checked;
+
+      // header
+      let h = "<tr>";
+      h += `<th class="sticky1 codeCol">Código</th>`;
+      h += `<th class="sticky2 initCol">Inicial</th>`;
+
+      for (const dk of dateKeys){
+        const label = formatHeaderDate(dk);
+        h += `<th class="pos">+ ${label}</th>`;
+        h += `<th class="neg">- ${label}</th>`;
+      }
+      h += `<th class="totalCol">Total</th>`;
+      h += "</tr>";
+      thead.innerHTML = h;
+
+      // body
+      const parts = [];
+      for (const r of rows){
+        let tr = "<tr>";
+        tr += `<td class="sticky1 codeCol">${r.codigo}</td>`;
+        tr += `<td class="sticky2 num">${fmtCell(r.inicial, showZeros)}</td>`;
+
+        for (const c of r.cols){
+          tr += `<td class="num pos">${fmtCell(c.in, showZeros)}</td>`;
+          tr += `<td class="num neg">${fmtCell(c.out, showZeros)}</td>`;
+        }
+        tr += `<td class="num totalCol">${fmtCell(r.total, true)}</td>`;
+        tr += "</tr>";
+        parts.push(tr);
+      }
+      tbody.innerHTML = parts.join("");
+
+      function fmtCell(v, show0){
+        if(!show0 && (v === 0 || Object.is(v, -0))) return "";
+        // quita decimales si es entero
+        const isInt = Number.isFinite(v) && Math.abs(v - Math.round(v)) < 1e-9;
+        return isInt ? String(Math.round(v)) : String(Number(v.toFixed(3)));
+      }
+    }
+
+    function exportCSV(dateKeys, rows){
+      const headers = ["Codigo","Inicial"];
+      for (const dk of dateKeys){
+        const label = formatHeaderDate(dk);
+        headers.push(`+ ${label}`);
+        headers.push(`- ${label}`);
+      }
+      headers.push("Total");
+
+      const lines = [];
+      lines.push(headers.join(","));
+
+      for (const r of rows){
+        const vals = [r.codigo, r.inicial];
+        for (const c of r.cols){
+          vals.push(c.in);
+          vals.push(c.out);
+        }
+        vals.push(r.total);
+        lines.push(vals.map(v => {
+          const s = String(v ?? "");
+          return s.includes(",") ? `"${s.replaceAll('"','""')}"` : s;
+        }).join(","));
+      }
+
+      const blob = new Blob([lines.join("\n")], { type:"text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `inventario_teorico_${$("rutaId").value}_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    let lastData = null;
+
+    btnCargar.addEventListener("click", async () => {
+      btnCargar.disabled = true;
+      btnCSV.disabled = true;
+      setMsg("Cargando…", true);
+
+      try{
+        const rutaId = $("rutaId").value.trim();
+        if(!rutaId) throw new Error("RutaId vacío.");
+
+        const toma = await getUltimaToma(rutaId);
+        if(!toma){
+          chipToma.textContent = "Toma: (no encontrada)";
+          chipCorte.textContent = "Corte: —";
+          chipStats.textContent = "—";
+          tbody.innerHTML = "";
+          thead.innerHTML = "";
+          throw new Error("No encontré tomafisica para esa ruta.");
+        }
+
+        chipToma.textContent = `Toma: ${toma.tomaId}`;
+        chipCorte.textContent = `Corte: ${toma.corte.toLocaleString("es-MX")}`;
+
+        const inicial = await getInventarioInicial(rutaId, toma.tomaId);
+        const entradas = await getEntradasPosteriores(rutaId, toma.corte);
+        const ventas = await getVentasPosteriores(rutaId, toma.corte);
+
+        const { dateKeys, rows } = construirMatriz(inicial, entradas, ventas);
+
+        renderTable(dateKeys, rows);
+
+        chipStats.textContent = `Productos: ${rows.length} | Fechas: ${dateKeys.length} | Entradas: ${entradas.length} | Ventas: ${ventas.length}`;
+        setMsg("Listo.", true);
+
+        lastData = { dateKeys, rows };
+        btnCSV.disabled = false;
+      }catch(err){
+        console.error(err);
+        setMsg(err?.message || "Error.", false);
+      }finally{
+        btnCargar.disabled = false;
+      }
+    });
+
+    chkCeros.addEventListener("change", () => {
+      if(!lastData) return;
+      renderTable(lastData.dateKeys, lastData.rows);
+    });
+
+    btnCSV.addEventListener("click", () => {
+      if(!lastData) return;
+      exportCSV(lastData.dateKeys, lastData.rows);
+    });
+  </script>
+</body>
+</html>
