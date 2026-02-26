@@ -1,0 +1,18 @@
+[
+  { "nombre": "BLANCA VERONICA PORFOLIO", "archivo": "BLANCAACC.html" },
+  { "nombre": "GERARDO RIOS PORTAFOLIO", "archivo": "GERARDOACC.html" },
+  { "nombre": "SERGIO ACC", "archivo": "SERGIOACC.html" },
+  { "nombre": "CONVERZAP", "archivo": "CONVERZAP.html" },
+  { "nombre": "DEUDA OLD PDD", "archivo": "DEUDAOLDPDD.html" },
+  { "nombre": "INVENTARIO TEORICO CIG PDD", "archivo": "INVTEORICOCIGPDD.html" },
+  { "nombre": "ALMACEN LIQUIDO", "archivo": "LIQUIDOPDD.html" },
+  { "nombre": "PAGO CONTADO", "archivo": "PAGOCONTA.html" },
+  { "nombre": "PEDIDO PDD 26", "archivo": "PEDIDOPDD26.html" },
+  { "nombre": "PRONTOS PAGO", "archivo": "PPPAGOPDD.html" },
+  { "nombre": "PROVEEDORES ESPECIALES", "archivo": "PROVESPE.html" },
+  { "nombre": "TAURO CAR RUSSELL", "archivo": "TAUROCARRUSSELL.html" },
+  { "nombre": "SALIDAS CIGARRO", "archivo": "VCigarro.html" },
+  { "nombre": "VENTA RUTA VTA MOB", "archivo": "VRutaVTAMOB.html" },
+  { "nombre": "VENTAS PDD 26", "archivo": "Vventaspdd26.html" },
+  { "nombre": "ALMACEN ZAPATA", "archivo": "liquidosTrack.html" }
+]

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PROVSOFT Monitor</title>
+
+<style>
+html,body{
+  margin:0;
+  padding:0;
+  height:100%;
+  background:#000;
+  font-family:Arial, sans-serif;
+  overflow:hidden;
+}
+
+body{
+  height:100dvh; /* clave para Android moderno */
+}
+
+/* CONTENEDOR */
+#container{
+  position:relative;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+
+/* SLIDES */
+.slide{
+  position:absolute;
+  width:100%;
+  height:100%;
+  transform:translateX(100%);
+  transition:transform .4s ease;
+}
+
+.slide.active{
+  transform:translateX(0);
+  z-index:2;
+}
+
+.slide.prev{
+  transform:translateX(-100%);
+}
+
+iframe{
+  width:100%;
+  height:100%;
+  border:none;
+  background:#fff;
+  display:block;
+}
+
+/* ===============================
+   BOTÓN CONFIG (PC BASE)
+=================================*/
+.gear{
+  position:absolute;
+  top:15px;
+  right:15px;
+  width:42px;
+  height:42px;
+  background:#ff7a00;
+  color:#fff;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  font-size:20px;
+  cursor:pointer;
+  z-index:10;
+  box-shadow:0 3px 8px rgba(0,0,0,.3);
+}
+
+/* ===============================
+   CONTROLES CARRUSEL (PC BASE)
+=================================*/
+.controls{
+  position:absolute;
+  bottom:15px;
+  right:15px;
+  display:flex;
+  gap:10px;
+  z-index:10;
+}
+
+.controls button{
+  padding:10px 16px;
+  font-size:18px;
+  border:none;
+  border-radius:10px;
+  background:#ff7a00;
+  color:#fff;
+  cursor:pointer;
+  box-shadow:0 3px 8px rgba(0,0,0,.3);
+}
+
+/* ===============================
+   OVERLAY
+=================================*/
+#overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  backdrop-filter:blur(6px);
+  opacity:0;
+  pointer-events:none;
+  transition:.3s;
+  z-index:2500;
+}
+
+#overlay.show{
+  opacity:1;
+  pointer-events:auto;
+}
+
+/* ===============================
+   PANEL CONFIG
+=================================*/
+#configPanel{
+  position:fixed;
+  top:0;
+  right:-420px;
+  width:380px;
+  max-width:90%;
+  height:100%;
+  background:#121212;
+  color:#fff;
+  transition:.35s ease;
+  z-index:3000;
+  padding:25px;
+  overflow:auto;
+  box-shadow:-8px 0 30px rgba(0,0,0,.6);
+}
+
+#configPanel.open{
+  right:0;
+}
+
+#configPanel h2{
+  margin-top:0;
+  font-weight:600;
+}
+
+/* MÓDULOS */
+.module{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:14px;
+  background:#1c1c1c;
+  border-radius:12px;
+  margin-bottom:10px;
+  font-size:14px;
+}
+
+/* TOGGLE */
+.toggle{
+  width:46px;
+  height:24px;
+  background:#444;
+  border-radius:20px;
+  position:relative;
+  cursor:pointer;
+  transition:.3s;
+}
+
+.toggle.active{
+  background:#00c853;
+}
+
+.toggle::after{
+  content:"";
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:18px;
+  height:18px;
+  background:#fff;
+  border-radius:50%;
+  transition:.3s;
+}
+
+.toggle.active::after{
+  left:25px;
+}
+
+/* ===============================
+   MODO MÓVIL (Android real)
+=================================*/
+@media (max-width:768px){
+
+  .gear{
+    position:fixed;
+    z-index:2000;
+  }
+
+  .controls{
+    position:fixed;
+    z-index:2000;
+  }
+
+}
+
+/* ===============================
+   OPCIONAL: MODO PC LIMPIO
+   (descomenta si quieres ocultar botones en escritorio)
+=================================*/
+/*
+@media (min-width:769px){
+  .gear,
+  .controls{
+    display:none;
+  }
+}
+*/
+</style>
+</head>
+
+<body>
+
+<div class="gear" onclick="toggleConfig()">⚙</div>
+
+<div id="configPanel">
+  <h2>Configuración</h2>
+  <div id="moduleList"></div>
+</div>
+
+<div id="container"></div>
+
+<div class="controls">
+  <button onclick="prev()">⬅</button>
+  <button onclick="next()">➡</button>
+</div>
+<div id="overlay" onclick="closeConfig()"></div>
+<script>
+
+let slides = [];
+let index = 0;
+let autoRotate = null;
+
+/* ===============================
+   CONFIG INICIAL
+=================================*/
+let config = [];
+
+async function loadManifest(){
+
+  try{
+    const res = await fetch("./manifest.json"); 
+    const manifest = await res.json();
+
+    // Convertimos manifest en estructura interna
+    const stored = JSON.parse(localStorage.getItem("provsoft_pages"));
+
+    if(Array.isArray(stored) && stored.length === manifest.length){
+      config = stored;
+    }else{
+      config = manifest.map(m => ({
+        id: m.nombre,
+        file: m.archivo,
+        enabled: true
+      }));
+      localStorage.setItem("provsoft_pages", JSON.stringify(config));
+    }
+
+renderConfig();
+    buildSlides();
+
+  }catch(err){
+    console.error("Error cargando manifest:", err);
+    document.getElementById("container").innerHTML =
+      "<div style='color:white;display:flex;height:100%;align-items:center;justify-content:center;font-size:20px;'>Error cargando manifest</div>";
+  }
+}
+/* ===============================
+   PANEL
+=================================*/
+function openConfig(){
+
+  // Quitar foco del input activo (cierra teclado)
+  if(document.activeElement){
+    document.activeElement.blur();
+  }
+
+  // Forzar blur también dentro de iframes
+  document.querySelectorAll("iframe").forEach(f=>{
+    try{
+      f.contentWindow.document.activeElement?.blur();
+    }catch(e){}
+  });
+
+  const panel = document.getElementById("configPanel");
+  const overlay = document.getElementById("overlay");
+
+  panel.classList.add("open");
+  overlay.classList.add("show");
+  overlay.style.pointerEvents = "auto";
+
+  // Bloquear scroll del body mientras panel abierto
+  document.body.style.overflow = "hidden";
+}
+function closeConfig(){
+
+  const panel = document.getElementById("configPanel");
+  const overlay = document.getElementById("overlay");
+
+  panel.classList.remove("open");
+  overlay.classList.remove("show");
+  overlay.style.pointerEvents = "none";
+
+  // Restaurar scroll
+  document.body.style.overflow = "hidden";
+}
+
+function toggleConfig(){
+  const panel = document.getElementById("configPanel");
+  panel.classList.contains("open") ? closeConfig() : openConfig();
+}
+
+function renderConfig(){
+  const list = document.getElementById("moduleList");
+  list.innerHTML="";
+  config.forEach((m,i)=>{
+    const div=document.createElement("div");
+    div.className="module";
+    div.innerHTML=`
+      <span>${m.id}</span>
+      <div class="toggle ${m.enabled?'active':''}"
+        onclick="toggleModule(${i},this)">
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function toggleModule(i,el){
+  config[i].enabled=!config[i].enabled;
+  el.classList.toggle("active");
+  localStorage.setItem("provsoft_pages",JSON.stringify(config));
+  buildSlides();
+}
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    closeConfig();
+  }
+});
+/* ===============================
+   CARRUSEL
+=================================*/
+function buildSlides(){
+
+  const container=document.getElementById("container");
+  container.innerHTML="";
+  clearInterval(autoRotate);
+
+  const active=config.filter(m=>m.enabled);
+
+  if(active.length===0){
+    container.innerHTML=
+    "<div style='color:white;display:flex;height:100%;align-items:center;justify-content:center;font-size:20px;'>Sin módulos activos</div>";
+    return;
+  }
+
+  active.forEach((m,i)=>{
+    const div=document.createElement("div");
+    div.className="slide";
+    if(i===0) div.classList.add("active");
+    div.innerHTML=`<iframe src="${m.file}" loading="lazy"></iframe>`;
+    container.appendChild(div);
+  });
+
+  slides=document.querySelectorAll(".slide");
+  index=0;
+
+  if(slides.length>1){
+    autoRotate=setInterval(()=>next(),30000);
+  }
+}
+
+function showSlide(n){
+  if(slides.length<=1) return;
+
+  slides.forEach(s=>s.classList.remove("active","prev"));
+
+  const old=index;
+  index=(n+slides.length)%slides.length;
+
+  slides[old].classList.add("prev");
+  slides[index].classList.add("active");
+}
+
+function next(){
+  if(document.getElementById("configPanel").classList.contains("open")) return;
+  showSlide(index+1);
+}
+
+function prev(){
+  if(document.getElementById("configPanel").classList.contains("open")) return;
+  showSlide(index-1);
+}
+
+/* ===============================
+   SWIPE
+=================================*/
+let startX=0;
+
+document.addEventListener("touchstart",e=>{
+  startX=e.touches[0].clientX;
+},{passive:true});
+
+document.addEventListener("touchend",e=>{
+  const diff=startX-e.changedTouches[0].clientX;
+  if(diff>60) next();
+  if(diff<-60) prev();
+},{passive:true});
+
+loadManifest();
+</script>
+
+</body>
+</html>
+
+
+
+
+
+

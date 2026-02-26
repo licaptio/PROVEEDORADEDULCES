@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Proveedores Contado</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f4f4;
+  padding:20px;
+  margin:0;
+}
+
+h2{margin-top:0}
+
+.cardProveedor{
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:20px;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
+
+.headerProveedor{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+}
+
+th,td{
+  padding:8px;
+  border:1px solid #ccc;
+  font-size:0.85em;
+}
+
+th{
+  background:#343a40;
+  color:white;
+}
+
+td.numero{text-align:right}
+
+.sinFacturas{
+  padding:10px;
+  color:#777;
+}
+
+.diasAlto{
+  color:#c82333;
+  font-weight:bold;
+}
+
+.btn-pagar{
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  border:none;
+  cursor:pointer;
+  background-color:#28a745;
+}
+
+.btn-pagar:disabled{
+  background-color:#6c757d;
+}
+
+@media (max-width: 768px){
+  body{ padding:10px; }
+  .btn-pagar{ width:28px; height:28px; }
+  th,td{ font-size:0.9em; }
+}
+</style>
+</head>
+<body>
+
+<h2>💵 Proveedores de Contado (Pendientes)</h2>
+
+<div id="tabla"></div>
+
+<script type="module">
+import { supabaseUrl, supabaseAnonKey } from './config.js';
+
+const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+const proveedoresContado = [
+  "BBVA MEXICO, S.A., INSTITUCION DE BANCA MULTIPLE, GRUPO FINANCIERO BBVA MEXICO",
+  "BANCO SANTANDER MEXICO S.A., INSTITUCION DE BANCA MULTIPLE, GRUPO FINANCIERO SANTANDER MEXICO",
+  "MARIA IMELDA CHAPA PARAS",
+  "JOSE ANTONIO PEÑA MARTINEZ",
+  "COMERCIALIZADORA PEPSICO MEXICO",
+  "DISTRIBUIDORA ARCA CONTINENTAL",
+  "WINETPC",
+  "GASNGO MEXICO",
+  "RADIOMOVIL DIPSA",
+  "SERVICIOS GASOLINEROS DE MEXICO",
+  "PEÑAFIEL BEBIDAS",
+  "DELIA EUSTOLIA TORRES GARCIA",
+  "BONAFONT",
+  "BOTANAS Y DERIVADOS",
+  "ANDRES EULALIO RAMIREZ CRUZ",
+  "TELEFONOS DE MEXICO",
+  "LA CACHOTA",
+  "DOLORES BRISEÑO MANCHA",
+  "COMISION FEDERAL DE ELECTRICIDAD"
+];
+
+function fechaYMD(v){
+  return v ? String(v).split("T")[0] : "";
+}
+
+function calcularDias(fechaStr){
+  if(!fechaStr) return 0;
+
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  const [y,m,d] = fechaYMD(fechaStr).split("-").map(Number);
+  if(!y || !m || !d) return 0;
+
+  const f = new Date(y, m-1, d);
+  f.setHours(0,0,0,0);
+
+  return Math.floor((hoy - f) / 86400000);
+}
+
+function proveedorReal(f){
+  return (f.proveedor && f.proveedor.trim() !== "")
+    ? f.proveedor.trim()
+    : (f.razon_social_emisor || "").trim();
+}
+
+async function cargar(){
+
+  const { data, error } = await supabase
+    .from("v_deuda_proveedores")
+    .select("*")
+    .neq("factura_pagada","SI");
+
+  if(error){
+    console.error(error);
+    alert("Error cargando datos");
+    return;
+  }
+
+  const contenedor = document.getElementById("tabla");
+  contenedor.innerHTML = "";
+
+  for(const proveedorNombre of proveedoresContado){
+
+    const facturas = (data || []).filter(f=>{
+      return proveedorReal(f) === proveedorNombre;
+    });
+
+    let totalProveedor = 0;
+    let diasMayor = 0;
+
+    facturas.forEach(f=>{
+      const dias = calcularDias(f.fecha);
+      if(dias > diasMayor) diasMayor = dias;
+      totalProveedor += (parseFloat(f.total)||0);
+    });
+
+    let html = `
+      <div class="cardProveedor" data-proveedor="${escapeHtml(proveedorNombre)}">
+        <div class="headerProveedor">
+          <div>
+            <strong>${escapeHtml(proveedorNombre)}</strong>
+          </div>
+          <div style="text-align:right">
+            Facturas: <strong>${facturas.length}</strong><br>
+            Total: <strong>$${totalProveedor.toLocaleString("es-MX",{minimumFractionDigits:2})}</strong><br>
+            Mayor antigüedad:
+            <span class="${diasMayor > 30 ? 'diasAlto' : ''}">
+              <strong>${diasMayor}</strong> días
+            </span>
+          </div>
+        </div>
+    `;
+
+    if(facturas.length === 0){
+
+      html += `<div class="sinFacturas">Sin facturas pendientes</div>`;
+
+    } else {
+
+      html += `
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Días</th>
+              <th>UUID</th>
+              <th>Total</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      // Más días primero (más vieja primero)
+      facturas.sort((a,b)=> calcularDias(b.fecha) - calcularDias(a.fecha));
+
+      for(const f of facturas){
+        const dias = calcularDias(f.fecha);
+
+        html += `
+          <tr data-uuid="${escapeAttr(f.uuid_cfdi || '')}">
+            <td>${fechaYMD(f.fecha)}</td>
+            <td class="${dias > 30 ? 'diasAlto' : ''}">${dias}</td>
+            <td style="font-size:0.75em">${escapeHtml(f.uuid_cfdi || "")}</td>
+            <td class="numero">${Number(f.total||0).toLocaleString("es-MX",{minimumFractionDigits:2})}</td>
+            <td style="text-align:center">
+              <button class="btn-pagar" title="Marcar como pagada"
+                onclick="marcarPagada('${escapeJs(f.uuid_cfdi || '')}', this)">
+              </button>
+            </td>
+          </tr>
+        `;
+      }
+
+      html += `</tbody></table>`;
+    }
+
+    html += `</div>`;
+    contenedor.insertAdjacentHTML("beforeend", html);
+  }
+}
+
+// === BOTÓN TANOS (marcar pagada) ===
+window.marcarPagada = async function(uuid, boton){
+  if(!uuid){
+    alert("UUID vacío");
+    return;
+  }
+
+  const fila = boton.closest("tr");
+  const card = boton.closest(".cardProveedor");
+
+  boton.disabled = true;
+
+  const { error } = await supabase
+    .from("deuda_limpia_pdd")
+    .update({ factura_pagada:"SI" })
+    .eq("uuid_cfdi", uuid);
+
+  if(error){
+    console.error(error);
+    alert("❌ Error al marcar como pagada");
+    boton.disabled = false;
+    return;
+  }
+
+  // efecto visual + quitar fila
+  fila.style.background = "#e8f5e9";
+  fila.style.transition = "all .8s ease";
+
+  setTimeout(()=>{
+    fila.style.opacity = "0";
+    fila.style.transform = "scale(.92)";
+    setTimeout(()=>{
+      fila.remove();
+      // refrescar SOLO el card (recalcular conteos/total/diasMayor)
+      refrescarCard(card);
+    }, 800);
+  }, 600);
+};
+
+// Recalcula header del proveedor después de quitar una fila (sin recargar todo)
+function refrescarCard(card){
+  if(!card) return;
+
+  const rows = Array.from(card.querySelectorAll("tbody tr"));
+  const facturasCount = rows.length;
+
+  let total = 0;
+  let diasMayor = 0;
+
+  for(const r of rows){
+    const tds = r.querySelectorAll("td");
+    const dias = parseInt((tds[1]?.textContent||"0").trim(), 10) || 0;
+    const totalStr = (tds[3]?.textContent||"0").replace(/[^0-9.-]/g,"");
+    const t = parseFloat(totalStr) || 0;
+
+    if(dias > diasMayor) diasMayor = dias;
+    total += t;
+  }
+
+  const headerRight = card.querySelector(".headerProveedor > div:last-child");
+  if(headerRight){
+    headerRight.innerHTML = `
+      Facturas: <strong>${facturasCount}</strong><br>
+      Total: <strong>$${total.toLocaleString("es-MX",{minimumFractionDigits:2})}</strong><br>
+      Mayor antigüedad:
+      <span class="${diasMayor > 30 ? 'diasAlto' : ''}">
+        <strong>${diasMayor}</strong> días
+      </span>
+    `;
+  }
+
+  // si ya no hay filas, muestra "Sin facturas pendientes" y quita tabla
+  if(facturasCount === 0){
+    const table = card.querySelector("table");
+    if(table) table.remove();
+
+    if(!card.querySelector(".sinFacturas")){
+      card.insertAdjacentHTML("beforeend", `<div class="sinFacturas">Sin facturas pendientes</div>`);
+    }
+  }
+}
+
+// Helpers simples para evitar romper HTML/attrs
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function escapeAttr(s){ return escapeHtml(s); }
+function escapeJs(s){
+  return String(s).replaceAll("\\","\\\\").replaceAll("'","\\'");
+}
+
+cargar();
+</script>
+
+</body>
+</html>
