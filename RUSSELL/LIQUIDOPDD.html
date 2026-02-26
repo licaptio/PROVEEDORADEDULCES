@@ -12,7 +12,6 @@
       margin:0;
       padding:20px;
     }
-
     .card{
       background:#fff;
       border-radius:16px;
@@ -20,21 +19,16 @@
       padding:14px;
       margin:12px 0;
     }
-
     table{
       width:100%;
       border-collapse:collapse;
       font-size:13px;
     }
-
     th, td{
       padding:8px;
       border-bottom:1px solid #e5e7eb;
     }
-
-    th{
-      text-align:left;
-    }
+    th{ text-align:left; }
 
     .kpis{
       display:grid;
@@ -42,26 +36,24 @@
       gap:10px;
       margin-bottom:12px;
     }
-
     .kpi{
       background:#f6f7fb;
       border-radius:12px;
       padding:10px;
     }
-
     .kpi strong{
       display:block;
       font-size:12px;
       color:#555;
     }
+    .kpi span{ font-weight:700; }
 
-    .kpi span{
-      font-weight:700;
-    }
+    #errores{ display:none; margin-bottom:10px; }
 
-    #errores{
-      display:none;
-      margin-bottom:10px;
+    /* PC: más ancho y 6 columnas */
+    @media (min-width: 1100px){
+      body{ padding:26px; }
+      .kpis{ grid-template-columns:repeat(6,1fr); }
     }
   </style>
 </head>
@@ -74,19 +66,26 @@
 <div id="grid"></div>
 
 <script type="module">
+/** =========================
+ *  IMPORTS
+ *  ========================= */
 import { firebaseConfig } from './config.js'
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 
-const FIJACIONES = [
-  {"codigo":"010040","base":65,"desc":"HARI MASA 10/1 KGR"},
-  {"codigo":"7501048102501","base":1200,"desc":"ACEITE KARTAMUS 900 ML"},
-  {"codigo":"2836","base":20,"desc":"HIGIENICO VOGUE C/80 PZ"},
-  {"codigo":"7501011900332","base":75,"desc":"CHILE FARO RODAJAS BOLSA 3K"},
-  {"codigo":"5160","base":140,"desc":"HIGIENICO KLEENEX C/80 (T)"},
-  {"codigo":"7501020540666","base":6480,"desc":"LECHE NUTRI LECHE 1 LTO"}
-];
+// Supabase (ESM)
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
+/** =========================
+ *  CONFIG SUPABASE (Pega tus credenciales)
+ *  ========================= */
+const SUPABASE_URL = "PEGA_AQUI_TU_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "PEGA_AQUI_TU_SUPABASE_ANON_KEY";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/** =========================
+ *  HELPERS
+ *  ========================= */
 function normalize(p){
   if(!p) return [];
   if(Array.isArray(p)) return p;
@@ -98,10 +97,15 @@ function normalize(p){
 }
 
 function fmtFecha(ts){
+  if(!ts) return "";
   try{
+    // Firestore Timestamp -> toDate()
     if(ts?.toDate) return ts.toDate().toLocaleString();
-  }catch{}
-  return "";
+    // Supabase/Postgres string
+    return new Date(ts).toLocaleString();
+  }catch{
+    return "";
+  }
 }
 
 function showError(msg){
@@ -110,27 +114,107 @@ function showError(msg){
   box.innerHTML += `<div style="background:#fff3cd;padding:10px;border-radius:10px;margin:8px 0;">${msg}</div>`;
 }
 
+/** =========================
+ *  CARGAR FIJACIONES DESDE SUPABASE
+ *  - movimientos: tipo=FIJACION, activa=true
+ *  - productos: string JSON -> array
+ *  - devuelve [{codigo, base, desc}]
+ *  ========================= */
+async function cargarFijaciones(){
+  try{
+    const { data, error } = await supabase
+      .from('movimientos')
+      .select('id,tipo,folio,almacen,usuario,timestamp,productos,nivel_alerta,activa')
+      .eq('tipo','FIJACION')
+      .eq('activa', true)
+      .order('timestamp', { ascending: false });
+
+    if(error){
+      showError("Error leyendo fijaciones Supabase: " + (error.message || error));
+      return [];
+    }
+
+    const fijaciones = [];
+
+    (data || []).forEach(row=>{
+      let productos = [];
+      try{
+        // tu campo viene como string JSON
+        productos = normalize(row.productos);
+      }catch{
+        productos = [];
+      }
+
+      productos.forEach(p=>{
+        const codigo = String(p.codigo || "").trim();
+        if(!codigo) return;
+
+        fijaciones.push({
+          codigo,
+          base: Number(p.cantidad || 0),
+          desc: p.descripcion || "",
+          // extra por si luego quieres filtrar por almacén/folio/fecha
+          _almacen: row.almacen || "",
+          _folio: row.folio || "",
+          _timestamp: row.timestamp || "",
+          _nivel_alerta: Number(row.nivel_alerta || 0)
+        });
+      });
+    });
+
+    // Si hay duplicados por SKU, sumamos base (opcional, pero útil)
+    const merged = new Map();
+    fijaciones.forEach(f=>{
+      const key = f.codigo;
+      if(!merged.has(key)){
+        merged.set(key, { ...f });
+      }else{
+        const prev = merged.get(key);
+        prev.base += f.base;
+        // mantén desc si ya existe
+        if(!prev.desc && f.desc) prev.desc = f.desc;
+      }
+    });
+
+    return Array.from(merged.values());
+  }catch(e){
+    showError("Error inesperado cargando fijaciones Supabase: " + (e?.message || e));
+    return [];
+  }
+}
+
+/** =========================
+ *  MAIN
+ *  ========================= */
 document.addEventListener("DOMContentLoaded", async () => {
 
   const grid = document.getElementById("grid");
   grid.innerHTML = "Cargando...";
 
+  // 1) Firebase init
   let db;
-
   try{
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
   }catch(e){
     showError("Error inicializando Firebase. Revisa config.js");
+    grid.innerHTML = "";
     return;
   }
 
+  // 2) Cargar FIJACIONES desde Supabase
+  const FIJACIONES = await cargarFijaciones();
+  if(!FIJACIONES.length){
+    showError("No hay fijaciones activas en Supabase (tipo=FIJACION, activa=true).");
+  }
+
+  // 3) Leer salidas Firestore (tus colecciones)
   const sources = [
-    { almacen:"Almacen_Dulces", col: collection(db,"almacenes","Almacen_Dulces","salidas") },
+    { almacen:"Almacen_Dulces",   col: collection(db,"almacenes","Almacen_Dulces","salidas") },
     { almacen:"Almacen_Liquidos", col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
   ];
 
-  const resultados = new Map();
+  const resultados = new Map(); // sku -> { total, eventos[] }
 
   await Promise.all(sources.map(async src=>{
     try{
@@ -145,12 +229,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           if(!sku) return;
 
           const cant = Number(p.cantidad || 0);
+
           if(!resultados.has(sku)){
             resultados.set(sku,{ total:0, eventos:[] });
           }
 
-          resultados.get(sku).total += cant;
-          resultados.get(sku).eventos.push({
+          const obj = resultados.get(sku);
+          obj.total += cant;
+          obj.eventos.push({
             fecha: fmtFecha(data.timestamp),
             almacen: src.almacen,
             cantidad: cant
@@ -163,7 +249,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }));
 
+  // 4) Render
   grid.innerHTML = "";
+
+  if(!FIJACIONES.length){
+    grid.innerHTML = "<div class='card'>Sin fijaciones para mostrar.</div>";
+    return;
+  }
+
+  // Ordena por desc para mejor lectura
+  FIJACIONES.sort((a,b)=>(a.desc||"").localeCompare(b.desc||""));
 
   FIJACIONES.forEach(item=>{
 
@@ -176,26 +271,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     let rows="";
 
     if(info.eventos.length===0){
-      rows=`<tr><td colspan="3">Sin salidas</td></tr>`;
+      rows = `<tr><td colspan="3">Sin salidas</td></tr>`;
     } else {
+      // ordena eventos por fecha (si quieres)
       info.eventos.forEach(ev=>{
-        rows+=`
-        <tr>
-          <td>${ev.fecha}</td>
-          <td>${ev.almacen}</td>
-          <td style="text-align:right">${ev.cantidad}</td>
-        </tr>`;
+        rows += `
+          <tr>
+            <td>${ev.fecha}</td>
+            <td>${ev.almacen}</td>
+            <td style="text-align:right">${ev.cantidad}</td>
+          </tr>`;
       });
     }
 
-    card.innerHTML=`
-      <h3>${item.desc}</h3>
+    const colorRestante = (restante < 0) ? "#b00020" : "#0a6c21";
+
+    card.innerHTML = `
+      <h3 style="margin:0 0 10px 0">${item.desc || "(Sin descripción)"}</h3>
 
       <div class="kpis">
         <div class="kpi"><strong>SKU</strong><span>${item.codigo}</span></div>
         <div class="kpi"><strong>Base</strong><span>${item.base}</span></div>
         <div class="kpi"><strong>Descuentos</strong><span>${info.total}</span></div>
-        <div class="kpi"><strong>Restante</strong><span style="color:${restante<0?'#b00020':'#0a6c21'}">${restante}</span></div>
+        <div class="kpi"><strong>Restante</strong><span style="color:${colorRestante}">${restante}</span></div>
+
+        <!-- extras PC (no estorban en móvil) -->
+        <div class="kpi"><strong>Folio</strong><span>${item._folio || "-"}</span></div>
+        <div class="kpi"><strong>Almacén (Supa)</strong><span>${item._almacen || "-"}</span></div>
       </div>
 
       <table>
