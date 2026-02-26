@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pedidos – PDD</title>
+<title>Visor Pedido – PDD</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -13,139 +13,257 @@ body{
   margin:0;
   padding:20px;
 }
-
-.container{
-  max-width:1000px;
-  margin:auto;
+.container{max-width:1000px;margin:auto}
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:16px;
 }
+h2{margin:0}
 
-h2{
-  margin-top:0;
-}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:15px;
-}
-  
 .card{
   background:#fff;
   border-radius:12px;
   padding:18px;
   box-shadow:0 3px 12px rgba(0,0,0,.08);
-  cursor:pointer;
-  transition:.15s;
 }
 
-.card:hover{
-  transform:translateY(-3px);
-  box-shadow:0 6px 16px rgba(0,0,0,.12);
+.kv{
+  display:grid;
+  grid-template-columns:180px 1fr;
+  gap:10px 14px;
+  margin-top:10px;
 }
-
-.fecha{
-  font-size:13px;
-  color:#666;
-}
-
-.proveedor{
-  font-size:18px;
-  font-weight:bold;
-  margin-top:6px;
-}
+.kv .k{color:#6b7280;font-size:13px}
+.kv .v{color:#111;font-size:14px;white-space:pre-wrap}
 
 .badge{
-  margin-top:10px;
   display:inline-block;
   padding:6px 12px;
   border-radius:999px;
   font-size:12px;
   background:#eee;
+  margin-top:8px;
 }
-
 .badge.PENDIENTE{background:#ffe8cc;color:#a35a00;}
 .badge.SURTIDO{background:#d3f9d8;color:#1b7f35;}
 .badge.CANCELADO{background:#ffd6d6;color:#b00020;}
 
-.empty{
-  margin-top:20px;
-  color:#666;
-}
-
-.topbar{
+.acciones{
   display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:20px;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:14px 0 4px;
 }
-
 button{
-  padding:8px 14px;
+  padding:9px 14px;
   border-radius:10px;
   border:0;
   background:#111;
   color:#fff;
   cursor:pointer;
 }
+button.sec{background:#374151}
+button.danger{background:#b00020}
+button:disabled{opacity:.55;cursor:not-allowed}
+
+.fotos{
+  margin-top:14px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.fotos img{
+  width:220px;
+  max-width:100%;
+  border-radius:12px;
+  box-shadow:0 3px 10px rgba(0,0,0,.10);
+  background:#fff;
+}
+
+.muted{color:#6b7280}
+hr{border:0;border-top:1px solid #eee;margin:16px 0}
 </style>
 </head>
-<body>
 
+<body>
 <div class="container">
 
   <div class="topbar">
-    <h2>Pedidos</h2>
-    <button onclick="location.href='pedido_nuevo.html'">+ Nuevo Pedido</button>
+    <h2>Visor de Pedido</h2>
+    <button class="sec" onclick="location.href='pedidos.html'">← Volver</button>
   </div>
 
-  <div id="grid" class="grid"></div>
-  <div id="empty" class="empty" style="display:none">No hay pedidos registrados</div>
+  <div class="card">
+    <div id="statusLine" class="muted">Cargando…</div>
+
+    <div class="acciones">
+      <button id="btnSurtido" onclick="cambiarEstatus('SURTIDO')">Marcar SURTIDO</button>
+      <button id="btnPendiente" class="sec" onclick="cambiarEstatus('PENDIENTE')">Marcar PENDIENTE</button>
+      <button id="btnCancelado" class="danger" onclick="cambiarEstatus('CANCELADO')">Cancelar</button>
+    </div>
+
+    <hr>
+
+    <div class="kv">
+      <div class="k">Proveedor</div><div class="v" id="proveedor">—</div>
+      <div class="k">Fecha pedido</div><div class="v" id="fechaPedido">—</div>
+      <div class="k">Notas</div><div class="v" id="notas">—</div>
+      <div class="k">Bucket</div><div class="v" id="bucket">—</div>
+      <div class="k">Creado</div><div class="v" id="creado">—</div>
+      <div class="k">Actualizado</div><div class="v" id="actualizado">—</div>
+    </div>
+
+    <div id="fotosWrap" style="display:none">
+      <hr>
+      <div class="muted" style="margin-bottom:8px">Fotos</div>
+      <div class="fotos" id="fotos"></div>
+    </div>
+
+    <div id="msg" class="muted" style="margin-top:14px"></div>
+  </div>
 
 </div>
 
 <script>
 const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-async function cargarPedidos(){
+const params = new URLSearchParams(window.location.search);
+const pedidoId = params.get("id");
+
+let pedidoActual = null;
+
+function fmt(ts){
+  try{
+    return new Date(ts).toLocaleString();
+  }catch(e){
+    return ts || "—";
+  }
+}
+
+function setMsg(t){ document.getElementById("msg").textContent = t || ""; }
+
+function render(p){
+  pedidoActual = p;
+
+  const est = (p.estatus || "PENDIENTE").toUpperCase();
+  document.getElementById("statusLine").innerHTML = `
+    <div><b>ID:</b> ${p.id}</div>
+    <div class="badge ${est}">${est}</div>
+  `;
+
+  document.getElementById("proveedor").textContent = p.proveedor_nombre || "—";
+  document.getElementById("fechaPedido").textContent = p.pedido_fecha || "—";
+  document.getElementById("notas").textContent = p.notas || "—";
+  document.getElementById("bucket").textContent = p.bucket_path || "—";
+  document.getElementById("creado").textContent = fmt(p.created_at);
+  document.getElementById("actualizado").textContent = fmt(p.updated_at);
+
+  // botones: opcional, si está CANCELADO, bloquear SURTIDO/PENDIENTE (ajústalo a tu gusto)
+  const isCancel = est === "CANCELADO";
+  document.getElementById("btnSurtido").disabled = isCancel;
+  document.getElementById("btnPendiente").disabled = isCancel;
+
+  // fotos (desde Storage)
+  const fotos = Array.isArray(p.fotos) ? p.fotos : [];
+  const fotosDiv = document.getElementById("fotos");
+  fotosDiv.innerHTML = "";
+
+  if(fotos.length){
+    document.getElementById("fotosWrap").style.display = "block";
+
+    // IMPORTANTE:
+    // Ajusta BUCKET_NAME si tu bucket de Storage se llama diferente.
+    // En tu dato viene "pedidospdd/...." como ruta.
+    const BUCKET_NAME = "pedidospdd";
+
+    fotos.forEach(path => {
+      // tu path viene como: "06c.../archivo.png" o "06c.../177...png"
+      const { data } = sb.storage.from(BUCKET_NAME).getPublicUrl(path);
+      const url = data?.publicUrl;
+
+      const img = document.createElement("img");
+      img.src = url || "";
+      img.alt = "foto";
+      img.loading = "lazy";
+      img.onerror = () => { img.style.display = "none"; };
+      fotosDiv.appendChild(img);
+    });
+  } else {
+    document.getElementById("fotosWrap").style.display = "none";
+  }
+}
+
+async function cargarPedido(){
+  if(!pedidoId){
+    setMsg("No se encontró el parámetro ?id= en la URL");
+    document.getElementById("statusLine").textContent = "Falta ID";
+    return;
+  }
+
+  setMsg("");
 
   const { data, error } = await sb
     .from("pedidos_pdd")
-    .select("id, proveedor_nombre, pedido_fecha, estatus, created_at")
-    .order("created_at", { ascending:false });
+    .select("id, proveedor_nombre, pedido_fecha, notas, estatus, bucket_path, fotos, created_at, updated_at")
+    .eq("id", pedidoId)
+    .single();
 
   if(error){
-    document.getElementById("grid").innerHTML = "Error cargando pedidos";
+    console.error(error);
+    document.getElementById("statusLine").textContent = "Error cargando pedido";
+    setMsg("Revisa consola y RLS/permisos.");
     return;
   }
 
-  if(!data || data.length === 0){
-    document.getElementById("empty").style.display = "block";
+  render(data);
+}
+
+async function cambiarEstatus(nuevo){
+  if(!pedidoId) return alert("Falta ID del pedido");
+
+  const actual = (pedidoActual?.estatus || "").toUpperCase();
+  const target = (nuevo || "").toUpperCase();
+
+  // confirmaciones mínimas
+  if(target === "CANCELADO"){
+    const ok = confirm("¿Seguro que quieres CANCELAR este pedido?");
+    if(!ok) return;
+  }
+  if(actual === target){
+    setMsg("Ya estaba en " + target);
     return;
   }
 
-  document.getElementById("grid").innerHTML = data.map(p => `
-    <div class="card" onclick="abrir('${p.id}')">
-      <div class="fecha">
-        ${new Date(p.created_at).toLocaleString()}
-      </div>
-      <div class="proveedor">${p.proveedor_nombre}</div>
-      <div class="badge ${p.estatus}">${p.estatus}</div>
-    </div>
-  `).join("");
-}
-  
-function abrir(id){
-  location.href = `pedido_visor.html?id=${id}`;
+  setMsg("Actualizando estatus…");
+
+  const { data, error } = await sb
+    .from("pedidos_pdd")
+    .update({
+      estatus: target,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", pedidoId)
+    .select()
+    .single();
+
+  if(error){
+    console.error(error);
+    alert("Error actualizando estatus (revisa RLS/permisos).");
+    setMsg("No se pudo actualizar.");
+    return;
+  }
+
+  render(data);
+  setMsg("Listo: estatus -> " + target);
 }
 
-cargarPedidos();
+cargarPedido();
 </script>
 
 </body>
-
 </html>
-
-
