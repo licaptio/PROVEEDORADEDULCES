@@ -71,11 +71,13 @@
  *  ========================= */
 import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+import {
+  getFirestore, collection, getDocs,
+  query, where
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 
 // Supabase (ESM)
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
-
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /** =========================
@@ -111,24 +113,24 @@ function showError(msg){
 
 /** =========================
  *  CARGAR FIJACIONES DESDE SUPABASE
- *  - movimientos: tipo=FIJACION, activa=true
+ *  - movimientos_inventario: ids específicos (como tú lo traes)
  *  - productos: string JSON -> array
- *  - devuelve [{codigo, base, desc}]
+ *  - devuelve [{codigo, base, desc, _timestamp, ...}]
  *  ========================= */
 async function cargarFijaciones(){
   try{
-const { data, error } = await supabase
-  .from('movimientos_inventario')
-  .select('*')
-  .in('id', [
-    '0457da79-ef2b-4a22-b280-237c2c48b8dc',
-    '33ced1e7-0bb5-44d0-85db-4c54a0a5e0ea',
-    '3fe1773f-ce2f-4b99-a46c-5118bd4f26b8',
-    '4152f230-9d6d-4a04-8b1c-c21e07161336',
-    '72f7ec81-cda9-4453-b751-05ced6f7e606',
-    '85b595ad-6893-479d-b79f-b2215a95dd4e'
-  ])
-  .order('timestamp', { ascending: false });
+    const { data, error } = await supabase
+      .from('movimientos_inventario')
+      .select('*')
+      .in('id', [
+        '0457da79-ef2b-4a22-b280-237c2c48b8dc',
+        '33ced1e7-0bb5-44d0-85db-4c54a0a5e0ea',
+        '3fe1773f-ce2f-4b99-a46c-5118bd4f26b8',
+        '4152f230-9d6d-4a04-8b1c-c21e07161336',
+        '72f7ec81-cda9-4453-b751-05ced6f7e606',
+        '85b595ad-6893-479d-b79f-b2215a95dd4e'
+      ])
+      .order('timestamp', { ascending: false });
 
     if(error){
       showError("Error leyendo fijaciones Supabase: " + (error.message || error));
@@ -140,7 +142,6 @@ const { data, error } = await supabase
     (data || []).forEach(row=>{
       let productos = [];
       try{
-        // tu campo viene como string JSON
         productos = normalize(row.productos);
       }catch{
         productos = [];
@@ -154,7 +155,6 @@ const { data, error } = await supabase
           codigo,
           base: Number(p.cantidad || 0),
           desc: p.descripcion || "",
-          // extra por si luego quieres filtrar por almacén/folio/fecha
           _almacen: row.almacen || "",
           _folio: row.folio || "",
           _timestamp: row.timestamp || "",
@@ -163,7 +163,7 @@ const { data, error } = await supabase
       });
     });
 
-    // Si hay duplicados por SKU, sumamos base (opcional, pero útil)
+    // merge por SKU
     const merged = new Map();
     fijaciones.forEach(f=>{
       const key = f.codigo;
@@ -172,7 +172,6 @@ const { data, error } = await supabase
       }else{
         const prev = merged.get(key);
         prev.base += f.base;
-        // mantén desc si ya existe
         if(!prev.desc && f.desc) prev.desc = f.desc;
       }
     });
@@ -206,10 +205,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 2) Cargar FIJACIONES desde Supabase
   const FIJACIONES = await cargarFijaciones();
   if(!FIJACIONES.length){
-    showError("No hay fijaciones activas en Supabase (tipo=FIJACION, activa=true).");
+    showError("No hay fijaciones activas en Supabase (revisa los IDs / datos).");
   }
 
-  // 3) Leer salidas Firestore (tus colecciones)
+  // ✅ fecha mínima (para no traer TODAS las salidas)
+  const fechaMinFijacion = FIJACIONES
+    .map(f => new Date(f._timestamp))
+    .filter(d => !isNaN(d.getTime()))
+    .sort((a,b)=>a-b)[0] || new Date("2000-01-01");
+
+  // 3) Colecciones Firestore
   const sources = [
     { almacen:"Almacen_Dulces",   col: collection(db,"almacenes","Almacen_Dulces","salidas") },
     { almacen:"Almacen_Liquidos", col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
@@ -217,13 +222,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const resultados = new Map(); // sku -> { total, eventos[] }
 
+  // 4) Leer salidas Firestore OPTIMIZADO por timestamp
   await Promise.all(sources.map(async src=>{
     try{
-      const snap = await getDocs(src.col);
+      const q = query(
+        src.col,
+        where("timestamp", ">=", fechaMinFijacion)
+      );
+
+      const snap = await getDocs(q);
 
       snap.forEach(doc=>{
         const data = doc.data();
         const lista = normalize(data.productos);
+
+        const ts = data.timestamp || null; // ✅ Firestore Timestamp real
 
         lista.forEach(p=>{
           const sku = String(p.codigo || "").trim();
@@ -237,8 +250,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           const obj = resultados.get(sku);
           obj.total += cant;
+
           obj.eventos.push({
-            fecha: data.fecha || "",
+            timestamp: ts, // ✅ NO usar "fecha" string
             almacen: src.almacen,
             cantidad: cant
           });
@@ -246,11 +260,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
     }catch(e){
-      showError("Error leyendo Firestore en " + src.almacen);
+      showError("Error leyendo Firestore en " + src.almacen + ": " + (e?.message||e));
     }
   }));
 
-  // 4) Render
+  // 5) Render
   grid.innerHTML = "";
 
   if(!FIJACIONES.length){
@@ -265,20 +279,30 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const rawInfo = resultados.get(item.codigo) || { total:0, eventos:[] };
 
-const fechaFijacion = new Date(item._timestamp);
+    const fechaFijacion = new Date(item._timestamp);
 
-const eventosFiltrados = rawInfo.eventos.filter(ev=>{
-  if(!ev.fecha) return false;
-  const fechaSalida = new Date(ev.fecha);
-  return fechaSalida >= fechaFijacion;
-});
+    const eventosFiltrados = rawInfo.eventos.filter(ev=>{
+      if(!ev.timestamp) return false;
+      const fechaSalida = ev.timestamp?.toDate ? ev.timestamp.toDate() : new Date(ev.timestamp);
+      if(isNaN(fechaSalida.getTime())) return false;
+      if(isNaN(fechaFijacion.getTime())) return true; // si fijación inválida, no filtrar
+      return fechaSalida >= fechaFijacion;
+    });
 
-const totalFiltrado = eventosFiltrados.reduce((acc,e)=>acc + e.cantidad, 0);
+    // ordena eventos por timestamp
+    eventosFiltrados.sort((a,b)=>{
+      const ta = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : new Date(a.timestamp).getTime();
+      const tb = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : new Date(b.timestamp).getTime();
+      return ta - tb;
+    });
 
-const info = {
-  total: totalFiltrado,
-  eventos: eventosFiltrados
-};
+    const totalFiltrado = eventosFiltrados.reduce((acc,e)=>acc + Number(e.cantidad||0), 0);
+
+    const info = {
+      total: totalFiltrado,
+      eventos: eventosFiltrados
+    };
+
     const restante = item.base - info.total;
 
     const card = document.createElement("div");
@@ -289,11 +313,10 @@ const info = {
     if(info.eventos.length===0){
       rows = `<tr><td colspan="3">Sin salidas</td></tr>`;
     } else {
-      // ordena eventos por fecha (si quieres)
       info.eventos.forEach(ev=>{
         rows += `
           <tr>
-            <td>${ev.fecha}</td>
+            <td>${fmtFecha(ev.timestamp)}</td>
             <td>${ev.almacen}</td>
             <td style="text-align:right">${ev.cantidad}</td>
           </tr>`;
@@ -302,6 +325,7 @@ const info = {
 
     const colorRestante = (restante < 0) ? "#b00020" : "#0a6c21";
     const fechaFijacionTexto = fmtFecha(item._timestamp);
+
     card.innerHTML = `
       <h3 style="margin:0 0 10px 0">${item.desc || "(Sin descripción)"}</h3>
 
@@ -311,11 +335,7 @@ const info = {
         <div class="kpi"><strong>Descuentos</strong><span>${info.total}</span></div>
         <div class="kpi"><strong>Restante</strong><span style="color:${colorRestante}">${restante}</span></div>
 
-        <!-- extras PC (no estorban en móvil) -->
-        <div class="kpi">
-  <strong>Fecha Fijación</strong>
-  <span>${fechaFijacionTexto}</span>
-</div>
+        <div class="kpi"><strong>Fecha Fijación</strong><span>${fechaFijacionTexto}</span></div>
         <div class="kpi"><strong>Almacén (Supa)</strong><span>${item._almacen || "-"}</span></div>
       </div>
 
