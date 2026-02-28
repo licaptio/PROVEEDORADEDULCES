@@ -160,22 +160,25 @@ window.generarListado = async function(){
 
     v.detalle.forEach(item=>{
 
-     const depto = item.departamento_info?.nombre || "SIN DEPTO";
+const depto = item.departamento_info?.nombre || "SIN DEPTO";
 
-let comision = Number(item.comision_monto) || 0;
+let comision = 0;
 
-// 🔥 AJUSTE EXCLUSIVO PARA CIGARROS (50 centavos por paquete)
-if (depto.toUpperCase().includes("CIGARRO")) {
-  comision = +(comision / 10).toFixed(2);
-}
-
-      const importe = Number(item.importe) || 0;
+const importe = Number(item.importe) || 0;
 const precioUnit = Number(item.precio_unit) || 0;
 
 const cantidad =
   Number(item.cantidad) ||
   Number(item.qty) ||
   (precioUnit > 0 ? importe / precioUnit : 0);
+
+// 🔥 CÁLCULO CORRECTO PARA CIGARROS
+if (depto.toUpperCase().includes("CIGARRO")) {
+  comision = +(cantidad * 0.05).toFixed(2);
+} else {
+  comision = Number(item.comision_monto) || 0;
+}
+
       if(!dataPorDepto[depto]){
         dataPorDepto[depto] = {
           filas: [],
