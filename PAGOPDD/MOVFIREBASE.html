@@ -117,10 +117,11 @@ btn.addEventListener("click", async () => {
 
   try {
 
+    // 🔹 ORIGEN NUEVO
     const origenRef = collection(
       db,
       "inventarios3",
-      "Ruta 1 Venta",
+      "Ruta 2 Venta",
       "usuarios",
       "Gibran",
       "escaneos"
@@ -137,18 +138,19 @@ btn.addEventListener("click", async () => {
     const total = snapshot.size;
     let procesados = 0;
 
-    const corteId = "26-FEB-26";
+    // 🔹 NUEVO CORTE
+    const corteId = "27-02-26";
 
     const destinoDoc = doc(
       db,
       "almacenes",
-      "Almacen_Ruta_1",
+      "Almacen_Ruta_2",
       "tomafisica",
       corteId
     );
 
     await setDoc(destinoDoc,{
-      fecha: "26-FEB-26",
+      fecha: "27-02-26",
       creadoEn: serverTimestamp()
     });
 
@@ -165,7 +167,7 @@ btn.addEventListener("click", async () => {
         const destinoEscaneo = doc(
           db,
           "almacenes",
-          "Almacen_Ruta_1",
+          "Almacen_Ruta_2",
           "tomafisica",
           corteId,
           "escaneos",
@@ -173,7 +175,6 @@ btn.addEventListener("click", async () => {
         );
 
         batch.set(destinoEscaneo, documento.data());
-
         procesados++;
       });
 
