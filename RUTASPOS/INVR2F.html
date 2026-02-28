@@ -567,20 +567,20 @@ const corteFin = await getCorteFromToma(rutaId, tomaFin);
 if(!corteIni || !corteFin)
   throw new Error("No pude calcular cortes reales desde escaneos.");
 
+const corteIni = await getCorteFromToma(rutaId, tomaIni);
+const corteFin = await getCorteFromToma(rutaId, tomaFin);
+
+if(!corteIni || !corteFin)
+  throw new Error("No pude calcular cortes reales desde escaneos.");
+
 if(corteFin <= corteIni)
   throw new Error("La toma final debe ser posterior a la toma inicial.");
+
+chipIni.textContent = `Inicial: ${tomaIni}`;
+chipFin.textContent = `Final: ${tomaFin}`;
+chipRango.textContent = `Rango: (${fmtDateTime(corteIni)} → ${fmtDateTime(corteFin)}]`;
+
         
-        chipIni.textContent = `Inicial: ${tomaIni}`;
-        chipFin.textContent = `Final: ${tomaFin}`;
-
-        // Cortes reales por epochMs mínimo (igual criterio que ya usabas)
-        const corteIni = await getCorteFromToma(rutaId, tomaIni);
-        const corteFin = await getCorteFromToma(rutaId, tomaFin);
-
-        chipRango.textContent = `Rango: (${fmtDateTime(corteIni)} → ${fmtDateTime(corteFin)}]`;
-
-        if(corteFin <= corteIni) throw new Error("El corte final quedó <= corte inicial (revisa epochMs en escaneos).");
-
         // Inventarios físicos
         const invIniMap = await getInventarioFromToma(rutaId, tomaIni);
         const invFinMap = await getInventarioFromToma(rutaId, tomaFin);
