@@ -561,12 +561,15 @@
         const tomaFin = selFin.value;
         if(!tomaIni || !tomaFin) throw new Error("Selecciona toma inicial y toma final.");
 
-        const dtIni = parseTomaIdToDate(tomaIni);
-        const dtFin = parseTomaIdToDate(tomaFin);
-        if(!dtIni || !dtFin) throw new Error("No pude interpretar fecha de una toma (ID inválido).");
+const corteIni = await getCorteFromToma(rutaId, tomaIni);
+const corteFin = await getCorteFromToma(rutaId, tomaFin);
 
-        if(dtFin <= dtIni) throw new Error("La toma final debe ser posterior a la toma inicial.");
+if(!corteIni || !corteFin)
+  throw new Error("No pude calcular cortes reales desde escaneos.");
 
+if(corteFin <= corteIni)
+  throw new Error("La toma final debe ser posterior a la toma inicial.");
+        
         chipIni.textContent = `Inicial: ${tomaIni}`;
         chipFin.textContent = `Final: ${tomaFin}`;
 
