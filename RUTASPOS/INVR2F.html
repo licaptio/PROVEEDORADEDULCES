@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Inventario Teórico vs Toma Final — Auditoría</title>
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#fff; --txt:#0f172a; --muted:#64748b;
+      --border:#e2e8f0; --accent:#0c4a6e; --ok:#16a34a; --bad:#dc2626;
+      --warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+    header{padding:16px 18px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+    h1{margin:0 0 10px;font-size:18px;font-weight:900}
+    .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .bar > *{height:38px}
+    input,button,select{
+      border:1px solid var(--border);border-radius:10px;padding:0 12px;background:#fff;color:var(--txt);
+      font-weight:650;
+    }
+    button{background:var(--accent);color:#fff;border:none;cursor:pointer;padding:0 14px}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .chip{padding:8px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--muted);font-size:12px;display:inline-flex;align-items:center;gap:8px}
+    .wrap{max-width:1600px;margin:14px auto;padding:0 14px}
+    .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
+    .status{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+    .status .ok{color:var(--ok);font-weight:900}
+    .status .bad{color:var(--bad);font-weight:900}
+    .status .warn{color:var(--warn);font-weight:900}
+    .tableWrap{margin-top:14px;border:1px solid var(--border);border-radius:14px;overflow:auto;background:#fff;max-height:72vh}
+    table{border-collapse:separate;border-spacing:0;min-width:1100px;width:max-content}
+    th,td{border-bottom:1px solid var(--border);padding:10px 10px;white-space:nowrap;text-align:center;font-size:13px}
+    th{position:sticky;top:0;background:#fbfdff;z-index:10;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+
+    /* sticky first columns */
+    th.sticky1, td.sticky1{position:sticky;left:0;z-index:25;background:#fff}
+    th.sticky2, td.sticky2{position:sticky;left:160px;z-index:25;background:#fff}
+    th.sticky3, td.sticky3{position:sticky;left:260px;z-index:25;background:#fff}
+
+    th.sticky1, th.sticky2, th.sticky3{background:#fbfdff}
+    td.sticky1, td.sticky2, td.sticky3{border-right:1px solid var(--border)}
+
+    .codeCol{min-width:160px;text-align:left;font-weight:900}
+    .initCol{min-width:100px}
+    .theoCol{min-width:110px;font-weight:900}
+    .physCol{min-width:110px;font-weight:900}
+    .diffCol{min-width:110px;font-weight:900}
+
+    .num{font-variant-numeric:tabular-nums}
+    .neg{color:var(--bad);font-weight:900}
+    .pos{color:var(--ok);font-weight:900}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+
+    .diffZero{color:var(--muted);font-weight:700}
+    .diffBad{color:var(--bad);font-weight:900}
+    .diffOk{color:var(--ok);font-weight:900}
+    .rowBad{background:#fff5f5}
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Auditoría — Toma Inicial vs Toma Final (Teórico vs Físico)</h1>
+
+    <div class="bar">
+      <label class="chip">RutaId</label>
+      <input id="rutaId" value="Almacen_Ruta_2" style="min-width:220px" />
+
+      <button id="btnTomas">Cargar tomas</button>
+
+      <label class="chip">Toma inicial</label>
+      <select id="selIni" style="min-width:240px"></select>
+
+      <label class="chip">Toma final</label>
+      <select id="selFin" style="min-width:240px"></select>
+
+      <button id="btnCargar">Calcular</button>
+      <button id="btnCSV" disabled>Exportar CSV</button>
+
+      <label class="chip">
+        <input id="chkCeros" type="checkbox" style="height:auto;margin:0" />
+        Mostrar ceros
+      </label>
+    </div>
+
+    <div class="status">
+      <span class="chip" id="chipIni">Inicial: —</span>
+      <span class="chip" id="chipFin">Final: —</span>
+      <span class="chip" id="chipRango">Rango: —</span>
+      <span class="chip" id="chipStats">—</span>
+      <span class="chip" id="chipDiff">Diferencias: —</span>
+      <span class="chip" id="chipMsg">Listo.</span>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="muted small">
+        Se toma el inventario físico de la <b>Toma Inicial</b> como base. Luego se aplica:
+        <b>+ Entradas</b> y <b>- Ventas</b> entre ambas tomas (consolidado por día).
+        Eso da el <b>Teórico</b>. Luego se compara contra el inventario físico de la <b>Toma Final</b> y se calcula <b>Diferencia</b>.
+      </div>
+
+      <div class="tableWrap" id="tableWrap">
+        <table id="tabla">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import {
+      getFirestore, collection, query, where, orderBy, limit, getDocs,
+      documentId, Timestamp
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    // Firebase config (tu proyecto)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const $ = (id) => document.getElementById(id);
+
+    const btnTomas = $("btnTomas");
+    const btnCargar = $("btnCargar");
+    const btnCSV = $("btnCSV");
+    const chkCeros = $("chkCeros");
+    const selIni = $("selIni");
+    const selFin = $("selFin");
+
+    const chipIni = $("chipIni");
+    const chipFin = $("chipFin");
+    const chipRango = $("chipRango");
+    const chipStats = $("chipStats");
+    const chipDiff = $("chipDiff");
+    const chipMsg = $("chipMsg");
+
+    const thead = $("thead");
+    const tbody = $("tbody");
+
+    function pad2(n){ return String(n).padStart(2,"0"); }
+    function nnum(x){ const v = Number(x); return Number.isFinite(v) ? v : 0; }
+
+    // YYYY-MM-DD (local)
+    function dateKeyLocal(d){
+      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    }
+
+    function parseTomaIdToDate(tomaId){
+      // "2026-02-25_19-29-48" -> Date
+      try{
+        const [ymd, hms] = String(tomaId || "").split("_");
+        if(!ymd || !hms) return null;
+        const time = hms.replaceAll("-", ":");
+        const dt = new Date(`${ymd}T${time}`);
+        return isNaN(dt.getTime()) ? null : dt;
+      }catch{ return null; }
+    }
+
+    function formatHeaderDate(yyyy_mm_dd){
+      const [y,m,d] = yyyy_mm_dd.split("-").map(Number);
+      const dt = new Date(y, m-1, d);
+      return dt.toLocaleDateString("es-MX", { day:"2-digit", month:"short" }).replace(".", "");
+    }
+
+    function fmtNumCell(v, show0){
+      if(!show0 && (v === 0 || Object.is(v, -0))) return "";
+      const isInt = Number.isFinite(v) && Math.abs(v - Math.round(v)) < 1e-9;
+      return isInt ? String(Math.round(v)) : String(Number(v.toFixed(3)));
+    }
+
+    function setMsg(text, ok=true){
+      chipMsg.textContent = text;
+      chipMsg.style.color = ok ? "var(--ok)" : "var(--bad)";
+      chipMsg.style.fontWeight = "900";
+    }
+
+    async function cargarTomas(rutaId){
+      const tomaCol = collection(db, "almacenes", rutaId, "tomafisica");
+      const q = query(tomaCol, orderBy(documentId(), "asc"));
+      const snap = await getDocs(q);
+
+      selIni.innerHTML = "";
+      selFin.innerHTML = "";
+
+      const ids = [];
+      snap.forEach(d => ids.push(d.id));
+
+      for(const id of ids){
+        const o1 = document.createElement("option");
+        o1.value = id; o1.textContent = id;
+        const o2 = document.createElement("option");
+        o2.value = id; o2.textContent = id;
+        selIni.appendChild(o1);
+        selFin.appendChild(o2);
+      }
+
+      // defaults: inicial penúltima, final última
+      if(ids.length >= 2){
+        selIni.value = ids[ids.length - 2];
+        selFin.value = ids[ids.length - 1];
+      }else if(ids.length === 1){
+        selIni.value = ids[0];
+        selFin.value = ids[0];
+      }
+
+      return ids.length;
+    }
+
+    async function getCorteFromToma(rutaId, tomaId){
+      // Usa epochMs mínimo en escaneos (igual que tu lógica actual)
+      const escCol = collection(db, "almacenes", rutaId, "tomafisica", tomaId, "escaneos");
+      const escSnap = await getDocs(escCol);
+
+      let corteMs = Infinity;
+      escSnap.forEach(docu => {
+        const x = docu.data() || {};
+        if(x.epochMs && x.epochMs < corteMs){
+          corteMs = x.epochMs;
+        }
+      });
+
+      if(corteMs !== Infinity) return new Date(corteMs);
+
+      // fallback: si no hay epochMs, intenta por ID
+      const dt = parseTomaIdToDate(tomaId);
+      return dt || new Date(0);
+    }
+
+    async function getInventarioFromToma(rutaId, tomaId){
+      const esc = collection(db, "almacenes", rutaId, "tomafisica", tomaId, "escaneos");
+      const snap = await getDocs(esc);
+
+      const m = new Map(); // codigo -> { qty, descripcion }
+      snap.forEach(docu => {
+        const x = docu.data() || {};
+        const codigo = String(x.codigo || "").trim();
+        if(!codigo) return;
+
+        const qty = nnum(x.cantidad);
+        const desc = String(x.descripcion || x.concepto || x.nombre || "").trim();
+
+        const prev = m.get(codigo) || { qty: 0, descripcion: "" };
+        prev.qty += qty;
+        if(!prev.descripcion && desc) prev.descripcion = desc;
+        m.set(codigo, prev);
+      });
+
+      return m;
+    }
+
+    async function getEntradasEnRango(rutaId, startDate, endDate){
+      const colE = collection(db, "almacenes", rutaId, "entradas");
+      const startISO = startDate.toISOString();
+      const endISO = endDate.toISOString();
+
+      // fecha es string ISO (ej: 2025-11-28T17:25:04.872Z)
+      // Rango (start, end]
+      const q = query(
+        colE,
+        where("fecha", ">", startISO),
+        where("fecha", "<=", endISO),
+        orderBy("fecha", "asc")
+      );
+
+      const snap = await getDocs(q);
+      const out = [];
+      snap.forEach(d => {
+        const x = d.data() || {};
+        const fechaStr = x.fecha;
+        const fecha = new Date(fechaStr);
+        if(isNaN(fecha.getTime())) return;
+        out.push({
+          id: d.id,
+          fecha,
+          items: Array.isArray(x.items) ? x.items : []
+        });
+      });
+      return out;
+    }
+
+    async function getVentasEnRango(rutaId, startDate, endDate){
+      const colV = collection(db, "ventas_rutav2");
+      const startTs = Timestamp.fromDate(startDate);
+      const endTs = Timestamp.fromDate(endDate);
+
+      // Rango (start, end]
+      // OJO: normalmente requiere índice compuesto (rutaId + fecha). Si Firestore marca error,
+      // te da el link directo para crearlo.
+      const q = query(
+        colV,
+        where("rutaId", "==", rutaId),
+        where("fecha", ">", startTs),
+        where("fecha", "<=", endTs),
+        orderBy("fecha", "asc")
+      );
+
+      const snap = await getDocs(q);
+      const out = [];
+      snap.forEach(d => {
+        const x = d.data() || {};
+        const fecha = x.fecha?.toDate ? x.fecha.toDate() : null;
+        if(!fecha) return;
+        out.push({
+          id: d.id,
+          fecha,
+          detalle: Array.isArray(x.detalle) ? x.detalle : []
+        });
+      });
+      return out;
+    }
+
+    function construirMatrizAuditoria(invIniMap, invFinMap, entradasDocs, ventasDocs){
+      // perCode: codigo -> { inicial, fisico, dias: { dateKey: {in,out} } }
+      const perCode = new Map();
+      const dateSet = new Set();
+
+      // seed desde inventario inicial
+      for (const [codigo, info] of invIniMap.entries()){
+        perCode.set(codigo, {
+          inicial: nnum(info.qty),
+          fisico: 0,
+          dias: {}
+        });
+      }
+
+      // suma fisico final
+      for (const [codigo, info] of invFinMap.entries()){
+        if(!perCode.has(codigo)){
+          perCode.set(codigo, { inicial: 0, fisico: nnum(info.qty), dias: {} });
+        }else{
+          perCode.get(codigo).fisico = nnum(info.qty);
+        }
+      }
+
+      // entradas
+      for (const docE of entradasDocs){
+        const dk = dateKeyLocal(docE.fecha);
+        dateSet.add(dk);
+
+        for (const it of docE.items){
+          const codigo = String(it.codigo || "").trim();
+          if(!codigo) continue;
+
+          const qty = nnum(it.cantidad);
+          if(qty === 0) continue;
+
+          if(!perCode.has(codigo)){
+            perCode.set(codigo, { inicial: 0, fisico: 0, dias: {} });
+          }
+          const rec = perCode.get(codigo);
+          rec.dias[dk] = rec.dias[dk] || { in: 0, out: 0 };
+          rec.dias[dk].in += qty;
+        }
+      }
+
+      // ventas
+      for (const docV of ventasDocs){
+        const dk = dateKeyLocal(docV.fecha);
+        dateSet.add(dk);
+
+        for (const det of docV.detalle){
+          const codigo = String(det.codigo || det.id || "").trim();
+          if(!codigo) continue;
+
+          const qty = nnum(det.cantidad);
+          if(qty === 0) continue;
+
+          if(!perCode.has(codigo)){
+            perCode.set(codigo, { inicial: 0, fisico: 0, dias: {} });
+          }
+          const rec = perCode.get(codigo);
+          rec.dias[dk] = rec.dias[dk] || { in: 0, out: 0 };
+          rec.dias[dk].out += qty;
+        }
+      }
+
+      const dateKeys = Array.from(dateSet).sort(); // asc
+      const codes = Array.from(perCode.keys()).sort((a,b) => a.localeCompare(b, "es", { numeric:true }));
+
+      const rows = codes.map(codigo => {
+        const rec = perCode.get(codigo);
+        let teorico = nnum(rec.inicial);
+
+        const cols = [];
+        let sumIn = 0, sumOut = 0;
+
+        for (const dk of dateKeys){
+          const d = rec.dias[dk] || { in: 0, out: 0 };
+          const vin = nnum(d.in);
+          const vout = nnum(d.out);
+          sumIn += vin;
+          sumOut += vout;
+          teorico += vin - vout;
+          cols.push({ in: vin, out: vout });
+        }
+
+        const fisico = nnum(rec.fisico);
+        const diff = fisico - teorico;
+
+        return {
+          codigo,
+          inicial: nnum(rec.inicial),
+          cols,
+          sumIn,
+          sumOut,
+          teorico,
+          fisico,
+          diff
+        };
+      });
+
+      return { dateKeys, rows };
+    }
+
+    function renderTable(dateKeys, rows){
+      const showZeros = chkCeros.checked;
+
+      // header
+      let h = "<tr>";
+      h += `<th class="sticky1 codeCol">Código</th>`;
+      h += `<th class="sticky2 initCol">Inicial</th>`;
+      h += `<th class="sticky3 theoCol">Teórico</th>`;
+
+      for (const dk of dateKeys){
+        const label = formatHeaderDate(dk);
+        h += `<th class="pos">+ ${label}</th>`;
+        h += `<th class="neg">- ${label}</th>`;
+      }
+
+      h += `<th class="physCol">Físico</th>`;
+      h += `<th class="diffCol">Diferencia</th>`;
+      h += "</tr>";
+      thead.innerHTML = h;
+
+      // body
+      const parts = [];
+      for (const r of rows){
+        const diffAbs = Math.abs(r.diff);
+        const rowClass = diffAbs > 1e-9 ? "rowBad" : "";
+        let tr = `<tr class="${rowClass}">`;
+
+        tr += `<td class="sticky1 codeCol">${r.codigo}</td>`;
+        tr += `<td class="sticky2 num">${fmtNumCell(r.inicial, showZeros)}</td>`;
+        tr += `<td class="sticky3 num theoCol">${fmtNumCell(r.teorico, true)}</td>`;
+
+        for (const c of r.cols){
+          tr += `<td class="num pos">${fmtNumCell(c.in, showZeros)}</td>`;
+          tr += `<td class="num neg">${fmtNumCell(c.out, showZeros)}</td>`;
+        }
+
+        tr += `<td class="num physCol">${fmtNumCell(r.fisico, true)}</td>`;
+
+        const cls =
+          diffAbs <= 1e-9 ? "diffZero" :
+          r.diff > 0 ? "diffOk" : "diffBad";
+
+        tr += `<td class="num diffCol ${cls}">${fmtNumCell(r.diff, true)}</td>`;
+        tr += "</tr>";
+
+        parts.push(tr);
+      }
+      tbody.innerHTML = parts.join("");
+    }
+
+    function exportCSV(dateKeys, rows){
+      const headers = ["Codigo","Inicial","Teorico"];
+      for (const dk of dateKeys){
+        const label = formatHeaderDate(dk);
+        headers.push(`+ ${label}`);
+        headers.push(`- ${label}`);
+      }
+      headers.push("Fisico","Diferencia");
+
+      const lines = [];
+      lines.push(headers.join(","));
+
+      for (const r of rows){
+        const vals = [r.codigo, r.inicial, r.teorico];
+        for (const c of r.cols){
+          vals.push(c.in);
+          vals.push(c.out);
+        }
+        vals.push(r.fisico, r.diff);
+
+        lines.push(vals.map(v => {
+          const s = String(v ?? "");
+          return s.includes(",") ? `"${s.replaceAll('"','""')}"` : s;
+        }).join(","));
+      }
+
+      const blob = new Blob([lines.join("\n")], { type:"text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `auditoria_inv_${$("rutaId").value}_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function fmtDateTime(d){
+      return d.toLocaleString("es-MX");
+    }
+
+    function clearTable(){
+      thead.innerHTML = "";
+      tbody.innerHTML = "";
+      btnCSV.disabled = true;
+    }
+
+    let lastData = null;
+
+    btnTomas.addEventListener("click", async () => {
+      clearTable();
+      btnTomas.disabled = true;
+      setMsg("Cargando tomas…", true);
+
+      try{
+        const rutaId = $("rutaId").value.trim();
+        if(!rutaId) throw new Error("RutaId vacío.");
+
+        const n = await cargarTomas(rutaId);
+        if(n === 0) throw new Error("No encontré tomas en tomafisica para esa ruta.");
+
+        setMsg(`Tomas cargadas: ${n}`, true);
+      }catch(err){
+        console.error(err);
+        setMsg(err?.message || "Error.", false);
+      }finally{
+        btnTomas.disabled = false;
+      }
+    });
+
+    btnCargar.addEventListener("click", async () => {
+      btnCargar.disabled = true;
+      btnCSV.disabled = true;
+      setMsg("Calculando…", true);
+      clearTable();
+
+      try{
+        const rutaId = $("rutaId").value.trim();
+        if(!rutaId) throw new Error("RutaId vacío.");
+
+        const tomaIni = selIni.value;
+        const tomaFin = selFin.value;
+        if(!tomaIni || !tomaFin) throw new Error("Selecciona toma inicial y toma final.");
+
+        const dtIni = parseTomaIdToDate(tomaIni);
+        const dtFin = parseTomaIdToDate(tomaFin);
+        if(!dtIni || !dtFin) throw new Error("No pude interpretar fecha de una toma (ID inválido).");
+
+        if(dtFin <= dtIni) throw new Error("La toma final debe ser posterior a la toma inicial.");
+
+        chipIni.textContent = `Inicial: ${tomaIni}`;
+        chipFin.textContent = `Final: ${tomaFin}`;
+
+        // Cortes reales por epochMs mínimo (igual criterio que ya usabas)
+        const corteIni = await getCorteFromToma(rutaId, tomaIni);
+        const corteFin = await getCorteFromToma(rutaId, tomaFin);
+
+        chipRango.textContent = `Rango: (${fmtDateTime(corteIni)} → ${fmtDateTime(corteFin)}]`;
+
+        if(corteFin <= corteIni) throw new Error("El corte final quedó <= corte inicial (revisa epochMs en escaneos).");
+
+        // Inventarios físicos
+        const invIniMap = await getInventarioFromToma(rutaId, tomaIni);
+        const invFinMap = await getInventarioFromToma(rutaId, tomaFin);
+
+        // Movimientos dentro del rango (start, end]
+        const entradas = await getEntradasEnRango(rutaId, corteIni, corteFin);
+        const ventas = await getVentasEnRango(rutaId, corteIni, corteFin);
+
+        const { dateKeys, rows } = construirMatrizAuditoria(invIniMap, invFinMap, entradas, ventas);
+        renderTable(dateKeys, rows);
+
+        // Stats diferencias
+        let cntDiff = 0;
+        let sumAbs = 0;
+        for(const r of rows){
+          const a = Math.abs(r.diff);
+          if(a > 1e-9){
+            cntDiff++;
+            sumAbs += a;
+          }
+        }
+
+        chipStats.textContent =
+          `Productos: ${rows.length} | Días: ${dateKeys.length} | Entradas: ${entradas.length} | Ventas: ${ventas.length}`;
+
+        chipDiff.innerHTML = `Diferencias: <span class="${cntDiff ? "bad" : "ok"}">${cntDiff}</span> | Abs: <b>${fmtNumCell(sumAbs, true)}</b>`;
+
+        setMsg("Listo.", true);
+
+        lastData = { dateKeys, rows };
+        btnCSV.disabled = false;
+
+      }catch(err){
+        console.error(err);
+        setMsg(err?.message || "Error.", false);
+      }finally{
+        btnCargar.disabled = false;
+      }
+    });
+
+    chkCeros.addEventListener("change", () => {
+      if(!lastData) return;
+      renderTable(lastData.dateKeys, lastData.rows);
+    });
+
+    btnCSV.addEventListener("click", () => {
+      if(!lastData) return;
+      exportCSV(lastData.dateKeys, lastData.rows);
+    });
+
+    // Auto-carga tomas al abrir (si existe rutaId)
+    (async () => {
+      try{
+        const rutaId = $("rutaId").value.trim();
+        if(!rutaId) return;
+        const n = await cargarTomas(rutaId);
+        if(n > 0) setMsg(`Tomas cargadas: ${n}`, true);
+      }catch{
+        // silencio
+      }
+    })();
+
+  </script>
+</body>
+</html>
