@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Inventario Teórico vs Toma Final — Auditoría</title>
+  <link rel="icon" href="data:,">
   <style>
     :root{
       --bg:#f5f7fb; --card:#fff; --txt:#0f172a; --muted:#64748b;
@@ -26,23 +27,22 @@
     .wrap{max-width:1600px;margin:14px auto;padding:0 14px}
     .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
     .status{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
-    .status .ok{color:var(--ok);font-weight:900}
-    .status .bad{color:var(--bad);font-weight:900}
-    .status .warn{color:var(--warn);font-weight:900}
     .tableWrap{margin-top:14px;border:1px solid var(--border);border-radius:14px;overflow:auto;background:#fff;max-height:72vh}
-    table{border-collapse:separate;border-spacing:0;min-width:1100px;width:max-content}
+    table{border-collapse:separate;border-spacing:0;min-width:1250px;width:max-content}
     th,td{border-bottom:1px solid var(--border);padding:10px 10px;white-space:nowrap;text-align:center;font-size:13px}
     th{position:sticky;top:0;background:#fbfdff;z-index:10;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
 
-    /* sticky first columns */
-    th.sticky1, td.sticky1{position:sticky;left:0;z-index:25;background:#fff}
-    th.sticky2, td.sticky2{position:sticky;left:160px;z-index:25;background:#fff}
-    th.sticky3, td.sticky3{position:sticky;left:260px;z-index:25;background:#fff}
+    /* sticky first columns (ajustado para Código + Descripción + Inicial + Teórico) */
+    th.sticky1, td.sticky1{position:sticky;left:0;z-index:30;background:#fff}
+    th.sticky2, td.sticky2{position:sticky;left:160px;z-index:30;background:#fff}
+    th.sticky3, td.sticky3{position:sticky;left:440px;z-index:30;background:#fff}
+    th.sticky4, td.sticky4{position:sticky;left:540px;z-index:30;background:#fff}
 
-    th.sticky1, th.sticky2, th.sticky3{background:#fbfdff}
-    td.sticky1, td.sticky2, td.sticky3{border-right:1px solid var(--border)}
+    th.sticky1, th.sticky2, th.sticky3, th.sticky4{background:#fbfdff}
+    td.sticky1, td.sticky2, td.sticky3, td.sticky4{border-right:1px solid var(--border)}
 
     .codeCol{min-width:160px;text-align:left;font-weight:900}
+    .descCol{min-width:280px;text-align:left}
     .initCol{min-width:100px}
     .theoCol{min-width:110px;font-weight:900}
     .physCol{min-width:110px;font-weight:900}
@@ -77,6 +77,12 @@
       <label class="chip">Toma final</label>
       <select id="selFin" style="min-width:240px"></select>
 
+      <label class="chip">Fecha inicio</label>
+      <input type="date" id="fechaInicio" style="min-width:170px" />
+
+      <label class="chip">Fecha fin</label>
+      <input type="date" id="fechaFin" style="min-width:170px" />
+
       <button id="btnCargar">Calcular</button>
       <button id="btnCSV" disabled>Exportar CSV</button>
 
@@ -100,8 +106,9 @@
     <div class="panel">
       <div class="muted small">
         Se toma el inventario físico de la <b>Toma Inicial</b> como base. Luego se aplica:
-        <b>+ Entradas</b> y <b>- Ventas</b> entre ambas tomas (consolidado por día).
+        <b>+ Entradas</b> y <b>- Ventas</b> entre ambas fechas (por día).
         Eso da el <b>Teórico</b>. Luego se compara contra el inventario físico de la <b>Toma Final</b> y se calcula <b>Diferencia</b>.
+        <br><b>Rango profesional:</b> incluye días completos usando <code>[inicio 00:00, fin+1 00:00)</code>.
       </div>
 
       <div class="tableWrap" id="tableWrap">
@@ -116,7 +123,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import {
-      getFirestore, collection, query, where, orderBy, limit, getDocs,
+      getFirestore, collection, query, where, orderBy, getDocs,
       documentId, Timestamp
     } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
@@ -160,6 +167,19 @@
       return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
     }
 
+    // Para ENTRADAS: tu campo "fecha" es string "YYYY-MM-DD HH:mm:ss"
+    // Por eso aquí generamos strings comparables con el mismo formato.
+    function toFirestoreDateStrLocal(d){
+      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+    }
+    function parseFirestoreLocalDateStr(s){
+      // "2026-02-19 10:30:00" -> Date local
+      const t = String(s || "").trim();
+      if(!t) return null;
+      const dt = new Date(t.replace(" ", "T"));
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+
     function parseTomaIdToDate(tomaId){
       // "2026-02-25_19-29-48" -> Date
       try{
@@ -189,6 +209,37 @@
       chipMsg.style.fontWeight = "900";
     }
 
+    function fmtDateTime(d){
+      return d.toLocaleString("es-MX");
+    }
+
+    function clearTable(){
+      thead.innerHTML = "";
+      tbody.innerHTML = "";
+      btnCSV.disabled = true;
+    }
+
+    function buildDateRange(startDate, endDateExclusive){
+      const keys = [];
+      const d = new Date(startDate);
+      d.setHours(0,0,0,0);
+
+      const end = new Date(endDateExclusive);
+      end.setHours(0,0,0,0);
+
+      while(d < end){
+        keys.push(dateKeyLocal(d));
+        d.setDate(d.getDate() + 1);
+      }
+      return keys;
+    }
+
+    function dateInputFromTomaId(tomaId){
+      const dt = parseTomaIdToDate(tomaId);
+      if(!dt) return "";
+      return dt.toISOString().slice(0,10); // YYYY-MM-DD
+    }
+
     async function cargarTomas(rutaId){
       const tomaCol = collection(db, "almacenes", rutaId, "tomafisica");
       const q = query(tomaCol, orderBy(documentId(), "asc"));
@@ -209,7 +260,6 @@
         selFin.appendChild(o2);
       }
 
-      // defaults: inicial penúltima, final última
       if(ids.length >= 2){
         selIni.value = ids[ids.length - 2];
         selFin.value = ids[ids.length - 1];
@@ -218,27 +268,12 @@
         selFin.value = ids[0];
       }
 
+      const fi = dateInputFromTomaId(selIni.value);
+      const ff = dateInputFromTomaId(selFin.value);
+      if(fi) $("fechaInicio").value = fi;
+      if(ff) $("fechaFin").value = ff;
+
       return ids.length;
-    }
-
-    async function getCorteFromToma(rutaId, tomaId){
-      // Usa epochMs mínimo en escaneos (igual que tu lógica actual)
-      const escCol = collection(db, "almacenes", rutaId, "tomafisica", tomaId, "escaneos");
-      const escSnap = await getDocs(escCol);
-
-      let corteMs = Infinity;
-      escSnap.forEach(docu => {
-        const x = docu.data() || {};
-        if(x.epochMs && x.epochMs < corteMs){
-          corteMs = x.epochMs;
-        }
-      });
-
-      if(corteMs !== Infinity) return new Date(corteMs);
-
-      // fallback: si no hay epochMs, intenta por ID
-      const dt = parseTomaIdToDate(tomaId);
-      return dt || new Date(0);
     }
 
     async function getInventarioFromToma(rutaId, tomaId){
@@ -263,49 +298,51 @@
       return m;
     }
 
-    async function getEntradasEnRango(rutaId, startDate, endDate){
+    // ✅ ENTRADAS: documentos directos {codigo, descripcion, cantidad, fecha:"YYYY-MM-DD HH:mm:ss"}
+    async function getEntradasEnRango(rutaId, startDate, endDateExclusive){
       const colE = collection(db, "almacenes", rutaId, "entradas");
-      const startISO = startDate.toISOString();
-      const endISO = endDate.toISOString();
 
-      // fecha es string ISO (ej: 2025-11-28T17:25:04.872Z)
-      // Rango (start, end]
+      // Convertimos a strings con el MISMO formato que guardas en Firestore
+      const startStr = toFirestoreDateStrLocal(startDate);
+      const endStr = toFirestoreDateStrLocal(endDateExclusive);
+
       const q = query(
         colE,
-        where("fecha", ">", startISO),
-        where("fecha", "<=", endISO),
+        where("fecha", ">=", startStr),
+        where("fecha", "<", endStr),
         orderBy("fecha", "asc")
       );
 
       const snap = await getDocs(q);
+
       const out = [];
       snap.forEach(d => {
         const x = d.data() || {};
-        const fechaStr = x.fecha;
-        const fecha = new Date(fechaStr);
-        if(isNaN(fecha.getTime())) return;
+        const fecha = parseFirestoreLocalDateStr(x.fecha);
+        if(!fecha) return;
+
         out.push({
           id: d.id,
           fecha,
-          items: Array.isArray(x.items) ? x.items : []
+          codigo: String(x.codigo || "").trim(),
+          descripcion: String(x.descripcion || "").trim(),
+          cantidad: nnum(x.cantidad)
         });
       });
+
       return out;
     }
 
-    async function getVentasEnRango(rutaId, startDate, endDate){
+    async function getVentasEnRango(rutaId, startDate, endDateExclusive){
       const colV = collection(db, "ventas_rutav2");
       const startTs = Timestamp.fromDate(startDate);
-      const endTs = Timestamp.fromDate(endDate);
+      const endTs = Timestamp.fromDate(endDateExclusive);
 
-      // Rango (start, end]
-      // OJO: normalmente requiere índice compuesto (rutaId + fecha). Si Firestore marca error,
-      // te da el link directo para crearlo.
       const q = query(
         colV,
         where("rutaId", "==", rutaId),
-        where("fecha", ">", startTs),
-        where("fecha", "<=", endTs),
+        where("fecha", ">=", startTs),
+        where("fecha", "<", endTs),
         orderBy("fecha", "asc")
       );
 
@@ -324,16 +361,16 @@
       return out;
     }
 
-    function construirMatrizAuditoria(invIniMap, invFinMap, entradasDocs, ventasDocs){
-      // perCode: codigo -> { inicial, fisico, dias: { dateKey: {in,out} } }
+    function construirMatrizAuditoria(invIniMap, invFinMap, entradasDocs, ventasDocs, startDate, endDateExclusive){
+      // perCode: codigo -> { inicial, fisico, descripcion, dias: { dateKey: {in,out} } }
       const perCode = new Map();
-      const dateSet = new Set();
 
       // seed desde inventario inicial
       for (const [codigo, info] of invIniMap.entries()){
         perCode.set(codigo, {
           inicial: nnum(info.qty),
           fisico: 0,
+          descripcion: String(info.descripcion || "").trim(),
           dias: {}
         });
       }
@@ -341,55 +378,75 @@
       // suma fisico final
       for (const [codigo, info] of invFinMap.entries()){
         if(!perCode.has(codigo)){
-          perCode.set(codigo, { inicial: 0, fisico: nnum(info.qty), dias: {} });
+          perCode.set(codigo, {
+            inicial: 0,
+            fisico: nnum(info.qty),
+            descripcion: String(info.descripcion || "").trim(),
+            dias: {}
+          });
         }else{
-          perCode.get(codigo).fisico = nnum(info.qty);
+          const rec = perCode.get(codigo);
+          rec.fisico = nnum(info.qty);
+          if(!rec.descripcion && info.descripcion) rec.descripcion = String(info.descripcion).trim();
         }
       }
 
-      // entradas
-      for (const docE of entradasDocs){
-        const dk = dateKeyLocal(docE.fecha);
-        dateSet.add(dk);
+      // entradas (directo por documento)
+      for (const mov of entradasDocs){
+        const dk = dateKeyLocal(mov.fecha);
+        const codigo = String(mov.codigo || "").trim();
+        if(!codigo) continue;
 
-        for (const it of docE.items){
-          const codigo = String(it.codigo || "").trim();
-          if(!codigo) continue;
+        const qty = nnum(mov.cantidad);
+        if(qty === 0) continue;
 
-          const qty = nnum(it.cantidad);
-          if(qty === 0) continue;
-
-          if(!perCode.has(codigo)){
-            perCode.set(codigo, { inicial: 0, fisico: 0, dias: {} });
-          }
-          const rec = perCode.get(codigo);
-          rec.dias[dk] = rec.dias[dk] || { in: 0, out: 0 };
-          rec.dias[dk].in += qty;
+        if(!perCode.has(codigo)){
+          perCode.set(codigo, {
+            inicial: 0,
+            fisico: 0,
+            descripcion: String(mov.descripcion || "").trim(),
+            dias: {}
+          });
         }
+
+        const rec = perCode.get(codigo);
+        if(!rec.descripcion && mov.descripcion) rec.descripcion = String(mov.descripcion).trim();
+
+        rec.dias[dk] = rec.dias[dk] || { in: 0, out: 0 };
+        rec.dias[dk].in += qty;
       }
 
       // ventas
       for (const docV of ventasDocs){
         const dk = dateKeyLocal(docV.fecha);
-        dateSet.add(dk);
-
         for (const det of docV.detalle){
-          const codigo = String(det.codigo || det.id || "").trim();
+          // 🔒 Importante: NO uses det.id como fallback (eso crea “códigos” basura)
+          const codigo = String(det.codigo || "").trim();
           if(!codigo) continue;
 
           const qty = nnum(det.cantidad);
           if(qty === 0) continue;
 
+          const desc = String(det.descripcion || det.nombre || "").trim();
+
           if(!perCode.has(codigo)){
-            perCode.set(codigo, { inicial: 0, fisico: 0, dias: {} });
+            perCode.set(codigo, {
+              inicial: 0,
+              fisico: 0,
+              descripcion: desc,
+              dias: {}
+            });
           }
+
           const rec = perCode.get(codigo);
+          if(!rec.descripcion && desc) rec.descripcion = desc;
+
           rec.dias[dk] = rec.dias[dk] || { in: 0, out: 0 };
           rec.dias[dk].out += qty;
         }
       }
 
-      const dateKeys = Array.from(dateSet).sort(); // asc
+      const dateKeys = buildDateRange(startDate, endDateExclusive);
       const codes = Array.from(perCode.keys()).sort((a,b) => a.localeCompare(b, "es", { numeric:true }));
 
       const rows = codes.map(codigo => {
@@ -414,6 +471,7 @@
 
         return {
           codigo,
+          descripcion: rec.descripcion || "",
           inicial: nnum(rec.inicial),
           cols,
           sumIn,
@@ -433,8 +491,9 @@
       // header
       let h = "<tr>";
       h += `<th class="sticky1 codeCol">Código</th>`;
-      h += `<th class="sticky2 initCol">Inicial</th>`;
-      h += `<th class="sticky3 theoCol">Teórico</th>`;
+      h += `<th class="sticky2 descCol">Descripción</th>`;
+      h += `<th class="sticky3 initCol">Inicial</th>`;
+      h += `<th class="sticky4 theoCol">Teórico</th>`;
 
       for (const dk of dateKeys){
         const label = formatHeaderDate(dk);
@@ -455,8 +514,9 @@
         let tr = `<tr class="${rowClass}">`;
 
         tr += `<td class="sticky1 codeCol">${r.codigo}</td>`;
-        tr += `<td class="sticky2 num">${fmtNumCell(r.inicial, showZeros)}</td>`;
-        tr += `<td class="sticky3 num theoCol">${fmtNumCell(r.teorico, true)}</td>`;
+        tr += `<td class="sticky2 descCol">${(r.descripcion || "").replaceAll("<","&lt;").replaceAll(">","&gt;")}</td>`;
+        tr += `<td class="sticky3 num">${fmtNumCell(r.inicial, showZeros)}</td>`;
+        tr += `<td class="sticky4 num theoCol">${fmtNumCell(r.teorico, true)}</td>`;
 
         for (const c of r.cols){
           tr += `<td class="num pos">${fmtNumCell(c.in, showZeros)}</td>`;
@@ -478,7 +538,7 @@
     }
 
     function exportCSV(dateKeys, rows){
-      const headers = ["Codigo","Inicial","Teorico"];
+      const headers = ["Codigo","Descripcion","Inicial","Teorico"];
       for (const dk of dateKeys){
         const label = formatHeaderDate(dk);
         headers.push(`+ ${label}`);
@@ -490,7 +550,7 @@
       lines.push(headers.join(","));
 
       for (const r of rows){
-        const vals = [r.codigo, r.inicial, r.teorico];
+        const vals = [r.codigo, r.descripcion, r.inicial, r.teorico];
         for (const c of r.cols){
           vals.push(c.in);
           vals.push(c.out);
@@ -512,16 +572,6 @@
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    }
-
-    function fmtDateTime(d){
-      return d.toLocaleString("es-MX");
-    }
-
-    function clearTable(){
-      thead.innerHTML = "";
-      tbody.innerHTML = "";
-      btnCSV.disabled = true;
     }
 
     let lastData = null;
@@ -547,6 +597,16 @@
       }
     });
 
+    // Auto-llenar fechas por toma cuando cambias selects
+    selIni.addEventListener("change", () => {
+      const fi = dateInputFromTomaId(selIni.value);
+      if(fi) $("fechaInicio").value = fi;
+    });
+    selFin.addEventListener("change", () => {
+      const ff = dateInputFromTomaId(selFin.value);
+      if(ff) $("fechaFin").value = ff;
+    });
+
     btnCargar.addEventListener("click", async () => {
       btnCargar.disabled = true;
       btnCSV.disabled = true;
@@ -561,35 +621,34 @@
         const tomaFin = selFin.value;
         if(!tomaIni || !tomaFin) throw new Error("Selecciona toma inicial y toma final.");
 
-const corteIni = await getCorteFromToma(rutaId, tomaIni);
-const corteFin = await getCorteFromToma(rutaId, tomaFin);
+        const fechaInicioVal = $("fechaInicio").value;
+        const fechaFinVal = $("fechaFin").value;
+        if(!fechaInicioVal || !fechaFinVal) throw new Error("Selecciona fecha inicio y fecha fin.");
 
-if(!corteIni || !corteFin)
-  throw new Error("No pude calcular cortes reales desde escaneos.");
+        // Modelo profesional semiabierto: [inicio 00:00, fin+1 00:00)
+        const fIni = new Date(fechaInicioVal + "T00:00:00");
+        const fFin = new Date(fechaFinVal + "T00:00:00");
+        if(isNaN(fIni.getTime()) || isNaN(fFin.getTime())) throw new Error("Fechas inválidas.");
+        if(fFin < fIni) throw new Error("La fecha final debe ser mayor o igual a la inicial.");
 
-const corteIni = await getCorteFromToma(rutaId, tomaIni);
-const corteFin = await getCorteFromToma(rutaId, tomaFin);
+        const corteIni = new Date(fIni.getFullYear(), fIni.getMonth(), fIni.getDate(), 0,0,0,0);
+        const corteFin = new Date(fFin.getFullYear(), fFin.getMonth(), fFin.getDate() + 1, 0,0,0,0);
 
-if(!corteIni || !corteFin)
-  throw new Error("No pude calcular cortes reales desde escaneos.");
+        chipIni.textContent = `Inicial: ${tomaIni}`;
+        chipFin.textContent = `Final: ${tomaFin}`;
+        chipRango.textContent = `Rango: [${fmtDateTime(corteIni)} → ${fmtDateTime(corteFin)} )`;
 
-if(corteFin <= corteIni)
-  throw new Error("La toma final debe ser posterior a la toma inicial.");
-
-chipIni.textContent = `Inicial: ${tomaIni}`;
-chipFin.textContent = `Final: ${tomaFin}`;
-chipRango.textContent = `Rango: (${fmtDateTime(corteIni)} → ${fmtDateTime(corteFin)}]`;
-
-        
         // Inventarios físicos
         const invIniMap = await getInventarioFromToma(rutaId, tomaIni);
         const invFinMap = await getInventarioFromToma(rutaId, tomaFin);
 
-        // Movimientos dentro del rango (start, end]
+        // Movimientos dentro del rango [start, end)
         const entradas = await getEntradasEnRango(rutaId, corteIni, corteFin);
         const ventas = await getVentasEnRango(rutaId, corteIni, corteFin);
 
-        const { dateKeys, rows } = construirMatrizAuditoria(invIniMap, invFinMap, entradas, ventas);
+        const { dateKeys, rows } =
+          construirMatrizAuditoria(invIniMap, invFinMap, entradas, ventas, corteIni, corteFin);
+
         renderTable(dateKeys, rows);
 
         // Stats diferencias
@@ -606,7 +665,8 @@ chipRango.textContent = `Rango: (${fmtDateTime(corteIni)} → ${fmtDateTime(cort
         chipStats.textContent =
           `Productos: ${rows.length} | Días: ${dateKeys.length} | Entradas: ${entradas.length} | Ventas: ${ventas.length}`;
 
-        chipDiff.innerHTML = `Diferencias: <span class="${cntDiff ? "bad" : "ok"}">${cntDiff}</span> | Abs: <b>${fmtNumCell(sumAbs, true)}</b>`;
+        chipDiff.innerHTML =
+          `Diferencias: <span class="${cntDiff ? "bad" : "ok"}">${cntDiff}</span> | Abs: <b>${fmtNumCell(sumAbs, true)}</b>`;
 
         setMsg("Listo.", true);
 
@@ -642,7 +702,6 @@ chipRango.textContent = `Rango: (${fmtDateTime(corteIni)} → ${fmtDateTime(cort
         // silencio
       }
     })();
-
   </script>
 </body>
 </html>
