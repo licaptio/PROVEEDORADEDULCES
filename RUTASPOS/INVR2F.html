@@ -28,11 +28,11 @@
     .panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
     .status{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
     .tableWrap{margin-top:14px;border:1px solid var(--border);border-radius:14px;overflow:auto;background:#fff;max-height:72vh}
-    table{border-collapse:separate;border-spacing:0;min-width:1250px;width:max-content}
+    table{border-collapse:separate;border-spacing:0;min-width:1550px;width:max-content}
     th,td{border-bottom:1px solid var(--border);padding:10px 10px;white-space:nowrap;text-align:center;font-size:13px}
     th{position:sticky;top:0;background:#fbfdff;z-index:10;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
 
-    /* sticky first columns (ajustado para Código + Descripción + Inicial + Teórico) */
+    /* sticky first columns (Código + Descripción + Inicial + Teórico) */
     th.sticky1, td.sticky1{position:sticky;left:0;z-index:30;background:#fff}
     th.sticky2, td.sticky2{position:sticky;left:160px;z-index:30;background:#fff}
     th.sticky3, td.sticky3{position:sticky;left:440px;z-index:30;background:#fff}
@@ -47,6 +47,8 @@
     .theoCol{min-width:110px;font-weight:900}
     .physCol{min-width:110px;font-weight:900}
     .diffCol{min-width:110px;font-weight:900}
+    .costCol{min-width:95px;font-weight:900}
+    .moneyCol{min-width:120px;font-weight:900}
 
     .num{font-variant-numeric:tabular-nums}
     .neg{color:var(--bad);font-weight:900}
@@ -167,13 +169,11 @@
       return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
     }
 
-    // Para ENTRADAS: tu campo "fecha" es string "YYYY-MM-DD HH:mm:ss"
-    // Por eso aquí generamos strings comparables con el mismo formato.
+    // ENTRADAS: tu campo "fecha" es string "YYYY-MM-DD HH:mm:ss"
     function toFirestoreDateStrLocal(d){
       return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
     }
     function parseFirestoreLocalDateStr(s){
-      // "2026-02-19 10:30:00" -> Date local
       const t = String(s || "").trim();
       if(!t) return null;
       const dt = new Date(t.replace(" ", "T"));
@@ -191,6 +191,12 @@
       }catch{ return null; }
     }
 
+    function dateInputFromTomaId(tomaId){
+      const dt = parseTomaIdToDate(tomaId);
+      if(!dt) return "";
+      return dt.toISOString().slice(0,10); // YYYY-MM-DD
+    }
+
     function formatHeaderDate(yyyy_mm_dd){
       const [y,m,d] = yyyy_mm_dd.split("-").map(Number);
       const dt = new Date(y, m-1, d);
@@ -201,6 +207,12 @@
       if(!show0 && (v === 0 || Object.is(v, -0))) return "";
       const isInt = Number.isFinite(v) && Math.abs(v - Math.round(v)) < 1e-9;
       return isInt ? String(Math.round(v)) : String(Number(v.toFixed(3)));
+    }
+
+    function fmtMoney(v){
+      const n = Number(v);
+      if(!Number.isFinite(n)) return "";
+      return n.toFixed(2);
     }
 
     function setMsg(text, ok=true){
@@ -234,10 +246,69 @@
       return keys;
     }
 
-    function dateInputFromTomaId(tomaId){
-      const dt = parseTomaIdToDate(tomaId);
-      if(!dt) return "";
-      return dt.toISOString().slice(0,10); // YYYY-MM-DD
+    function escHtml(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // ✅ MAPA NORMALIZADOR (AHORA INCLUYE COSTO):
+    // - productoId -> codigoBarra
+    // - codigoBarra -> codigoBarra
+    // - codigoEquivalente -> codigoBarra
+    async function cargarMapaProductos(){
+      const col = collection(db, "productos");
+      const snap = await getDocs(col);
+
+      const map = new Map(); // key -> {codigo, descripcion, costo}
+
+      snap.forEach(docu => {
+        const x = docu.data() || {};
+        const id = docu.id;
+
+        const codigoReal = String(x.codigoBarra || "").trim();
+        const concepto = String(x.concepto || "").trim();
+        const costo = Number(x.costoSinImpuesto) || 0;
+
+        if(!codigoReal) return;
+
+        const payload = { codigo: codigoReal, descripcion: concepto, costo };
+
+        // 1) id producto
+        map.set(id, payload);
+
+        // 2) codigoBarra mismo
+        map.set(codigoReal, payload);
+
+        // 3) equivalentes
+        if(Array.isArray(x.codigosEquivalentes)){
+          for(const eq of x.codigosEquivalentes){
+            const eqStr = String(eq || "").trim();
+            if(eqStr) map.set(eqStr, payload);
+          }
+        }
+      });
+
+      return map;
+    }
+
+    // Normaliza cualquier token (id, equivalente o codigo) a codigoBarra + desc + costo
+    function normalizarCodigoYDesc(tokenCodigo, tokenDesc, mapaProductos){
+      let codigo = String(tokenCodigo || "").trim();
+      let desc = String(tokenDesc || "").trim();
+      let costo = 0;
+
+      if(codigo && mapaProductos && mapaProductos.has(codigo)){
+        const p = mapaProductos.get(codigo);
+        if(p?.codigo) codigo = p.codigo;
+        if(!desc && p?.descripcion) desc = p.descripcion;
+        costo = Number(p?.costo) || 0;
+      }
+
+      return { codigo, desc, costo };
     }
 
     async function cargarTomas(rutaId){
@@ -302,7 +373,6 @@
     async function getEntradasEnRango(rutaId, startDate, endDateExclusive){
       const colE = collection(db, "almacenes", rutaId, "entradas");
 
-      // Convertimos a strings con el MISMO formato que guardas en Firestore
       const startStr = toFirestoreDateStrLocal(startDate);
       const endStr = toFirestoreDateStrLocal(endDateExclusive);
 
@@ -352,6 +422,7 @@
         const x = d.data() || {};
         const fecha = x.fecha?.toDate ? x.fecha.toDate() : null;
         if(!fecha) return;
+
         out.push({
           id: d.id,
           fecha,
@@ -361,88 +432,92 @@
       return out;
     }
 
-    function construirMatrizAuditoria(invIniMap, invFinMap, entradasDocs, ventasDocs, startDate, endDateExclusive){
-      // perCode: codigo -> { inicial, fisico, descripcion, dias: { dateKey: {in,out} } }
+    function construirMatrizAuditoria(invIniMap, invFinMap, entradasDocs, ventasDocs, startDate, endDateExclusive, mapaProductos){
+      // perCode: codigoBarra -> { inicial, fisico, descripcion, costo, dias: { dateKey: {in,out} } }
       const perCode = new Map();
 
-      // seed desde inventario inicial
-      for (const [codigo, info] of invIniMap.entries()){
-        perCode.set(codigo, {
-          inicial: nnum(info.qty),
-          fisico: 0,
-          descripcion: String(info.descripcion || "").trim(),
-          dias: {}
-        });
+      // seed desde inventario inicial (normalizado)
+      for (const [codigoRaw, info] of invIniMap.entries()){
+        const norm = normalizarCodigoYDesc(codigoRaw, info?.descripcion, mapaProductos);
+        const codigo = norm.codigo;
+        const desc = norm.desc;
+        const costo = norm.costo;
+
+        if(!codigo) continue;
+
+        const prev = perCode.get(codigo) || { inicial: 0, fisico: 0, descripcion: desc || "", costo: costo || 0, dias: {} };
+        prev.inicial += nnum(info?.qty);
+        if(!prev.descripcion && desc) prev.descripcion = desc;
+        if(!prev.costo && costo) prev.costo = costo;
+        perCode.set(codigo, prev);
       }
 
-      // suma fisico final
-      for (const [codigo, info] of invFinMap.entries()){
-        if(!perCode.has(codigo)){
-          perCode.set(codigo, {
-            inicial: 0,
-            fisico: nnum(info.qty),
-            descripcion: String(info.descripcion || "").trim(),
-            dias: {}
-          });
-        }else{
-          const rec = perCode.get(codigo);
-          rec.fisico = nnum(info.qty);
-          if(!rec.descripcion && info.descripcion) rec.descripcion = String(info.descripcion).trim();
-        }
+      // suma fisico final (normalizado)
+      for (const [codigoRaw, info] of invFinMap.entries()){
+        const norm = normalizarCodigoYDesc(codigoRaw, info?.descripcion, mapaProductos);
+        const codigo = norm.codigo;
+        const desc = norm.desc;
+        const costo = norm.costo;
+
+        if(!codigo) continue;
+
+        const prev = perCode.get(codigo) || { inicial: 0, fisico: 0, descripcion: desc || "", costo: costo || 0, dias: {} };
+        prev.fisico += nnum(info?.qty);
+        if(!prev.descripcion && desc) prev.descripcion = desc;
+        if(!prev.costo && costo) prev.costo = costo;
+        perCode.set(codigo, prev);
       }
 
-      // entradas (directo por documento)
+      // entradas (normalizado id/equivalente/codigo)
       for (const mov of entradasDocs){
         const dk = dateKeyLocal(mov.fecha);
-        const codigo = String(mov.codigo || "").trim();
+
+        const norm = normalizarCodigoYDesc(mov.codigo, mov.descripcion, mapaProductos);
+        const codigo = norm.codigo;
+        const desc = norm.desc;
+        const costo = norm.costo;
+
         if(!codigo) continue;
 
         const qty = nnum(mov.cantidad);
         if(qty === 0) continue;
 
-        if(!perCode.has(codigo)){
-          perCode.set(codigo, {
-            inicial: 0,
-            fisico: 0,
-            descripcion: String(mov.descripcion || "").trim(),
-            dias: {}
-          });
-        }
-
-        const rec = perCode.get(codigo);
-        if(!rec.descripcion && mov.descripcion) rec.descripcion = String(mov.descripcion).trim();
+        const rec = perCode.get(codigo) || { inicial: 0, fisico: 0, descripcion: desc || "", costo: costo || 0, dias: {} };
+        if(!rec.descripcion && desc) rec.descripcion = desc;
+        if(!rec.costo && costo) rec.costo = costo;
 
         rec.dias[dk] = rec.dias[dk] || { in: 0, out: 0 };
         rec.dias[dk].in += qty;
+
+        perCode.set(codigo, rec);
       }
 
-      // ventas
+      // ventas (normalizado id/equivalente/codigo)
       for (const docV of ventasDocs){
         const dk = dateKeyLocal(docV.fecha);
+
         for (const det of docV.detalle){
-          // 🔒 Importante: NO uses det.id como fallback (eso crea “códigos” basura)
-          const codigo = String(det.codigo || "").trim();
+          const rawCodigo = det?.codigo ?? "";
+          const rawDesc = det?.descripcion ?? det?.nombre ?? "";
+
+          const norm = normalizarCodigoYDesc(rawCodigo, rawDesc, mapaProductos);
+          const codigo = norm.codigo;
+          const desc = norm.desc;
+          const costo = norm.costo;
+
           if(!codigo) continue;
 
-          const qty = nnum(det.cantidad);
+          const qty = nnum(det?.cantidad);
           if(qty === 0) continue;
 
-          const desc = String(det.descripcion || det.nombre || "").trim();
-
-          if(!perCode.has(codigo)){
-            perCode.set(codigo, {
-              inicial: 0,
-              fisico: 0,
-              descripcion: desc,
-              dias: {}
-            });
-          }
-
-          const rec = perCode.get(codigo);
+          const rec = perCode.get(codigo) || { inicial: 0, fisico: 0, descripcion: desc || "", costo: costo || 0, dias: {} };
           if(!rec.descripcion && desc) rec.descripcion = desc;
+          if(!rec.costo && costo) rec.costo = costo;
 
           rec.dias[dk] = rec.dias[dk] || { in: 0, out: 0 };
           rec.dias[dk].out += qty;
+
+          perCode.set(codigo, rec);
         }
       }
 
@@ -469,16 +544,21 @@
         const fisico = nnum(rec.fisico);
         const diff = fisico - teorico;
 
+        const costo = nnum(rec.costo);
+        const diffCosto = diff * costo;
+
         return {
           codigo,
           descripcion: rec.descripcion || "",
+          costo,
           inicial: nnum(rec.inicial),
           cols,
           sumIn,
           sumOut,
           teorico,
           fisico,
-          diff
+          diff,
+          diffCosto
         };
       });
 
@@ -503,6 +583,8 @@
 
       h += `<th class="physCol">Físico</th>`;
       h += `<th class="diffCol">Diferencia</th>`;
+      h += `<th class="costCol">Costo</th>`;
+      h += `<th class="moneyCol">Dif $</th>`;
       h += "</tr>";
       thead.innerHTML = h;
 
@@ -513,8 +595,8 @@
         const rowClass = diffAbs > 1e-9 ? "rowBad" : "";
         let tr = `<tr class="${rowClass}">`;
 
-        tr += `<td class="sticky1 codeCol">${r.codigo}</td>`;
-        tr += `<td class="sticky2 descCol">${(r.descripcion || "").replaceAll("<","&lt;").replaceAll(">","&gt;")}</td>`;
+        tr += `<td class="sticky1 codeCol">${escHtml(r.codigo)}</td>`;
+        tr += `<td class="sticky2 descCol">${escHtml(r.descripcion)}</td>`;
         tr += `<td class="sticky3 num">${fmtNumCell(r.inicial, showZeros)}</td>`;
         tr += `<td class="sticky4 num theoCol">${fmtNumCell(r.teorico, true)}</td>`;
 
@@ -530,6 +612,14 @@
           r.diff > 0 ? "diffOk" : "diffBad";
 
         tr += `<td class="num diffCol ${cls}">${fmtNumCell(r.diff, true)}</td>`;
+        tr += `<td class="num costCol">${fmtMoney(r.costo)}</td>`;
+
+        const clsMoney =
+          Math.abs(r.diffCosto) <= 1e-9 ? "diffZero" :
+          r.diffCosto > 0 ? "diffOk" : "diffBad";
+
+        tr += `<td class="num moneyCol ${clsMoney}">${fmtMoney(r.diffCosto)}</td>`;
+
         tr += "</tr>";
 
         parts.push(tr);
@@ -544,7 +634,7 @@
         headers.push(`+ ${label}`);
         headers.push(`- ${label}`);
       }
-      headers.push("Fisico","Diferencia");
+      headers.push("Fisico","Diferencia","Costo","Dif_Costo");
 
       const lines = [];
       lines.push(headers.join(","));
@@ -555,7 +645,7 @@
           vals.push(c.in);
           vals.push(c.out);
         }
-        vals.push(r.fisico, r.diff);
+        vals.push(r.fisico, r.diff, r.costo, r.diffCosto);
 
         lines.push(vals.map(v => {
           const s = String(v ?? "");
@@ -638,35 +728,42 @@
         chipFin.textContent = `Final: ${tomaFin}`;
         chipRango.textContent = `Rango: [${fmtDateTime(corteIni)} → ${fmtDateTime(corteFin)} )`;
 
-        // Inventarios físicos
+        // 🔥 Cargar catálogo con COSTO
+        setMsg("Cargando catálogo productos…", true);
+        const mapaProductos = await cargarMapaProductos();
+
+        setMsg("Leyendo inventarios físicos…", true);
         const invIniMap = await getInventarioFromToma(rutaId, tomaIni);
         const invFinMap = await getInventarioFromToma(rutaId, tomaFin);
 
-        // Movimientos dentro del rango [start, end)
+        setMsg("Leyendo entradas y ventas…", true);
         const entradas = await getEntradasEnRango(rutaId, corteIni, corteFin);
         const ventas = await getVentasEnRango(rutaId, corteIni, corteFin);
 
+        setMsg("Construyendo auditoría…", true);
         const { dateKeys, rows } =
-          construirMatrizAuditoria(invIniMap, invFinMap, entradas, ventas, corteIni, corteFin);
+          construirMatrizAuditoria(invIniMap, invFinMap, entradas, ventas, corteIni, corteFin, mapaProductos);
 
         renderTable(dateKeys, rows);
 
-        // Stats diferencias
+        // Stats diferencias (unidades) + impacto $
         let cntDiff = 0;
         let sumAbs = 0;
+        let sumDifCosto = 0;
         for(const r of rows){
           const a = Math.abs(r.diff);
           if(a > 1e-9){
             cntDiff++;
             sumAbs += a;
           }
+          sumDifCosto += (Number(r.diffCosto) || 0);
         }
 
         chipStats.textContent =
           `Productos: ${rows.length} | Días: ${dateKeys.length} | Entradas: ${entradas.length} | Ventas: ${ventas.length}`;
 
         chipDiff.innerHTML =
-          `Diferencias: <span class="${cntDiff ? "bad" : "ok"}">${cntDiff}</span> | Abs: <b>${fmtNumCell(sumAbs, true)}</b>`;
+          `Diferencias: <span class="${cntDiff ? "bad" : "ok"}">${cntDiff}</span> | Abs: <b>${fmtNumCell(sumAbs, true)}</b> | Dif $: <b>${fmtMoney(sumDifCosto)}</b>`;
 
         setMsg("Listo.", true);
 
