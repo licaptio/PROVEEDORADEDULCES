@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resumen Ventas por Departamento</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  padding:20px;
+}
+.card{
+  max-width:900px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+}
+h2{margin-top:0}
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:15px;
+}
+input, select, button{
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+button{
+  background:#0c4a6e;
+  color:#fff;
+  cursor:pointer;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:15px;
+}
+th,td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+}
+th{
+  background:#f1f5f9;
+}
+.total{
+  font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Resumen Ventas por Departamento</h2>
+
+  <div class="controls">
+    <input type="date" id="fechaInicio">
+    <input type="date" id="fechaFin">
+    
+    <select id="ruta">
+      <option value="Almacen_Ruta_1">Almacen_Ruta_1</option>
+      <option value="Almacen_Ruta_2" selected>Almacen_Ruta_2</option>
+      <option value="Almacen_Ruta_3">Almacen_Ruta_3</option>
+    </select>
+
+    <button id="btnCalcular">Calcular</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Departamento</th>
+        <th>Total Vendido</th>
+      </tr>
+    </thead>
+    <tbody id="tablaBody"></tbody>
+  </table>
+</div>
+
+<script type="module">
+
+import { firebaseConfig } from "./config.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs } 
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+document.getElementById("btnCalcular").addEventListener("click", calcular);
+
+async function calcular(){
+
+  const inicio = document.getElementById("fechaInicio").value;
+  const fin = document.getElementById("fechaFin").value;
+  const ruta = document.getElementById("ruta").value;
+
+  if(!inicio || !fin){
+    alert("Selecciona rango de fechas");
+    return;
+  }
+
+  const fechaInicio = new Date(inicio + "T00:00:00");
+  const fechaFin = new Date(fin + "T23:59:59");
+
+  const q = query(
+    collection(db, "ventas_rutav2"),
+    where("rutaId","==",ruta),
+    where("fecha",">=",fechaInicio),
+    where("fecha","<=",fechaFin)
+  );
+
+  const snapshot = await getDocs(q);
+
+  const acumulado = {};
+
+  snapshot.forEach(doc=>{
+    const venta = doc.data();
+
+    if(!venta.detalle) return;
+
+    venta.detalle.forEach(item=>{
+
+      const deptoId = item.departamento_id;
+      const deptoNombre = item.departamento_info?.nombre || "SIN NOMBRE";
+
+      const totalLinea =
+        (Number(item.importe)||0) +
+        (Number(item.iva_calculado)||0) +
+        (Number(item.ieps_calculado)||0);
+
+      if(!acumulado[deptoId]){
+        acumulado[deptoId] = {
+          nombre: deptoNombre,
+          total: 0
+        };
+      }
+
+      acumulado[deptoId].total += totalLinea;
+
+    });
+  });
+
+  render(acumulado);
+}
+
+function render(data){
+
+  const tbody = document.getElementById("tablaBody");
+  tbody.innerHTML = "";
+
+  let granTotal = 0;
+
+  Object.values(data).forEach(d=>{
+    granTotal += d.total;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${d.nombre}</td>
+        <td>$${d.total.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML += `
+    <tr class="total">
+      <td>TOTAL GENERAL</td>
+      <td>$${granTotal.toFixed(2)}</td>
+    </tr>
+  `;
+}
+
+</script>
+
+</body>
+</html>
