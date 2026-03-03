@@ -78,9 +78,11 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// 🔹 DOS CÓDIGOS DEL MISMO PRODUCTO
-const CODIGO_ENTERO = "010040";           // resta normal
-const CODIGO_CAJA = "7503004488001";      // dividir entre 12
+const CODIGO_ENTERO = "010040";
+const CODIGO_CAJA   = "7503004488001";
+const DIVISOR_CAJA  = 12;
+
+/* ================= HELPERS ================= */
 
 function normalize(p){
   if(!p) return [];
@@ -98,35 +100,48 @@ function fmtFecha(ts){
   return new Date(ts).toLocaleString();
 }
 
+/* ================= FIJACIÓN OPTIMIZADA ================= */
+
 async function cargarFijacion(){
-  const { data } = await supabase
+
+  const { data, error } = await supabase
     .from('movimientos_inventario')
-    .select('*')
-    .order('timestamp', { ascending:false });
+    .select('productos, almacen, timestamp')
+    .order('timestamp', { ascending:false })
+    .limit(40); // 🔥 no traer histórico completo
+
+  if(error || !data) return null;
 
   let baseTotal = 0;
   let descripcion = "";
   let almacen = "";
-  let timestamp = "";
+  let timestamp = null;
 
-  (data||[]).forEach(row=>{
+  for(const row of data){
+
     const productos = normalize(row.productos);
-    productos.forEach(p=>{
+
+    for(const p of productos){
+
       const codigo = String(p.codigo).trim();
 
       if(codigo === CODIGO_ENTERO || codigo === CODIGO_CAJA){
+
         baseTotal += Number(p.cantidad||0);
-        descripcion = p.descripcion||descripcion;
-        almacen = row.almacen||almacen;
-        timestamp = row.timestamp||timestamp;
+        descripcion = p.descripcion || descripcion;
+        almacen = row.almacen || almacen;
+
+        if(!timestamp) timestamp = row.timestamp;
       }
-    });
-  });
+    }
+  }
 
   if(!baseTotal) return null;
 
   return { base: baseTotal, desc: descripcion, almacen, timestamp };
 }
+
+/* ================= MAIN ================= */
 
 document.addEventListener("DOMContentLoaded", async ()=>{
 
@@ -136,12 +151,14 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   const db = getFirestore(app);
 
   const fijacion = await cargarFijacion();
+
   if(!fijacion){
     grid.innerHTML = "<div class='card'>No hay fijación activa.</div>";
     return;
   }
 
   const fechaFijacion = new Date(fijacion.timestamp);
+  const hoy = new Date();
 
   const sources = [
     { almacen:"Almacen_Dulces", col: collection(db,"almacenes","Almacen_Dulces","salidas") },
@@ -152,50 +169,70 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   const eventos = [];
 
   await Promise.all(sources.map(async src=>{
-    const q = query(src.col, where("timestamp", ">=", fechaFijacion));
+
+    const q = query(
+      src.col,
+      where("timestamp", ">=", fechaFijacion),
+      where("timestamp", "<=", hoy)
+    );
+
     const snap = await getDocs(q);
 
     snap.forEach(doc=>{
+
       const data = doc.data();
       const lista = normalize(data.productos);
 
-      lista.forEach(p=>{
+      for(const p of lista){
+
         const codigo = String(p.codigo).trim();
-        let cantidad = Number(p.cantidad||0);
+        const cantidad = Number(p.cantidad||0);
 
         if(codigo === CODIGO_ENTERO){
+
           totalDescontado += cantidad;
-        }
 
-        if(codigo === CODIGO_CAJA){
-          totalDescontado += (cantidad / 10);
-        }
-
-        if(codigo === CODIGO_ENTERO || codigo === CODIGO_CAJA){
           eventos.push({
             timestamp: data.timestamp,
             almacen: src.almacen,
-            cantidad: cantidad,
-            tipo: codigo === CODIGO_CAJA ? "CAJA ÷10" : "ENTERO"
+            tipo: "ENTERO",
+            cantidad: cantidad
           });
         }
 
-      });
+        if(codigo === CODIGO_CAJA){
+
+          const convertido = cantidad / DIVISOR_CAJA;
+
+          totalDescontado += convertido;
+
+          eventos.push({
+            timestamp: data.timestamp,
+            almacen: src.almacen,
+            tipo: `CAJA ÷${DIVISOR_CAJA}`,
+            cantidad: convertido
+          });
+        }
+      }
+
     });
+
   }));
 
-  eventos.sort((a,b)=>a.timestamp.toDate()-b.timestamp.toDate());
+  eventos.sort((a,b)=>
+    a.timestamp.toDate() - b.timestamp.toDate()
+  );
 
   const restante = fijacion.base - totalDescontado;
   const colorRestante = restante < 0 ? "#b00020" : "#0a6c21";
 
-  let rows = eventos.length
+  const rows = eventos.length
     ? eventos.map(ev=>`
         <tr>
           <td>${fmtFecha(ev.timestamp)}</td>
           <td>${ev.almacen}</td>
           <td>${ev.tipo}</td>
-          <td style="text-align:right">${ev.cantidad}</td>
+          <td style="text-align:right">${ev.cantidad.toFixed(2)}</td>
         </tr>
       `).join("")
     : `<tr><td colspan="4">Sin salidas</td></tr>`;
@@ -203,14 +240,34 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   grid.innerHTML = `
     <div class="card">
 
+      <h3 style="margin:0 0 10px 0">${fijacion.desc || "HARI MASA 10/1 KGR"}</h3>
+
       <div class="kpis">
-        <div class="kpi"><strong>Base</strong><span>${fijacion.base}</span></div>
-        <div class="kpi"><strong>Descontado</strong><span>${totalDescontado.toFixed(2)}</span></div>
+        <div class="kpi">
+          <strong>Base Fijada</strong>
+          <span>${fijacion.base}</span>
+        </div>
+
+        <div class="kpi">
+          <strong>Total Descontado</strong>
+          <span>${totalDescontado.toFixed(2)}</span>
+        </div>
+
         <div class="kpi">
           <strong>Restante</strong>
           <span class="pulse" style="color:${colorRestante}; font-size:20px;">
             ${restante.toFixed(2)}
           </span>
+        </div>
+
+        <div class="kpi">
+          <strong>Fecha Fijación</strong>
+          <span>${fmtFecha(fijacion.timestamp)}</span>
+        </div>
+
+        <div class="kpi">
+          <strong>Almacén Fijado</strong>
+          <span>${fijacion.almacen}</span>
         </div>
       </div>
 
@@ -230,6 +287,5 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   `;
 });
 </script>
-
 </body>
 </html>
