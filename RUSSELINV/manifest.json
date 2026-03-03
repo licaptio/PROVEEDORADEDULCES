@@ -1,0 +1,8 @@
+[
+  { "nombre": "DEUDA OLD PDD", "archivo": "DEUDAOLDPDD.html" },
+  { "nombre": "PAGO CONTADO", "archivo": "PAGOCONTA.html" },
+  { "nombre": "PRONTOS PAGO", "archivo": "PPPAGOPDD.html" },
+  { "nombre": "PROVEEDORES ESPECIALES", "archivo": "PROVESPE.html" },
+  { "nombre": "ABARROTES CXC PDD", "archivo": "CXCABAPDD.html" },
+  { "nombre": "TAURO CAR RUSSELL", "archivo": "TAUROCARRUSSELL.html" }
+]
