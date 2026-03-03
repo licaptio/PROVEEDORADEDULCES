@@ -1,78 +1,65 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>HARI MASA 10/1 KGR – Fijación Individual</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>HARI MASA 10/1 KGR – Fijación Inteligente</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body{
-      font-family: Arial, sans-serif;
-      background:#eef1f5;
-      margin:0;
-      padding:20px;
-    }
-
-    .card{
-      background:#fff;
-      border-radius:16px;
-      box-shadow:0 4px 12px rgba(0,0,0,.12);
-      padding:16px;
-      margin:12px 0;
-    }
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:13px;
-    }
-
-    th, td{
-      padding:8px;
-      border-bottom:1px solid #e5e7eb;
-    }
-
-    .kpis{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:10px;
-      margin-bottom:12px;
-    }
-
-    .kpi{
-      background:#f6f7fb;
-      border-radius:12px;
-      padding:10px;
-    }
-
-    .kpi strong{
-      display:block;
-      font-size:12px;
-      color:#555;
-    }
-
-    .kpi span{
-      font-weight:700;
-    }
-
-    @keyframes heartbeat {
-      0%   { transform: scale(1); }
-      20%  { transform: scale(1.15); }
-      40%  { transform: scale(1); }
-      60%  { transform: scale(1.15); }
-      80%  { transform: scale(1); }
-      100% { transform: scale(1); }
-    }
-
-    .pulse {
-      display:inline-block;
-      animation: heartbeat 1.4s infinite;
-    }
-
-    @media (min-width:1100px){
-      .kpis{ grid-template-columns:repeat(6,1fr); }
-    }
-  </style>
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#eef1f5;
+  margin:0;
+  padding:20px;
+}
+.card{
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 4px 12px rgba(0,0,0,.12);
+  padding:16px;
+  margin:12px 0;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+th, td{
+  padding:8px;
+  border-bottom:1px solid #e5e7eb;
+}
+.kpis{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-bottom:12px;
+}
+.kpi{
+  background:#f6f7fb;
+  border-radius:12px;
+  padding:10px;
+}
+.kpi strong{
+  display:block;
+  font-size:12px;
+  color:#555;
+}
+.kpi span{
+  font-weight:700;
+}
+@keyframes heartbeat {
+  0%{transform:scale(1);}
+  20%{transform:scale(1.15);}
+  40%{transform:scale(1);}
+  60%{transform:scale(1.15);}
+  80%{transform:scale(1);}
+  100%{transform:scale(1);}
+}
+.pulse{
+  display:inline-block;
+  animation:heartbeat 1.4s infinite;
+}
+</style>
 </head>
 
 <body>
@@ -85,13 +72,15 @@
 import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
 import {
-  getFirestore, collection, getDocs,
-  query, where
+  getFirestore, collection, getDocs, query, where
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-const SKU_OBJETIVO = "010040";
+
+// 🔹 DOS CÓDIGOS DEL MISMO PRODUCTO
+const CODIGO_ENTERO = "010040";           // resta normal
+const CODIGO_CAJA = "7503004488001";      // dividir entre 12
 
 function normalize(p){
   if(!p) return [];
@@ -115,31 +104,28 @@ async function cargarFijacion(){
     .select('*')
     .order('timestamp', { ascending:false });
 
-  const fijaciones = [];
+  let baseTotal = 0;
+  let descripcion = "";
+  let almacen = "";
+  let timestamp = "";
 
   (data||[]).forEach(row=>{
     const productos = normalize(row.productos);
-
     productos.forEach(p=>{
-      if(String(p.codigo).trim() !== SKU_OBJETIVO) return;
+      const codigo = String(p.codigo).trim();
 
-      fijaciones.push({
-        base: Number(p.cantidad||0),
-        desc: p.descripcion||"",
-        almacen: row.almacen||"",
-        timestamp: row.timestamp||""
-      });
+      if(codigo === CODIGO_ENTERO || codigo === CODIGO_CAJA){
+        baseTotal += Number(p.cantidad||0);
+        descripcion = p.descripcion||descripcion;
+        almacen = row.almacen||almacen;
+        timestamp = row.timestamp||timestamp;
+      }
     });
   });
 
-  if(!fijaciones.length) return null;
+  if(!baseTotal) return null;
 
-  return {
-    base: fijaciones.reduce((a,b)=>a+b.base,0),
-    desc: fijaciones[0].desc,
-    almacen: fijaciones[0].almacen,
-    timestamp: fijaciones[0].timestamp
-  };
+  return { base: baseTotal, desc: descripcion, almacen, timestamp };
 }
 
 document.addEventListener("DOMContentLoaded", async ()=>{
@@ -158,11 +144,11 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   const fechaFijacion = new Date(fijacion.timestamp);
 
   const sources = [
-    { almacen:"Almacen_Dulces",   col: collection(db,"almacenes","Almacen_Dulces","salidas") },
+    { almacen:"Almacen_Dulces", col: collection(db,"almacenes","Almacen_Dulces","salidas") },
     { almacen:"Almacen_Liquidos", col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
   ];
 
-  let totalSalidas = 0;
+  let totalDescontado = 0;
   const eventos = [];
 
   await Promise.all(sources.map(async src=>{
@@ -174,23 +160,33 @@ document.addEventListener("DOMContentLoaded", async ()=>{
       const lista = normalize(data.productos);
 
       lista.forEach(p=>{
-        if(String(p.codigo).trim() !== SKU_OBJETIVO) return;
+        const codigo = String(p.codigo).trim();
+        let cantidad = Number(p.cantidad||0);
 
-        const cant = Number(p.cantidad||0);
-        totalSalidas += cant;
+        if(codigo === CODIGO_ENTERO){
+          totalDescontado += cantidad;
+        }
 
-        eventos.push({
-          timestamp: data.timestamp,
-          almacen: src.almacen,
-          cantidad: cant
-        });
+        if(codigo === CODIGO_CAJA){
+          totalDescontado += (cantidad / 10);
+        }
+
+        if(codigo === CODIGO_ENTERO || codigo === CODIGO_CAJA){
+          eventos.push({
+            timestamp: data.timestamp,
+            almacen: src.almacen,
+            cantidad: cantidad,
+            tipo: codigo === CODIGO_CAJA ? "CAJA ÷10" : "ENTERO"
+          });
+        }
+
       });
     });
   }));
 
   eventos.sort((a,b)=>a.timestamp.toDate()-b.timestamp.toDate());
 
-  const restante = fijacion.base - totalSalidas;
+  const restante = fijacion.base - totalDescontado;
   const colorRestante = restante < 0 ? "#b00020" : "#0a6c21";
 
   let rows = eventos.length
@@ -198,23 +194,22 @@ document.addEventListener("DOMContentLoaded", async ()=>{
         <tr>
           <td>${fmtFecha(ev.timestamp)}</td>
           <td>${ev.almacen}</td>
+          <td>${ev.tipo}</td>
           <td style="text-align:right">${ev.cantidad}</td>
         </tr>
       `).join("")
-    : `<tr><td colspan="3">Sin salidas</td></tr>`;
+    : `<tr><td colspan="4">Sin salidas</td></tr>`;
 
   grid.innerHTML = `
     <div class="card">
 
       <div class="kpis">
-        <div class="kpi"><strong>SKU</strong><span>${SKU_OBJETIVO}</span></div>
         <div class="kpi"><strong>Base</strong><span>${fijacion.base}</span></div>
-        <div class="kpi"><strong>Salidas</strong><span>${totalSalidas}</span></div>
-
+        <div class="kpi"><strong>Descontado</strong><span>${totalDescontado.toFixed(2)}</span></div>
         <div class="kpi">
           <strong>Restante</strong>
           <span class="pulse" style="color:${colorRestante}; font-size:20px;">
-            ${restante}
+            ${restante.toFixed(2)}
           </span>
         </div>
       </div>
@@ -224,7 +219,8 @@ document.addEventListener("DOMContentLoaded", async ()=>{
           <tr>
             <th>Fecha</th>
             <th>Almacén</th>
-            <th style="text-align:right">Salida</th>
+            <th>Tipo</th>
+            <th style="text-align:right">Cantidad</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
