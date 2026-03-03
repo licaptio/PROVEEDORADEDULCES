@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>KLEENEX C/80 – Control Completo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#eef1f5;
+  margin:0;
+  padding:20px;
+}
+.card{
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 4px 12px rgba(0,0,0,.12);
+  padding:16px;
+  margin-bottom:20px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+th, td{
+  padding:8px;
+  border-bottom:1px solid #e5e7eb;
+}
+.kpis{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-bottom:12px;
+}
+.kpi{
+  background:#f6f7fb;
+  border-radius:12px;
+  padding:10px;
+}
+.kpi strong{
+  display:block;
+  font-size:12px;
+  color:#555;
+}
+.kpi span{
+  font-weight:700;
+}
+@keyframes heartbeat{
+  0%{transform:scale(1);}
+  20%{transform:scale(1.15);}
+  40%{transform:scale(1);}
+  60%{transform:scale(1.15);}
+  80%{transform:scale(1);}
+  100%{transform:scale(1);}
+}
+.pulse{
+  display:inline-block;
+  animation:heartbeat 1.4s infinite;
+}
+</style>
+</head>
+
+<body>
+
+<h2>HIGIENICO KLEENEX C/80 (T)</h2>
+<div id="grid">Cargando...</div>
+
+<script type="module">
+
+import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
+import {
+  getFirestore, collection, getDocs, query, where
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const CODIGO_BASE = "5160";
+const CODIGO_PAQUETE = "7501943458499";
+const FACTOR_PAQUETE = 80;
+
+function normalize(p){
+  if(!p) return [];
+  if(Array.isArray(p)) return p;
+  if(typeof p === "object") return Object.values(p);
+  if(typeof p === "string"){
+    try { return JSON.parse(p) } catch { return [] }
+  }
+  return [];
+}
+
+function fmtFecha(ts){
+  if(!ts) return "";
+  if(ts?.toDate) return ts.toDate().toLocaleString();
+  return new Date(ts).toLocaleString();
+}
+
+/* =========================
+   FIJACIÓN COMPLETA
+========================= */
+async function cargarFijacion(){
+
+  const { data } = await supabase
+    .from('movimientos_inventario')
+    .select('*')
+    .order('timestamp', { ascending:false });
+
+  for(const row of data || []){
+
+    const productos = normalize(row.productos);
+
+    for(const p of productos){
+
+      if(String(p.codigo).trim() === CODIGO_BASE){
+
+        return {
+          base: Number(p.cantidad||0),
+          desc: p.descripcion||"",
+          almacen: row.almacen||"",
+          folio: row.folio||"",
+          timestamp: row.timestamp,
+          nivel_alerta: row.nivel_alerta||0
+        };
+
+      }
+    }
+  }
+
+  return null;
+}
+
+/* =========================
+   MAIN
+========================= */
+document.addEventListener("DOMContentLoaded", async ()=>{
+
+  const grid = document.getElementById("grid");
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const fijacion = await cargarFijacion();
+
+  if(!fijacion){
+    grid.innerHTML = "<div class='card'>No hay fijación activa.</div>";
+    return;
+  }
+
+  const fechaFijacion = new Date(fijacion.timestamp);
+
+  const sources = [
+    { almacen:"Almacen_Dulces", col: collection(db,"almacenes","Almacen_Dulces","salidas") },
+    { almacen:"Almacen_Liquidos", col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
+  ];
+
+  let totalDescontado = 0;
+  const eventos = [];
+
+  await Promise.all(sources.map(async src=>{
+
+    const q = query(src.col, where("timestamp", ">=", fechaFijacion));
+    const snap = await getDocs(q);
+
+    snap.forEach(doc=>{
+      const data = doc.data();
+      const lista = normalize(data.productos);
+
+      lista.forEach(p=>{
+        const codigo = String(p.codigo).trim();
+        const cantidad = Number(p.cantidad||0);
+
+        if(codigo === CODIGO_BASE){
+          totalDescontado += cantidad;
+        }
+
+        if(codigo === CODIGO_PAQUETE){
+          totalDescontado += (cantidad / FACTOR_PAQUETE);
+        }
+
+        if(codigo === CODIGO_BASE || codigo === CODIGO_PAQUETE){
+          eventos.push({
+            timestamp: data.timestamp,
+            almacen: src.almacen,
+            cantidad,
+            tipo: codigo === CODIGO_PAQUETE ? "PAQ ÷80" : "ENTERO"
+          });
+        }
+
+      });
+    });
+
+  }));
+
+  eventos.sort((a,b)=>a.timestamp.toDate()-b.timestamp.toDate());
+
+  const restante = fijacion.base - totalDescontado;
+  const colorRestante = restante < 0 ? "#b00020" : "#0a6c21";
+
+  let rows = eventos.length
+    ? eventos.map(ev=>`
+        <tr>
+          <td>${fmtFecha(ev.timestamp)}</td>
+          <td>${ev.almacen}</td>
+          <td>${ev.tipo}</td>
+          <td style="text-align:right">${ev.cantidad}</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="4">Sin salidas</td></tr>`;
+
+  grid.innerHTML = `
+    <div class="card">
+
+      <div class="kpis">
+        <div class="kpi"><strong>SKU Base</strong><span>${CODIGO_BASE}</span></div>
+        <div class="kpi"><strong>Base Fijada</strong><span>${fijacion.base}</span></div>
+        <div class="kpi"><strong>Fecha Fijación</strong><span>${fmtFecha(fijacion.timestamp)}</span></div>
+        <div class="kpi"><strong>Almacén Fijación</strong><span>${fijacion.almacen}</span></div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><strong>Folio</strong><span>${fijacion.folio||"-"}</span></div>
+        <div class="kpi"><strong>Nivel Alerta</strong><span>${fijacion.nivel_alerta}</span></div>
+        <div class="kpi"><strong>Descontado</strong><span>${totalDescontado.toFixed(2)}</span></div>
+        <div class="kpi">
+          <strong>Restante</strong>
+          <span class="pulse" style="color:${colorRestante}; font-size:20px;">
+            ${restante.toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha / Hora</th>
+            <th>Almacén</th>
+            <th>Tipo</th>
+            <th style="text-align:right">Cantidad</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+    </div>
+  `;
+});
+</script>
+
+</body>
+</html>
