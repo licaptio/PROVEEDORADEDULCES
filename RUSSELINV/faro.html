@@ -91,8 +91,11 @@ import {
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
 const SKU_OBJETIVO = "7501011900332";
 const DIVISOR_CAJA = 6;
+
+/* ===================== HELPERS ===================== */
 
 function normalize(p){
   if(!p) return [];
@@ -110,38 +113,41 @@ function fmtFecha(ts){
   return new Date(ts).toLocaleString();
 }
 
+/* ===================== FIJACIÓN ===================== */
+
 async function cargarFijacion(){
-  const { data } = await supabase
+
+  const { data, error } = await supabase
     .from('movimientos_inventario')
-    .select('*')
-    .order('timestamp', { ascending:false });
+    .select('productos, almacen, timestamp')
+    .order('timestamp', { ascending:false })
+    .limit(30);
 
-  const fijaciones = [];
+  if(error || !data) return null;
 
-  (data||[]).forEach(row=>{
+  for(const row of data){
+
     const productos = normalize(row.productos);
 
-    productos.forEach(p=>{
-      if(String(p.codigo).trim() !== SKU_OBJETIVO) return;
+    for(const p of productos){
 
-      fijaciones.push({
-        base: Number(p.cantidad||0),
-        desc: p.descripcion||"",
-        almacen: row.almacen||"",
-        timestamp: row.timestamp||""
-      });
-    });
-  });
+      if(String(p.codigo).trim() === SKU_OBJETIVO){
 
-  if(!fijaciones.length) return null;
+        return {
+          base: Number(p.cantidad||0),
+          desc: p.descripcion||"",
+          almacen: row.almacen||"",
+          timestamp: row.timestamp
+        };
 
-  return {
-    base: fijaciones.reduce((a,b)=>a+b.base,0),
-    desc: fijaciones[0].desc,
-    almacen: fijaciones[0].almacen,
-    timestamp: fijaciones[0].timestamp
-  };
+      }
+    }
+  }
+
+  return null;
 }
+
+/* ===================== MAIN ===================== */
 
 document.addEventListener("DOMContentLoaded", async ()=>{
 
@@ -151,15 +157,17 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   const db = getFirestore(app);
 
   const fijacion = await cargarFijacion();
+
   if(!fijacion){
     grid.innerHTML = "<div class='card'>No hay fijación activa.</div>";
     return;
   }
 
   const fechaFijacion = new Date(fijacion.timestamp);
+  const hoy = new Date();
 
   const sources = [
-    { almacen:"Almacen_Dulces",   col: collection(db,"almacenes","Almacen_Dulces","salidas") },
+    { almacen:"Almacen_Dulces", col: collection(db,"almacenes","Almacen_Dulces","salidas") },
     { almacen:"Almacen_Liquidos", col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
   ];
 
@@ -167,33 +175,46 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   const eventos = [];
 
   await Promise.all(sources.map(async src=>{
-    const q = query(src.col, where("timestamp", ">=", fechaFijacion));
+
+    const q = query(
+      src.col,
+      where("timestamp", ">=", fechaFijacion),
+      where("timestamp", "<=", hoy)
+    );
+
     const snap = await getDocs(q);
 
     snap.forEach(doc=>{
+
       const data = doc.data();
       const lista = normalize(data.productos);
 
-      lista.forEach(p=>{
-        if(String(p.codigo).trim() !== SKU_OBJETIVO) return;
+      for(const p of lista){
 
-        const cant = Number(p.cantidad||0);
-        totalSalidas += cant;
+        if(String(p.codigo).trim() === SKU_OBJETIVO){
 
-        eventos.push({
-          timestamp: data.timestamp,
-          almacen: src.almacen,
-          cantidad: cant
-        });
-      });
+          const cant = Number(p.cantidad||0);
+          totalSalidas += cant;
+
+          eventos.push({
+            timestamp: data.timestamp,
+            almacen: src.almacen,
+            cantidad: cant
+          });
+
+        }
+      }
+
     });
+
   }));
 
-  eventos.sort((a,b)=>a.timestamp.toDate()-b.timestamp.toDate());
+  eventos.sort((a,b)=>
+    a.timestamp.toDate() - b.timestamp.toDate()
+  );
 
   const restantePiezas = fijacion.base - totalSalidas;
   const cajasRestantes = restantePiezas / DIVISOR_CAJA;
-
   const colorRestante = cajasRestantes < 0 ? "#b00020" : "#0a6c21";
 
   let rows = eventos.length
@@ -222,7 +243,15 @@ document.addEventListener("DOMContentLoaded", async ()=>{
           </span>
         </div>
 
-        <div class="kpi"><strong>Fecha Fijación</strong><span>${fmtFecha(fijacion.timestamp)}</span></div>
+        <div class="kpi">
+          <strong>Fecha Fijación</strong>
+          <span>${fmtFecha(fijacion.timestamp)}</span>
+        </div>
+
+        <div class="kpi">
+          <strong>Almacén Fijado</strong>
+          <span>${fijacion.almacen}</span>
+        </div>
       </div>
 
       <table>
@@ -238,6 +267,7 @@ document.addEventListener("DOMContentLoaded", async ()=>{
 
     </div>
   `;
+
 });
 </script>
 
