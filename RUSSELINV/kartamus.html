@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>KARTAMUS – Fijación Individual</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#eef1f5;
+      margin:0;
+      padding:20px;
+    }
+
+    .card{
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,.12);
+      padding:14px;
+      margin:12px 0;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+
+    th, td{
+      padding:8px;
+      border-bottom:1px solid #e5e7eb;
+    }
+
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+      margin-bottom:12px;
+    }
+
+    .kpi{
+      background:#f6f7fb;
+      border-radius:12px;
+      padding:10px;
+    }
+
+    .kpi strong{
+      display:block;
+      font-size:12px;
+      color:#555;
+    }
+
+    .kpi span{
+      font-weight:700;
+    }
+
+    /* ❤️ Animación latido */
+    @keyframes heartbeat {
+      0%   { transform: scale(1); }
+      20%  { transform: scale(1.15); }
+      40%  { transform: scale(1); }
+      60%  { transform: scale(1.15); }
+      80%  { transform: scale(1); }
+      100% { transform: scale(1); }
+    }
+
+    .pulse {
+      display:inline-block;
+      animation: heartbeat 1.4s infinite;
+    }
+
+    @media (min-width:1100px){
+      .kpis{ grid-template-columns:repeat(6,1fr); }
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>KARTAMUS – Control Individual</h2>
+<div id="grid">Cargando...</div>
+
+<script type="module">
+
+import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
+import {
+  getFirestore, collection, getDocs,
+  query, where
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const SKU_OBJETIVO = "7501048102501";
+
+function normalize(p){
+  if(!p) return [];
+  if(Array.isArray(p)) return p;
+  if(typeof p === "object") return Object.values(p);
+  if(typeof p === "string"){
+    try { return JSON.parse(p) } catch { return [] }
+  }
+  return [];
+}
+
+function fmtFecha(ts){
+  if(!ts) return "";
+  if(ts?.toDate) return ts.toDate().toLocaleString();
+  return new Date(ts).toLocaleString();
+}
+
+async function cargarFijacion(){
+  const { data } = await supabase
+    .from('movimientos_inventario')
+    .select('*')
+    .order('timestamp', { ascending:false });
+
+  const fijaciones = [];
+
+  (data||[]).forEach(row=>{
+    const productos = normalize(row.productos);
+    productos.forEach(p=>{
+      if(String(p.codigo).trim() !== SKU_OBJETIVO) return;
+
+      fijaciones.push({
+        base: Number(p.cantidad||0),
+        desc: p.descripcion||"",
+        almacen: row.almacen||"",
+        timestamp: row.timestamp||""
+      });
+    });
+  });
+
+  if(!fijaciones.length) return null;
+
+  return {
+    base: fijaciones.reduce((a,b)=>a+b.base,0),
+    desc: fijaciones[0].desc,
+    almacen: fijaciones[0].almacen,
+    timestamp: fijaciones[0].timestamp
+  };
+}
+
+document.addEventListener("DOMContentLoaded", async ()=>{
+
+  const grid = document.getElementById("grid");
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const fijacion = await cargarFijacion();
+  if(!fijacion){
+    grid.innerHTML = "<div class='card'>No hay fijación activa.</div>";
+    return;
+  }
+
+  const fechaFijacion = new Date(fijacion.timestamp);
+
+  const sources = [
+    { almacen:"Almacen_Dulces",   col: collection(db,"almacenes","Almacen_Dulces","salidas") },
+    { almacen:"Almacen_Liquidos", col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
+  ];
+
+  let totalSalidas = 0;
+  const eventos = [];
+
+  await Promise.all(sources.map(async src=>{
+    const q = query(src.col, where("timestamp", ">=", fechaFijacion));
+    const snap = await getDocs(q);
+
+    snap.forEach(doc=>{
+      const data = doc.data();
+      const lista = normalize(data.productos);
+
+      lista.forEach(p=>{
+        if(String(p.codigo).trim() !== SKU_OBJETIVO) return;
+
+        const cant = Number(p.cantidad||0);
+        totalSalidas += cant;
+
+        eventos.push({
+          timestamp: data.timestamp,
+          almacen: src.almacen,
+          cantidad: cant
+        });
+      });
+    });
+  }));
+
+  eventos.sort((a,b)=>a.timestamp.toDate()-b.timestamp.toDate());
+
+  const restantePiezas = fijacion.base - totalSalidas;
+
+  // 🔹 DIVIDIDO ENTRE 12 (CAJAS)
+  const cajasRestantes = restantePiezas / 12;
+
+  const colorRestante = cajasRestantes < 0 ? "#b00020" : "#0a6c21";
+
+  let rows = eventos.length
+    ? eventos.map(ev=>`
+        <tr>
+          <td>${fmtFecha(ev.timestamp)}</td>
+          <td>${ev.almacen}</td>
+          <td style="text-align:right">${ev.cantidad}</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="3">Sin salidas</td></tr>`;
+
+  grid.innerHTML = `
+    <div class="card">
+
+      <h3 style="margin:0 0 10px 0">${fijacion.desc || "KARTAMUS"}</h3>
+
+      <div class="kpis">
+        <div class="kpi"><strong>Base (Pzs)</strong><span>${fijacion.base}</span></div>
+        <div class="kpi"><strong>Descuentos (Pzs)</strong><span>${totalSalidas}</span></div>
+
+        <div class="kpi">
+          <strong>Cajas Restantes</strong>
+          <span class="pulse" style="color:${colorRestante}; font-size:20px;">
+            ${cajasRestantes.toFixed(2)}
+          </span>
+        </div>
+
+        <div class="kpi"><strong>Fecha Fijación</strong><span>${fmtFecha(fijacion.timestamp)}</span></div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Almacén</th>
+            <th style="text-align:right">Salida</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+    </div>
+  `;
+});
+</script>
+
+</body>
+</html>
