@@ -539,7 +539,11 @@ doc.autoTable({
   body: deptRows,
   theme: "grid",
   styles: { fontSize: 8, cellPadding: 3 },
-  headStyles: { fillColor: [241,245,249] },
+  headStyles: { 
+  fillColor: [220,230,240],
+  textColor: [0,0,0],
+  fontStyle: "bold"
+},
   bodyStyles: { textColor: 20 },
   didParseCell: function(data){
     if(data.row.index === deptRows.length-1){
