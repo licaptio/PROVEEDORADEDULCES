@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte por Departamento</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  padding:20px;
+}
+
+.card{
+  max-width:1000px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+}
+
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:15px;
+}
+
+input,select,button{
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+button{
+  background:#0c4a6e;
+  color:white;
+  cursor:pointer;
+}
+
+/* PROGRESO */
+.progressBox{ margin-top:15px; }
+.progressBar{
+  width:100%;
+  height:18px;
+  background:#e5e7eb;
+  border-radius:8px;
+  overflow:hidden;
+}
+.progressFill{
+  height:100%;
+  width:0%;
+  background:#0c4a6e;
+  transition:width .3s;
+}
+.progressText{
+  margin-top:5px;
+  font-size:13px;
+  color:#555;
+}
+
+/* TABLA */
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+}
+th,td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+  text-align:right;
+}
+th:first-child, td:first-child{ text-align:left; }
+th{ background:#f1f5f9; }
+.total{
+  font-weight:bold;
+  background:#eef2f7;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>Resumen por Departamento</h2>
+
+<div class="controls">
+  <input type="date" id="fechaInicio">
+  <input type="date" id="fechaFin">
+
+  <select id="ruta">
+    <option value="Almacen_Ruta_1">Almacen_Ruta_1</option>
+    <option value="Almacen_Ruta_2">Almacen_Ruta_2</option>
+    <option value="Almacen_Ruta_3">Almacen_Ruta_3</option>
+  </select>
+
+  <button onclick="consultar()">Consultar</button>
+  <button onclick="actualizarCatalogo()">Actualizar Catálogo</button>
+</div>
+
+<!-- PROGRESO -->
+<div class="progressBox">
+  <div class="progressBar">
+    <div class="progressFill" id="progressFill"></div>
+  </div>
+  <div class="progressText" id="progressText">Esperando consulta...</div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Departamento</th>
+      <th>Costo</th>
+      <th>Subtotal</th>
+      <th>IVA</th>
+      <th>IEPS</th>
+      <th>Total</th>
+      <th>Utilidad</th>
+      <th>% Margen</th>
+    </tr>
+  </thead>
+  <tbody id="tablaBody"></tbody>
+</table>
+
+</div>
+
+<script type="module">
+import { firebaseConfig } from "./config.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs }
+  from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* PROGRESO UI */
+function setProgress(p,text){
+  document.getElementById("progressFill").style.width = p + "%";
+  document.getElementById("progressText").innerText = `${text} (${p}%)`;
+}
+
+/* Helpers numéricos */
+function n(v){ return Number(v) || 0; }
+
+/* IEPS viene inflado x8 en Firebase */
+function fixIEPS(v){
+  return n(v) / 8;
+}
+
+/* FECHA */
+function buildLocalDate(dateString,end=false){
+  const [y,m,d] = dateString.split("-").map(Number);
+  if(end) return new Date(y,m-1,d,23,59,59,999);
+  return new Date(y,m-1,d,0,0,0,0);
+}
+
+/* CATALOGO */
+let catalogoLocal = {};
+
+async function cargarCatalogoProductos(){
+  setProgress(5,"Descargando catálogo de productos");
+
+  const snap = await getDocs(collection(db,"productos"));
+
+  let i=0;
+  const total = snap.size;
+
+  snap.forEach(doc=>{
+    const p = doc.data() || {};
+    catalogoLocal[doc.id] = {
+      costo: n(p.costoSinImpuesto)
+    };
+
+    i++;
+    let percent = total ? Math.round((i/total)*40) : 40;
+    setProgress(percent,"Cargando catálogo");
+  });
+
+  setProgress(40,"Catálogo cargado");
+}
+
+window.actualizarCatalogo = async function(){
+  await cargarCatalogoProductos();
+}
+
+/* CONSULTA */
+window.consultar = async function(){
+
+  const inicio = document.getElementById("fechaInicio").value;
+  const fin    = document.getElementById("fechaFin").value;
+  const ruta   = document.getElementById("ruta").value;
+
+  if(!inicio || !fin){
+    alert("Selecciona rango de fechas");
+    return;
+  }
+
+  if(Object.keys(catalogoLocal).length===0){
+    await cargarCatalogoProductos();
+  }
+
+  const fechaInicio = buildLocalDate(inicio);
+  const fechaFin    = buildLocalDate(fin,true);
+
+  setProgress(45,"Consultando ventas");
+
+  const q = query(
+    collection(db,"ventas_rutav2"),
+    where("rutaId","==",ruta),
+    where("fecha",">=",fechaInicio),
+    where("fecha","<=",fechaFin)
+  );
+
+  const snapshot = await getDocs(q);
+
+  if(snapshot.empty){
+    setProgress(0,"Sin datos");
+    alert("No hay ventas");
+    return;
+  }
+
+  setProgress(60,"Procesando ventas");
+
+  const acumulado = {};
+  let count = 0;
+
+  snapshot.forEach(doc=>{
+    const venta = doc.data();
+
+    (venta.detalle || []).forEach(item=>{
+
+      const depto = item.departamento_info?.nombre || "SIN NOMBRE";
+      const cantidad = n(item.cantidad);
+
+      // En tu modelo: item.importe = TOTAL, item.iva_calculado y item.ieps_calculado ya vienen separados
+      const total = n(item.importe);
+      const iva   = n(item.iva_calculado);
+      const ieps  = fixIEPS(item.ieps_calculado);
+
+      // subtotal sin impuestos
+      const subtotal = Math.max(0, total - iva - ieps);
+
+      const codigo = String(item.codigo ?? "").trim();
+
+      if(!(codigo in catalogoLocal)){
+        console.warn("Producto sin costo en catálogo:", codigo);
+      }
+
+      const costoUnit  = catalogoLocal[codigo]?.costo || 0;
+      const costoTotal = costoUnit * cantidad;
+
+      if(!acumulado[depto]){
+        acumulado[depto] = { subtotal:0, iva:0, ieps:0, total:0, costo:0 };
+      }
+
+      acumulado[depto].subtotal += subtotal;
+      acumulado[depto].iva      += iva;
+      acumulado[depto].ieps     += ieps;
+      acumulado[depto].total    += total;
+      acumulado[depto].costo    += costoTotal;
+    });
+
+    count++;
+    let percent = 60 + Math.round((count / snapshot.size) * 30);
+    setProgress(percent,"Procesando ventas");
+  });
+
+  setProgress(95,"Calculando resultados");
+  render(acumulado);
+  setProgress(100,"Proceso terminado");
+}
+
+/* RENDER */
+function render(data){
+
+  const tbody = document.getElementById("tablaBody");
+  tbody.innerHTML = "";
+
+  let gCosto=0, gSubtotal=0, gIva=0, gIeps=0, gTotal=0;
+
+  const fmtMXN = new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    minimumFractionDigits: 2
+  });
+
+  Object.entries(data).forEach(([depto,v])=>{
+
+    gCosto    += v.costo;
+    gSubtotal += v.subtotal;
+    gIva      += v.iva;
+    gIeps     += v.ieps;
+    gTotal    += v.total;
+
+    const utilidad = v.subtotal - v.costo;
+    const margen   = v.subtotal > 0 ? (utilidad / v.subtotal) * 100 : 0;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${depto}</td>
+        <td>${fmtMXN.format(v.costo)}</td>
+        <td>${fmtMXN.format(v.subtotal)}</td>
+        <td>${fmtMXN.format(v.iva)}</td>
+        <td>${fmtMXN.format(v.ieps)}</td>
+        <td>${fmtMXN.format(v.total)}</td>
+        <td>${fmtMXN.format(utilidad)}</td>
+        <td>${margen.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  const gUtil   = gSubtotal - gCosto;
+  const gMargen = gSubtotal > 0 ? (gUtil / gSubtotal) * 100 : 0;
+
+  tbody.innerHTML += `
+    <tr class="total">
+      <td>TOTAL GENERAL</td>
+      <td>${fmtMXN.format(gCosto)}</td>
+      <td>${fmtMXN.format(gSubtotal)}</td>
+      <td>${fmtMXN.format(gIva)}</td>
+      <td>${fmtMXN.format(gIeps)}</td>
+      <td>${fmtMXN.format(gTotal)}</td>
+      <td>${fmtMXN.format(gUtil)}</td>
+      <td>${gMargen.toFixed(2)}</td>
+    </tr>
+  `;
+}
+</script>
+
+</body>
+</html>
