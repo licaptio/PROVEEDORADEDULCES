@@ -3,9 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Exportar Ventas por Ruta</title>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<title>Reporte por Departamento</title>
 
 <style>
 body{
@@ -13,90 +11,257 @@ body{
   background:#f4f6f9;
   padding:20px;
 }
+
 .card{
-  max-width:700px;
+  max-width:1000px;
   margin:auto;
   background:#fff;
   padding:20px;
   border-radius:12px;
   box-shadow:0 4px 12px rgba(0,0,0,.1);
 }
+
 .controls{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
+  margin-bottom:15px;
 }
-input, select, button{
+
+input,select,button{
   padding:8px;
   border-radius:6px;
   border:1px solid #ccc;
 }
+
 button{
   background:#0c4a6e;
-  color:#fff;
+  color:white;
   cursor:pointer;
 }
+button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+/* PROGRESO */
+.progressBox{ margin-top:15px; }
+.progressBar{
+  width:100%;
+  height:18px;
+  background:#e5e7eb;
+  border-radius:8px;
+  overflow:hidden;
+}
+.progressFill{
+  height:100%;
+  width:0%;
+  background:#0c4a6e;
+  transition:width .3s;
+}
+.progressText{
+  margin-top:5px;
+  font-size:13px;
+  color:#555;
+}
+
+/* TABLAS */
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+}
+th,td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+  text-align:right;
+}
+th:first-child, td:first-child{ text-align:left; }
+th{ background:#f1f5f9; }
+.total{
+  font-weight:bold;
+  background:#eef2f7;
+}
+
+h3{
+  margin-top:40px;
+  margin-bottom:5px;
+}
+.subnote{
+  color:#64748b;
+  font-size:12px;
+  margin-top:0;
+}
 </style>
+
+<!-- PDF (jsPDF + AutoTable) -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
+
 <body>
 
 <div class="card">
-  <h2>Exportar Ventas Ruta a Excel</h2>
 
-  <div class="controls">
-    <input type="date" id="fechaInicio">
-    <input type="date" id="fechaFin">
+<h2>Resumen por Departamento</h2>
 
-    <select id="ruta">
-      <option value="Almacen_Ruta_1">Almacen_Ruta_1</option>
-      <option value="Almacen_Ruta_2">Almacen_Ruta_2</option>
-      <option value="Almacen_Ruta_3">Almacen_Ruta_3</option>
-    </select>
+<div class="controls">
+  <input type="date" id="fechaInicio">
+  <input type="date" id="fechaFin">
 
-    <button onclick="exportar()">Descargar Excel</button>
+  <select id="ruta">
+    <option value="Almacen_Ruta_1">Almacen_Ruta_1</option>
+    <option value="Almacen_Ruta_2">Almacen_Ruta_2</option>
+    <option value="Almacen_Ruta_3">Almacen_Ruta_3</option>
+  </select>
+
+  <button onclick="consultar()">Consultar</button>
+  <button onclick="actualizarCatalogo()">Actualizar Catálogo</button>
+  <button id="btnPDF" onclick="descargarPDF()" disabled>Descargar PDF</button>
+</div>
+
+<!-- PROGRESO -->
+<div class="progressBox">
+  <div class="progressBar">
+    <div class="progressFill" id="progressFill"></div>
   </div>
+  <div class="progressText" id="progressText">Esperando consulta...</div>
+</div>
+
+<!-- TABLA DEPARTAMENTOS -->
+<table>
+  <thead>
+    <tr>
+      <th>Departamento</th>
+      <th>Costo</th>
+      <th>Subtotal</th>
+      <th>IVA</th>
+      <th>IEPS</th>
+      <th>Total</th>
+      <th>Utilidad</th>
+      <th>% Margen</th>
+    </tr>
+  </thead>
+  <tbody id="tablaBody"></tbody>
+</table>
+
+<!-- TOP 15 -->
+<h3>Top 15 Artículos por Venta</h3>
+<p class="subnote">Ordenado por subtotal (venta sin impuestos). Margen = utilidad / subtotal.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Artículo</th>
+      <th>Subtotal</th>
+      <th>Costo</th>
+      <th>Utilidad</th>
+      <th>% Margen</th>
+    </tr>
+  </thead>
+  <tbody id="tablaTop"></tbody>
+</table>
+
 </div>
 
 <script type="module">
-
 import { firebaseConfig } from "./config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, query, where, getDocs } 
-from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { getFirestore, collection, query, where, getDocs }
+  from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* 🔥 ESTA FUNCIÓN FALTABA */
-function buildLocalDate(dateString, endOfDay = false){
-  const [year, month, day] = dateString.split("-").map(Number);
-
-  if(endOfDay){
-    return new Date(year, month - 1, day, 23, 59, 59, 999);
-  }
-
-  return new Date(year, month - 1, day, 0, 0, 0, 0);
+/* PROGRESO UI */
+function setProgress(p,text){
+  document.getElementById("progressFill").style.width = p + "%";
+  document.getElementById("progressText").innerText = `${text} (${p}%)`;
 }
 
-window.exportar = async function(){
+/* Helpers numéricos */
+function n(v){ return Number(v) || 0; }
+
+/* IEPS viene inflado x8 en Firebase */
+function fixIEPS(v){
+  return n(v) / 8;
+}
+
+/* Format */
+const fmtMXN = new Intl.NumberFormat("es-MX", {
+  style: "currency",
+  currency: "MXN",
+  minimumFractionDigits: 2
+});
+
+/* FECHA */
+function buildLocalDate(dateString,end=false){
+  const [y,m,d] = dateString.split("-").map(Number);
+  if(end) return new Date(y,m-1,d,23,59,59,999);
+  return new Date(y,m-1,d,0,0,0,0);
+}
+
+/* Estado del último reporte (para PDF) */
+window.__reporte = {
+  meta: null,
+  depto: null,   // objeto por depto
+  top: null      // objeto por codigo
+};
+
+/* CATALOGO */
+let catalogoLocal = {};
+
+async function cargarCatalogoProductos(){
+  setProgress(5,"Descargando catálogo de productos");
+
+  const snap = await getDocs(collection(db,"productos"));
+
+  let i=0;
+  const total = snap.size;
+
+  snap.forEach(doc=>{
+    const p = doc.data() || {};
+    catalogoLocal[doc.id] = {
+      costo: n(p.costoSinImpuesto)
+    };
+
+    i++;
+    let percent = total ? Math.round((i/total)*40) : 40;
+    setProgress(percent,"Cargando catálogo");
+  });
+
+  setProgress(40,"Catálogo cargado");
+}
+
+window.actualizarCatalogo = async function(){
+  await cargarCatalogoProductos();
+}
+
+/* CONSULTA */
+window.consultar = async function(){
+
+  document.getElementById("btnPDF").disabled = true;
 
   const inicio = document.getElementById("fechaInicio").value;
-  const fin = document.getElementById("fechaFin").value;
-  const ruta = document.getElementById("ruta").value;
+  const fin    = document.getElementById("fechaFin").value;
+  const ruta   = document.getElementById("ruta").value;
 
   if(!inicio || !fin){
     alert("Selecciona rango de fechas");
     return;
   }
 
-  const fechaInicio = buildLocalDate(inicio);
-  const fechaFin = buildLocalDate(fin, true);
+  if(Object.keys(catalogoLocal).length===0){
+    await cargarCatalogoProductos();
+  }
 
-  console.log("Fecha inicio:", fechaInicio);
-  console.log("Fecha fin:", fechaFin);
+  const fechaInicio = buildLocalDate(inicio);
+  const fechaFin    = buildLocalDate(fin,true);
+
+  setProgress(45,"Consultando ventas");
 
   const q = query(
-    collection(db, "ventas_rutav2"),
+    collection(db,"ventas_rutav2"),
     where("rutaId","==",ruta),
     where("fecha",">=",fechaInicio),
     where("fecha","<=",fechaFin)
@@ -104,58 +269,333 @@ window.exportar = async function(){
 
   const snapshot = await getDocs(q);
 
-  console.log("Docs encontrados:", snapshot.size);
-
   if(snapshot.empty){
-    alert("No hay datos");
+    setProgress(0,"Sin datos");
+    document.getElementById("tablaBody").innerHTML = "";
+    document.getElementById("tablaTop").innerHTML = "";
+    window.__reporte = { meta:null, depto:null, top:null };
+    alert("No hay ventas");
     return;
   }
 
-  const rows = [];
+  setProgress(60,"Procesando ventas");
+
+  const acumuladoDepto = {};
+  const acumuladoArticulos = {};
+  let count = 0;
 
   snapshot.forEach(doc=>{
     const venta = doc.data();
 
-    venta.detalle?.forEach(item=>{
-      rows.push({
-        folio: venta.folio,
-        fecha: venta.fecha.toDate().toLocaleString(),
-        rutaId: venta.rutaId,
-        usuario: venta.usuarioNombre,
+    (venta.detalle || []).forEach(item=>{
 
-        departamento_id: item.departamento_id,
-        departamento: item.departamento_info?.nombre,
+      const depto = item.departamento_info?.nombre || "SIN NOMBRE";
+      const cantidad = n(item.cantidad);
 
-        codigo: item.codigo,
-        nombre_producto: item.nombre,
-        cantidad: item.cantidad,
-        precio_unit: item.precio_unit,
+      // Modelo: item.importe = TOTAL (con impuestos)
+      // IVA e IEPS vienen separados (IEPS inflado x8).
+      const total = n(item.importe);
+      const iva   = n(item.iva_calculado);
+      const ieps  = fixIEPS(item.ieps_calculado);
 
-        subtotal_linea: item.importe,
-        iva: item.iva_calculado || 0,
-        ieps: item.ieps_calculado || 0,
-        total_linea: (item.importe || 0) +
-                     (item.iva_calculado || 0) +
-                     (item.ieps_calculado || 0),
+      const subtotal = Math.max(0, total - iva - ieps);
 
-        comision_linea: item.comision_monto || 0,
+      const codigo = String(item.codigo ?? "").trim();
+      const nombreProd = String(item.nombre ?? "").trim() || "SIN NOMBRE";
 
-        venta_subtotal: venta.resumen_financiero?.subtotal,
-        venta_impuestos: venta.resumen_financiero?.impuestos,
-        venta_total: venta.resumen_financiero?.total,
-        costo_total: venta.resumen_financiero?.costo_total,
-        utilidad_total: venta.resumen_financiero?.utilidad_total
-      });
+      if(!(codigo in catalogoLocal)){
+        console.warn("Producto sin costo en catálogo:", codigo);
+      }
+
+      const costoUnit  = catalogoLocal[codigo]?.costo || 0;
+      const costoTotal = costoUnit * cantidad;
+
+      // ===== por DEPARTAMENTO =====
+      if(!acumuladoDepto[depto]){
+        acumuladoDepto[depto] = { subtotal:0, iva:0, ieps:0, total:0, costo:0 };
+      }
+      acumuladoDepto[depto].subtotal += subtotal;
+      acumuladoDepto[depto].iva      += iva;
+      acumuladoDepto[depto].ieps     += ieps;
+      acumuladoDepto[depto].total    += total;
+      acumuladoDepto[depto].costo    += costoTotal;
+
+      // ===== por ARTICULO =====
+      if(!acumuladoArticulos[codigo]){
+        acumuladoArticulos[codigo] = { codigo, nombre: nombreProd, subtotal:0, costo:0 };
+      }else{
+        if(acumuladoArticulos[codigo].nombre === "SIN NOMBRE" && nombreProd !== "SIN NOMBRE"){
+          acumuladoArticulos[codigo].nombre = nombreProd;
+        }
+      }
+      acumuladoArticulos[codigo].subtotal += subtotal;
+      acumuladoArticulos[codigo].costo    += costoTotal;
+
     });
+
+    count++;
+    let percent = 60 + Math.round((count / snapshot.size) * 30);
+    setProgress(percent,"Procesando ventas");
   });
 
-  const worksheet = XLSX.utils.json_to_sheet(rows);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Ventas");
+  setProgress(95,"Calculando resultados");
+  renderDeptos(acumuladoDepto);
+  renderTop(acumuladoArticulos);
 
-  XLSX.writeFile(workbook, `Ventas_${ruta}_${inicio}_a_${fin}.xlsx`);
+  // guardar para PDF
+  window.__reporte = {
+    meta: {
+      ruta,
+      inicio,
+      fin,
+      generado: new Date()
+    },
+    depto: acumuladoDepto,
+    top: acumuladoArticulos
+  };
+
+  document.getElementById("btnPDF").disabled = false;
+  setProgress(100,"Proceso terminado");
+}
+
+/* RENDER DEPARTAMENTOS */
+function renderDeptos(data){
+
+  const tbody = document.getElementById("tablaBody");
+  tbody.innerHTML = "";
+
+  let gCosto=0, gSubtotal=0, gIva=0, gIeps=0, gTotal=0;
+
+  Object.entries(data).forEach(([depto,v])=>{
+
+    gCosto    += v.costo;
+    gSubtotal += v.subtotal;
+    gIva      += v.iva;
+    gIeps     += v.ieps;
+    gTotal    += v.total;
+
+    const utilidad = v.subtotal - v.costo;
+    const margen   = v.subtotal > 0 ? (utilidad / v.subtotal) * 100 : 0;
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${depto}</td>
+        <td>${fmtMXN.format(v.costo)}</td>
+        <td>${fmtMXN.format(v.subtotal)}</td>
+        <td>${fmtMXN.format(v.iva)}</td>
+        <td>${fmtMXN.format(v.ieps)}</td>
+        <td>${fmtMXN.format(v.total)}</td>
+        <td>${fmtMXN.format(utilidad)}</td>
+        <td>${margen.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  const gUtil   = gSubtotal - gCosto;
+  const gMargen = gSubtotal > 0 ? (gUtil / gSubtotal) * 100 : 0;
+
+  tbody.innerHTML += `
+    <tr class="total">
+      <td>TOTAL GENERAL</td>
+      <td>${fmtMXN.format(gCosto)}</td>
+      <td>${fmtMXN.format(gSubtotal)}</td>
+      <td>${fmtMXN.format(gIva)}</td>
+      <td>${fmtMXN.format(gIeps)}</td>
+      <td>${fmtMXN.format(gTotal)}</td>
+      <td>${fmtMXN.format(gUtil)}</td>
+      <td>${gMargen.toFixed(2)}</td>
+    </tr>
+  `;
+}
+
+/* RENDER TOP 15 ARTICULOS */
+function renderTop(data){
+
+  const tbody = document.getElementById("tablaTop");
+  tbody.innerHTML = "";
+
+  const arr = Object.values(data).map(v=>{
+    const utilidad = v.subtotal - v.costo;
+    const margen = v.subtotal > 0 ? (utilidad / v.subtotal) * 100 : 0;
+    return {
+      codigo: v.codigo,
+      nombre: v.nombre,
+      subtotal: v.subtotal,
+      costo: v.costo,
+      utilidad,
+      margen
+    };
+  });
+
+  arr.sort((a,b)=> b.subtotal - a.subtotal);
+
+  const top15 = arr.slice(0,15);
+
+  top15.forEach(v=>{
+    tbody.innerHTML += `
+      <tr>
+        <td>${v.nombre}</td>
+        <td>${fmtMXN.format(v.subtotal)}</td>
+        <td>${fmtMXN.format(v.costo)}</td>
+        <td>${fmtMXN.format(v.utilidad)}</td>
+        <td>${v.margen.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  if(top15.length === 0){
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#64748b">Sin datos</td></tr>`;
+  }
+}
+
+/* ===== PDF ===== */
+window.descargarPDF = function(){
+  const rep = window.__reporte;
+  if(!rep || !rep.depto || !rep.top){
+    alert("Primero ejecuta una consulta.");
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+
+  // ✅ LANDSCAPE para que quepan todas las columnas
+  const doc = new jsPDF({ orientation:"landscape", unit:"pt", format:"letter" });
+
+  const meta = rep.meta || {};
+  const titulo = "Reporte por Departamento";
+  const subtitulo = `Ruta: ${meta.ruta || ""} | Rango: ${meta.inicio || ""} a ${meta.fin || ""}`;
+  const generado = meta.generado ? meta.generado.toLocaleString("es-MX") : "";
+
+  const marginX = 36;
+
+  function header(pageTitle){
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(14);
+    doc.text(titulo, marginX, 34);
+
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(10);
+    doc.text(subtitulo, marginX, 50);
+    if(generado) doc.text(`Generado: ${generado}`, marginX, 64);
+
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(12);
+    doc.text(pageTitle, marginX, 88);
+  }
+
+  function money(v){ return fmtMXN.format(Number(v) || 0); }
+
+// ===== Página 1: Departamentos =====
+header("Resumen por Departamento");
+
+let tCosto=0;
+let tSubtotal=0;
+let tIva=0;
+let tIeps=0;
+let tTotal=0;
+
+const deptRows = Object.entries(rep.depto).map(([depto,v])=>{
+
+  tCosto    += v.costo || 0;
+  tSubtotal += v.subtotal || 0;
+  tIva      += v.iva || 0;
+  tIeps     += v.ieps || 0;
+  tTotal    += v.total || 0;
+
+  const utilidad = (v.subtotal || 0) - (v.costo || 0);
+  const margen   = v.subtotal > 0 ? (utilidad / v.subtotal) * 100 : 0;
+
+  return [
+    depto,
+    money(v.costo),
+    money(v.subtotal),
+    money(v.iva),
+    money(v.ieps),
+    money(v.total),
+    money(utilidad),
+    margen.toFixed(2)
+  ];
+});
+
+// ===== TOTAL GENERAL =====
+
+const totalUtil = tSubtotal - tCosto;
+const totalMarg = tSubtotal > 0 ? (totalUtil / tSubtotal) * 100 : 0;
+
+deptRows.push([
+  "TOTAL GENERAL",
+  money(tCosto),
+  money(tSubtotal),
+  money(tIva),
+  money(tIeps),
+  money(tTotal),
+  money(totalUtil),
+  totalMarg.toFixed(2)
+]);
+
+doc.autoTable({
+  startY: 98,
+  head: [[ "Departamento","Costo","Subtotal","IVA","IEPS","Total","Utilidad","% Margen" ]],
+  body: deptRows,
+  theme: "grid",
+  styles: { fontSize: 8, cellPadding: 3 },
+  headStyles: { fillColor: [241,245,249] },
+  bodyStyles: { textColor: 20 },
+  didParseCell: function(data){
+    if(data.row.index === deptRows.length-1){
+      data.cell.styles.fontStyle = "bold";
+      data.cell.styles.fillColor = [230,230,230];
+    }
+  }
+});
+
+  // ===== Página 2: Top 15 =====
+  doc.addPage();
+  header("Top 15 Artículos por Venta");
+
+  const arr = Object.values(rep.top).map(v=>{
+    const utilidad = (v.subtotal || 0) - (v.costo || 0);
+    const margen = (v.subtotal || 0) > 0 ? (utilidad / v.subtotal) * 100 : 0;
+    return {
+      nombre: v.nombre || "SIN NOMBRE",
+      subtotal: v.subtotal || 0,
+      costo: v.costo || 0,
+      utilidad,
+      margen
+    };
+  }).sort((a,b)=> b.subtotal - a.subtotal);
+
+  const top15 = arr.slice(0,15).map(v=>[
+    v.nombre,
+    money(v.subtotal),
+    money(v.costo),
+    money(v.utilidad),
+    v.margen.toFixed(2)
+  ]);
+
+  doc.autoTable({
+    startY: 98,
+    head: [[ "Artículo","Subtotal","Costo","Utilidad","% Margen" ]],
+    body: top15,
+    theme: "grid",
+    styles: { fontSize: 9, cellPadding: 3, overflow: "linebreak" },
+    headStyles: { fillColor: [241,245,249], textColor: 20 },
+    margin: { left: marginX, right: marginX },
+    columnStyles: {
+      0: { halign:"left",  cellWidth: 360 },
+      1: { halign:"right", cellWidth: 95  },
+      2: { halign:"right", cellWidth: 95  },
+      3: { halign:"right", cellWidth: 95  },
+      4: { halign:"right", cellWidth: 70  }
+    }
+  });
+
+  const safeRuta = String(meta.ruta || "RUTA").replace(/[^\w\-]+/g,"_");
+  const safeIni = String(meta.inicio || "").replace(/[^\d\-]+/g,"");
+  const safeFin = String(meta.fin || "").replace(/[^\d\-]+/g,"");
+
+  doc.save(`Reporte_${safeRuta}_${safeIni}_${safeFin}.pdf`);
 };
-
 </script>
 
 </body>
