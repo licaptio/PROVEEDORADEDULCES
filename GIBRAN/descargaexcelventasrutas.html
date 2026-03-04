@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exportar Ventas por Ruta</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  padding:20px;
+}
+.card{
+  max-width:700px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+}
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+input, select, button{
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+button{
+  background:#0c4a6e;
+  color:#fff;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Exportar Ventas Ruta a Excel</h2>
+
+  <div class="controls">
+    <input type="date" id="fechaInicio">
+    <input type="date" id="fechaFin">
+
+    <select id="ruta">
+      <option value="Almacen_Ruta_1">Almacen_Ruta_1</option>
+      <option value="Almacen_Ruta_2">Almacen_Ruta_2</option>
+      <option value="Almacen_Ruta_3">Almacen_Ruta_3</option>
+    </select>
+
+    <button onclick="exportar()">Descargar Excel</button>
+  </div>
+</div>
+
+<script type="module">
+
+import { firebaseConfig } from "./config.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs } 
+from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* 🔥 ESTA FUNCIÓN FALTABA */
+function buildLocalDate(dateString, endOfDay = false){
+  const [year, month, day] = dateString.split("-").map(Number);
+
+  if(endOfDay){
+    return new Date(year, month - 1, day, 23, 59, 59, 999);
+  }
+
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
+window.exportar = async function(){
+
+  const inicio = document.getElementById("fechaInicio").value;
+  const fin = document.getElementById("fechaFin").value;
+  const ruta = document.getElementById("ruta").value;
+
+  if(!inicio || !fin){
+    alert("Selecciona rango de fechas");
+    return;
+  }
+
+  const fechaInicio = buildLocalDate(inicio);
+  const fechaFin = buildLocalDate(fin, true);
+
+  console.log("Fecha inicio:", fechaInicio);
+  console.log("Fecha fin:", fechaFin);
+
+  const q = query(
+    collection(db, "ventas_rutav2"),
+    where("rutaId","==",ruta),
+    where("fecha",">=",fechaInicio),
+    where("fecha","<=",fechaFin)
+  );
+
+  const snapshot = await getDocs(q);
+
+  console.log("Docs encontrados:", snapshot.size);
+
+  if(snapshot.empty){
+    alert("No hay datos");
+    return;
+  }
+
+  const rows = [];
+
+  snapshot.forEach(doc=>{
+    const venta = doc.data();
+
+    venta.detalle?.forEach(item=>{
+      rows.push({
+        folio: venta.folio,
+        fecha: venta.fecha.toDate().toLocaleString(),
+        rutaId: venta.rutaId,
+        usuario: venta.usuarioNombre,
+
+        departamento_id: item.departamento_id,
+        departamento: item.departamento_info?.nombre,
+
+        codigo: item.codigo,
+        nombre_producto: item.nombre,
+        cantidad: item.cantidad,
+        precio_unit: item.precio_unit,
+
+        subtotal_linea: item.importe,
+        iva: item.iva_calculado || 0,
+        ieps: item.ieps_calculado || 0,
+        total_linea: (item.importe || 0) +
+                     (item.iva_calculado || 0) +
+                     (item.ieps_calculado || 0),
+
+        comision_linea: item.comision_monto || 0,
+
+        venta_subtotal: venta.resumen_financiero?.subtotal,
+        venta_impuestos: venta.resumen_financiero?.impuestos,
+        venta_total: venta.resumen_financiero?.total,
+        costo_total: venta.resumen_financiero?.costo_total,
+        utilidad_total: venta.resumen_financiero?.utilidad_total
+      });
+    });
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Ventas");
+
+  XLSX.writeFile(workbook, `Ventas_${ruta}_${inicio}_a_${fin}.xlsx`);
+};
+
+</script>
+
+</body>
+</html>
