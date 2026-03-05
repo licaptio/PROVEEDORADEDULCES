@@ -4,5 +4,7 @@
   { "nombre": "PRONTOS PAGO", "archivo": "PPPAGOPDD.html" },
   { "nombre": "PROVEEDORES ESPECIALES", "archivo": "PROVESPE.html" },
   { "nombre": "ABARROTES CXC PDD", "archivo": "CXCABAPDD.html" },
+  { "nombre": "ALMAGUER CXC PDD", "archivo": "josegpeALmaguer.html" },
+  { "nombre": "BONLATTI CXC PDD", "archivo": "bonlatti.html" },
   { "nombre": "TAURO CAR RUSSELL", "archivo": "TAUROCARRUSSELL.html" }
 ]
