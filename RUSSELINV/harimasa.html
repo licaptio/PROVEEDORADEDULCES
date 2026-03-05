@@ -70,37 +70,79 @@ th, td{
 <script type="module">
 
 import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
 import {
-  getFirestore, collection, getDocs, query, where
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  where
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-const CODIGO_ENTERO = "010040";
-const CODIGO_CAJA   = "7503004488001";
+/* ================= CÓDIGOS ================= */
+
+const CODIGO_ENTERO = 10040;
+const CODIGO_CAJA   = 7503004488001;
 const DIVISOR_CAJA  = 12;
 
 /* ================= HELPERS ================= */
 
 function normalize(p){
+
   if(!p) return [];
+
   if(Array.isArray(p)) return p;
+
   if(typeof p === "object") return Object.values(p);
+
   if(typeof p === "string"){
-    try { return JSON.parse(p) } catch { return [] }
+    try{
+      return JSON.parse(p)
+    }catch{
+      return []
+    }
   }
+
   return [];
 }
 
+function normalizeCodigo(c){
+
+  if(c === undefined || c === null) return null;
+
+  const s = String(c).trim().replace(/^0+/,"");
+
+  const n = Number(s);
+
+  if(isNaN(n)) return null;
+
+  return n;
+}
+
 function fmtFecha(ts){
+
   if(!ts) return "";
+
   if(ts?.toDate) return ts.toDate().toLocaleString();
+
   return new Date(ts).toLocaleString();
 }
 
-/* ================= FIJACIÓN OPTIMIZADA ================= */
+function tsToDate(ts){
+
+  if(!ts) return new Date(0);
+
+  if(ts?.toDate) return ts.toDate();
+
+  return new Date(ts);
+}
+
+/* ================= FIJACIÓN ================= */
 
 async function cargarFijacion(){
 
@@ -108,7 +150,7 @@ async function cargarFijacion(){
     .from('movimientos_inventario')
     .select('productos, almacen, timestamp')
     .order('timestamp', { ascending:false })
-    .limit(40); // 🔥 no traer histórico completo
+    .limit(200);
 
   if(error || !data) return null;
 
@@ -123,12 +165,14 @@ async function cargarFijacion(){
 
     for(const p of productos){
 
-      const codigo = String(p.codigo).trim();
+      const codigo = normalizeCodigo(p.codigo);
 
       if(codigo === CODIGO_ENTERO || codigo === CODIGO_CAJA){
 
-        baseTotal += Number(p.cantidad||0);
+        baseTotal += Number(p.cantidad || 0);
+
         descripcion = p.descripcion || descripcion;
+
         almacen = row.almacen || almacen;
 
         if(!timestamp) timestamp = row.timestamp;
@@ -138,7 +182,12 @@ async function cargarFijacion(){
 
   if(!baseTotal) return null;
 
-  return { base: baseTotal, desc: descripcion, almacen, timestamp };
+  return {
+    base: baseTotal,
+    desc: descripcion,
+    almacen,
+    timestamp
+  };
 }
 
 /* ================= MAIN ================= */
@@ -148,101 +197,129 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   const grid = document.getElementById("grid");
 
   const app = initializeApp(firebaseConfig);
+
   const db = getFirestore(app);
 
   const fijacion = await cargarFijacion();
 
   if(!fijacion){
+
     grid.innerHTML = "<div class='card'>No hay fijación activa.</div>";
+
     return;
   }
 
-  const fechaFijacion = new Date(fijacion.timestamp);
+  const fechaFijacion = tsToDate(fijacion.timestamp);
+
   const hoy = new Date();
 
   const sources = [
-    { almacen:"Almacen_Dulces", col: collection(db,"almacenes","Almacen_Dulces","salidas") },
-    { almacen:"Almacen_Liquidos", col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
+
+    {
+      almacen:"Almacen_Dulces",
+      col: collection(db,"almacenes","Almacen_Dulces","salidas")
+    },
+
+    {
+      almacen:"Almacen_Liquidos",
+      col: collection(db,"almacenes","Almacen_Liquidos","salidas")
+    }
+
   ];
 
   let totalDescontado = 0;
+
   const eventos = [];
 
-  await Promise.all(sources.map(async src=>{
+  await Promise.all(
 
-    const q = query(
-      src.col,
-      where("timestamp", ">=", fechaFijacion),
-      where("timestamp", "<=", hoy)
-    );
+    sources.map(async src=>{
 
-    const snap = await getDocs(q);
+      const q = query(
+        src.col,
+        where("timestamp", ">=", fechaFijacion),
+        where("timestamp", "<=", hoy)
+      );
 
-    snap.forEach(doc=>{
+      const snap = await getDocs(q);
 
-      const data = doc.data();
-      const lista = normalize(data.productos);
+      snap.forEach(doc=>{
 
-      for(const p of lista){
+        const data = doc.data();
 
-        const codigo = String(p.codigo).trim();
-        const cantidad = Number(p.cantidad||0);
+        const lista = normalize(data.productos);
 
-        if(codigo === CODIGO_ENTERO){
+        for(const p of lista){
 
-          totalDescontado += cantidad;
+          const codigo = normalizeCodigo(p.codigo);
 
-          eventos.push({
-            timestamp: data.timestamp,
-            almacen: src.almacen,
-            tipo: "ENTERO",
-            cantidad: cantidad
-          });
+          const cantidad = Number(p.cantidad || 0);
+
+          if(codigo === CODIGO_ENTERO){
+
+            totalDescontado += cantidad;
+
+            eventos.push({
+              timestamp: data.timestamp,
+              almacen: src.almacen,
+              tipo: "ENTERO",
+              cantidad: cantidad
+            });
+
+          }
+
+          if(codigo === CODIGO_CAJA){
+
+            const convertido = cantidad / DIVISOR_CAJA;
+
+            totalDescontado += convertido;
+
+            eventos.push({
+              timestamp: data.timestamp,
+              almacen: src.almacen,
+              tipo: `CAJA ÷${DIVISOR_CAJA}`,
+              cantidad: convertido
+            });
+
+          }
+
         }
 
-        if(codigo === CODIGO_CAJA){
+      });
 
-          const convertido = cantidad / DIVISOR_CAJA;
+    })
 
-          totalDescontado += convertido;
-
-          eventos.push({
-            timestamp: data.timestamp,
-            almacen: src.almacen,
-            tipo: `CAJA ÷${DIVISOR_CAJA}`,
-            cantidad: convertido
-          });
-        }
-      }
-
-    });
-
-  }));
-
-  eventos.sort((a,b)=>
-    a.timestamp.toDate() - b.timestamp.toDate()
   );
 
+  eventos.sort((a,b)=>{
+
+    return tsToDate(a.timestamp) - tsToDate(b.timestamp);
+
+  });
+
   const restante = fijacion.base - totalDescontado;
+
   const colorRestante = restante < 0 ? "#b00020" : "#0a6c21";
 
   const rows = eventos.length
     ? eventos.map(ev=>`
-        <tr>
-          <td>${fmtFecha(ev.timestamp)}</td>
-          <td>${ev.almacen}</td>
-          <td>${ev.tipo}</td>
-          <td style="text-align:right">${ev.cantidad.toFixed(2)}</td>
-        </tr>
-      `).join("")
+      <tr>
+        <td>${fmtFecha(ev.timestamp)}</td>
+        <td>${ev.almacen}</td>
+        <td>${ev.tipo}</td>
+        <td style="text-align:right">${ev.cantidad.toFixed(2)}</td>
+      </tr>
+    `).join("")
     : `<tr><td colspan="4">Sin salidas</td></tr>`;
 
   grid.innerHTML = `
+
     <div class="card">
 
       <h3 style="margin:0 0 10px 0">${fijacion.desc || "HARI MASA 10/1 KGR"}</h3>
 
       <div class="kpis">
+
         <div class="kpi">
           <strong>Base Fijada</strong>
           <span>${fijacion.base}</span>
@@ -269,6 +346,7 @@ document.addEventListener("DOMContentLoaded", async ()=>{
           <strong>Almacén Fijado</strong>
           <span>${fijacion.almacen}</span>
         </div>
+
       </div>
 
       <table>
@@ -284,8 +362,10 @@ document.addEventListener("DOMContentLoaded", async ()=>{
       </table>
 
     </div>
+
   `;
 });
 </script>
+
 </body>
 </html>
