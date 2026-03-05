@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Facturación BOLSAS TAURO</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<!-- Supabase JS v2 (recomendado) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body{
@@ -14,36 +15,30 @@ body{
   margin:0;
   padding:20px;
 }
-
 h2{
   margin:0 0 15px 0;
   font-weight:700;
 }
-
 table{
   width:100%;
   border-collapse:collapse;
   background:white;
   box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
-
 th, td{
   padding:8px;
   border:1px solid #ddd;
   font-size:0.9em;
 }
-
 th{
   background:#0c6cbd;
   color:white;
   position:sticky;
   top:0;
 }
-
 td.numero{
   text-align:right;
 }
-
 .total-box{
   background:white;
   padding:15px;
@@ -51,11 +46,21 @@ td.numero{
   border-radius:8px;
   box-shadow:0 2px 4px rgba(0,0,0,0.1);
 }
-
 .total-box span{
   font-size:1.4em;
   font-weight:bold;
   color:#0a6c21;
+}
+.loader{
+  background:white;
+  padding:14px;
+  border-radius:8px;
+  box-shadow:0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom:15px;
+}
+.small{
+  opacity:.75;
+  font-size:.9em;
 }
 </style>
 </head>
@@ -67,81 +72,102 @@ td.numero{
 <div id="total"></div>
 <div id="tabla"></div>
 
-<script>
+<script type="module">
+  // IMPORTA TU CONFIG (debe existir en el mismo folder)
+  // Si tu config está en /js/config.js entonces cambia a: "./js/config.js"
+  import { supabaseUrl, supabaseAnonKey } from "./config.js";
 
-const _supabase = window.supabase.createClient(
-  'https://cvpbtjlupswbyxenugpz.supabase.co', 
-  'TU_PUBLIC_ANON_KEY_AQUI'
-);
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-async function cargar(){
-
-  const { data, error } = await _supabase
-    .from("v_deuda_proveedores")
-    .select("*")
-    .eq("rfc_emisor", "BTA010327AD3")
-    .eq("factura_pagada", "NO")   // 🔴 SOLO NO PAGADAS
-    .order("fecha", { ascending: true }); // 📅 MÁS VIEJA → MÁS NUEVA
-
-  if(error){
-    alert("Error cargando datos");
-    console.error(error);
-    return;
-  }
-
-  if(!data || data.length === 0){
-    document.getElementById("tabla").innerHTML = "Sin deuda pendiente";
-    document.getElementById("total").innerHTML = "";
-    return;
-  }
-
-  const totalGlobal = data.reduce((acc,f)=> acc + (parseFloat(f.total)||0),0);
-
-  document.getElementById("total").innerHTML = `
-    <div class="total-box">
-      <strong>Deuda Total Pendiente</strong><br>
-      Total acumulado:<br>
-      <span>$${totalGlobal.toLocaleString("es-MX",{minimumFractionDigits:2})}</span>
-    </div>
-  `;
-
-  let html = `
-  <table>
-  <thead>
-    <tr>
-      <th>Fecha</th>
-      <th>UUID</th>
-      <th>Serie/Folio</th>
-      <th>Total</th>
-    </tr>
-  </thead>
-  <tbody>
-  `;
-
-  data.forEach(f => {
-
-    const fecha = f.fecha ? f.fecha.split("T")[0] : "";
-    const folio = f.serie_folio || "—";
-    const total = Number(f.total||0).toLocaleString("es-MX",{minimumFractionDigits:2});
-
-    html += `
-      <tr>
-        <td>${fecha}</td>
-        <td>${f.uuid_cfdi}</td>
-        <td>${folio}</td>
-        <td class="numero">$${total}</td>
-      </tr>
+  function setLoading(){
+    document.getElementById("total").innerHTML = `
+      <div class="loader">
+        Cargando deuda... <span class="small">(Supabase)</span>
+      </div>
     `;
-  });
+    document.getElementById("tabla").innerHTML = "";
+  }
 
-  html += "</tbody></table>";
+  async function cargar(){
+    setLoading();
 
-  document.getElementById("tabla").innerHTML = html;
-}
+    const { data, error } = await supabase
+      .from("v_deuda_proveedores")
+      .select("*")
+      .eq("rfc_emisor", "BTA010327AD3")
+      .eq("factura_pagada", "NO")          // solo no pagadas
+      .order("fecha", { ascending: true }); // vieja -> nueva
 
-document.addEventListener("DOMContentLoaded", cargar);
+    if(error){
+      document.getElementById("total").innerHTML = "";
+      document.getElementById("tabla").innerHTML = `
+        <div class="loader">
+          ❌ Error cargando datos. Revisa consola.
+        </div>
+      `;
+      console.error("Supabase error:", error);
+      alert("Error cargando datos (ver consola).");
+      return;
+    }
 
+    if(!data || data.length === 0){
+      document.getElementById("total").innerHTML = "";
+      document.getElementById("tabla").innerHTML = `
+        <div class="loader">✅ Sin deuda pendiente</div>
+      `;
+      return;
+    }
+
+    const totalGlobal = data.reduce((acc, f) => acc + (parseFloat(f.total) || 0), 0);
+
+    document.getElementById("total").innerHTML = `
+      <div class="total-box">
+        <strong>Deuda Total Pendiente</strong><br>
+        Total acumulado:<br>
+        <span>$${totalGlobal.toLocaleString("es-MX",{minimumFractionDigits:2})}</span>
+        <div class="small">Registros: ${data.length}</div>
+      </div>
+    `;
+
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>UUID</th>
+            <th>Serie/Folio</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    for(const f of data){
+      const fecha = f.fecha ? String(f.fecha).split("T")[0] : "";
+      const folio = f.serie_folio || "—";
+      const total = Number(f.total || 0).toLocaleString("es-MX",{minimumFractionDigits:2});
+
+      html += `
+        <tr>
+          <td>${fecha}</td>
+          <td style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.85em;">
+            ${f.uuid_cfdi || ""}
+          </td>
+          <td>${folio}</td>
+          <td class="numero">$${total}</td>
+        </tr>
+      `;
+    }
+
+    html += "</tbody></table>";
+    document.getElementById("tabla").innerHTML = html;
+
+    // debug útil
+    console.log("OK data:", data);
+  }
+
+  document.addEventListener("DOMContentLoaded", cargar);
 </script>
+
 </body>
 </html>
-
