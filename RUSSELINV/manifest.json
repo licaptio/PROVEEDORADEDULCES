@@ -5,5 +5,6 @@
   { "nombre": "KLEENEX", "archivo": "kleenex.html" },
   { "nombre": "MOVIMIENTOS KARDEX", "archivo": "movrepo.html" },
   { "nombre": "CONVERMEX", "archivo": "Convermex.html" },
+  { "nombre": "LIQUIDO", "archivo": "LiquidoZap.html" },
   { "nombre": "NUTRI", "archivo": "nutri.html" }
 ]
