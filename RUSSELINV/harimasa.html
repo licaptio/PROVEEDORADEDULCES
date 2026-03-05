@@ -1,343 +1,273 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Fijación Inteligente – por producto (FIX)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>CHILE FARO – Fijación Individual</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body{font-family:Arial,sans-serif;background:#eef1f5;margin:0;padding:20px}
-.card{background:#fff;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.12);padding:16px;margin:12px 0}
-input,button{padding:10px;border-radius:10px;border:1px solid #ccc;font-size:14px;width:100%}
-button{background:#0c4a6e;color:#fff;border:none;cursor:pointer}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:8px;border-bottom:1px solid #e5e7eb}
-th{background:#f6f7fb;text-align:left}
-.suggestion{padding:8px;cursor:pointer;border-radius:8px}
-.suggestion:hover{background:#eef1f5}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
-.kpi{background:#f6f7fb;border-radius:12px;padding:10px}
-.kpi strong{display:block;font-size:12px;color:#555}
-.kpi span{font-weight:700}
-.small{font-size:12px;color:#666;margin-top:10px;white-space:pre-wrap;line-height:1.35}
-@keyframes heartbeat{0%{transform:scale(1)}20%{transform:scale(1.15)}40%{transform:scale(1)}60%{transform:scale(1.15)}80%{transform:scale(1)}100%{transform:scale(1)}}
-.pulse{display:inline-block;animation:heartbeat 1.4s infinite}
-</style>
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#eef1f5;
+      margin:0;
+      padding:20px;
+    }
+
+    .card{
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,.12);
+      padding:14px;
+      margin:12px 0;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+
+    th, td{
+      padding:8px;
+      border-bottom:1px solid #e5e7eb;
+    }
+
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+      margin-bottom:12px;
+    }
+
+    .kpi{
+      background:#f6f7fb;
+      border-radius:12px;
+      padding:10px;
+    }
+
+    .kpi strong{
+      display:block;
+      font-size:12px;
+      color:#555;
+    }
+
+    .kpi span{
+      font-weight:700;
+    }
+
+    @keyframes heartbeat {
+      0%   { transform: scale(1); }
+      20%  { transform: scale(1.15); }
+      40%  { transform: scale(1); }
+      60%  { transform: scale(1.15); }
+      80%  { transform: scale(1); }
+      100% { transform: scale(1); }
+    }
+
+    .pulse {
+      display:inline-block;
+      animation: heartbeat 1.4s infinite;
+    }
+
+    @media (min-width:1100px){
+      .kpis{ grid-template-columns:repeat(6,1fr); }
+    }
+  </style>
 </head>
 
 <body>
 
-<h2>Fijación Inteligente (por producto)</h2>
-
-<div class="card">
-  <label>Buscar Producto</label>
-  <input id="productoInput" placeholder="Ej: hari masa">
-  <div id="sugerencias"></div>
-  <div style="height:10px"></div>
-  <button id="btnBuscar">Buscar Fijación</button>
-</div>
-
-<div class="card">
-  <div id="grid">Sin resultados.</div>
-</div>
+<h2>HARI MASA 1 KG (7503004488001)</h2>
+<div id="grid">Cargando...</div>
 
 <script type="module">
+
 import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+import {
+  getFirestore, collection, getDocs,
+  query, where
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
-/* ===== AJUSTE IMPORTANTE =====
-   Si tu barcode NO es caja y ya viene en unidades, pon 1.
-   Por tu salida (HARI MASA 1 KG con 200) parece UNIDADES, no cajas.
-*/
-const DIVISOR_CAJA = 1; // <-- cambia a 12 si de verdad es caja
+const SKU_OBJETIVO = "7503004488001";
+const DIVISOR_CAJA = 10;
 
-/* ============ HELPERS ============ */
-function normalizeProductos(p){
+/* ===================== HELPERS ===================== */
+
+function normalize(p){
   if(!p) return [];
   if(Array.isArray(p)) return p;
   if(typeof p === "object") return Object.values(p);
-  if(typeof p === "string"){ try{ return JSON.parse(p) }catch{ return [] } }
+  if(typeof p === "string"){
+    try { return JSON.parse(p) } catch { return [] }
+  }
   return [];
 }
-function normalizeCodigo(c){
-  if(c === undefined || c === null) return null;
-  const s = String(c).trim().replace(/^0+/,""); // quita ceros iniciales
-  const n = Number(s);
-  return Number.isNaN(n) ? null : n;
-}
-function tsToDate(ts){
-  if(!ts) return null;
-  if(ts?.toDate) return ts.toDate(); // Firestore Timestamp
-  const d = new Date(ts);            // string Supabase "2026-03-03 05:00:00+00"
-  return isNaN(d.getTime()) ? null : d;
-}
+
 function fmtFecha(ts){
-  const d = tsToDate(ts);
-  return d ? d.toLocaleString() : "";
-}
-function normText(s){
-  return (s||"")
-    .toUpperCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-    .replace(/\s+/g," ")
-    .trim();
+  if(!ts) return "";
+  if(ts?.toDate) return ts.toDate().toLocaleString();
+  return new Date(ts).toLocaleString();
 }
 
-/* ============ CATALOGO + AUTOCOMPLETE ============ */
-const input = document.getElementById("productoInput");
-const sug = document.getElementById("sugerencias");
-const btn = document.getElementById("btnBuscar");
-const grid = document.getElementById("grid");
+/* ===================== FIJACIÓN ===================== */
 
-let productosCache = [];
-let productoSeleccionado = null;
-
-async function cargarProductos(){
-  const snap = await getDocs(collection(db,"productos"));
-  productosCache = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-}
-await cargarProductos();
-
-input.addEventListener("input", ()=>{
-  const texto = normText(input.value);
-  sug.innerHTML = "";
-  productoSeleccionado = null;
-  if(texto.length < 2) return;
-
-  const matches = productosCache
-    .filter(p => normText(p.concepto).includes(texto))
-    .slice(0,10);
-
-  for(const p of matches){
-    const div = document.createElement("div");
-    div.className = "suggestion";
-    const etiqueta = `${p.concepto} (${p.codigoBarra || p.codigo || p.id || "-"})`;
-    div.textContent = etiqueta;
-    div.onclick = ()=>{
-      input.value = p.concepto;
-      productoSeleccionado = p;
-      sug.innerHTML = "";
-    };
-    sug.appendChild(div);
-  }
-});
-
-/* ============ 1) EQUIVALENTES POR DATOS ============ */
-function construirEquivalentes(producto){
-  const concepto = normText(producto?.concepto);
-
-  // Regla práctica: si contiene "HARI MASA", junta TODOS los items "HARI MASA" del catálogo
-  // Eso te va a incluir: 010040 (interno) y 7503004488001 (barcode)
-  let pool = [producto];
-
-  if(concepto.includes("HARI MASA")){
-    pool = productosCache.filter(p => normText(p.concepto).includes("HARI MASA"));
-  }
-
-  const cods = new Set();
-  for(const p of pool){
-    const c1 = normalizeCodigo(p.codigo);
-    const c2 = normalizeCodigo(p.codigoBarra);
-    const c3 = normalizeCodigo(p.id);
-    if(c1 !== null) cods.add(c1);
-    if(c2 !== null) cods.add(c2);
-    // id solo si es numérico (en tu caso barcode a veces está en id)
-    if(c3 !== null) cods.add(c3);
-  }
-
-  return {
-    nombre: producto?.concepto || "Producto",
-    codigos: cods
-  };
-}
-
-/* ============ 2) LEER FIJACION ACTIVA EN SUPABASE ============ */
-async function cargarFijacionActivaPorCodigos(cods){
+async function cargarFijacion(){
 
   const { data, error } = await supabase
-    .from("movimientos_inventario")
-    .select("id,tipo,folio,almacen,usuario,timestamp,productos,activa")
-    .eq("tipo","FIJACION")
-    .eq("activa", true)
-    .order("timestamp", { ascending:false })
-    .limit(300);
+    .from('movimientos_inventario')
+    .select('productos, almacen, timestamp')
+    .order('timestamp', { ascending:false })
+    .limit(30);
 
-  if(error || !data?.length) return null;
+  if(error || !data) return null;
 
   for(const row of data){
-    const lista = normalizeProductos(row.productos);
 
-    let base = 0;
-    let desc = "";
-    let hit = false;
+    const productos = normalize(row.productos);
 
-    for(const p of lista){
-      const cod = normalizeCodigo(p.codigo);
-      if(cod === null) continue;
+    for(const p of productos){
 
-      if(cods.has(cod)){
-        hit = true;
-        desc = p.descripcion || desc;
-        base += Number(p.cantidad || 0); // FIJACION: tu ejemplo está en unidades
+      if(String(p.codigo).trim() === SKU_OBJETIVO){
+
+        return {
+          base: Number(p.cantidad||0),
+          desc: p.descripcion||"",
+          almacen: row.almacen||"",
+          timestamp: row.timestamp
+        };
+
       }
-    }
-
-    if(hit){
-      return {
-        id: row.id,
-        folio: row.folio || "",
-        almacen: row.almacen || "",
-        usuario: row.usuario || "",
-        timestamp: row.timestamp,
-        desc: desc || "FIJACION",
-        base
-      };
     }
   }
 
   return null;
 }
 
-/* ============ 3) SALIDAS DESDE FECHA FIJACION ============ */
-async function cargarSalidasDesdeFecha(cods, fechaFijacion){
+/* ===================== MAIN ===================== */
 
-  const almacenesSnap = await getDocs(collection(db,"almacenes"));
+document.addEventListener("DOMContentLoaded", async ()=>{
 
-  let total = 0;
+  const grid = document.getElementById("grid");
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const fijacion = await cargarFijacion();
+
+  if(!fijacion){
+    grid.innerHTML = "<div class='card'>No hay fijación activa.</div>";
+    return;
+  }
+
+  const fechaFijacion = new Date(fijacion.timestamp);
+  const hoy = new Date();
+
+  const sources = [
+    { almacen:"Almacen_Dulces", col: collection(db,"almacenes","Almacen_Dulces","salidas") },
+    { almacen:"Almacen_Liquidos", col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
+  ];
+
+  let totalSalidas = 0;
   const eventos = [];
 
-  for(const almacenDoc of almacenesSnap.docs){
+  await Promise.all(sources.map(async src=>{
 
-    const nombreAlmacen = almacenDoc.id;
+    const q = query(
+      src.col,
+      where("timestamp", ">=", fechaFijacion),
+      where("timestamp", "<=", hoy)
+    );
 
-    const salidasSnap = await getDocs(collection(db,"almacenes",nombreAlmacen,"salidas"));
+    const snap = await getDocs(q);
 
-    salidasSnap.forEach(doc => {
+    snap.forEach(doc=>{
 
       const data = doc.data();
-
-      const ts = tsToDate(data.timestamp);
-      if(!ts) return;
-
-      if(ts < fechaFijacion) return;
-
-      const lista = normalizeProductos(data.productos);
+      const lista = normalize(data.productos);
 
       for(const p of lista){
 
-        const cod = normalizeCodigo(p.codigo);
-        if(cod === null) continue;
-        if(!cods.has(cod)) continue;
+        if(String(p.codigo).trim() === SKU_OBJETIVO){
 
-        const cant = Number(p.cantidad || 0);
+          const cant = Number(p.cantidad||0);
+          totalSalidas += cant;
 
-        // Si quieres tratar el barcode como "caja", conviértelo con DIVISOR_CAJA.
-        // Como no sabemos cuál de los cods es barcode, aplicamos la conversión SOLO
-        // cuando el código tenga longitud típica de barcode (>= 11 dígitos).
-        const isBarcode = String(cod).length >= 11;
-        const unidades = isBarcode ? (cant / DIVISOR_CAJA) : cant;
+          eventos.push({
+            timestamp: data.timestamp,
+            almacen: src.almacen,
+            cantidad: cant
+          });
 
-        total += unidades;
-
-        eventos.push({
-          timestamp: data.timestamp,
-          almacen: nombreAlmacen,
-          tipo: isBarcode ? `BARCODE ÷${DIVISOR_CAJA}` : "INTERNO",
-          cantidad: unidades
-        });
+        }
       }
+
     });
-  }
 
-  eventos.sort((a,b)=> (tsToDate(a.timestamp) - tsToDate(b.timestamp)));
+  }));
 
-  return { total, eventos };
-}
+  eventos.sort((a,b)=>
+    a.timestamp.toDate() - b.timestamp.toDate()
+  );
 
-/* ============ RUN ============ */
-btn.addEventListener("click", async ()=>{
+  const restantePiezas = fijacion.base - totalSalidas;
+  const cajasRestantes = restantePiezas / DIVISOR_CAJA;
+  const colorRestante = cajasRestantes < 0 ? "#b00020" : "#0a6c21";
 
-  if(!productoSeleccionado){
-    alert("Selecciona un producto de la lista.");
-    return;
-  }
-
-  grid.textContent = "Buscando fijación...";
-
-  const eq = construirEquivalentes(productoSeleccionado);
-
-  const fij = await cargarFijacionActivaPorCodigos(eq.codigos);
-
-  if(!fij){
-    grid.innerHTML = `<div>No encontré fijación en Supabase para códigos: ${[...eq.codigos].join(", ")}</div>`;
-    return;
-  }
-
-  const fechaFijacion = tsToDate(fij.timestamp);
-  if(!fechaFijacion){
-    grid.innerHTML = `<div>Fijación encontrada pero timestamp inválido: ${String(fij.timestamp)}</div>`;
-    return;
-  }
-
-  grid.textContent = "Buscando salidas desde fecha de fijación...";
-
-  const { total, eventos } = await cargarSalidasDesdeFecha(eq.codigos, fechaFijacion);
-
-  const restante = fij.base - total;
-  const color = restante < 0 ? "#b00020" : "#0a6c21";
-
-  const rows = eventos.length
+  let rows = eventos.length
     ? eventos.map(ev=>`
-      <tr>
-        <td>${fmtFecha(ev.timestamp)}</td>
-        <td>${ev.almacen}</td>
-        <td>${ev.tipo}</td>
-        <td style="text-align:right">${ev.cantidad.toFixed(2)}</td>
-      </tr>
-    `).join("")
-    : `<tr><td colspan="4">Sin salidas desde la fecha de fijación</td></tr>`;
-
-  const debug = [
-    `Producto seleccionado: ${productoSeleccionado.concepto}`,
-    `Códigos equivalentes: ${[...eq.codigos].join(", ")}`,
-    `Fijación: ${fij.folio} | base=${fij.base}`,
-    `Fecha fijación: ${fechaFijacion.toISOString()}`,
-    `Eventos: ${eventos.length}`,
-    `DIVISOR_CAJA: ${DIVISOR_CAJA}`
-  ].join("\n");
+        <tr>
+          <td>${fmtFecha(ev.timestamp)}</td>
+          <td>${ev.almacen}</td>
+          <td style="text-align:right">${ev.cantidad}</td>
+        </tr>
+      `).join("")
+    : `<tr><td colspan="3">Sin salidas</td></tr>`;
 
   grid.innerHTML = `
-    <h3 style="margin:0 0 8px 0">${fij.desc}</h3>
+    <div class="card">
 
-    <div class="kpis">
-      <div class="kpi"><strong>Base Fijada</strong><span>${fij.base.toFixed(2)}</span></div>
-      <div class="kpi"><strong>Total Descontado</strong><span>${total.toFixed(2)}</span></div>
-      <div class="kpi"><strong>Restante</strong>
-        <span class="pulse" style="color:${color}; font-size:20px;">${restante.toFixed(2)}</span>
+      <h3 style="margin:0 0 10px 0">${fijacion.desc || "CHILE FARO RODAJAS BOLSA 3K"}</h3>
+
+      <div class="kpis">
+        <div class="kpi"><strong>Base (Pzs)</strong><span>${fijacion.base}</span></div>
+        <div class="kpi"><strong>Descuentos (Pzs)</strong><span>${totalSalidas}</span></div>
+
+        <div class="kpi">
+          <strong>Cajas Restantes</strong>
+          <span class="pulse" style="color:${colorRestante}; font-size:20px;">
+            ${cajasRestantes.toFixed(2)}
+          </span>
+        </div>
+
+        <div class="kpi">
+          <strong>Fecha Fijación</strong>
+          <span>${fmtFecha(fijacion.timestamp)}</span>
+        </div>
+
+        <div class="kpi">
+          <strong>Almacén Fijado</strong>
+          <span>${fijacion.almacen}</span>
+        </div>
       </div>
-      <div class="kpi"><strong>Fecha Fijación</strong><span>${fechaFijacion.toLocaleString()}</span></div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Almacén</th>
+            <th style="text-align:right">Salida</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
     </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Fecha</th>
-          <th>Almacén</th>
-          <th>Tipo</th>
-          <th style="text-align:right">Cantidad</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-
-    <div class="small">${debug}</div>
   `;
+
 });
 </script>
 
