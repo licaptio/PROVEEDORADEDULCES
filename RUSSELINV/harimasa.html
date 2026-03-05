@@ -6,299 +6,192 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#eef1f5;
-  margin:0;
-  padding:20px;
-}
-.card{
-  background:#fff;
-  border-radius:16px;
-  box-shadow:0 4px 12px rgba(0,0,0,.12);
-  padding:16px;
-  margin:12px 0;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:13px;
-}
-th, td{
-  padding:8px;
-  border-bottom:1px solid #e5e7eb;
-}
-.kpis{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:10px;
-  margin-bottom:12px;
-}
-.kpi{
-  background:#f6f7fb;
-  border-radius:12px;
-  padding:10px;
-}
-.kpi strong{
-  display:block;
-  font-size:12px;
-  color:#555;
-}
-.kpi span{
-  font-weight:700;
-}
-@keyframes heartbeat {
-  0%{transform:scale(1);}
-  20%{transform:scale(1.15);}
-  40%{transform:scale(1);}
-  60%{transform:scale(1.15);}
-  80%{transform:scale(1);}
-  100%{transform:scale(1);}
-}
-.pulse{
-  display:inline-block;
-  animation:heartbeat 1.4s infinite;
-}
+body{font-family:Arial,sans-serif;background:#eef1f5;margin:0;padding:20px}
+.card{background:#fff;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.12);padding:16px;margin:12px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px;border-bottom:1px solid #e5e7eb}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.kpi{background:#f6f7fb;border-radius:12px;padding:10px}
+.kpi strong{display:block;font-size:12px;color:#555}
+.kpi span{font-weight:700}
+@keyframes heartbeat{0%{transform:scale(1)}20%{transform:scale(1.15)}40%{transform:scale(1)}60%{transform:scale(1.15)}80%{transform:scale(1)}100%{transform:scale(1)}}
+.pulse{display:inline-block;animation:heartbeat 1.4s infinite}
+.small{font-size:12px;color:#666;margin-top:8px}
 </style>
 </head>
 
 <body>
-
 <h2>HARI MASA 10/1 KGR</h2>
 <div id="grid">Cargando...</div>
 
 <script type="module">
-
 import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  query,
-  where
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
-
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /* ================= CÓDIGOS ================= */
-
-const CODIGO_ENTERO = 10040;
-const CODIGO_CAJA   = 7503004488001;
+// Unidad (interno) + Caja (barcode)
+const CODIGO_ENTERO = 10040;          // 010040 -> 10040
+const CODIGO_CAJA   = 7503004488001;  // barcode
 const DIVISOR_CAJA  = 12;
 
 /* ================= HELPERS ================= */
-
 function normalize(p){
-
   if(!p) return [];
-
   if(Array.isArray(p)) return p;
-
   if(typeof p === "object") return Object.values(p);
-
   if(typeof p === "string"){
-    try{
-      return JSON.parse(p)
-    }catch{
-      return []
-    }
+    try{ return JSON.parse(p) }catch{ return [] }
   }
-
   return [];
 }
 
 function normalizeCodigo(c){
-
   if(c === undefined || c === null) return null;
-
-  const s = String(c).trim().replace(/^0+/,"");
-
+  const s = String(c).trim().replace(/^0+/,""); // quita ceros iniciales
   const n = Number(s);
-
-  if(isNaN(n)) return null;
-
+  if(Number.isNaN(n)) return null;
   return n;
 }
 
 function fmtFecha(ts){
-
   if(!ts) return "";
-
   if(ts?.toDate) return ts.toDate().toLocaleString();
-
   return new Date(ts).toLocaleString();
 }
 
 function tsToDate(ts){
-
   if(!ts) return new Date(0);
-
   if(ts?.toDate) return ts.toDate();
-
   return new Date(ts);
 }
 
-/* ================= FIJACIÓN ================= */
-
+/* ================= FIJACIÓN (FIX REAL) =================
+   - Encuentra SOLO la fila más reciente donde aparezca el producto
+   - Base fijada = suma en UNIDADES (ENTERO = 1, CAJA = ÷12)
+   - Fecha fijación = timestamp de esa misma fila
+======================================================== */
 async function cargarFijacion(){
 
   const { data, error } = await supabase
     .from('movimientos_inventario')
-    .select('productos, almacen, timestamp')
+    .select('productos, almacen, timestamp, id')   // id opcional por debug
     .order('timestamp', { ascending:false })
-    .limit(200);
+    .limit(800); // sube si hace falta
 
-  if(error || !data) return null;
-
-  let baseTotal = 0;
-  let descripcion = "";
-  let almacen = "";
-  let timestamp = null;
+  if(error || !data?.length) return null;
 
   for(const row of data){
 
     const productos = normalize(row.productos);
 
+    let baseUnidades = 0;
+    let descripcion = "";
+    let encontro = false;
+
     for(const p of productos){
 
       const codigo = normalizeCodigo(p.codigo);
+      const cantidad = Number(p.cantidad || 0);
 
-      if(codigo === CODIGO_ENTERO || codigo === CODIGO_CAJA){
-
-        baseTotal += Number(p.cantidad || 0);
-
+      if(codigo === CODIGO_ENTERO){
+        baseUnidades += cantidad;            // unidades directas
         descripcion = p.descripcion || descripcion;
-
-        almacen = row.almacen || almacen;
-
-        if(!timestamp) timestamp = row.timestamp;
+        encontro = true;
       }
+
+      if(codigo === CODIGO_CAJA){
+        baseUnidades += (cantidad / DIVISOR_CAJA); // caja -> unidades
+        descripcion = p.descripcion || descripcion;
+        encontro = true;
+      }
+    }
+
+    // IMPORTANTÍSIMO: regresar la PRIMERA coincidencia (más reciente)
+    if(encontro && baseUnidades !== 0){
+      return {
+        base: baseUnidades,
+        desc: descripcion,
+        almacen: row.almacen || "",
+        timestamp: row.timestamp,
+        debug_id: row.id || ""
+      };
     }
   }
 
-  if(!baseTotal) return null;
-
-  return {
-    base: baseTotal,
-    desc: descripcion,
-    almacen,
-    timestamp
-  };
+  return null;
 }
 
 /* ================= MAIN ================= */
-
 document.addEventListener("DOMContentLoaded", async ()=>{
 
   const grid = document.getElementById("grid");
 
   const app = initializeApp(firebaseConfig);
-
   const db = getFirestore(app);
 
   const fijacion = await cargarFijacion();
 
   if(!fijacion){
-
-    grid.innerHTML = "<div class='card'>No hay fijación activa.</div>";
-
+    grid.innerHTML = "<div class='card'>No hay fijación activa (no encontré el producto en movimientos_inventario).</div>";
     return;
   }
 
   const fechaFijacion = tsToDate(fijacion.timestamp);
-
   const hoy = new Date();
 
+  // OJO: si tus salidas viven en más almacenes, agrégalos aquí o haz loop dinámico como tu Kardex.
   const sources = [
-
-    {
-      almacen:"Almacen_Dulces",
-      col: collection(db,"almacenes","Almacen_Dulces","salidas")
-    },
-
-    {
-      almacen:"Almacen_Liquidos",
-      col: collection(db,"almacenes","Almacen_Liquidos","salidas")
-    }
-
+    { almacen:"Almacen_Dulces",  col: collection(db,"almacenes","Almacen_Dulces","salidas") },
+    { almacen:"Almacen_Liquidos",col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
   ];
 
   let totalDescontado = 0;
-
   const eventos = [];
 
-  await Promise.all(
+  await Promise.all(sources.map(async src => {
 
-    sources.map(async src=>{
+    const q = query(
+      src.col,
+      where("timestamp", ">=", fechaFijacion),
+      where("timestamp", "<=", hoy)
+    );
 
-      const q = query(
-        src.col,
-        where("timestamp", ">=", fechaFijacion),
-        where("timestamp", "<=", hoy)
-      );
+    const snap = await getDocs(q);
 
-      const snap = await getDocs(q);
+    snap.forEach(doc => {
 
-      snap.forEach(doc=>{
+      const data = doc.data();
+      const lista = normalize(data.productos);
 
-        const data = doc.data();
+      for(const p of lista){
 
-        const lista = normalize(data.productos);
+        const codigo = normalizeCodigo(p.codigo);
+        const cantidad = Number(p.cantidad || 0);
 
-        for(const p of lista){
-
-          const codigo = normalizeCodigo(p.codigo);
-
-          const cantidad = Number(p.cantidad || 0);
-
-          if(codigo === CODIGO_ENTERO){
-
-            totalDescontado += cantidad;
-
-            eventos.push({
-              timestamp: data.timestamp,
-              almacen: src.almacen,
-              tipo: "ENTERO",
-              cantidad: cantidad
-            });
-
-          }
-
-          if(codigo === CODIGO_CAJA){
-
-            const convertido = cantidad / DIVISOR_CAJA;
-
-            totalDescontado += convertido;
-
-            eventos.push({
-              timestamp: data.timestamp,
-              almacen: src.almacen,
-              tipo: `CAJA ÷${DIVISOR_CAJA}`,
-              cantidad: convertido
-            });
-
-          }
-
+        if(codigo === CODIGO_ENTERO){
+          totalDescontado += cantidad;
+          eventos.push({ timestamp:data.timestamp, almacen:src.almacen, tipo:"ENTERO", cantidad });
         }
 
-      });
+        if(codigo === CODIGO_CAJA){
+          const convertido = cantidad / DIVISOR_CAJA;
+          totalDescontado += convertido;
+          eventos.push({ timestamp:data.timestamp, almacen:src.almacen, tipo:`CAJA ÷${DIVISOR_CAJA}`, cantidad:convertido });
+        }
+      }
 
-    })
+    });
 
-  );
+  }));
 
-  eventos.sort((a,b)=>{
-
-    return tsToDate(a.timestamp) - tsToDate(b.timestamp);
-
-  });
+  eventos.sort((a,b)=> tsToDate(a.timestamp) - tsToDate(b.timestamp));
 
   const restante = fijacion.base - totalDescontado;
-
   const colorRestante = restante < 0 ? "#b00020" : "#0a6c21";
 
   const rows = eventos.length
@@ -310,43 +203,20 @@ document.addEventListener("DOMContentLoaded", async ()=>{
         <td style="text-align:right">${ev.cantidad.toFixed(2)}</td>
       </tr>
     `).join("")
-    : `<tr><td colspan="4">Sin salidas</td></tr>`;
+    : `<tr><td colspan="4">Sin salidas desde la fecha de fijación</td></tr>`;
 
   grid.innerHTML = `
-
     <div class="card">
-
       <h3 style="margin:0 0 10px 0">${fijacion.desc || "HARI MASA 10/1 KGR"}</h3>
 
       <div class="kpis">
-
-        <div class="kpi">
-          <strong>Base Fijada</strong>
-          <span>${fijacion.base}</span>
+        <div class="kpi"><strong>Base Fijada (unidades)</strong><span>${fijacion.base.toFixed(2)}</span></div>
+        <div class="kpi"><strong>Total Descontado (unidades)</strong><span>${totalDescontado.toFixed(2)}</span></div>
+        <div class="kpi"><strong>Restante</strong>
+          <span class="pulse" style="color:${colorRestante}; font-size:20px;">${restante.toFixed(2)}</span>
         </div>
-
-        <div class="kpi">
-          <strong>Total Descontado</strong>
-          <span>${totalDescontado.toFixed(2)}</span>
-        </div>
-
-        <div class="kpi">
-          <strong>Restante</strong>
-          <span class="pulse" style="color:${colorRestante}; font-size:20px;">
-            ${restante.toFixed(2)}
-          </span>
-        </div>
-
-        <div class="kpi">
-          <strong>Fecha Fijación</strong>
-          <span>${fmtFecha(fijacion.timestamp)}</span>
-        </div>
-
-        <div class="kpi">
-          <strong>Almacén Fijado</strong>
-          <span>${fijacion.almacen}</span>
-        </div>
-
+        <div class="kpi"><strong>Fecha Fijación</strong><span>${fmtFecha(fijacion.timestamp)}</span></div>
+        <div class="kpi"><strong>Almacén Fijado</strong><span>${fijacion.almacen}</span></div>
       </div>
 
       <table>
@@ -361,11 +231,12 @@ document.addEventListener("DOMContentLoaded", async ()=>{
         <tbody>${rows}</tbody>
       </table>
 
+      <div class="small">
+        Debug: COD_ENTERO=${CODIGO_ENTERO} | COD_CAJA=${CODIGO_CAJA} | fijacion_id=${fijacion.debug_id || "-"}
+      </div>
     </div>
-
   `;
 });
 </script>
-
 </body>
 </html>
