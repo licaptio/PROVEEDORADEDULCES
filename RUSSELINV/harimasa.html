@@ -2,26 +2,44 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Fijación Inteligente – HARI MASA</title>
+<title>Fijación Inteligente – por producto (FIX)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body{font-family:Arial,sans-serif;background:#eef1f5;margin:0;padding:20px}
 .card{background:#fff;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,.12);padding:16px;margin:12px 0}
+input,button{padding:10px;border-radius:10px;border:1px solid #ccc;font-size:14px;width:100%}
+button{background:#0c4a6e;color:#fff;border:none;cursor:pointer}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:8px;border-bottom:1px solid #e5e7eb}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+th{background:#f6f7fb;text-align:left}
+.suggestion{padding:8px;cursor:pointer;border-radius:8px}
+.suggestion:hover{background:#eef1f5}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
 .kpi{background:#f6f7fb;border-radius:12px;padding:10px}
 .kpi strong{display:block;font-size:12px;color:#555}
 .kpi span{font-weight:700}
-.small{font-size:12px;color:#666;margin-top:8px;line-height:1.35}
+.small{font-size:12px;color:#666;margin-top:10px;white-space:pre-wrap;line-height:1.35}
 @keyframes heartbeat{0%{transform:scale(1)}20%{transform:scale(1.15)}40%{transform:scale(1)}60%{transform:scale(1.15)}80%{transform:scale(1)}100%{transform:scale(1)}}
 .pulse{display:inline-block;animation:heartbeat 1.4s infinite}
 </style>
 </head>
+
 <body>
 
 <h2>Fijación Inteligente (por producto)</h2>
-<div id="grid">Cargando...</div>
+
+<div class="card">
+  <label>Buscar Producto</label>
+  <input id="productoInput" placeholder="Ej: hari masa">
+  <div id="sugerencias"></div>
+  <div style="height:10px"></div>
+  <button id="btnBuscar">Buscar Fijación</button>
+</div>
+
+<div class="card">
+  <div id="grid">Sin resultados.</div>
+</div>
 
 <script type="module">
 import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
@@ -30,14 +48,16 @@ import { getFirestore, collection, getDocs } from "https://www.gstatic.com/fireb
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-/* ========= CONFIG DEL PRODUCTO =========
-   Puedes buscarlo por nombre o por barcode.
-   (Si quieres, lo hacemos dinámico con input luego)
-======================================= */
-const PRODUCTO_NOMBRE_BUSCAR = "HARI MASA 1 KG";        // match por includes
-const DIVISOR_CAJA = 12;                                // caja -> unidades (barcode)
+/* ===== AJUSTE IMPORTANTE =====
+   Si tu barcode NO es caja y ya viene en unidades, pon 1.
+   Por tu salida (HARI MASA 1 KG con 200) parece UNIDADES, no cajas.
+*/
+const DIVISOR_CAJA = 1; // <-- cambia a 12 si de verdad es caja
 
+/* ============ HELPERS ============ */
 function normalizeProductos(p){
   if(!p) return [];
   if(Array.isArray(p)) return p;
@@ -45,108 +65,138 @@ function normalizeProductos(p){
   if(typeof p === "string"){ try{ return JSON.parse(p) }catch{ return [] } }
   return [];
 }
-
 function normalizeCodigo(c){
   if(c === undefined || c === null) return null;
-  // quita ceros iniciales y convierte a número estable
-  const s = String(c).trim().replace(/^0+/,"");
+  const s = String(c).trim().replace(/^0+/,""); // quita ceros iniciales
   const n = Number(s);
   return Number.isNaN(n) ? null : n;
 }
-
 function tsToDate(ts){
-  if(!ts) return new Date(0);
+  if(!ts) return null;
   if(ts?.toDate) return ts.toDate(); // Firestore Timestamp
-  return new Date(ts);
+  const d = new Date(ts);            // string Supabase "2026-03-03 05:00:00+00"
+  return isNaN(d.getTime()) ? null : d;
 }
-
 function fmtFecha(ts){
   const d = tsToDate(ts);
-  return isNaN(d.getTime()) ? "" : d.toLocaleString();
+  return d ? d.toLocaleString() : "";
+}
+function normText(s){
+  return (s||"")
+    .toUpperCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\s+/g," ")
+    .trim();
 }
 
-/* =========================
-   1) CARGAR PRODUCTO (MAESTRO)
-   - arma set de códigos equivalentes
-========================= */
-async function cargarProductoMaestro(db){
+/* ============ CATALOGO + AUTOCOMPLETE ============ */
+const input = document.getElementById("productoInput");
+const sug = document.getElementById("sugerencias");
+const btn = document.getElementById("btnBuscar");
+const grid = document.getElementById("grid");
 
+let productosCache = [];
+let productoSeleccionado = null;
+
+async function cargarProductos(){
   const snap = await getDocs(collection(db,"productos"));
+  productosCache = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+}
+await cargarProductos();
 
-  const catalogo = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+input.addEventListener("input", ()=>{
+  const texto = normText(input.value);
+  sug.innerHTML = "";
+  productoSeleccionado = null;
+  if(texto.length < 2) return;
 
-  // busca por concepto (includes)
-  const target = catalogo.find(p =>
-    (p.concepto || "").toUpperCase().includes(PRODUCTO_NOMBRE_BUSCAR.toUpperCase())
-  );
+  const matches = productosCache
+    .filter(p => normText(p.concepto).includes(texto))
+    .slice(0,10);
 
-  if(!target) return null;
+  for(const p of matches){
+    const div = document.createElement("div");
+    div.className = "suggestion";
+    const etiqueta = `${p.concepto} (${p.codigoBarra || p.codigo || p.id || "-"})`;
+    div.textContent = etiqueta;
+    div.onclick = ()=>{
+      input.value = p.concepto;
+      productoSeleccionado = p;
+      sug.innerHTML = "";
+    };
+    sug.appendChild(div);
+  }
+});
 
-  const codInterno = normalizeCodigo(target.codigo ?? target.codigoInterno ?? target.id);
-  const codBarra   = normalizeCodigo(target.codigoBarra ?? target.barra ?? target.sku);
+/* ============ 1) EQUIVALENTES POR DATOS ============ */
+function construirEquivalentes(producto){
+  const concepto = normText(producto?.concepto);
 
-  const codigos = new Set([codInterno, codBarra].filter(x => x !== null));
+  // Regla práctica: si contiene "HARI MASA", junta TODOS los items "HARI MASA" del catálogo
+  // Eso te va a incluir: 010040 (interno) y 7503004488001 (barcode)
+  let pool = [producto];
+
+  if(concepto.includes("HARI MASA")){
+    pool = productosCache.filter(p => normText(p.concepto).includes("HARI MASA"));
+  }
+
+  const cods = new Set();
+  for(const p of pool){
+    const c1 = normalizeCodigo(p.codigo);
+    const c2 = normalizeCodigo(p.codigoBarra);
+    const c3 = normalizeCodigo(p.id);
+    if(c1 !== null) cods.add(c1);
+    if(c2 !== null) cods.add(c2);
+    // id solo si es numérico (en tu caso barcode a veces está en id)
+    if(c3 !== null) cods.add(c3);
+  }
 
   return {
-    nombre: target.concepto || PRODUCTO_NOMBRE_BUSCAR,
-    codInterno,
-    codBarra,
-    codigos
+    nombre: producto?.concepto || "Producto",
+    codigos: cods
   };
 }
 
-/* =========================
-   2) ENCONTRAR FIJACIÓN (SUPABASE)
-   - criterio: fila más reciente que contenga CUALQUIER código del set
-   - base fijada: suma de cantidades de esos códigos en ESA FILA (no histórico)
-========================= */
-async function cargarFijacionPorProducto(codigosSet){
+/* ============ 2) LEER FIJACION ACTIVA EN SUPABASE ============ */
+async function cargarFijacionActivaPorCodigos(cods){
 
   const { data, error } = await supabase
-    .from('movimientos_inventario')
-    .select('productos, almacen, timestamp, id')
-    .order('timestamp', { ascending:false })
-    .limit(1200);
+    .from("movimientos_inventario")
+    .select("id,tipo,folio,almacen,usuario,timestamp,productos,activa")
+    .eq("tipo","FIJACION")
+    .eq("activa", true)
+    .order("timestamp", { ascending:false })
+    .limit(300);
 
   if(error || !data?.length) return null;
 
   for(const row of data){
+    const lista = normalizeProductos(row.productos);
 
-    const productos = normalizeProductos(row.productos);
-
-    let baseUnidades = 0;
-    let descripcion = "";
+    let base = 0;
+    let desc = "";
     let hit = false;
 
-    for(const p of productos){
-
+    for(const p of lista){
       const cod = normalizeCodigo(p.codigo);
       if(cod === null) continue;
 
-      if(codigosSet.has(cod)){
-
+      if(cods.has(cod)){
         hit = true;
-        descripcion = p.descripcion || descripcion;
-
-        const cant = Number(p.cantidad || 0);
-
-        // Si el movimiento viene por BARCODE (caja), lo conviertes a unidades.
-        // Si en tu Supabase la base ya viene en unidades, quita esta conversión.
-        if(codigosSet.size >= 2 && cod === [...codigosSet][1]) {
-          // NO me gusta este hack de índice, así que abajo hago la conversión mejor en main
-        }
-
-        baseUnidades += cant; // base tal cual (luego la normalizamos en main)
+        desc = p.descripcion || desc;
+        base += Number(p.cantidad || 0); // FIJACION: tu ejemplo está en unidades
       }
     }
 
-    if(hit && baseUnidades !== 0){
+    if(hit){
       return {
-        baseRaw: baseUnidades,
-        desc: descripcion,
+        id: row.id,
+        folio: row.folio || "",
         almacen: row.almacen || "",
+        usuario: row.usuario || "",
         timestamp: row.timestamp,
-        id: row.id || ""
+        desc: desc || "FIJACION",
+        base
       };
     }
   }
@@ -154,18 +204,12 @@ async function cargarFijacionPorProducto(codigosSet){
   return null;
 }
 
-/* =========================
-   3) SALIDAS (FIRESTORE) DESDE FECHA FIJACIÓN
-   - recorre almacenes y descuenta si código pertenece al set
-   - convierte barcode->unidades con DIVISOR_CAJA
-========================= */
-async function cargarSalidasDesde(db, codigosSet, codInterno, codBarra, fechaFijacion){
-
-  const hoy = new Date();
+/* ============ 3) SALIDAS DESDE FECHA FIJACION ============ */
+async function cargarSalidasDesdeFecha(cods, fechaFijacion){
 
   const almacenesSnap = await getDocs(collection(db,"almacenes"));
 
-  let totalDescontado = 0;
+  let total = 0;
   const eventos = [];
 
   for(const almacenDoc of almacenesSnap.docs){
@@ -177,11 +221,11 @@ async function cargarSalidasDesde(db, codigosSet, codInterno, codBarra, fechaFij
     salidasSnap.forEach(doc => {
 
       const data = doc.data();
+
       const ts = tsToDate(data.timestamp);
-      if(!ts || isNaN(ts.getTime())) return;
+      if(!ts) return;
 
       if(ts < fechaFijacion) return;
-      if(ts > hoy) return;
 
       const lista = normalizeProductos(data.productos);
 
@@ -189,94 +233,64 @@ async function cargarSalidasDesde(db, codigosSet, codInterno, codBarra, fechaFij
 
         const cod = normalizeCodigo(p.codigo);
         if(cod === null) continue;
-
-        if(!codigosSet.has(cod)) continue;
+        if(!cods.has(cod)) continue;
 
         const cant = Number(p.cantidad || 0);
 
-        // Si el código es barcode (caja) -> convertir a unidades
-        const unidades = (codBarra !== null && cod === codBarra)
-          ? (cant / DIVISOR_CAJA)
-          : cant;
+        // Si quieres tratar el barcode como "caja", conviértelo con DIVISOR_CAJA.
+        // Como no sabemos cuál de los cods es barcode, aplicamos la conversión SOLO
+        // cuando el código tenga longitud típica de barcode (>= 11 dígitos).
+        const isBarcode = String(cod).length >= 11;
+        const unidades = isBarcode ? (cant / DIVISOR_CAJA) : cant;
 
-        totalDescontado += unidades;
+        total += unidades;
 
         eventos.push({
           timestamp: data.timestamp,
           almacen: nombreAlmacen,
-          tipo: (codBarra !== null && cod === codBarra) ? `CAJA ÷${DIVISOR_CAJA}` : "ENTERO",
+          tipo: isBarcode ? `BARCODE ÷${DIVISOR_CAJA}` : "INTERNO",
           cantidad: unidades
         });
       }
-
     });
-
   }
 
-  eventos.sort((a,b)=> tsToDate(a.timestamp) - tsToDate(b.timestamp));
+  eventos.sort((a,b)=> (tsToDate(a.timestamp) - tsToDate(b.timestamp)));
 
-  return { totalDescontado, eventos };
+  return { total, eventos };
 }
 
-/* =========================
-   MAIN
-========================= */
-document.addEventListener("DOMContentLoaded", async ()=>{
+/* ============ RUN ============ */
+btn.addEventListener("click", async ()=>{
 
-  const grid = document.getElementById("grid");
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  // 1) Maestro
-  const prod = await cargarProductoMaestro(db);
-
-  if(!prod){
-    grid.innerHTML = `<div class="card">No encontré el producto en catálogo: ${PRODUCTO_NOMBRE_BUSCAR}</div>`;
+  if(!productoSeleccionado){
+    alert("Selecciona un producto de la lista.");
     return;
   }
 
-  // 2) Fijación
-  const fij = await cargarFijacionPorProducto(prod.codigos);
+  grid.textContent = "Buscando fijación...";
+
+  const eq = construirEquivalentes(productoSeleccionado);
+
+  const fij = await cargarFijacionActivaPorCodigos(eq.codigos);
 
   if(!fij){
-    grid.innerHTML = `<div class="card">No encontré fijación en Supabase para códigos: ${[...prod.codigos].join(", ")}</div>`;
+    grid.innerHTML = `<div>No encontré fijación en Supabase para códigos: ${[...eq.codigos].join(", ")}</div>`;
     return;
   }
 
   const fechaFijacion = tsToDate(fij.timestamp);
-
-  // IMPORTANTÍSIMO:
-  // Normaliza base fijada: si tu Supabase guarda base por barcode como cajas, conviértelo.
-  // Aquí hago la conversión bien: reviso la fila y vuelvo a sumar por código con regla caja/unidad.
-  // (Esto evita "baseRaw" ambigua)
-  const productosFij = normalizeProductos((await supabase
-    .from('movimientos_inventario')
-    .select('productos')
-    .eq('id', fij.id)
-    .single()
-  ).data?.productos);
-
-  let baseFijadaUnidades = 0;
-  for(const p of productosFij){
-    const cod = normalizeCodigo(p.codigo);
-    if(cod === null) continue;
-    if(!prod.codigos.has(cod)) continue;
-    const cant = Number(p.cantidad || 0);
-    baseFijadaUnidades += (prod.codBarra !== null && cod === prod.codBarra) ? (cant / DIVISOR_CAJA) : cant;
+  if(!fechaFijacion){
+    grid.innerHTML = `<div>Fijación encontrada pero timestamp inválido: ${String(fij.timestamp)}</div>`;
+    return;
   }
 
-  // 3) Salidas desde fecha
-  const { totalDescontado, eventos } = await cargarSalidasDesde(
-    db,
-    prod.codigos,
-    prod.codInterno,
-    prod.codBarra,
-    fechaFijacion
-  );
+  grid.textContent = "Buscando salidas desde fecha de fijación...";
 
-  const restante = baseFijadaUnidades - totalDescontado;
-  const colorRestante = restante < 0 ? "#b00020" : "#0a6c21";
+  const { total, eventos } = await cargarSalidasDesdeFecha(eq.codigos, fechaFijacion);
+
+  const restante = fij.base - total;
+  const color = restante < 0 ? "#b00020" : "#0a6c21";
 
   const rows = eventos.length
     ? eventos.map(ev=>`
@@ -289,38 +303,40 @@ document.addEventListener("DOMContentLoaded", async ()=>{
     `).join("")
     : `<tr><td colspan="4">Sin salidas desde la fecha de fijación</td></tr>`;
 
+  const debug = [
+    `Producto seleccionado: ${productoSeleccionado.concepto}`,
+    `Códigos equivalentes: ${[...eq.codigos].join(", ")}`,
+    `Fijación: ${fij.folio} | base=${fij.base}`,
+    `Fecha fijación: ${fechaFijacion.toISOString()}`,
+    `Eventos: ${eventos.length}`,
+    `DIVISOR_CAJA: ${DIVISOR_CAJA}`
+  ].join("\n");
+
   grid.innerHTML = `
-    <div class="card">
-      <h3 style="margin:0 0 10px 0">${prod.nombre}</h3>
+    <h3 style="margin:0 0 8px 0">${fij.desc}</h3>
 
-      <div class="kpis">
-        <div class="kpi"><strong>Base Fijada (unidades)</strong><span>${baseFijadaUnidades.toFixed(2)}</span></div>
-        <div class="kpi"><strong>Total Descontado (unidades)</strong><span>${totalDescontado.toFixed(2)}</span></div>
-        <div class="kpi"><strong>Restante</strong>
-          <span class="pulse" style="color:${colorRestante}; font-size:20px;">${restante.toFixed(2)}</span>
-        </div>
-        <div class="kpi"><strong>Fecha Fijación</strong><span>${fmtFecha(fij.timestamp)}</span></div>
+    <div class="kpis">
+      <div class="kpi"><strong>Base Fijada</strong><span>${fij.base.toFixed(2)}</span></div>
+      <div class="kpi"><strong>Total Descontado</strong><span>${total.toFixed(2)}</span></div>
+      <div class="kpi"><strong>Restante</strong>
+        <span class="pulse" style="color:${color}; font-size:20px;">${restante.toFixed(2)}</span>
       </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Almacén</th>
-            <th>Tipo</th>
-            <th style="text-align:right">Cantidad</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-
-      <div class="small">
-        Debug producto:
-        <br>interno=${prod.codInterno ?? "-"} | barra=${prod.codBarra ?? "-"}
-        <br>equivalentes=[${[...prod.codigos].join(", ")}]
-        <br>fijacion_id=${fij.id} | almacen_fij=${fij.almacen || "-"}
-      </div>
+      <div class="kpi"><strong>Fecha Fijación</strong><span>${fechaFijacion.toLocaleString()}</span></div>
     </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Almacén</th>
+          <th>Tipo</th>
+          <th style="text-align:right">Cantidad</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <div class="small">${debug}</div>
   `;
 });
 </script>
