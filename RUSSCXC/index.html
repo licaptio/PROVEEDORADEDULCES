@@ -254,9 +254,13 @@ async function loadManifest(){
     // Convertimos manifest en estructura interna
     const stored = JSON.parse(localStorage.getItem("provsoft_pages"));
 
-    if(Array.isArray(stored) && stored.length === manifest.length){
-      config = stored;
-    }else{
+    if(
+  Array.isArray(stored) &&
+  stored.length === manifest.length &&
+  stored.every((s,i)=>s.file === manifest[i].archivo)
+){
+  config = stored;
+}else{
       config = manifest.map(m => ({
         id: m.nombre,
         file: m.archivo,
@@ -421,3 +425,4 @@ loadManifest();
 
 </body>
 </html>
+
