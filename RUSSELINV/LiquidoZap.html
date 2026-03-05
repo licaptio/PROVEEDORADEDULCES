@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Fijaciones Descuentos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#eef1f5;
+      margin:0;
+      padding:20px;
+    }
+    .card{
+      background:#fff;
+      border-radius:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,.12);
+      padding:14px;
+      margin:12px 0;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    th, td{
+      padding:8px;
+      border-bottom:1px solid #e5e7eb;
+    }
+    th{ text-align:left; }
+
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .kpi{
+      background:#f6f7fb;
+      border-radius:12px;
+      padding:10px;
+    }
+    .kpi strong{
+      display:block;
+      font-size:12px;
+      color:#555;
+    }
+    .kpi span{ font-weight:700; }
+
+    #errores{ display:none; margin-bottom:10px; }
+
+    /* PC: más ancho y 6 columnas */
+    @media (min-width: 1100px){
+      body{ padding:26px; }
+      .kpis{ grid-template-columns:repeat(6,1fr); }
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Control de Fijaciones</h2>
+
+<div id="errores"></div>
+<div id="grid"></div>
+
+<script type="module">
+/** =========================
+ *  IMPORTS
+ *  ========================= */
+import { firebaseConfig, supabaseUrl, supabaseAnonKey } from './config.js'
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"
+import {
+  getFirestore, collection, getDocs,
+  query, where
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"
+
+// Supabase (ESM)
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+/** =========================
+ *  HELPERS
+ *  ========================= */
+function normalize(p){
+  if(!p) return [];
+  if(Array.isArray(p)) return p;
+  if(typeof p === "object") return Object.values(p);
+  if(typeof p === "string"){
+    try { return JSON.parse(p) } catch { return [] }
+  }
+  return [];
+}
+
+function fmtFecha(ts){
+  if(!ts) return "";
+  try{
+    // Firestore Timestamp -> toDate()
+    if(ts?.toDate) return ts.toDate().toLocaleString();
+    // Supabase/Postgres string
+    return new Date(ts).toLocaleString();
+  }catch{
+    return "";
+  }
+}
+
+function showError(msg){
+  const box = document.getElementById("errores");
+  box.style.display = "block";
+  box.innerHTML += `<div style="background:#fff3cd;padding:10px;border-radius:10px;margin:8px 0;">${msg}</div>`;
+}
+
+/** =========================
+ *  CARGAR FIJACIONES DESDE SUPABASE
+ *  - movimientos_inventario: ids específicos (como tú lo traes)
+ *  - productos: string JSON -> array
+ *  - devuelve [{codigo, base, desc, _timestamp, ...}]
+ *  ========================= */
+async function cargarFijaciones(){
+  try{
+    const { data, error } = await supabase
+      .from('movimientos_inventario')
+      .select('*')
+      .in('id', [
+        '0457da79-ef2b-4a22-b280-237c2c48b8dc',
+        '33ced1e7-0bb5-44d0-85db-4c54a0a5e0ea',
+        '3fe1773f-ce2f-4b99-a46c-5118bd4f26b8',
+        '4152f230-9d6d-4a04-8b1c-c21e07161336',
+        '72f7ec81-cda9-4453-b751-05ced6f7e606',
+        '85b595ad-6893-479d-b79f-b2215a95dd4e'
+      ])
+      .order('timestamp', { ascending: false });
+
+    if(error){
+      showError("Error leyendo fijaciones Supabase: " + (error.message || error));
+      return [];
+    }
+
+    const fijaciones = [];
+
+    (data || []).forEach(row=>{
+      let productos = [];
+      try{
+        productos = normalize(row.productos);
+      }catch{
+        productos = [];
+      }
+
+      productos.forEach(p=>{
+        const codigo = String(p.codigo || "").trim();
+        if(!codigo) return;
+
+        fijaciones.push({
+          codigo,
+          base: Number(p.cantidad || 0),
+          desc: p.descripcion || "",
+          _almacen: row.almacen || "",
+          _folio: row.folio || "",
+          _timestamp: row.timestamp || "",
+          _nivel_alerta: Number(row.nivel_alerta || 0)
+        });
+      });
+    });
+
+    // merge por SKU
+    const merged = new Map();
+    fijaciones.forEach(f=>{
+      const key = f.codigo;
+      if(!merged.has(key)){
+        merged.set(key, { ...f });
+      }else{
+        const prev = merged.get(key);
+        prev.base += f.base;
+        if(!prev.desc && f.desc) prev.desc = f.desc;
+      }
+    });
+
+    return Array.from(merged.values());
+  }catch(e){
+    showError("Error inesperado cargando fijaciones Supabase: " + (e?.message || e));
+    return [];
+  }
+}
+
+/** =========================
+ *  MAIN
+ *  ========================= */
+document.addEventListener("DOMContentLoaded", async () => {
+
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "Cargando...";
+
+  // 1) Firebase init
+  let db;
+  try{
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+  }catch(e){
+    showError("Error inicializando Firebase. Revisa config.js");
+    grid.innerHTML = "";
+    return;
+  }
+
+  // 2) Cargar FIJACIONES desde Supabase
+  const FIJACIONES = await cargarFijaciones();
+  if(!FIJACIONES.length){
+    showError("No hay fijaciones activas en Supabase (revisa los IDs / datos).");
+  }
+
+  // ✅ fecha mínima (para no traer TODAS las salidas)
+  const fechaMinFijacion = FIJACIONES
+    .map(f => new Date(f._timestamp))
+    .filter(d => !isNaN(d.getTime()))
+    .sort((a,b)=>a-b)[0] || new Date("2000-01-01");
+
+  // 3) Colecciones Firestore
+  const sources = [
+    { almacen:"Almacen_Dulces",   col: collection(db,"almacenes","Almacen_Dulces","salidas") },
+    { almacen:"Almacen_Liquidos", col: collection(db,"almacenes","Almacen_Liquidos","salidas") }
+  ];
+
+  const resultados = new Map(); // sku -> { total, eventos[] }
+
+  // 4) Leer salidas Firestore OPTIMIZADO por timestamp
+  await Promise.all(sources.map(async src=>{
+    try{
+      const q = query(
+        src.col,
+        where("timestamp", ">=", fechaMinFijacion)
+      );
+
+      const snap = await getDocs(q);
+
+      snap.forEach(doc=>{
+        const data = doc.data();
+        const lista = normalize(data.productos);
+
+        const ts = data.timestamp || null; // ✅ Firestore Timestamp real
+
+        lista.forEach(p=>{
+          const sku = String(p.codigo || "").trim();
+          if(!sku) return;
+
+          const cant = Number(p.cantidad || 0);
+
+          if(!resultados.has(sku)){
+            resultados.set(sku,{ total:0, eventos:[] });
+          }
+
+          const obj = resultados.get(sku);
+          obj.total += cant;
+
+          obj.eventos.push({
+            timestamp: ts, // ✅ NO usar "fecha" string
+            almacen: src.almacen,
+            cantidad: cant
+          });
+        });
+      });
+
+    }catch(e){
+      showError("Error leyendo Firestore en " + src.almacen + ": " + (e?.message||e));
+    }
+  }));
+
+  // 5) Render
+  grid.innerHTML = "";
+
+  if(!FIJACIONES.length){
+    grid.innerHTML = "<div class='card'>Sin fijaciones para mostrar.</div>";
+    return;
+  }
+
+  // Ordena por desc para mejor lectura
+  FIJACIONES.sort((a,b)=>(a.desc||"").localeCompare(b.desc||""));
+
+  FIJACIONES.forEach(item=>{
+
+    const rawInfo = resultados.get(item.codigo) || { total:0, eventos:[] };
+
+    const fechaFijacion = new Date(item._timestamp);
+
+    const eventosFiltrados = rawInfo.eventos.filter(ev=>{
+      if(!ev.timestamp) return false;
+      const fechaSalida = ev.timestamp?.toDate ? ev.timestamp.toDate() : new Date(ev.timestamp);
+      if(isNaN(fechaSalida.getTime())) return false;
+      if(isNaN(fechaFijacion.getTime())) return true; // si fijación inválida, no filtrar
+      return fechaSalida >= fechaFijacion;
+    });
+
+    // ordena eventos por timestamp
+    eventosFiltrados.sort((a,b)=>{
+      const ta = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : new Date(a.timestamp).getTime();
+      const tb = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : new Date(b.timestamp).getTime();
+      return ta - tb;
+    });
+
+    const totalFiltrado = eventosFiltrados.reduce((acc,e)=>acc + Number(e.cantidad||0), 0);
+
+    const info = {
+      total: totalFiltrado,
+      eventos: eventosFiltrados
+    };
+
+    const restante = item.base - info.total;
+
+    const card = document.createElement("div");
+    card.className="card";
+
+    let rows="";
+
+    if(info.eventos.length===0){
+      rows = `<tr><td colspan="3">Sin salidas</td></tr>`;
+    } else {
+      info.eventos.forEach(ev=>{
+        rows += `
+          <tr>
+            <td>${fmtFecha(ev.timestamp)}</td>
+            <td>${ev.almacen}</td>
+            <td style="text-align:right">${ev.cantidad}</td>
+          </tr>`;
+      });
+    }
+
+    const colorRestante = (restante < 0) ? "#b00020" : "#0a6c21";
+    const fechaFijacionTexto = fmtFecha(item._timestamp);
+
+    card.innerHTML = `
+      <h3 style="margin:0 0 10px 0">${item.desc || "(Sin descripción)"}</h3>
+
+      <div class="kpis">
+        <div class="kpi"><strong>SKU</strong><span>${item.codigo}</span></div>
+        <div class="kpi"><strong>Base</strong><span>${item.base}</span></div>
+        <div class="kpi"><strong>Descuentos</strong><span>${info.total}</span></div>
+        <div class="kpi"><strong>Restante</strong><span style="color:${colorRestante}">${restante}</span></div>
+
+        <div class="kpi"><strong>Fecha Fijación</strong><span>${fechaFijacionTexto}</span></div>
+        <div class="kpi"><strong>Almacén (Supa)</strong><span>${item._almacen || "-"}</span></div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Almacén</th>
+            <th style="text-align:right">Salida</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    `;
+
+    grid.appendChild(card);
+  });
+
+});
+</script>
+
+</body>
+</html>
