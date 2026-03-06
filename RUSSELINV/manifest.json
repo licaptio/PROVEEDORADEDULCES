@@ -6,5 +6,7 @@
   { "nombre": "MOVIMIENTOS KARDEX", "archivo": "movrepo.html" },
   { "nombre": "CONVERMEX", "archivo": "Convermex.html" },
   { "nombre": "LIQUIDO", "archivo": "LiquidoZap.html" },
+  { "nombre": "INVENTARIOS MANUALES", "archivo": "INVENTARIOSPDDV3.html" },
+  { "nombre": "BOLSA DE CELOFAN", "archivo": "CELOFAN2026.html" },
   { "nombre": "NUTRI", "archivo": "nutri.html" }
 ]
