@@ -110,20 +110,21 @@
           const selloSAT = timbre?.getAttribute("SelloSAT") || "";
           const noCertificadoSAT = timbre?.getAttribute("NoCertificadoSAT") || "";
 
-          // Identificar tipo de factura (global o individual)
-          const tipoFactura = receptorRFC === "XAXX010101000" ? "GLOBAL" : "INDIVIDUAL";
+// Identificar tipo de factura (global o individual)
+const tipoFactura = receptorRFC === "XAXX010101000" ? "GLOBAL" : "INDIVIDUAL";
 
-          // Extraer InformacionGlobal o calcular periodo
-          const infoGlobal = xml.getElementsByTagNameNS(cfdiNS, "InformacionGlobal")[0];
-          let periodoMes = infoGlobal?.getAttribute("Meses") || null;
-          let periodoAnio = infoGlobal?.getAttribute("Año") || null;
+// Extraer InformacionGlobal SOLO si es GLOBAL
+const infoGlobal = xml.getElementsByTagNameNS(cfdiNS, "InformacionGlobal")[0];
 
-          if (!periodoMes || !periodoAnio) {
-            try {
-              const fechaObj = new Date(fecha);
-              periodoMes = (fechaObj.getMonth() + 1).toString().padStart(2, "0");
-              periodoAnio = fechaObj.getFullYear().toString();
-            } catch {
+let periodoMes = null;
+let periodoAnio = null;
+
+if (tipoFactura === "GLOBAL" && infoGlobal) {
+  periodoMes = infoGlobal.getAttribute("Meses") || null;
+  periodoAnio = infoGlobal.getAttribute("Año") || null;
+}
+          
+            catch {
               periodoMes = null;
               periodoAnio = null;
             }
