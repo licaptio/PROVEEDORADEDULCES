@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Corrección de Periodo/Año CFDI – PDD</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f9f9f9;
+      color: #111;
+    }
+    h2 { color: #00416A; }
+    ul { padding: 0; list-style: none; }
+    li { margin-bottom: 6px; font-size: 14px; }
+    .ok { color: green; }
+    .warn { color: orange; }
+    .err { color: red; }
+    .pending { color: blue; }
+    pre {
+      background: #eee;
+      padding: 10px;
+      max-height: 260px;
+      overflow: auto;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+    .progress-bar {
+      width: 100%;
+      background: #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      height: 16px;
+      margin-top: 6px;
+    }
+    .progress-bar div {
+      height: 100%;
+      width: 0%;
+      background: #0c6cbd;
+      transition: width 0.3s ease;
+    }
+    button {
+      padding: 8px 14px;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Corregir solo periodo y año desde XML crudo</h2>
+  <p>
+    Este cargador solo actualiza: <b>periodo_mes</b>, <b>periodo_anio</b> y <b>tipo_factura</b>.
+    No recalcula nada. No toca importes. No toca cancelaciones.
+  </p>
+
+  <input type="file" id="xmlInput" accept=".xml" multiple>
+  <button onclick="procesarCorreccion()">Corregir Periodo/Año</button>
+
+  <div class="progress-bar"><div id="progreso"></div></div>
+
+  <h3>Archivos</h3>
+  <ul id="archivoList"></ul>
+
+  <h3>Bitácora</h3>
+  <pre id="bitacora"></pre>
+
+  <script>
+    const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
+    const API_KEY = "TU_ANON_KEY_AQUI";
+
+    let archivosDatos = [];
+
+    function logBitacora(mensaje) {
+      const log = document.getElementById("bitacora");
+      log.textContent += mensaje + "\n";
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function normalizaTexto(s) {
+      return (s || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    }
+
+    function obtenerAtributoFlexible(node, nombresPosibles = []) {
+      if (!node) return null;
+
+      for (const nombre of nombresPosibles) {
+        const val = node.getAttribute(nombre);
+        if (val !== null && val !== "") return val.trim();
+      }
+
+      const buscados = nombresPosibles.map(normalizaTexto);
+
+      for (const attr of Array.from(node.attributes || [])) {
+        const nombreAttr = normalizaTexto(attr.name);
+        if (buscados.includes(nombreAttr)) {
+          return (attr.value || "").trim() || null;
+        }
+      }
+
+      return null;
+    }
+
+    function obtenerTimbre(xml) {
+      for (const node of xml.getElementsByTagName("*")) {
+        if (node.localName === "TimbreFiscalDigital") return node;
+      }
+      return null;
+    }
+
+    document.getElementById("xmlInput").addEventListener("change", async function () {
+      const lista = document.getElementById("archivoList");
+      lista.innerHTML = "";
+      archivosDatos = [];
+      document.getElementById("bitacora").textContent = "";
+      document.getElementById("progreso").style.width = "0%";
+
+      for (const file of this.files) {
+        try {
+          const text = await file.text();
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(text, "application/xml");
+
+          const parserError = xml.getElementsByTagName("parsererror");
+          if (parserError.length > 0) {
+            throw new Error("XML inválido o corrupto");
+          }
+
+          const cfdiNS = "http://www.sat.gob.mx/cfd/4";
+          const comprobante = xml.getElementsByTagNameNS(cfdiNS, "Comprobante")[0];
+          const emisor = xml.getElementsByTagNameNS(cfdiNS, "Emisor")[0];
+          const receptor = xml.getElementsByTagNameNS(cfdiNS, "Receptor")[0];
+          const infoGlobal = xml.getElementsByTagNameNS(cfdiNS, "InformacionGlobal")[0];
+          const timbre = obtenerTimbre(xml);
+
+          const uuid = (timbre?.getAttribute("UUID") || "").toUpperCase().trim();
+          const tipo = (comprobante?.getAttribute("TipoDeComprobante") || "").trim();
+          const emisorRFC = (emisor?.getAttribute("Rfc") || "").toUpperCase().trim();
+          const receptorRFC = (receptor?.getAttribute("Rfc") || "").toUpperCase().trim();
+
+          let tieneExcluido = false;
+          const complementos = xml.getElementsByTagNameNS(cfdiNS, "Complemento");
+          if (complementos.length > 0) {
+            const hijos = complementos[0].children;
+            for (const h of hijos) {
+              const nombre = (h.localName || "").toUpperCase();
+              if (
+                nombre.includes("NOMINA") ||
+                nombre.includes("CARTAPORTE") ||
+                nombre.includes("PAGOS")
+              ) {
+                tieneExcluido = true;
+                break;
+              }
+            }
+          }
+
+          let valido = true;
+          let motivo = "";
+
+          if (!uuid || uuid.length < 10) {
+            valido = false;
+            motivo = "sin UUID";
+          } else if (archivosDatos.some(a => a.uuid === uuid)) {
+            valido = false;
+            motivo = "duplicado en lote";
+          } else if (tipo !== "I") {
+            valido = false;
+            motivo = `tipo ${tipo}`;
+          } else if (emisorRFC !== "PDD031204KL5") {
+            valido = false;
+            motivo = `emisor ${emisorRFC}`;
+          } else if (tieneExcluido) {
+            valido = false;
+            motivo = "complemento o tipo excluido";
+          }
+
+          if (!valido) {
+            const li = document.createElement("li");
+            li.dataset.uuid = uuid || file.name;
+            li.innerHTML = `❌ <b>${file.name}</b> <span class="err">→ Rechazado (${motivo})</span>`;
+            lista.appendChild(li);
+            continue;
+          }
+
+          // GLOBAL solo si existe InformacionGlobal en el XML
+          const tipoFactura = infoGlobal ? "GLOBAL" : "INDIVIDUAL";
+
+          // SOLO datos crudos del XML, sin cálculo
+          let periodoMes = null;
+          let periodoAnio = null;
+
+          if (infoGlobal) {
+            periodoMes = obtenerAtributoFlexible(infoGlobal, ["Meses", "meses"]);
+            periodoAnio = obtenerAtributoFlexible(infoGlobal, ["Año", "Ano", "anio"]);
+          }
+
+          archivosDatos.push({
+            uuid,
+            tipoFactura,
+            periodoMes,
+            periodoAnio,
+            fileName: file.name,
+            receptorRFC
+          });
+
+          const li = document.createElement("li");
+          li.dataset.uuid = uuid;
+          li.innerHTML = `📄 <b>${uuid}</b> <span class="pending">→ Precargado (${tipoFactura}, mes=${periodoMes ?? "NULL"}, año=${periodoAnio ?? "NULL"})</span>`;
+          lista.appendChild(li);
+
+        } catch (err) {
+          const li = document.createElement("li");
+          li.innerHTML = `❌ <b>${file.name}</b> <span class="err">→ Error al leer (${err.message})</span>`;
+          lista.appendChild(li);
+        }
+      }
+
+      logBitacora(`📥 XML precargados: ${archivosDatos.length}`);
+    });
+
+    async function procesarCorreccion() {
+      const progreso = document.getElementById("progreso");
+      const totalArchivos = archivosDatos.length;
+
+      if (!totalArchivos) {
+        logBitacora("⚠️ No hay XML precargados.");
+        return;
+      }
+
+      const loteTamaño = 50;
+      const pausaEntreArchivos = 150;
+      const pausaEntreLotes = 1000;
+
+      logBitacora(`🚀 Iniciando corrección de ${totalArchivos} CFDI...`);
+
+      for (let inicio = 0; inicio < archivosDatos.length; inicio += loteTamaño) {
+        const lote = archivosDatos.slice(inicio, inicio + loteTamaño);
+        const numLote = Math.floor(inicio / loteTamaño) + 1;
+        const totalLotes = Math.ceil(totalArchivos / loteTamaño);
+
+        logBitacora(`📦 Procesando lote ${numLote} de ${totalLotes} (${lote.length} archivos)...`);
+
+        for (let i = 0; i < lote.length; i++) {
+          const index = inicio + i;
+          const data = lote[i];
+          const item = document.querySelector(`#archivoList li[data-uuid="${data.uuid}"]`);
+
+          const avance = ((index + 1) / totalArchivos) * 100;
+          progreso.style.width = `${avance}%`;
+
+          logBitacora(`🛠️ Corrigiendo ${index + 1}/${totalArchivos} → ${data.uuid}`);
+
+          try {
+            const url = `${SUPABASE_URL}/rest/v1/ingresos_pdd?uuid_cfdi=eq.${encodeURIComponent(data.uuid)}&select=uuid_cfdi`;
+
+            const patch = await fetch(url, {
+              method: "PATCH",
+              headers: {
+                apikey: API_KEY,
+                Authorization: `Bearer ${API_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=representation"
+              },
+              body: JSON.stringify({
+                periodo_mes: data.periodoMes,
+                periodo_anio: data.periodoAnio,
+                tipo_factura: data.tipoFactura
+              })
+            });
+
+            if (!patch.ok) {
+              const err = await patch.text();
+              if (item) {
+                item.querySelector("span").textContent = `❌ Error: ${err}`;
+                item.querySelector("span").className = "err";
+              }
+              logBitacora(`❌ Error al actualizar ${data.uuid}: ${err}`);
+              continue;
+            }
+
+            const actualizado = await patch.json();
+
+            if (!actualizado || actualizado.length === 0) {
+              if (item) {
+                item.querySelector("span").textContent = `⚠️ UUID no encontrado en ingresos_pdd`;
+                item.querySelector("span").className = "warn";
+              }
+              logBitacora(`⚠️ No existe en ingresos_pdd: ${data.uuid}`);
+              continue;
+            }
+
+            if (item) {
+              item.querySelector("span").textContent =
+                `✅ Corregido (${data.tipoFactura}, mes=${data.periodoMes ?? "NULL"}, año=${data.periodoAnio ?? "NULL"})`;
+              item.querySelector("span").className = "ok";
+            }
+
+            logBitacora(`✔️ Actualizado ${data.uuid} → mes=${data.periodoMes ?? "NULL"}, año=${data.periodoAnio ?? "NULL"}, tipo=${data.tipoFactura}`);
+
+          } catch (error) {
+            if (item) {
+              item.querySelector("span").textContent = `❌ Error de red`;
+              item.querySelector("span").className = "err";
+            }
+            logBitacora(`❌ Error de red con ${data.uuid}: ${error.message}`);
+          }
+
+          await new Promise(r => setTimeout(r, pausaEntreArchivos));
+        }
+
+        if (inicio + loteTamaño < totalArchivos) {
+          logBitacora(`🕒 Esperando ${pausaEntreLotes / 1000}s antes del siguiente lote...`);
+          await new Promise(r => setTimeout(r, pausaEntreLotes));
+        }
+      }
+
+      progreso.style.width = "100%";
+      logBitacora("✅ Corrección terminada.");
+    }
+  </script>
+
+  <footer style="margin-top:40px;padding:10px;text-align:center;font-size:13px;color:#555;border-top:1px solid #ccc;">
+    ⚙️ POWERED BY <b>PROVSOFT</b> · Corrección cruda de periodo CFDI
+  </footer>
+</body>
+</html>
