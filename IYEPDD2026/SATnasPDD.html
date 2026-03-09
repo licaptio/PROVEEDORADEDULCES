@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Ingresos SAT por Mes – PROVSOFT</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -77,6 +78,7 @@ Mes
 <br><br>
 
 <table>
+
 <thead>
 <tr>
 <th>#</th>
@@ -100,16 +102,18 @@ Mes
 
 <script>
 
-const supabase = window.supabase.createClient(
+const { createClient } = supabase
+
+const db = createClient(
 'https://cvpbtjlupswbyxenugpz.supabase.co',
-'your_key_here'
+'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
 )
 
 const TABLA = 'v_ingresos_sat_mes'
 
 function llenarAnios(){
 
-let actual = new Date().getFullYear()
+let actual=new Date().getFullYear()
 
 for(let y=actual+1;y>=2020;y--){
 
@@ -127,7 +131,6 @@ document.getElementById("anio").value=actual
 
 llenarAnios()
 
-
 function money(n){
 
 return Number(n||0).toLocaleString(
@@ -137,7 +140,6 @@ return Number(n||0).toLocaleString(
 
 }
 
-
 async function buscar(){
 
 let anio=document.getElementById("anio").value
@@ -146,14 +148,14 @@ let mes=document.getElementById("mes").value
 let inicio=`${anio}-${mes}-01`
 let fin=new Date(anio,mes,1).toISOString().slice(0,10)
 
-let globales=await supabase
+let globales=await db
 .from(TABLA)
 .select('*')
 .eq('tipo_factura','GLOBAL')
 .eq('periodo_anio',anio)
 .eq('periodo_mes',mes)
 
-let individuales=await supabase
+let individuales=await db
 .from(TABLA)
 .select('*')
 .neq('tipo_factura','GLOBAL')
@@ -169,7 +171,6 @@ rows.sort((a,b)=>new Date(a.fecha)-new Date(b.fecha))
 render(rows)
 
 }
-
 
 function render(rows){
 
@@ -201,25 +202,17 @@ return`
 <tr>
 
 <td>${i+1}</td>
-
-<td>${r.fecha}</td>
-
+<td>${r.fecha||''}</td>
 <td>${r.uuid_cfdi||''}</td>
-
 <td>${r.serie||''}</td>
-
 <td>${r.folio||''}</td>
 
 <td class="num">${money(r.subtotal)}</td>
-
 <td class="num">${money(r.total_iva)}</td>
-
 <td class="num">${money(r.total_ieps)}</td>
-
 <td class="num"><b>${money(r.total)}</b></td>
 
 <td>${periodoMes}</td>
-
 <td>${periodoAnio}</td>
 
 <td>${tipo}</td>
