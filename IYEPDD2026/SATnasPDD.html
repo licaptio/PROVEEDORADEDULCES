@@ -8,10 +8,15 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
+
 body{
 font-family:Arial;
 background:#eef2f7;
 padding:20px;
+}
+
+h2{
+margin-bottom:15px;
 }
 
 table{
@@ -47,6 +52,13 @@ font-weight:bold;
 padding:3px 8px;
 border-radius:20px;
 }
+
+.totales{
+margin-top:20px;
+font-size:18px;
+font-weight:bold;
+}
+
 </style>
 </head>
 
@@ -59,6 +71,7 @@ Año
 
 Mes
 <select id="mes">
+
 <option value="01">Enero</option>
 <option value="02">Febrero</option>
 <option value="03">Marzo</option>
@@ -71,6 +84,7 @@ Mes
 <option value="10">Octubre</option>
 <option value="11">Noviembre</option>
 <option value="12">Diciembre</option>
+
 </select>
 
 <button onclick="buscar()">Construir tabla</button>
@@ -80,25 +94,41 @@ Mes
 <table>
 
 <thead>
+
 <tr>
+
 <th>#</th>
 <th>Fecha</th>
 <th>UUID</th>
 <th>Serie</th>
 <th>Folio</th>
+
 <th class="num">Subtotal</th>
 <th class="num">IVA</th>
 <th class="num">IEPS</th>
 <th class="num">Total</th>
+
 <th>Periodo Mes</th>
 <th>Periodo Año</th>
+
 <th>Clasificación</th>
+
 </tr>
+
 </thead>
 
 <tbody id="tabla"></tbody>
 
 </table>
+
+<div class="totales">
+
+Subtotal: <span id="t_subtotal">$0.00</span> |
+IVA: <span id="t_iva">$0.00</span> |
+IEPS: <span id="t_ieps">$0.00</span> |
+Total: <span id="t_total">$0.00</span>
+
+</div>
 
 <script>
 
@@ -110,6 +140,7 @@ const db = createClient(
 )
 
 const TABLA = 'v_ingresos_sat_mes'
+
 
 function llenarAnios(){
 
@@ -131,6 +162,7 @@ document.getElementById("anio").value=actual
 
 llenarAnios()
 
+
 function money(n){
 
 return Number(n||0).toLocaleString(
@@ -140,6 +172,7 @@ return Number(n||0).toLocaleString(
 
 }
 
+
 async function buscar(){
 
 let anio=document.getElementById("anio").value
@@ -148,12 +181,14 @@ let mes=document.getElementById("mes").value
 let inicio=`${anio}-${mes}-01`
 let fin=new Date(anio,mes,1).toISOString().slice(0,10)
 
+
 let globales=await db
 .from(TABLA)
 .select('*')
 .eq('tipo_factura','GLOBAL')
 .eq('periodo_anio',anio)
 .eq('periodo_mes',mes)
+
 
 let individuales=await db
 .from(TABLA)
@@ -164,13 +199,43 @@ let individuales=await db
 .gte('fecha',inicio)
 .lt('fecha',fin)
 
+
 let rows=[...(globales.data||[]),...(individuales.data||[])]
+
 
 rows.sort((a,b)=>new Date(a.fecha)-new Date(b.fecha))
 
+
 render(rows)
 
+calcularTotales(rows)
+
 }
+
+
+function calcularTotales(rows){
+
+let subtotal=0
+let iva=0
+let ieps=0
+let total=0
+
+rows.forEach(r=>{
+
+subtotal+=Number(r.subtotal||0)
+iva+=Number(r.total_iva||0)
+ieps+=Number(r.total_ieps||0)
+total+=Number(r.total||0)
+
+})
+
+document.getElementById("t_subtotal").innerText=money(subtotal)
+document.getElementById("t_iva").innerText=money(iva)
+document.getElementById("t_ieps").innerText=money(ieps)
+document.getElementById("t_total").innerText=money(total)
+
+}
+
 
 function render(rows){
 
@@ -183,28 +248,37 @@ return
 
 }
 
+
 tb.innerHTML=rows.map((r,i)=>{
+
 
 let tipo=r.tipo_factura==='GLOBAL'
 ?`<span class="global">GLOBAL</span>`
 :`<span class="individual">INDIVIDUAL</span>`
 
+
 let periodoMes=r.tipo_factura==='GLOBAL'
 ?r.periodo_mes
 :'-'
 
+
 let periodoAnio=r.tipo_factura==='GLOBAL'
 ?r.periodo_anio
 :'-'
+
 
 return`
 
 <tr>
 
 <td>${i+1}</td>
+
 <td>${r.fecha||''}</td>
+
 <td>${r.uuid_cfdi||''}</td>
+
 <td>${r.serie||''}</td>
+
 <td>${r.folio||''}</td>
 
 <td class="num">${money(r.subtotal)}</td>
