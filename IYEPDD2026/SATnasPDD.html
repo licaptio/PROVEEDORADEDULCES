@@ -1,596 +1,238 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Ingresos SAT por Mes – PROVSOFT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<title>Ingresos SAT por Mes – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <style>
-    :root{
-      --bg:#eef2f7;
-      --card:#ffffff;
-      --line:#dfe5ee;
-      --text:#1f2937;
-      --muted:#6b7280;
-      --blue:#0c6cbd;
-      --blue2:#0a58a0;
-      --green:#0f9d58;
-      --danger:#d93025;
-    }
+<style>
+body{
+font-family:Arial;
+background:#eef2f7;
+padding:20px;
+}
 
-    *{box-sizing:border-box}
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+}
 
-    body{
-      margin:0;
-      font-family:Arial, Helvetica, sans-serif;
-      background:var(--bg);
-      color:var(--text);
-      padding:24px;
-    }
+th,td{
+padding:10px;
+border-bottom:1px solid #e5e7eb;
+font-size:13px;
+}
 
-    h1{
-      margin:0 0 14px 0;
-      font-size:26px;
-    }
+th{
+background:#f3f6fb;
+}
 
-    .wrap{
-      max-width:1600px;
-      margin:0 auto;
-    }
+.num{text-align:right}
 
-    .card{
-      background:var(--card);
-      border-radius:16px;
-      box-shadow:0 10px 30px rgba(0,0,0,.08);
-      padding:18px;
-      margin-bottom:18px;
-    }
+.global{
+background:#fff3cd;
+color:#92400e;
+font-weight:bold;
+padding:3px 8px;
+border-radius:20px;
+}
 
-    .controls{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      align-items:end;
-    }
-
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-      min-width:180px;
-    }
-
-    .field label{
-      font-size:13px;
-      color:var(--muted);
-      font-weight:700;
-    }
-
-    select, button{
-      border:1px solid #cfd7e3;
-      border-radius:10px;
-      padding:11px 12px;
-      font-size:14px;
-      background:#fff;
-    }
-
-    button{
-      background:var(--blue);
-      color:#fff;
-      border:none;
-      font-weight:700;
-      cursor:pointer;
-    }
-
-    button:hover{background:var(--blue2)}
-    button:disabled{
-      opacity:.6;
-      cursor:not-allowed;
-    }
-
-    .btn-secondary{
-      background:#4b5563;
-    }
-
-    .btn-secondary:hover{
-      background:#374151;
-    }
-
-    .status{
-      font-size:14px;
-      font-weight:700;
-      color:var(--muted);
-      margin-top:10px;
-      min-height:20px;
-    }
-
-    .kpis{
-      display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(180px,1fr));
-      gap:12px;
-      margin-top:10px;
-    }
-
-    .kpi{
-      background:#f8fafc;
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:14px;
-    }
-
-    .kpi .lbl{
-      color:var(--muted);
-      font-size:12px;
-      font-weight:700;
-      margin-bottom:6px;
-      text-transform:uppercase;
-      letter-spacing:.3px;
-    }
-
-    .kpi .val{
-      font-size:22px;
-      font-weight:800;
-    }
-
-    .table-wrap{
-      overflow:auto;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:#fff;
-    }
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-      min-width:1300px;
-    }
-
-    thead th{
-      position:sticky;
-      top:0;
-      background:#f3f6fb;
-      z-index:1;
-      font-size:13px;
-      text-align:left;
-      border-bottom:1px solid var(--line);
-      padding:12px 10px;
-      white-space:nowrap;
-    }
-
-    tbody td{
-      border-bottom:1px solid #edf1f5;
-      padding:10px;
-      font-size:13px;
-      vertical-align:top;
-    }
-
-    tbody tr:hover{
-      background:#fafcff;
-    }
-
-    .num{
-      text-align:right;
-      font-variant-numeric:tabular-nums;
-    }
-
-    .mono{
-      font-family:Consolas, Monaco, monospace;
-    }
-
-    .chip{
-      display:inline-block;
-      padding:4px 8px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:700;
-      background:#e8f1fb;
-      color:#0c6cbd;
-      white-space:nowrap;
-    }
-
-    .muted{
-      color:var(--muted);
-    }
-
-    .danger{
-      color:var(--danger);
-      font-weight:700;
-    }
-
-    .footer-note{
-      margin-top:10px;
-      color:var(--muted);
-      font-size:12px;
-    }
-
-    a.uuid-link{
-      color:#0c6cbd;
-      text-decoration:none;
-      font-weight:700;
-    }
-
-    a.uuid-link:hover{
-      text-decoration:underline;
-    }
-  </style>
+.individual{
+background:#dbeafe;
+color:#1e3a8a;
+font-weight:bold;
+padding:3px 8px;
+border-radius:20px;
+}
+</style>
 </head>
+
 <body>
-  <div class="wrap">
-    <h1>Ingresos SAT por Mes – PROVSOFT</h1>
 
-    <div class="card">
-      <div class="controls">
-        <div class="field">
-          <label for="anio">Año</label>
-          <select id="anio"></select>
-        </div>
+<h2>Ingresos SAT por Mes – PROVSOFT</h2>
 
-        <div class="field">
-          <label for="mes">Mes</label>
-          <select id="mes">
-            <option value="01">01 - Enero</option>
-            <option value="02">02 - Febrero</option>
-            <option value="03">03 - Marzo</option>
-            <option value="04">04 - Abril</option>
-            <option value="05">05 - Mayo</option>
-            <option value="06">06 - Junio</option>
-            <option value="07">07 - Julio</option>
-            <option value="08">08 - Agosto</option>
-            <option value="09">09 - Septiembre</option>
-            <option value="10">10 - Octubre</option>
-            <option value="11">11 - Noviembre</option>
-            <option value="12">12 - Diciembre</option>
-          </select>
-        </div>
+Año
+<select id="anio"></select>
 
-        <div class="field">
-          <label>&nbsp;</label>
-          <button id="btnBuscar">Construir tabla</button>
-        </div>
+Mes
+<select id="mes">
+<option value="01">Enero</option>
+<option value="02">Febrero</option>
+<option value="03">Marzo</option>
+<option value="04">Abril</option>
+<option value="05">Mayo</option>
+<option value="06">Junio</option>
+<option value="07">Julio</option>
+<option value="08">Agosto</option>
+<option value="09">Septiembre</option>
+<option value="10">Octubre</option>
+<option value="11">Noviembre</option>
+<option value="12">Diciembre</option>
+</select>
 
-        <div class="field">
-          <label>&nbsp;</label>
-          <button id="btnCsv" class="btn-secondary" disabled>Exportar CSV</button>
-        </div>
-      </div>
+<button onclick="buscar()">Construir tabla</button>
 
-      <div id="status" class="status">Listo.</div>
+<br><br>
 
-      <div class="kpis">
-        <div class="kpi">
-          <div class="lbl">Registros</div>
-          <div class="val" id="kpiRegistros">0</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">Subtotal</div>
-          <div class="val" id="kpiSubtotal">$0.00</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">IVA</div>
-          <div class="val" id="kpiIva">$0.00</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">IEPS</div>
-          <div class="val" id="kpiIeps">$0.00</div>
-        </div>
-        <div class="kpi">
-          <div class="lbl">Total</div>
-          <div class="val" id="kpiTotal">$0.00</div>
-        </div>
-      </div>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Fecha</th>
+<th>UUID</th>
+<th>Serie</th>
+<th>Folio</th>
+<th class="num">Subtotal</th>
+<th class="num">IVA</th>
+<th class="num">IEPS</th>
+<th class="num">Total</th>
+<th>Periodo Mes</th>
+<th>Periodo Año</th>
+<th>Clasificación</th>
+</tr>
+</thead>
 
-      <div class="footer-note">
-        Fuente: vista <b>v_ingresos_sat_mes</b>. La lógica pesada ya corre en SQL.
-      </div>
-    </div>
+<tbody id="tabla"></tbody>
 
-    <div class="card">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Fecha</th>
-              <th>UUID</th>
-              <th>Serie</th>
-              <th>Folio</th>
-              <th class="num">Subtotal</th>
-              <th class="num">IVA</th>
-              <th class="num">IEPS</th>
-              <th class="num">Total</th>
-              <th>Periodo Mes</th>
-              <th>Periodo Año</th>
-              <th>Tipo Factura</th>
-            </tr>
-          </thead>
-          <tbody id="tabla"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+</table>
 
 <script>
-/* =========================
-   CONFIG
-========================= */
-const SUPABASE_URL = 'https://cvpbtjlupswbyxenugpz.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
-const TABLA = 'v_ingresos_sat_mes';
 
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = window.supabase.createClient(
+'https://cvpbtjlupswbyxenugpz.supabase.co',
+'your_key_here'
+)
 
-/* =========================
-   ESTADO
-========================= */
-let rowsActuales = [];
-
-/* =========================
-   HELPERS UI
-========================= */
-const $ = (id) => document.getElementById(id);
-
-function setStatus(msg, isError = false){
-  const el = $('status');
-  el.textContent = msg;
-  el.className = 'status' + (isError ? ' danger' : '');
-}
-
-function fmtMoney(n){
-  return Number(n || 0).toLocaleString('es-MX', {
-    style: 'currency',
-    currency: 'MXN'
-  });
-}
-
-function fmtFecha(v){
-  if(!v) return '';
-  const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return String(v);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mi = String(d.getMinutes()).padStart(2, '0');
-  const ss = String(d.getSeconds()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
-}
-
-function escapeHtml(str){
-  return String(str ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
-
-function toNumber(v){
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
+const TABLA = 'v_ingresos_sat_mes'
 
 function llenarAnios(){
-  const sel = $('anio');
-  const actual = new Date().getFullYear();
-  let html = '';
-  for(let y = actual + 1; y >= 2020; y--){
-    html += `<option value="${y}">${y}</option>`;
-  }
-  sel.innerHTML = html;
-  sel.value = String(actual);
 
-  const mm = String(new Date().getMonth() + 1).padStart(2, '0');
-  $('mes').value = mm;
+let actual = new Date().getFullYear()
+
+for(let y=actual+1;y>=2020;y--){
+
+let op=document.createElement("option")
+op.value=y
+op.text=y
+
+document.getElementById("anio").appendChild(op)
+
 }
 
-function actualizarKPIs(rows){
-  const subtotal = rows.reduce((a, r) => a + toNumber(r.subtotal), 0);
-  const iva      = rows.reduce((a, r) => a + toNumber(r.total_iva), 0);
-  const ieps     = rows.reduce((a, r) => a + toNumber(r.total_ieps), 0);
-  const total    = rows.reduce((a, r) => a + toNumber(r.total), 0);
+document.getElementById("anio").value=actual
 
-  $('kpiRegistros').textContent = rows.length.toLocaleString('es-MX');
-  $('kpiSubtotal').textContent  = fmtMoney(subtotal);
-  $('kpiIva').textContent       = fmtMoney(iva);
-  $('kpiIeps').textContent      = fmtMoney(ieps);
-  $('kpiTotal').textContent     = fmtMoney(total);
 }
 
-/* =========================
-   FETCH PAGINADO
-========================= */
-async function fetchAll(builderFactory, pageSize = 1000){
-  let all = [];
-  let from = 0;
+llenarAnios()
 
-  while(true){
-    const to = from + pageSize - 1;
-    const { data, error } = await builderFactory().range(from, to);
 
-    if(error) throw error;
-    if(!data || data.length === 0) break;
+function money(n){
 
-    all.push(...data);
+return Number(n||0).toLocaleString(
+'es-MX',
+{style:'currency',currency:'MXN'}
+)
 
-    if(data.length < pageSize) break;
-    from += pageSize;
-  }
-
-  return all;
 }
 
-/* =========================
-   CONSULTA PRINCIPAL
-========================= */
-async function construirTabla(){
-  const anio = $('anio').value;
-  const mes  = $('mes').value;
 
-  if(!anio || !mes){
-    setStatus('Selecciona año y mes.', true);
-    return;
-  }
+async function buscar(){
 
-  const btnBuscar = $('btnBuscar');
-  const btnCsv = $('btnCsv');
+let anio=document.getElementById("anio").value
+let mes=document.getElementById("mes").value
 
-  btnBuscar.disabled = true;
-  btnCsv.disabled = true;
-  rowsActuales = [];
-  $('tabla').innerHTML = '';
-  actualizarKPIs([]);
+let inicio=`${anio}-${mes}-01`
+let fin=new Date(anio,mes,1).toISOString().slice(0,10)
 
-  try{
-    setStatus(`Consultando vista ${TABLA} para ${anio}-${mes}...`);
+let globales=await supabase
+.from(TABLA)
+.select('*')
+.eq('tipo_factura','GLOBAL')
+.eq('periodo_anio',anio)
+.eq('periodo_mes',mes)
 
-    const columnas = `
-      fecha,
-      uuid_cfdi,
-      serie,
-      folio,
-      subtotal,
-      total_iva,
-      total_ieps,
-      total,
-      periodo_mes,
-      periodo_anio,
-      tipo_factura
-    `;
+let individuales=await supabase
+.from(TABLA)
+.select('*')
+.neq('tipo_factura','GLOBAL')
+.is('periodo_mes',null)
+.is('periodo_anio',null)
+.gte('fecha',inicio)
+.lt('fecha',fin)
 
-    const rows = await fetchAll(() =>
-      db.from(TABLA)
-        .select(columnas)
-        .eq('periodo_anio', anio)
-        .eq('periodo_mes', mes)
-        .order('fecha', { ascending: true })
-    );
+let rows=[...(globales.data||[]),...(individuales.data||[])]
 
-    rowsActuales = rows;
-    renderTabla(rows);
-    actualizarKPIs(rows);
+rows.sort((a,b)=>new Date(a.fecha)-new Date(b.fecha))
 
-    setStatus(`OK. Registros cargados: ${rows.length}.`);
-    btnCsv.disabled = rows.length === 0;
+render(rows)
 
-  }catch(err){
-    console.error(err);
-    setStatus(`Error: ${err.message || err}`, true);
-  }finally{
-    btnBuscar.disabled = false;
-  }
 }
 
-/* =========================
-   RENDER
-========================= */
-function renderTabla(rows){
-  const tb = $('tabla');
 
-  if(!rows.length){
-    tb.innerHTML = `
-      <tr>
-        <td colspan="12" class="muted" style="padding:18px;">Sin resultados para ese mes.</td>
-      </tr>
-    `;
-    return;
-  }
+function render(rows){
 
-  tb.innerHTML = rows.map((r, i) => {
-    const uuid = escapeHtml(r.uuid_cfdi || '');
-    const fecha = escapeHtml(fmtFecha(r.fecha));
-    const serie = escapeHtml(r.serie || '');
-    const folio = escapeHtml(r.folio || '');
-    const periodoMes = escapeHtml(r.periodo_mes || '');
-    const periodoAnio = escapeHtml(r.periodo_anio || '');
-    const tipo = escapeHtml(r.tipo_factura || '');
+let tb=document.getElementById("tabla")
 
-    return `
-      <tr>
-        <td>${i + 1}</td>
-        <td class="mono">${fecha}</td>
-        <td class="mono">
-          <a class="uuid-link" href="factura_detalle.html?uuid=${encodeURIComponent(r.uuid_cfdi || '')}" target="_blank">
-            ${uuid}
-          </a>
-        </td>
-        <td>${serie}</td>
-        <td>${folio}</td>
-        <td class="num">${fmtMoney(r.subtotal)}</td>
-        <td class="num">${fmtMoney(r.total_iva)}</td>
-        <td class="num">${fmtMoney(r.total_ieps)}</td>
-        <td class="num"><b>${fmtMoney(r.total)}</b></td>
-        <td>${periodoMes}</td>
-        <td>${periodoAnio}</td>
-        <td><span class="chip">${tipo}</span></td>
-      </tr>
-    `;
-  }).join('');
+if(!rows.length){
+
+tb.innerHTML="<tr><td colspan='12'>Sin resultados</td></tr>"
+return
+
 }
 
-/* =========================
-   CSV
-========================= */
-function exportarCSV(){
-  if(!rowsActuales.length) return;
+tb.innerHTML=rows.map((r,i)=>{
 
-  const headers = [
-    'fecha',
-    'uuid_cfdi',
-    'serie',
-    'folio',
-    'subtotal',
-    'iva',
-    'ieps',
-    'total',
-    'periodo_mes',
-    'periodo_anio',
-    'tipo_factura'
-  ];
+let tipo=r.tipo_factura==='GLOBAL'
+?`<span class="global">GLOBAL</span>`
+:`<span class="individual">INDIVIDUAL</span>`
 
-  const lines = [headers.join(',')];
+let periodoMes=r.tipo_factura==='GLOBAL'
+?r.periodo_mes
+:'-'
 
-  for(const r of rowsActuales){
-    const vals = [
-      fmtFecha(r.fecha),
-      r.uuid_cfdi || '',
-      r.serie || '',
-      r.folio || '',
-      toNumber(r.subtotal).toFixed(2),
-      toNumber(r.total_iva).toFixed(2),
-      toNumber(r.total_ieps).toFixed(2),
-      toNumber(r.total).toFixed(2),
-      r.periodo_mes || '',
-      r.periodo_anio || '',
-      r.tipo_factura || ''
-    ].map(v => `"${String(v).replaceAll('"', '""')}"`);
+let periodoAnio=r.tipo_factura==='GLOBAL'
+?r.periodo_anio
+:'-'
 
-    lines.push(vals.join(','));
-  }
+return`
 
-  const csv = "\uFEFF" + lines.join('\n');
-  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
+<tr>
 
-  const anio = $('anio').value;
-  const mes = $('mes').value;
+<td>${i+1}</td>
 
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `ingresos_sat_${anio}_${mes}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+<td>${r.fecha}</td>
 
-  URL.revokeObjectURL(url);
+<td>${r.uuid_cfdi||''}</td>
+
+<td>${r.serie||''}</td>
+
+<td>${r.folio||''}</td>
+
+<td class="num">${money(r.subtotal)}</td>
+
+<td class="num">${money(r.total_iva)}</td>
+
+<td class="num">${money(r.total_ieps)}</td>
+
+<td class="num"><b>${money(r.total)}</b></td>
+
+<td>${periodoMes}</td>
+
+<td>${periodoAnio}</td>
+
+<td>${tipo}</td>
+
+</tr>
+
+`
+
+}).join("")
+
 }
 
-/* =========================
-   INIT
-========================= */
-llenarAnios();
-$('btnBuscar').addEventListener('click', construirTabla);
-$('btnCsv').addEventListener('click', exportarCSV);
 </script>
+
 </body>
 </html>
