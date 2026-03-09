@@ -67,7 +67,7 @@
       font-weight:700;
     }
 
-    select, button, input{
+    select, button{
       border:1px solid #cfd7e3;
       border-radius:10px;
       padding:11px 12px;
@@ -198,11 +198,6 @@
       font-weight:700;
     }
 
-    .ok{
-      color:var(--green);
-      font-weight:700;
-    }
-
     .footer-note{
       margin-top:10px;
       color:var(--muted);
@@ -286,7 +281,7 @@
       </div>
 
       <div class="footer-note">
-        Lógica: GLOBAL por <b>periodo_mes / periodo_anio</b> + NO GLOBAL por <b>fecha</b> dentro del mes. Solo vigentes.
+        Fuente: vista <b>v_ingresos_sat_mes</b>. La lógica pesada ya corre en SQL.
       </div>
     </div>
 
@@ -321,8 +316,7 @@
 ========================= */
 const SUPABASE_URL = 'https://cvpbtjlupswbyxenugpz.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
-const TABLA = 'ingresos_pdd';
-const TIPO_GLOBAL = 'GLOBAL'; // cámbialo si en tu base el valor real es otro
+const TABLA = 'v_ingresos_sat_mes';
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -336,7 +330,7 @@ let rowsActuales = [];
 ========================= */
 const $ = (id) => document.getElementById(id);
 
-function setStatus(msg, isError=false){
+function setStatus(msg, isError = false){
   const el = $('status');
   el.textContent = msg;
   el.className = 'status' + (isError ? ' danger' : '');
@@ -344,8 +338,8 @@ function setStatus(msg, isError=false){
 
 function fmtMoney(n){
   return Number(n || 0).toLocaleString('es-MX', {
-    style:'currency',
-    currency:'MXN'
+    style: 'currency',
+    currency: 'MXN'
   });
 }
 
@@ -354,37 +348,26 @@ function fmtFecha(v){
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return String(v);
   const yyyy = d.getFullYear();
-  const mm = String(d.getMonth()+1).padStart(2,'0');
-  const dd = String(d.getDate()).padStart(2,'0');
-  const hh = String(d.getHours()).padStart(2,'0');
-  const mi = String(d.getMinutes()).padStart(2,'0');
-  const ss = String(d.getSeconds()).padStart(2,'0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
 }
 
 function escapeHtml(str){
   return String(str ?? '')
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'","&#039;");
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
 function toNumber(v){
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
-}
-
-function primerDiaMesUTC(anio, mes){
-  return `${anio}-${mes}-01T00:00:00.000Z`;
-}
-
-function primerDiaMesSiguienteUTC(anio, mes){
-  const y = Number(anio);
-  const m = Number(mes);
-  const next = new Date(Date.UTC(y, m, 1, 0, 0, 0)); // mes ya viene 1-12
-  return next.toISOString();
 }
 
 function llenarAnios(){
@@ -397,21 +380,21 @@ function llenarAnios(){
   sel.innerHTML = html;
   sel.value = String(actual);
 
-  const mm = String(new Date().getMonth()+1).padStart(2,'0');
+  const mm = String(new Date().getMonth() + 1).padStart(2, '0');
   $('mes').value = mm;
 }
 
 function actualizarKPIs(rows){
-  const subtotal = rows.reduce((a,r)=>a + toNumber(r.subtotal),0);
-  const iva      = rows.reduce((a,r)=>a + toNumber(r.total_iva),0);
-  const ieps     = rows.reduce((a,r)=>a + toNumber(r.total_ieps),0);
-  const total    = rows.reduce((a,r)=>a + toNumber(r.total),0);
+  const subtotal = rows.reduce((a, r) => a + toNumber(r.subtotal), 0);
+  const iva      = rows.reduce((a, r) => a + toNumber(r.total_iva), 0);
+  const ieps     = rows.reduce((a, r) => a + toNumber(r.total_ieps), 0);
+  const total    = rows.reduce((a, r) => a + toNumber(r.total), 0);
 
   $('kpiRegistros').textContent = rows.length.toLocaleString('es-MX');
-  $('kpiSubtotal').textContent = fmtMoney(subtotal);
-  $('kpiIva').textContent      = fmtMoney(iva);
-  $('kpiIeps').textContent     = fmtMoney(ieps);
-  $('kpiTotal').textContent    = fmtMoney(total);
+  $('kpiSubtotal').textContent  = fmtMoney(subtotal);
+  $('kpiIva').textContent       = fmtMoney(iva);
+  $('kpiIeps').textContent      = fmtMoney(ieps);
+  $('kpiTotal').textContent     = fmtMoney(total);
 }
 
 /* =========================
@@ -423,8 +406,7 @@ async function fetchAll(builderFactory, pageSize = 1000){
 
   while(true){
     const to = from + pageSize - 1;
-    const query = builderFactory().range(from, to);
-    const { data, error } = await query;
+    const { data, error } = await builderFactory().range(from, to);
 
     if(error) throw error;
     if(!data || data.length === 0) break;
@@ -459,11 +441,8 @@ async function construirTabla(){
   $('tabla').innerHTML = '';
   actualizarKPIs([]);
 
-  const inicio = primerDiaMesUTC(anio, mes);
-  const fin = primerDiaMesSiguienteUTC(anio, mes);
-
   try{
-    setStatus(`Consultando GLOBAL por periodo ${anio}-${mes}...`);
+    setStatus(`Consultando vista ${TABLA} para ${anio}-${mes}...`);
 
     const columnas = `
       fecha,
@@ -476,57 +455,23 @@ async function construirTabla(){
       total,
       periodo_mes,
       periodo_anio,
-      tipo_factura,
-      cancelado
+      tipo_factura
     `;
 
-    // 1) GLOBAL por periodo
-    const globales = await fetchAll(() =>
+    const rows = await fetchAll(() =>
       db.from(TABLA)
         .select(columnas)
-        .eq('cancelado', false)
-        .eq('tipo_factura', TIPO_GLOBAL)
         .eq('periodo_anio', anio)
         .eq('periodo_mes', mes)
-        .order('fecha', { ascending:true })
+        .order('fecha', { ascending: true })
     );
 
-    setStatus(`Consultando NO GLOBAL por fecha dentro de ${anio}-${mes}...`);
+    rowsActuales = rows;
+    renderTabla(rows);
+    actualizarKPIs(rows);
 
-    // 2) NO GLOBAL por fecha
-    const individuales = await fetchAll(() =>
-      db.from(TABLA)
-        .select(columnas)
-        .eq('cancelado', false)
-        .neq('tipo_factura', TIPO_GLOBAL)
-        .gte('fecha', inicio)
-        .lt('fecha', fin)
-        .order('fecha', { ascending:true })
-    );
-
-    // 3) Unir y deduplicar por UUID
-    const mapa = new Map();
-
-    [...globales, ...individuales].forEach(r => {
-      const key = r.uuid_cfdi || `${r.serie||''}-${r.folio||''}-${r.fecha||''}`;
-      if(!mapa.has(key)){
-        mapa.set(key, r);
-      }
-    });
-
-    const unidos = Array.from(mapa.values()).sort((a,b)=>{
-      const fa = new Date(a.fecha || 0).getTime();
-      const fb = new Date(b.fecha || 0).getTime();
-      if (fa !== fb) return fa - fb;
-      return String(a.folio || '').localeCompare(String(b.folio || ''), 'es');
-    });
-
-    rowsActuales = unidos;
-    renderTabla(unidos);
-    actualizarKPIs(unidos);
-
-    setStatus(`OK. Registros cargados: ${unidos.length}. Globales: ${globales.length}. No globales: ${individuales.length}.`);
-    btnCsv.disabled = unidos.length === 0;
+    setStatus(`OK. Registros cargados: ${rows.length}.`);
+    btnCsv.disabled = rows.length === 0;
 
   }catch(err){
     console.error(err);
@@ -618,7 +563,7 @@ function exportarCSV(){
       r.periodo_mes || '',
       r.periodo_anio || '',
       r.tipo_factura || ''
-    ].map(v => `"${String(v).replaceAll('"','""')}"`);
+    ].map(v => `"${String(v).replaceAll('"', '""')}"`);
 
     lines.push(vals.join(','));
   }
