@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>PROVSOFT | Reportes de Nómina</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#eef2f7;
+      --card:#ffffff;
+      --line:#e5e7eb;
+      --text:#0f172a;
+      --muted:#64748b;
+      --blue:#2563eb;
+      --blue2:#1d4ed8;
+      --green:#16a34a;
+      --orange:#d97706;
+      --red:#dc2626;
+      --shadow:0 2px 10px rgba(0,0,0,.08);
+      --radius:14px;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      padding:20px;
+    }
+
+    .wrap{
+      max-width:1400px;
+      margin:0 auto;
+    }
+
+    h1{
+      margin:0 0 8px 0;
+      font-size:28px;
+    }
+
+    .sub{
+      color:var(--muted);
+      margin-bottom:18px;
+      font-size:14px;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+      margin-bottom:18px;
+    }
+
+    .filters{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:12px;
+      align-items:end;
+    }
+
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:6px;
+      font-weight:bold;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+
+    input, select{
+      width:100%;
+      padding:10px 12px;
+      border:1px solid #cbd5e1;
+      border-radius:10px;
+      background:#fff;
+      font-size:14px;
+    }
+
+    .btns{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    button{
+      border:none;
+      border-radius:10px;
+      padding:11px 16px;
+      cursor:pointer;
+      font-weight:bold;
+      font-size:14px;
+    }
+
+    .btn-primary{
+      background:var(--blue);
+      color:#fff;
+    }
+    .btn-primary:hover{ background:var(--blue2); }
+
+    .btn-secondary{
+      background:#e2e8f0;
+      color:#0f172a;
+    }
+    .btn-secondary:hover{ background:#cbd5e1; }
+
+    .kpis{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:12px;
+    }
+
+    .kpi{
+      background:#f8fafc;
+      border:1px solid #e2e8f0;
+      border-radius:12px;
+      padding:14px;
+    }
+
+    .kpi .label{
+      font-size:12px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.4px;
+      margin-bottom:8px;
+    }
+
+    .kpi .value{
+      font-size:26px;
+      font-weight:bold;
+    }
+
+    .value.green{ color:var(--green); }
+    .value.orange{ color:var(--orange); }
+    .value.red{ color:var(--red); }
+
+    .grid-2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:18px;
+    }
+
+    @media(max-width:980px){
+      .grid-2{
+        grid-template-columns:1fr;
+      }
+    }
+
+    .table-wrap{
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:12px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#fff;
+    }
+
+    th, td{
+      padding:10px 12px;
+      border-bottom:1px solid var(--line);
+      font-size:13px;
+      white-space:nowrap;
+    }
+
+    th{
+      background:#f8fafc;
+      text-align:left;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+
+    td.num, th.num{
+      text-align:right;
+    }
+
+    .section-title{
+      margin:0 0 12px 0;
+      font-size:18px;
+    }
+
+    .status{
+      margin-top:10px;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .pill{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:bold;
+    }
+
+    .pill-o{ background:#dbeafe; color:#1d4ed8; }
+    .pill-e{ background:#fef3c7; color:#b45309; }
+
+    .empty{
+      padding:18px;
+      color:var(--muted);
+      text-align:center;
+    }
+
+    .small{
+      font-size:12px;
+      color:var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>PROVSOFT | Reportes de Nómina</h1>
+    <div class="sub">
+      Vista analítica sobre <b>v_nomina_provsoft</b>. Filtra y revisa sueldos, aguinaldos, utilidades, ISR, IMSS y subsidio.
+    </div>
+
+    <div class="card">
+      <div class="filters">
+        <div>
+          <label for="desde">Desde</label>
+          <input type="date" id="desde" />
+        </div>
+
+        <div>
+          <label for="hasta">Hasta</label>
+          <input type="date" id="hasta" />
+        </div>
+
+        <div>
+          <label for="categoria">Categoría</label>
+          <select id="categoria">
+            <option value="">Todas</option>
+            <option value="SUELDO">SUELDO</option>
+            <option value="AGUINALDO">AGUINALDO</option>
+            <option value="UTILIDADES">UTILIDADES</option>
+            <option value="ISR">ISR</option>
+            <option value="IMSS">IMSS</option>
+            <option value="SUBSIDIO">SUBSIDIO</option>
+            <option value="AJUSTE_NETO">AJUSTE_NETO</option>
+            <option value="PERCEPCION_EXTRA">PERCEPCION_EXTRA</option>
+            <option value="OTROS">OTROS</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="departamento">Departamento</label>
+          <select id="departamento">
+            <option value="">Todos</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="empleado">Empleado</label>
+          <input type="text" id="empleado" placeholder="Nombre o número empleado" />
+        </div>
+
+        <div class="btns">
+          <button class="btn-primary" id="btnConsultar">Consultar</button>
+          <button class="btn-secondary" id="btnLimpiar">Limpiar</button>
+        </div>
+      </div>
+
+      <div class="status" id="status">Esperando consulta...</div>
+    </div>
+
+    <div class="card">
+      <div class="kpis">
+        <div class="kpi">
+          <div class="label">Registros</div>
+          <div class="value" id="kRegistros">0</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Percepciones</div>
+          <div class="value green" id="kPercepciones">0.00</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Deducciones</div>
+          <div class="value red" id="kDeducciones">0.00</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Otros pagos</div>
+          <div class="value orange" id="kOtrosPagos">0.00</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Neto simple</div>
+          <div class="value" id="kNeto">0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="section-title">Resumen por categoría</h3>
+        <div class="table-wrap">
+          <table id="tablaCategoria">
+            <thead>
+              <tr>
+                <th>Categoría</th>
+                <th class="num">Importe</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="section-title">Resumen por departamento</h3>
+        <div class="table-wrap">
+          <table id="tablaDepartamento">
+            <thead>
+              <tr>
+                <th>Departamento</th>
+                <th class="num">Importe</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="section-title">Top empleados</h3>
+        <div class="table-wrap">
+          <table id="tablaEmpleado">
+            <thead>
+              <tr>
+                <th>Empleado</th>
+                <th>Departamento</th>
+                <th class="num">Importe</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="section-title">Resumen por mes</h3>
+        <div class="table-wrap">
+          <table id="tablaMes">
+            <thead>
+              <tr>
+                <th>Mes</th>
+                <th class="num">Importe</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">Detalle de movimientos</h3>
+      <div class="small">Se muestran hasta 1000 registros por consulta para mantener la app ágil.</div>
+      <br>
+      <div class="table-wrap">
+        <table id="tablaDetalle">
+          <thead>
+            <tr>
+              <th>Fecha pago</th>
+              <th>Empleado</th>
+              <th>No. emp</th>
+              <th>Departamento</th>
+              <th>Puesto</th>
+              <th>Tipo nómina</th>
+              <th>Mov</th>
+              <th>Código</th>
+              <th>Categoría</th>
+              <th>Concepto</th>
+              <th class="num">Gravado</th>
+              <th class="num">Exento</th>
+              <th class="num">Importe</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { supabaseUrl, supabaseAnonKey } from "./config.js";
+
+    const btnConsultar = document.getElementById("btnConsultar");
+    const btnLimpiar = document.getElementById("btnLimpiar");
+    const statusEl = document.getElementById("status");
+
+    const desdeEl = document.getElementById("desde");
+    const hastaEl = document.getElementById("hasta");
+    const categoriaEl = document.getElementById("categoria");
+    const departamentoEl = document.getElementById("departamento");
+    const empleadoEl = document.getElementById("empleado");
+
+    const fmt = new Intl.NumberFormat("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    function setStatus(msg){
+      statusEl.textContent = msg;
+    }
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function ym(fecha){
+      if(!fecha) return "";
+      return String(fecha).slice(0,7);
+    }
+
+    function renderTable(tbodySelector, rowsHtml, cols = 1){
+      const tbody = document.querySelector(tbodySelector);
+      if(!tbody) return;
+      tbody.innerHTML = rowsHtml || `<tr><td colspan="${cols}" class="empty">Sin datos</td></tr>`;
+    }
+
+    async function api(path){
+      const res = await fetch(path, {
+        headers:{
+          apikey: supabaseAnonKey,
+          Authorization: "Bearer " + supabaseAnonKey
+        }
+      });
+
+      if(!res.ok){
+        const txt = await res.text();
+        throw new Error(txt || "Error consultando Supabase");
+      }
+
+      return res.json();
+    }
+
+    async function cargarDepartamentos(){
+      try{
+        const url = new URL(`${supabaseUrl}/rest/v1/v_nomina_provsoft`);
+        url.searchParams.set("select", "departamento");
+        url.searchParams.set("departamento", "not.is.null");
+        url.searchParams.set("order", "departamento.asc");
+
+        const rows = await api(url.toString());
+        const uniques = [...new Set(rows.map(r => r.departamento).filter(Boolean))];
+
+        departamentoEl.innerHTML = `<option value="">Todos</option>` +
+          uniques.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
+      }catch(err){
+        console.error(err);
+      }
+    }
+
+    async function consultar(){
+      setStatus("Consultando vista v_nomina_provsoft...");
+
+      try{
+        const url = new URL(`${supabaseUrl}/rest/v1/v_nomina_provsoft`);
+        url.searchParams.set("select", "*");
+        url.searchParams.set("order", "fecha_pago.desc");
+        url.searchParams.set("limit", "1000");
+
+        if(desdeEl.value) url.searchParams.set("fecha_pago", `gte.${desdeEl.value}`);
+        if(hastaEl.value) url.searchParams.append("fecha_pago", `lte.${hastaEl.value}`);
+        if(categoriaEl.value) url.searchParams.set("categoria", `eq.${categoriaEl.value}`);
+        if(departamentoEl.value) url.searchParams.set("departamento", `eq.${departamentoEl.value}`);
+
+        const empleadoTexto = empleadoEl.value.trim();
+        if(empleadoTexto){
+          url.searchParams.set(
+            "or",
+            `(nombre_empleado.ilike.*${empleadoTexto}*,num_empleado.ilike.*${empleadoTexto}*)`
+          );
+        }
+
+        const data = await api(url.toString());
+        render(data);
+        setStatus(`Consulta terminada. Registros: ${data.length}`);
+      }catch(err){
+        console.error(err);
+        setStatus("Error al consultar");
+        alert("Error consultando la vista:\n" + err.message);
+      }
+    }
+
+    function render(data){
+      let percepciones = 0;
+      let deducciones = 0;
+      let otrosPagos = 0;
+
+      const porCategoria = {};
+      const porDepartamento = {};
+      const porEmpleado = {};
+      const porMes = {};
+
+      for(const r of data){
+        const importe = Number(r.importe || 0);
+
+        if(r.tipo_movimiento === "PERCEPCION") percepciones += importe;
+        else if(r.tipo_movimiento === "DEDUCCION") deducciones += importe;
+        else if(r.tipo_movimiento === "OTRO_PAGO") otrosPagos += importe;
+
+        porCategoria[r.categoria || "SIN_CATEGORIA"] = (porCategoria[r.categoria || "SIN_CATEGORIA"] || 0) + importe;
+        porDepartamento[r.departamento || "SIN_DEPARTAMENTO"] = (porDepartamento[r.departamento || "SIN_DEPARTAMENTO"] || 0) + importe;
+
+        const keyEmp = `${r.nombre_empleado || "SIN_NOMBRE"}||${r.departamento || ""}`;
+        if(!porEmpleado[keyEmp]){
+          porEmpleado[keyEmp] = {
+            nombre: r.nombre_empleado || "SIN_NOMBRE",
+            departamento: r.departamento || "",
+            importe: 0
+          };
+        }
+        porEmpleado[keyEmp].importe += importe;
+
+        const mes = ym(r.fecha_pago) || "SIN_MES";
+        porMes[mes] = (porMes[mes] || 0) + importe;
+      }
+
+      document.getElementById("kRegistros").textContent = data.length.toLocaleString("es-MX");
+      document.getElementById("kPercepciones").textContent = fmt.format(percepciones);
+      document.getElementById("kDeducciones").textContent = fmt.format(deducciones);
+      document.getElementById("kOtrosPagos").textContent = fmt.format(otrosPagos);
+      document.getElementById("kNeto").textContent = fmt.format(percepciones + otrosPagos - deducciones);
+
+      const catRows = Object.entries(porCategoria)
+        .sort((a,b) => b[1] - a[1])
+        .map(([k,v]) => `
+          <tr>
+            <td>${escapeHtml(k)}</td>
+            <td class="num">${fmt.format(v)}</td>
+          </tr>
+        `).join("");
+
+      renderTable("#tablaCategoria tbody", catRows, 2);
+
+      const depRows = Object.entries(porDepartamento)
+        .sort((a,b) => b[1] - a[1])
+        .map(([k,v]) => `
+          <tr>
+            <td>${escapeHtml(k)}</td>
+            <td class="num">${fmt.format(v)}</td>
+          </tr>
+        `).join("");
+
+      renderTable("#tablaDepartamento tbody", depRows, 2);
+
+      const empRows = Object.values(porEmpleado)
+        .sort((a,b) => b.importe - a.importe)
+        .slice(0,50)
+        .map(r => `
+          <tr>
+            <td>${escapeHtml(r.nombre)}</td>
+            <td>${escapeHtml(r.departamento)}</td>
+            <td class="num">${fmt.format(r.importe)}</td>
+          </tr>
+        `).join("");
+
+      renderTable("#tablaEmpleado tbody", empRows, 3);
+
+      const mesRows = Object.entries(porMes)
+        .sort((a,b) => a[0].localeCompare(b[0]))
+        .map(([k,v]) => `
+          <tr>
+            <td>${escapeHtml(k)}</td>
+            <td class="num">${fmt.format(v)}</td>
+          </tr>
+        `).join("");
+
+      renderTable("#tablaMes tbody", mesRows, 2);
+
+      const detalleRows = data.map(r => `
+        <tr>
+          <td>${escapeHtml(r.fecha_pago)}</td>
+          <td>${escapeHtml(r.nombre_empleado)}</td>
+          <td>${escapeHtml(r.num_empleado)}</td>
+          <td>${escapeHtml(r.departamento)}</td>
+          <td>${escapeHtml(r.puesto)}</td>
+          <td>${
+            r.tipo_nomina === "O"
+              ? `<span class="pill pill-o">ORDINARIA</span>`
+              : `<span class="pill pill-e">EXTRAORD.</span>`
+          }</td>
+          <td>${escapeHtml(r.tipo_movimiento)}</td>
+          <td>${escapeHtml(r.tipo_codigo)}</td>
+          <td>${escapeHtml(r.categoria)}</td>
+          <td>${escapeHtml(r.concepto)}</td>
+          <td class="num">${fmt.format(Number(r.importe_gravado || 0))}</td>
+          <td class="num">${fmt.format(Number(r.importe_exento || 0))}</td>
+          <td class="num">${fmt.format(Number(r.importe || 0))}</td>
+        </tr>
+      `).join("");
+
+      renderTable("#tablaDetalle tbody", detalleRows, 13);
+    }
+
+    function limpiar(){
+      desdeEl.value = "";
+      hastaEl.value = "";
+      categoriaEl.value = "";
+      departamentoEl.value = "";
+      empleadoEl.value = "";
+
+      document.getElementById("kRegistros").textContent = "0";
+      document.getElementById("kPercepciones").textContent = "0.00";
+      document.getElementById("kDeducciones").textContent = "0.00";
+      document.getElementById("kOtrosPagos").textContent = "0.00";
+      document.getElementById("kNeto").textContent = "0.00";
+
+      renderTable("#tablaCategoria tbody", "", 2);
+      renderTable("#tablaDepartamento tbody", "", 2);
+      renderTable("#tablaEmpleado tbody", "", 3);
+      renderTable("#tablaMes tbody", "", 2);
+      renderTable("#tablaDetalle tbody", "", 13);
+
+      setStatus("Filtros limpiados.");
+    }
+
+    btnConsultar.addEventListener("click", consultar);
+    btnLimpiar.addEventListener("click", limpiar);
+
+    await cargarDepartamentos();
+    await consultar();
+  </script>
+</body>
+</html>
