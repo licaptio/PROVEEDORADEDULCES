@@ -146,7 +146,9 @@ padding:12px;
 <h2>📦 Facturación BOLSAS TAURO</h2>
 
 <div id="emisor" class="card"></div>
+
 <div id="total" class="card total"></div>
+
 <div id="tabla" class="card table-wrap"></div>
 
 </div>
@@ -239,6 +241,7 @@ html+=`
 <tr>
 
 <td>${fecha}</td>
+
 <td>${dias}</td>
 
 <td class="uuid" data-full="${uuid}">
@@ -250,10 +253,13 @@ ${uuidCorto(uuid)}
 <td class="numero">$${total}</td>
 
 <td>${f.forma_pago ?? ""}</td>
+
 <td>${f.metodo_pago ?? ""}</td>
+
 <td>${f.condiciones_pago ?? ""}</td>
 
 <td>${f.factura_fisicamente ?? ""}</td>
+
 <td>${f.factura_pagada ?? ""}</td>
 
 </tr>
