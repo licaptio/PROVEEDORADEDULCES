@@ -213,6 +213,7 @@ let html=`
 <thead>
 <tr>
 <th>Fecha</th>
+<th>Días</th>
 <th>UUID</th>
 <th>Serie/Folio</th>
 <th>Total</th>
@@ -229,6 +230,7 @@ let html=`
 for(const f of data){
 
 const fecha=f.fecha?String(f.fecha).split("T")[0]:"";
+const dias=f.dias ?? "";
 const folio=f.serie_folio || `${f.serie||""}-${f.folio||""}`;
 const total=Number(f.total||0).toLocaleString("es-MX",{minimumFractionDigits:2});
 const uuid=f.uuid_cfdi||"";
@@ -238,6 +240,8 @@ html+=`
 
 <td>${fecha}</td>
 
+<td>${dias}</td>
+
 <td class="uuid" data-full="${uuid}">
 ${uuidCorto(uuid)}
 </td>
@@ -246,15 +250,15 @@ ${uuidCorto(uuid)}
 
 <td class="numero">$${total}</td>
 
-<td>${f.forma_pago||""}</td>
+<td>${f.forma_pago ?? ""}</td>
 
-<td>${f.metodo_pago||""}</td>
+<td>${f.metodo_pago ?? ""}</td>
 
-<td>${f.condiciones_pago||""}</td>
+<td>${f.condiciones_pago ?? ""}</td>
 
-<td>${f.factura_fisicamente||""}</td>
+<td>${f.factura_fisicamente ?? ""}</td>
 
-<td>${f.factura_pagada||""}</td>
+<td>${f.factura_pagada ?? ""}</td>
 
 </tr>
 `;
