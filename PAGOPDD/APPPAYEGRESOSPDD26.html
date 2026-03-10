@@ -557,7 +557,13 @@ facturas.forEach(f => {
   <div class="muted">${diasTranscurridos(f.fecha)}</div>
 </td>
 
-          <td style="font-size:12px">${escapeHtml(f.uuid_cfdi || '')}</td>
+          <td style="font-size:12px">
+  <a href="detalle.html?uuid=${encodeURIComponent(f.uuid_cfdi || '')}" 
+     target="_blank"
+     style="color:#0c6cbd;text-decoration:none;font-weight:600;">
+     ${escapeHtml(f.uuid_cfdi || '')}
+  </a>
+</td>
           <td>${escapeHtml(f.razon_social_emisor || '')}</td>
           <td>${escapeHtml((f.serie || '') + ' ' + (f.folio || ''))}</td>
           <td class="monto" style="text-align:right">
@@ -877,4 +883,5 @@ function actualizarGlobal(){
 
 </body>
 </html>
+
 
