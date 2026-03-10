@@ -5,168 +5,285 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Facturación BOLSAS TAURO</title>
 
-<!-- Supabase JS v2 (recomendado) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
+
+:root{
+--bg:#f4f6f8;
+--card:#ffffff;
+--primary:#0c6cbd;
+--border:#e2e6ea;
+--text:#1f2933;
+--success:#0a6c21;
+}
+
 body{
-  font-family: system-ui, -apple-system, Segoe UI, Roboto;
-  background:#f4f6f8;
-  margin:0;
-  padding:20px;
+font-family: system-ui,-apple-system,Segoe UI,Roboto;
+background:var(--bg);
+margin:0;
+padding:16px;
+color:var(--text);
 }
+
+.container{
+max-width:1400px;
+margin:auto;
+display:grid;
+gap:14px;
+}
+
 h2{
-  margin:0 0 15px 0;
-  font-weight:700;
+margin:0;
+font-weight:700;
 }
+
+/* cards */
+
+.card{
+background:var(--card);
+border-radius:10px;
+padding:14px;
+box-shadow:0 2px 6px rgba(0,0,0,.08);
+}
+
+.total span{
+font-size:1.6rem;
+font-weight:700;
+color:var(--success);
+}
+
+/* table */
+
+.table-wrap{
+overflow-x:auto;
+border-radius:10px;
+}
+
 table{
-  width:100%;
-  border-collapse:collapse;
-  background:white;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+width:100%;
+border-collapse:collapse;
+min-width:900px;
+background:white;
 }
-th, td{
-  padding:8px;
-  border:1px solid #ddd;
-  font-size:0.9em;
+
+th,td{
+padding:9px;
+border-bottom:1px solid var(--border);
+font-size:.85rem;
 }
+
 th{
-  background:#0c6cbd;
-  color:white;
-  position:sticky;
-  top:0;
+background:var(--primary);
+color:white;
+text-align:left;
+position:sticky;
+top:0;
 }
+
 td.numero{
-  text-align:right;
+text-align:right;
 }
-.total-box{
-  background:white;
-  padding:15px;
-  margin-bottom:15px;
-  border-radius:8px;
-  box-shadow:0 2px 4px rgba(0,0,0,0.1);
+
+.uuid{
+font-family:ui-monospace,Menlo,monospace;
+cursor:pointer;
+position:relative;
 }
-.total-box span{
-  font-size:1.4em;
-  font-weight:bold;
-  color:#0a6c21;
+
+/* tooltip */
+
+.uuid:hover::after{
+content:attr(data-full);
+position:absolute;
+left:0;
+top:26px;
+background:#111;
+color:#fff;
+padding:6px 8px;
+font-size:.75rem;
+border-radius:4px;
+white-space:nowrap;
+z-index:10;
 }
-.loader{
-  background:white;
-  padding:14px;
-  border-radius:8px;
-  box-shadow:0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom:15px;
+
+.uuid:hover::before{
+content:"";
+position:absolute;
+top:20px;
+left:10px;
+border:6px solid transparent;
+border-bottom-color:#111;
 }
+
+/* responsive */
+
+@media(max-width:900px){
+
+table{
+min-width:800px;
+}
+
+body{
+padding:12px;
+}
+
+}
+
+@media(max-width:600px){
+
+th,td{
+font-size:.8rem;
+padding:7px;
+}
+
+.total span{
+font-size:1.4rem;
+}
+
+}
+
 .small{
-  opacity:.75;
-  font-size:.9em;
+opacity:.75;
+font-size:.8rem;
 }
+
+.loader{
+padding:12px;
+}
+
 </style>
 </head>
 
 <body>
 
+<div class="container">
+
 <h2>📦 Facturación BOLSAS TAURO</h2>
 
-<div id="total"></div>
-<div id="tabla"></div>
+<div id="emisor" class="card"></div>
+
+<div id="total" class="card total"></div>
+
+<div id="tabla" class="card table-wrap"></div>
+
+</div>
 
 <script type="module">
-  // IMPORTA TU CONFIG (debe existir en el mismo folder)
-  // Si tu config está en /js/config.js entonces cambia a: "./js/config.js"
-  import { supabaseUrl, supabaseAnonKey } from "./config.js";
 
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+import { supabaseUrl, supabaseAnonKey } from "./config.js";
 
-  function setLoading(){
-    document.getElementById("total").innerHTML = `
-      <div class="loader">
-        Cargando deuda... <span class="small">(Supabase)</span>
-      </div>
-    `;
-    document.getElementById("tabla").innerHTML = "";
-  }
+const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-  async function cargar(){
-    setLoading();
+function uuidCorto(uuid){
+if(!uuid) return "";
+return uuid.substring(0,8)+"…"+uuid.substring(uuid.length-6);
+}
 
-    const { data, error } = await supabase
-      .from("v_deuda_proveedores")
-      .select("*")
-      .eq("rfc_emisor", "BTA010327AD3")
-      .eq("factura_pagada", "NO")          // solo no pagadas
-      .order("fecha", { ascending: true }); // vieja -> nueva
+function setLoading(){
+document.getElementById("tabla").innerHTML = `
+<div class="loader">Cargando datos...</div>
+`;
+}
 
-    if(error){
-      document.getElementById("total").innerHTML = "";
-      document.getElementById("tabla").innerHTML = `
-        <div class="loader">
-          ❌ Error cargando datos. Revisa consola.
-        </div>
-      `;
-      console.error("Supabase error:", error);
-      alert("Error cargando datos (ver consola).");
-      return;
-    }
+async function cargar(){
 
-    if(!data || data.length === 0){
-      document.getElementById("total").innerHTML = "";
-      document.getElementById("tabla").innerHTML = `
-        <div class="loader">✅ Sin deuda pendiente</div>
-      `;
-      return;
-    }
+setLoading();
 
-    const totalGlobal = data.reduce((acc, f) => acc + (parseFloat(f.total) || 0), 0);
+const {data,error} = await supabase
+.from("v_deuda_proveedores")
+.select("*")
+.eq("rfc_emisor","BTA010327AD3")
+.eq("factura_pagada","NO")
+.order("fecha",{ascending:true});
 
-    document.getElementById("total").innerHTML = `
-      <div class="total-box">
-        <strong>Deuda Total Pendiente</strong><br>
-        Total acumulado:<br>
-        <span>$${totalGlobal.toLocaleString("es-MX",{minimumFractionDigits:2})}</span>
-        <div class="small">Registros: ${data.length}</div>
-      </div>
-    `;
+if(error){
+console.error(error);
+alert("Error cargando datos");
+return;
+}
 
-    let html = `
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>UUID</th>
-            <th>Serie/Folio</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
+if(!data || data.length===0){
+document.getElementById("tabla").innerHTML="Sin resultados";
+return;
+}
 
-    for(const f of data){
-      const fecha = f.fecha ? String(f.fecha).split("T")[0] : "";
-      const folio = f.serie_folio || "—";
-      const total = Number(f.total || 0).toLocaleString("es-MX",{minimumFractionDigits:2});
+const emisor=data[0];
 
-      html += `
-        <tr>
-          <td>${fecha}</td>
-          <td style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.85em;">
-            ${f.uuid_cfdi || ""}
-          </td>
-          <td>${folio}</td>
-          <td class="numero">$${total}</td>
-        </tr>
-      `;
-    }
+document.getElementById("emisor").innerHTML=`
+<b>RFC:</b> ${emisor.rfc_emisor}<br>
+<b>Razón Social:</b> ${emisor.razon_social_emisor}<br>
+<b>Régimen Fiscal:</b> ${emisor.regimen_fiscal_emisor}
+`;
 
-    html += "</tbody></table>";
-    document.getElementById("tabla").innerHTML = html;
+const totalGlobal=data.reduce((acc,f)=>acc+(parseFloat(f.total)||0),0);
 
-    // debug útil
-    console.log("OK data:", data);
-  }
+document.getElementById("total").innerHTML=`
+Deuda Total Pendiente<br>
+<span>$${totalGlobal.toLocaleString("es-MX",{minimumFractionDigits:2})}</span>
+<div class="small">Facturas: ${data.length}</div>
+`;
 
-  document.addEventListener("DOMContentLoaded", cargar);
+let html=`
+<table>
+<thead>
+<tr>
+<th>Fecha</th>
+<th>UUID</th>
+<th>Serie/Folio</th>
+<th>Total</th>
+<th>Forma</th>
+<th>Método</th>
+<th>Condiciones</th>
+<th>Físico</th>
+<th>Pagada</th>
+</tr>
+</thead>
+<tbody>
+`;
+
+for(const f of data){
+
+const fecha=f.fecha?String(f.fecha).split("T")[0]:"";
+const folio=f.serie_folio || `${f.serie||""}-${f.folio||""}`;
+const total=Number(f.total||0).toLocaleString("es-MX",{minimumFractionDigits:2});
+const uuid=f.uuid_cfdi||"";
+
+html+=`
+<tr>
+
+<td>${fecha}</td>
+
+<td class="uuid" data-full="${uuid}">
+${uuidCorto(uuid)}
+</td>
+
+<td>${folio}</td>
+
+<td class="numero">$${total}</td>
+
+<td>${f.forma_pago||""}</td>
+
+<td>${f.metodo_pago||""}</td>
+
+<td>${f.condiciones_pago||""}</td>
+
+<td>${f.factura_fisicamente||""}</td>
+
+<td>${f.factura_pagada||""}</td>
+
+</tr>
+`;
+}
+
+html+="</tbody></table>";
+
+document.getElementById("tabla").innerHTML=html;
+
+}
+
+document.addEventListener("DOMContentLoaded",cargar);
+
 </script>
 
 </body>
