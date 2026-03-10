@@ -38,8 +38,6 @@ margin:0;
 font-weight:700;
 }
 
-/* cards */
-
 .card{
 background:var(--card);
 border-radius:10px;
@@ -52,8 +50,6 @@ font-size:1.6rem;
 font-weight:700;
 color:var(--success);
 }
-
-/* table */
 
 .table-wrap{
 overflow-x:auto;
@@ -91,8 +87,6 @@ cursor:pointer;
 position:relative;
 }
 
-/* tooltip */
-
 .uuid:hover::after{
 content:attr(data-full);
 position:absolute;
@@ -116,22 +110,13 @@ border:6px solid transparent;
 border-bottom-color:#111;
 }
 
-/* responsive */
-
 @media(max-width:900px){
-
 table{
 min-width:800px;
 }
-
-body{
-padding:12px;
-}
-
 }
 
 @media(max-width:600px){
-
 th,td{
 font-size:.8rem;
 padding:7px;
@@ -140,7 +125,6 @@ padding:7px;
 .total span{
 font-size:1.4rem;
 }
-
 }
 
 .small{
@@ -162,9 +146,7 @@ padding:12px;
 <h2>📦 Facturación BOLSAS TAURO</h2>
 
 <div id="emisor" class="card"></div>
-
 <div id="total" class="card total"></div>
-
 <div id="tabla" class="card table-wrap"></div>
 
 </div>
@@ -181,9 +163,8 @@ return uuid.substring(0,8)+"…"+uuid.substring(uuid.length-6);
 }
 
 function setLoading(){
-document.getElementById("tabla").innerHTML = `
-<div class="loader">Cargando datos...</div>
-`;
+document.getElementById("tabla").innerHTML =
+`<div class="loader">Cargando datos...</div>`;
 }
 
 async function cargar(){
@@ -210,7 +191,8 @@ return;
 
 const emisor=data[0];
 
-document.getElementById("emisor").innerHTML=`
+document.getElementById("emisor").innerHTML=
+`
 <b>RFC:</b> ${emisor.rfc_emisor}<br>
 <b>Razón Social:</b> ${emisor.razon_social_emisor}<br>
 <b>Régimen Fiscal:</b> ${emisor.regimen_fiscal_emisor}
@@ -218,17 +200,20 @@ document.getElementById("emisor").innerHTML=`
 
 const totalGlobal=data.reduce((acc,f)=>acc+(parseFloat(f.total)||0),0);
 
-document.getElementById("total").innerHTML=`
+document.getElementById("total").innerHTML=
+`
 Deuda Total Pendiente<br>
 <span>$${totalGlobal.toLocaleString("es-MX",{minimumFractionDigits:2})}</span>
 <div class="small">Facturas: ${data.length}</div>
 `;
 
-let html=`
+let html=
+`
 <table>
 <thead>
 <tr>
 <th>Fecha</th>
+<th>Días</th>
 <th>UUID</th>
 <th>Serie/Folio</th>
 <th>Total</th>
@@ -245,6 +230,7 @@ let html=`
 for(const f of data){
 
 const fecha=f.fecha?String(f.fecha).split("T")[0]:"";
+const dias=f.dias ?? "";
 const folio=f.serie_folio || `${f.serie||""}-${f.folio||""}`;
 const total=Number(f.total||0).toLocaleString("es-MX",{minimumFractionDigits:2});
 const uuid=f.uuid_cfdi||"";
@@ -253,6 +239,7 @@ html+=`
 <tr>
 
 <td>${fecha}</td>
+<td>${dias}</td>
 
 <td class="uuid" data-full="${uuid}">
 ${uuidCorto(uuid)}
@@ -262,15 +249,12 @@ ${uuidCorto(uuid)}
 
 <td class="numero">$${total}</td>
 
-<td>${f.forma_pago||""}</td>
+<td>${f.forma_pago ?? ""}</td>
+<td>${f.metodo_pago ?? ""}</td>
+<td>${f.condiciones_pago ?? ""}</td>
 
-<td>${f.metodo_pago||""}</td>
-
-<td>${f.condiciones_pago||""}</td>
-
-<td>${f.factura_fisicamente||""}</td>
-
-<td>${f.factura_pagada||""}</td>
+<td>${f.factura_fisicamente ?? ""}</td>
+<td>${f.factura_pagada ?? ""}</td>
 
 </tr>
 `;
