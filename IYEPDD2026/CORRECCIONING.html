@@ -1,779 +1,241 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Corrección TURBO de Periodo/Año CFDI – PDD</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f6f8fb;
-      color: #111827;
-      margin: 0;
-    }
+<meta charset="UTF-8"/>
+<title>Corrección TURBO CFDI – PROVSOFT</title>
 
-    .wrap {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    h1 {
-      margin: 0 0 8px;
-      color: #0f3d66;
-      font-size: 28px;
-    }
-
-    .sub {
-      margin: 0 0 20px;
-      color: #4b5563;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 18px;
-      margin-bottom: 18px;
-      box-shadow: 0 2px 12px rgba(0,0,0,.06);
-      border: 1px solid #e5e7eb;
-    }
-
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-    }
-
-    input[type="file"] {
-      padding: 8px;
-      background: #fff;
-      border: 1px solid #d1d5db;
-      border-radius: 10px;
-      flex: 1;
-      min-width: 260px;
-    }
-
-    button {
-      padding: 10px 16px;
-      border: 0;
-      border-radius: 10px;
-      background: #0c6cbd;
-      color: #fff;
-      cursor: pointer;
-      font-weight: 700;
-    }
-
-    button:hover {
-      background: #09599e;
-    }
-
-    button:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
-    }
-
-    .secondary {
-      background: #64748b;
-    }
-
-    .secondary:hover {
-      background: #475569;
-    }
-
-    .danger {
-      background: #b91c1c;
-    }
-
-    .danger:hover {
-      background: #991b1b;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 12px;
-      margin-top: 14px;
-    }
-
-    .kpi {
-      background: #f8fafc;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 14px;
-    }
-
-    .kpi .label {
-      font-size: 12px;
-      color: #6b7280;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: .4px;
-    }
-
-    .kpi .value {
-      font-size: 24px;
-      font-weight: 700;
-      color: #0f172a;
-    }
-
-    .progress-wrap {
-      margin-top: 16px;
-    }
-
-    .progress-bar {
-      width: 100%;
-      background: #e5e7eb;
-      border-radius: 999px;
-      overflow: hidden;
-      height: 18px;
-      border: 1px solid #d1d5db;
-    }
-
-    .progress-bar div {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #0c6cbd, #0ea5e9);
-      transition: width 0.18s ease;
-    }
-
-    .progress-text {
-      margin-top: 8px;
-      font-size: 13px;
-      color: #374151;
-    }
-
-    ul {
-      padding-left: 18px;
-      margin: 0;
-    }
-
-    li {
-      margin-bottom: 6px;
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
-    .ok { color: #15803d; font-weight: 700; }
-    .warn { color: #b45309; font-weight: 700; }
-    .err { color: #b91c1c; font-weight: 700; }
-    .pending { color: #1d4ed8; font-weight: 700; }
-
-    .list-box {
-      max-height: 360px;
-      overflow: auto;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      background: #fff;
-      padding: 14px;
-    }
-
-    pre {
-      background: #0b1220;
-      color: #dbeafe;
-      padding: 14px;
-      border-radius: 12px;
-      max-height: 360px;
-      overflow: auto;
-      font-size: 12px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      word-break: break-word;
-      border: 1px solid #1f2937;
-      margin: 0;
-    }
-
-    .small {
-      font-size: 12px;
-      color: #6b7280;
-      margin-top: 8px;
-    }
-
-    footer {
-      margin-top: 26px;
-      padding: 16px;
-      text-align: center;
-      font-size: 13px;
-      color: #6b7280;
-      border-top: 1px solid #d1d5db;
-    }
-  </style>
+<style>
+body{font-family:Arial;padding:20px;background:#f4f6f9}
+button{padding:10px 16px;border-radius:8px;border:0;background:#0c6cbd;color:white;font-weight:bold;cursor:pointer}
+button:hover{background:#09599e}
+pre{background:#0b1220;color:#dbeafe;padding:15px;border-radius:10px}
+</style>
 </head>
+
 <body>
-  <div class="wrap">
-    <h1>Corrección TURBO de Periodo/Año CFDI</h1>
-    <p class="sub">
-      Esta versión está optimizada para PROVSOFT. Lee XML crudo, valida CFDI de ingreso del emisor
-      <b>PDD031204KL5</b>, detecta <b>GLOBAL</b> o <b>INDIVIDUAL</b> y actualiza en lote
-      <b>periodo_mes</b>, <b>periodo_anio</b> y <b>tipo_factura</b> en <b>ingresos_pdd</b>.
-      No toca importes, no recalcula nada y no modifica cancelaciones.
-    </p>
 
-    <div class="card">
-      <div class="row">
-        <input type="file" id="xmlInput" accept=".xml" multiple />
-        <button id="btnPrecargar" onclick="precargarXMLs()">Precargar XML</button>
-        <button id="btnProcesar" onclick="procesarTurbo()" disabled>Procesar TURBO</button>
-        <button class="secondary" onclick="limpiarTodo()">Limpiar</button>
-      </div>
+<h2>Corrección TURBO CFDI – PROVSOFT</h2>
 
-      <div class="grid">
-        <div class="kpi">
-          <div class="label">XML seleccionados</div>
-          <div class="value" id="kpiSeleccionados">0</div>
-        </div>
-        <div class="kpi">
-          <div class="label">Precargados válidos</div>
-          <div class="value" id="kpiPrecargados">0</div>
-        </div>
-        <div class="kpi">
-          <div class="label">Actualizados</div>
-          <div class="value" id="kpiActualizados">0</div>
-        </div>
-        <div class="kpi">
-          <div class="label">No encontrados</div>
-          <div class="value" id="kpiNoEncontrados">0</div>
-        </div>
-        <div class="kpi">
-          <div class="label">Rechazados / error</div>
-          <div class="value" id="kpiErrores">0</div>
-        </div>
-      </div>
+<input type="file" id="xmlInput" multiple accept=".xml">
+<button onclick="precargarXMLs()">Precargar</button>
+<button onclick="procesarTurbo()">Procesar</button>
 
-      <div class="progress-wrap">
-        <div class="progress-bar">
-          <div id="progreso"></div>
-        </div>
-        <div class="progress-text" id="progresoTexto">Sin iniciar</div>
-      </div>
-
-      <div class="small">
-        Lotes recomendados: consulta existencia en chunks de 300 UUID y upsert en lotes de 1000 registros.
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Archivos</h3>
-      <div class="list-box">
-        <ul id="archivoList"></ul>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Bitácora</h3>
-      <pre id="bitacora"></pre>
-    </div>
-
-    <footer>
-      ⚙️ POWERED BY <b>PROVSOFT</b> · Modo TURBO · Corrección masiva CFDI
-    </footer>
-  </div>
+<pre id="bitacora"></pre>
 
 <script>
-    const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
-    const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
-
-    const TABLA = "ingresos_pdd";
-    const RFC_EMISOR_VALIDO = "PDD031204KL5";
-
-    const CHUNK_EXISTENCIA = 300;   // consulta de UUID existentes
-    const LOTE_UPSERT = 1000;       // upsert masivo
-    const PAUSA_ENTRE_OPERACIONES = 0; // 0 = turbo real
-
-    let archivosDatos = [];
-    let mapaEstados = new Map();
-
-    let stats = {
-      seleccionados: 0,
-      precargados: 0,
-      actualizados: 0,
-      noEncontrados: 0,
-      errores: 0
-    };
-
-    function sleep(ms) {
-      return new Promise(r => setTimeout(r, ms));
-    }
-
-    function setProgreso(valor, texto) {
-      document.getElementById("progreso").style.width = `${Math.max(0, Math.min(100, valor))}%`;
-      document.getElementById("progresoTexto").textContent = texto || "";
-    }
-
-    function actualizarKPIs() {
-      document.getElementById("kpiSeleccionados").textContent = stats.seleccionados;
-      document.getElementById("kpiPrecargados").textContent = stats.precargados;
-      document.getElementById("kpiActualizados").textContent = stats.actualizados;
-      document.getElementById("kpiNoEncontrados").textContent = stats.noEncontrados;
-      document.getElementById("kpiErrores").textContent = stats.errores;
-    }
-
-    function logBitacora(mensaje) {
-      const log = document.getElementById("bitacora");
-      const ahora = new Date().toLocaleTimeString("es-MX");
-      log.textContent += `[${ahora}] ${mensaje}\n`;
-      log.scrollTop = log.scrollHeight;
-    }
-
-    function limpiarTodo() {
-      archivosDatos = [];
-      mapaEstados = new Map();
-
-      stats = {
-        seleccionados: 0,
-        precargados: 0,
-        actualizados: 0,
-        noEncontrados: 0,
-        errores: 0
-      };
-
-      document.getElementById("xmlInput").value = "";
-      document.getElementById("archivoList").innerHTML = "";
-      document.getElementById("bitacora").textContent = "";
-      document.getElementById("btnProcesar").disabled = true;
-      setProgreso(0, "Sin iniciar");
-      actualizarKPIs();
-    }
-
-    function normalizaTexto(s) {
-      return (s || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
-        .trim();
-    }
-
-    function escapeHtml(texto) {
-      return String(texto ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    function obtenerAtributoFlexible(node, nombresPosibles = []) {
-      if (!node) return null;
-
-      for (const nombre of nombresPosibles) {
-        const val = node.getAttribute(nombre);
-        if (val !== null && String(val).trim() !== "") return String(val).trim();
-      }
-
-      const buscados = nombresPosibles.map(normalizaTexto);
-
-      for (const attr of Array.from(node.attributes || [])) {
-        const nombreAttr = normalizaTexto(attr.name || "");
-        if (buscados.includes(nombreAttr)) {
-          const value = String(attr.value || "").trim();
-          if (value !== "") return value;
-        }
-      }
-
-      return null;
-    }
-
-    function buscarPrimerNodoPorLocalName(xml, localName) {
-      for (const node of xml.getElementsByTagName("*")) {
-        if ((node.localName || "").toLowerCase() === localName.toLowerCase()) {
-          return node;
-        }
-      }
-      return null;
-    }
-
-    function obtenerTimbre(xml) {
-      return buscarPrimerNodoPorLocalName(xml, "TimbreFiscalDigital");
-    }
-
-    function obtenerComprobante(xml) {
-      return buscarPrimerNodoPorLocalName(xml, "Comprobante");
-    }
-
-    function obtenerEmisor(xml) {
-      return buscarPrimerNodoPorLocalName(xml, "Emisor");
-    }
-
-    function obtenerReceptor(xml) {
-      return buscarPrimerNodoPorLocalName(xml, "Receptor");
-    }
-
-    function obtenerInformacionGlobal(xml) {
-      return buscarPrimerNodoPorLocalName(xml, "InformacionGlobal");
-    }
-
-    function tieneComplementoExcluido(xml) {
-      const complemento = buscarPrimerNodoPorLocalName(xml, "Complemento");
-      if (!complemento) return false;
-
-      for (const hijo of Array.from(complemento.children || [])) {
-        const nombre = (hijo.localName || "").toUpperCase();
-        if (
-          nombre.includes("NOMINA") ||
-          nombre.includes("CARTAPORTE") ||
-          nombre.includes("PAGOS") ||
-          nombre.includes("PAGOS20")
-        ) {
-          return true;
-        }
-      }
-
-      return false;
-    }
-
-    function crearItemArchivo(clave, html) {
-      const lista = document.getElementById("archivoList");
-      const li = document.createElement("li");
-      li.dataset.uuid = clave;
-      li.innerHTML = html;
-      lista.appendChild(li);
-      mapaEstados.set(clave, li);
-      return li;
-    }
-
-    function actualizarItem(clave, html) {
-      const item = mapaEstados.get(clave);
-      if (item) item.innerHTML = html;
-    }
-
-    function partirArreglo(arr, tam) {
-      const out = [];
-      for (let i = 0; i < arr.length; i += tam) {
-        out.push(arr.slice(i, i + tam));
-      }
-      return out;
-    }
-
-    async function precargarXMLs() {
-      const input = document.getElementById("xmlInput");
-      const files = Array.from(input.files || []);
-      const btnPrecargar = document.getElementById("btnPrecargar");
-      const btnProcesar = document.getElementById("btnProcesar");
-
-      document.getElementById("archivoList").innerHTML = "";
-      document.getElementById("bitacora").textContent = "";
-      mapaEstados = new Map();
-      archivosDatos = [];
-
-      stats = {
-        seleccionados: files.length,
-        precargados: 0,
-        actualizados: 0,
-        noEncontrados: 0,
-        errores: 0
-      };
-      actualizarKPIs();
-
-      if (!files.length) {
-        logBitacora("⚠️ No seleccionaste XML.");
-        setProgreso(0, "Sin archivos");
-        btnProcesar.disabled = true;
-        return;
-      }
-
-      btnPrecargar.disabled = true;
-      btnProcesar.disabled = true;
-      setProgreso(0, "Leyendo XML...");
-
-      logBitacora(`📥 Iniciando precarga de ${files.length} XML...`);
-
-      const uuidsLote = new Set();
-
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const claveTemporal = `tmp_${i}_${file.name}`;
-
-        try {
-          const text = await file.text();
-          const parser = new DOMParser();
-          const xml = parser.parseFromString(text, "application/xml");
-
-          const parserError = xml.getElementsByTagName("parsererror");
-          if (parserError.length > 0) {
-            throw new Error("XML inválido o corrupto");
-          }
-
-          const comprobante = obtenerComprobante(xml);
-          const emisor = obtenerEmisor(xml);
-          const receptor = obtenerReceptor(xml);
-          const infoGlobal = obtenerInformacionGlobal(xml);
-          const timbre = obtenerTimbre(xml);
-
-          const uuid = (obtenerAtributoFlexible(timbre, ["UUID", "Uuid", "uuid"]) || "").toUpperCase().trim();
-          const tipo = (obtenerAtributoFlexible(comprobante, ["TipoDeComprobante", "tipodecomprobante"]) || "").trim().toUpperCase();
-          const emisorRFC = (obtenerAtributoFlexible(emisor, ["Rfc", "RFC", "rfc"]) || "").toUpperCase().trim();
-          const receptorRFC = (obtenerAtributoFlexible(receptor, ["Rfc", "RFC", "rfc"]) || "").toUpperCase().trim();
-
-          let valido = true;
-          let motivo = "";
-
-          if (!uuid || uuid.length < 10) {
-            valido = false;
-            motivo = "sin UUID";
-          } else if (uuidsLote.has(uuid)) {
-            valido = false;
-            motivo = "duplicado en lote";
-          } else if (tipo !== "I") {
-            valido = false;
-            motivo = `tipo ${tipo || "desconocido"}`;
-          } else if (emisorRFC !== RFC_EMISOR_VALIDO) {
-            valido = false;
-            motivo = `emisor ${emisorRFC || "vacío"}`;
-          } else if (tieneComplementoExcluido(xml)) {
-            valido = false;
-            motivo = "complemento excluido";
-          }
-
-          if (!valido) {
-            stats.errores++;
-            crearItemArchivo(
-              claveTemporal,
-              `❌ <b>${escapeHtml(file.name)}</b> <span class="err">→ Rechazado (${escapeHtml(motivo)})</span>`
-            );
-            actualizarKPIs();
-          } else {
-            uuidsLote.add(uuid);
-
-            const tipoFactura = infoGlobal ? "GLOBAL" : "INDIVIDUAL";
-            let periodoMes = null;
-            let periodoAnio = null;
-
-            if (infoGlobal) {
-              periodoMes = obtenerAtributoFlexible(infoGlobal, ["Meses", "meses"]);
-              periodoAnio = obtenerAtributoFlexible(infoGlobal, ["Año", "Ano", "anio", "año"]);
-            }
-
-            archivosDatos.push({
-              uuid,
-              tipoFactura,
-              periodoMes,
-              periodoAnio,
-              fileName: file.name,
-              receptorRFC
-            });
-
-            stats.precargados++;
-
-            crearItemArchivo(
-              uuid,
-              `📄 <b>${escapeHtml(uuid)}</b> <span class="pending">→ Precargado (${escapeHtml(tipoFactura)}, mes=${escapeHtml(periodoMes ?? "NULL")}, año=${escapeHtml(periodoAnio ?? "NULL")})</span>`
-            );
-            actualizarKPIs();
-          }
-        } catch (err) {
-          stats.errores++;
-          crearItemArchivo(
-            claveTemporal,
-            `❌ <b>${escapeHtml(file.name)}</b> <span class="err">→ Error al leer (${escapeHtml(err.message)})</span>`
-          );
-          actualizarKPIs();
-        }
-
-        const avance = ((i + 1) / files.length) * 100;
-        setProgreso(avance, `Precargando XML ${i + 1} de ${files.length}`);
-      }
-
-      logBitacora(`✅ Precarga terminada. Válidos: ${archivosDatos.length}.`);
-      setProgreso(100, `Precarga finalizada. CFDI válidos: ${archivosDatos.length}`);
-      btnPrecargar.disabled = false;
-      btnProcesar.disabled = archivosDatos.length === 0;
-    }
-
-    async function consultarUUIDsExistentes(uuidList) {
-      const existentes = new Set();
-      const chunks = partirArreglo(uuidList, CHUNK_EXISTENCIA);
-
-      logBitacora(`🔎 Validando existencia en ${TABLA}...`);
-      logBitacora(`📦 Chunks de validación: ${chunks.length}`);
-
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-
-        const valores = chunk
-          .map(u => `"${String(u).replace(/"/g, '\\"')}"`)
-          .join(",");
-
-        const url = `${SUPABASE_URL}/rest/v1/${TABLA}?select=uuid_cfdi&uuid_cfdi=in.(${encodeURIComponent(valores)})`;
-
-        const resp = await fetch(url, {
-          method: "GET",
-          headers: {
-            apikey: API_KEY,
-            Authorization: `Bearer ${API_KEY}`
-          }
-        });
-
-        if (!resp.ok) {
-          const err = await resp.text();
-          throw new Error(`Error consultando existencia: ${err}`);
-        }
-
-        const rows = await resp.json();
-        for (const row of rows || []) {
-          if (row.uuid_cfdi) {
-            existentes.add(String(row.uuid_cfdi).toUpperCase().trim());
-          }
-        }
-
-        const avanceBase = 10;
-        const avance = avanceBase + (((i + 1) / chunks.length) * 20);
-        setProgreso(avance, `Validando existencia ${i + 1} de ${chunks.length}`);
-        logBitacora(`✔️ Existencia chunk ${i + 1}/${chunks.length}: encontrados ${rows.length}`);
-
-        if (PAUSA_ENTRE_OPERACIONES > 0) {
-          await sleep(PAUSA_ENTRE_OPERACIONES);
-        }
-      }
-
-      logBitacora(`✅ UUID existentes detectados: ${existentes.size}`);
-      return existentes;
-    }
-
-    async function upsertLoteMasivo(registros, loteIndex, totalLotes) {
-      const url = `${SUPABASE_URL}/rest/v1/${TABLA}?on_conflict=uuid_cfdi`;
-
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          apikey: API_KEY,
-          Authorization: `Bearer ${API_KEY}`,
-          "Content-Type": "application/json",
-          "Prefer": "resolution=merge-duplicates,return=representation"
-        },
-        body: JSON.stringify(registros)
-      });
-
-      if (!resp.ok) {
-        const err = await resp.text();
-        throw new Error(`Lote ${loteIndex}/${totalLotes}: ${err}`);
-      }
-
-      const data = await resp.json();
-      return data || [];
-    }
-
-    async function procesarTurbo() {
-      const btnProcesar = document.getElementById("btnProcesar");
-      const btnPrecargar = document.getElementById("btnPrecargar");
-
-      if (!archivosDatos.length) {
-        logBitacora("⚠️ No hay XML válidos precargados.");
-        return;
-      }
-
-      btnProcesar.disabled = true;
-      btnPrecargar.disabled = true;
-
-      try {
-        logBitacora(`🚀 Iniciando modo TURBO con ${archivosDatos.length} CFDI válidos...`);
-        setProgreso(2, "Preparando proceso TURBO...");
-
-        const todosUUID = archivosDatos.map(x => x.uuid);
-        const existentes = await consultarUUIDsExistentes(todosUUID);
-
-        const paraActualizar = [];
-        const noEncontrados = [];
-
-        for (const item of archivosDatos) {
-          if (existentes.has(item.uuid)) {
-            paraActualizar.push({
-              uuid_cfdi: item.uuid,
-              periodo_mes: item.periodoMes,
-              periodo_anio: item.periodoAnio,
-              tipo_factura: item.tipoFactura
-            });
-          } else {
-            noEncontrados.push(item);
-          }
-        }
-
-        for (const item of noEncontrados) {
-          stats.noEncontrados++;
-          actualizarItem(
-            item.uuid,
-            `⚠️ <b>${escapeHtml(item.uuid)}</b> <span class="warn">→ No encontrado en ${escapeHtml(TABLA)}</span>`
-          );
-        }
-        actualizarKPIs();
-
-        logBitacora(`📌 Para actualizar: ${paraActualizar.length}`);
-        logBitacora(`⚠️ No encontrados: ${noEncontrados.length}`);
-
-        if (!paraActualizar.length) {
-          setProgreso(100, "Terminado sin actualizaciones");
-          logBitacora("⚠️ No hubo registros existentes para actualizar.");
-          return;
-        }
-
-        const lotes = partirArreglo(paraActualizar, LOTE_UPSERT);
-        logBitacora(`📦 Lotes de upsert: ${lotes.length} (máx ${LOTE_UPSERT} por lote)`);
-
-        let totalActualizados = 0;
-
-        for (let i = 0; i < lotes.length; i++) {
-          const lote = lotes[i];
-          const numLote = i + 1;
-
-          logBitacora(`🛠️ Ejecutando lote ${numLote}/${lotes.length} con ${lote.length} registros...`);
-
-          const resultado = await upsertLoteMasivo(lote, numLote, lotes.length);
-
-          const uuidsActualizados = new Set(
-            (resultado || [])
-              .map(r => String(r.uuid_cfdi || "").toUpperCase().trim())
-              .filter(Boolean)
-          );
-
-          for (const row of lote) {
-            if (uuidsActualizados.has(row.uuid_cfdi)) {
-              stats.actualizados++;
-              totalActualizados++;
-
-              actualizarItem(
-                row.uuid_cfdi,
-                `✅ <b>${escapeHtml(row.uuid_cfdi)}</b> <span class="ok">→ Corregido (${escapeHtml(row.tipo_factura)}, mes=${escapeHtml(row.periodo_mes ?? "NULL")}, año=${escapeHtml(row.periodo_anio ?? "NULL")})</span>`
-              );
-            } else {
-              // caso raro: respondió ok pero no regresó fila
-              stats.errores++;
-              actualizarItem(
-                row.uuid_cfdi,
-                `❌ <b>${escapeHtml(row.uuid_cfdi)}</b> <span class="err">→ Sin confirmación en respuesta</span>`
-              );
-            }
-          }
-
-          actualizarKPIs();
-
-          const avance = 30 + (((i + 1) / lotes.length) * 70);
-          setProgreso(avance, `Actualizando lote ${numLote} de ${lotes.length}`);
-
-          logBitacora(`✔️ Lote ${numLote}/${lotes.length} procesado. Confirmados: ${uuidsActualizados.size}`);
-
-          if (PAUSA_ENTRE_OPERACIONES > 0) {
-            await sleep(PAUSA_ENTRE_OPERACIONES);
-          }
-        }
-
-        setProgreso(100, `Proceso terminado. Actualizados: ${totalActualizados}`);
-        logBitacora("✅ Corrección TURBO terminada.");
-        logBitacora(`📊 Resumen final → Actualizados: ${stats.actualizados}, No encontrados: ${stats.noEncontrados}, Errores: ${stats.errores}`);
-
-      } catch (error) {
-        stats.errores++;
-        actualizarKPIs();
-        setProgreso(100, "Proceso terminado con error");
-        logBitacora(`❌ Error general: ${error.message}`);
-      } finally {
-        btnProcesar.disabled = false;
-        btnPrecargar.disabled = false;
-      }
-    }
-
-    actualizarKPIs();
-    setProgreso(0, "Sin iniciar");
-  </script>
+
+const SUPABASE_URL="https://cvpbtjlupswbyxenugpz.supabase.co"
+const API_KEY="TU_API_KEY"
+const TABLA="ingresos_pdd"
+const RFC_EMISOR_VALIDO="PDD031204KL5"
+
+let archivosDatos=[]
+
+function log(m){
+document.getElementById("bitacora").textContent+=m+"\n"
+}
+
+function normalizaTexto(s){
+return(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim()
+}
+
+function obtenerAtributoFlexible(node,nombres){
+if(!node)return null
+
+for(const n of nombres){
+const v=node.getAttribute(n)
+if(v!==null&&String(v).trim()!=="")return String(v).trim()
+}
+
+const buscados=nombres.map(normalizaTexto)
+
+for(const a of Array.from(node.attributes||[])){
+const name=normalizaTexto(a.name)
+if(buscados.includes(name)){
+const v=String(a.value||"").trim()
+if(v!=="")return v
+}
+}
+
+return null
+}
+
+function buscarNodo(xml,nombre){
+for(const n of xml.getElementsByTagName("*")){
+if((n.localName||"").toLowerCase()===nombre.toLowerCase())return n
+}
+return null
+}
+
+function detectarGlobal(xml,receptorRFC){
+
+const infoGlobal=buscarNodo(xml,"InformacionGlobal")
+
+if(infoGlobal)return true
+
+if(receptorRFC==="XAXX010101000")return true
+
+return false
+}
+
+function obtenerPeriodo(infoGlobal,comprobante){
+
+let mes=null
+let anio=null
+
+if(infoGlobal){
+
+mes=obtenerAtributoFlexible(infoGlobal,[
+"Meses","Mes","mes","meses"
+])
+
+anio=obtenerAtributoFlexible(infoGlobal,[
+"Año","Anio","Ano","anio","año","ano","year","Year"
+])
+
+}
+
+if(!anio){
+const fecha=obtenerAtributoFlexible(comprobante,["Fecha","fecha"])
+if(fecha)anio=fecha.substring(0,4)
+}
+
+if(!mes){
+const fecha=obtenerAtributoFlexible(comprobante,["Fecha","fecha"])
+if(fecha)mes=fecha.substring(5,7)
+}
+
+return{mes,anio}
+
+}
+
+async function precargarXMLs(){
+
+const files=Array.from(document.getElementById("xmlInput").files||[])
+
+archivosDatos=[]
+
+log("Leyendo XML...")
+
+for(const file of files){
+
+try{
+
+const text=await file.text()
+
+const parser=new DOMParser()
+const xml=parser.parseFromString(text,"application/xml")
+
+const comprobante=buscarNodo(xml,"Comprobante")
+const emisor=buscarNodo(xml,"Emisor")
+const receptor=buscarNodo(xml,"Receptor")
+const timbre=buscarNodo(xml,"TimbreFiscalDigital")
+const infoGlobal=buscarNodo(xml,"InformacionGlobal")
+
+const uuid=(obtenerAtributoFlexible(timbre,["UUID","Uuid","uuid"])||"").toUpperCase()
+const tipo=(obtenerAtributoFlexible(comprobante,["TipoDeComprobante","tipodecomprobante"])||"").toUpperCase()
+const rfcEmisor=(obtenerAtributoFlexible(emisor,["Rfc","RFC"])||"").toUpperCase()
+const rfcReceptor=(obtenerAtributoFlexible(receptor,["Rfc","RFC"])||"").toUpperCase()
+
+if(tipo!=="I")continue
+if(rfcEmisor!==RFC_EMISOR_VALIDO)continue
+
+const esGlobal=detectarGlobal(xml,rfcReceptor)
+
+const periodo=obtenerPeriodo(infoGlobal,comprobante)
+
+archivosDatos.push({
+uuid,
+tipoFactura:esGlobal?"GLOBAL":"INDIVIDUAL",
+periodoMes:periodo.mes,
+periodoAnio:periodo.anio
+})
+
+log("OK "+uuid+" "+(esGlobal?"GLOBAL":"INDIVIDUAL"))
+
+}catch(e){
+
+log("Error leyendo "+file.name)
+
+}
+
+}
+
+log("Precarga terminada "+archivosDatos.length)
+
+}
+
+async function consultarUUIDsExistentes(uuids){
+
+const existentes=new Set()
+
+const lista=uuids.map(u=>`"${u}"`).join(",")
+
+const url=`${SUPABASE_URL}/rest/v1/${TABLA}?select=uuid_cfdi&uuid_cfdi=in.(${encodeURIComponent(lista)})`
+
+const resp=await fetch(url,{
+headers:{
+apikey:API_KEY,
+Authorization:`Bearer ${API_KEY}`
+}
+})
+
+const data=await resp.json()
+
+for(const r of data){
+existentes.add(r.uuid_cfdi)
+}
+
+return existentes
+}
+
+async function procesarTurbo(){
+
+if(!archivosDatos.length){
+log("No hay datos")
+return
+}
+
+const uuids=archivosDatos.map(x=>x.uuid)
+
+const existentes=await consultarUUIDsExistentes(uuids)
+
+const registros=[]
+
+for(const a of archivosDatos){
+
+if(!existentes.has(a.uuid))continue
+
+registros.push({
+uuid_cfdi:a.uuid,
+periodo_mes:a.periodoMes,
+periodo_anio:a.periodoAnio,
+tipo_factura:a.tipoFactura
+})
+
+}
+
+const url=`${SUPABASE_URL}/rest/v1/${TABLA}?on_conflict=uuid_cfdi`
+
+const resp=await fetch(url,{
+method:"POST",
+headers:{
+apikey:API_KEY,
+Authorization:`Bearer ${API_KEY}`,
+"Content-Type":"application/json",
+"Prefer":"resolution=merge-duplicates"
+},
+body:JSON.stringify(registros)
+})
+
+if(resp.ok){
+log("Actualizados "+registros.length)
+}else{
+log("Error actualizando")
+}
+
+}
+
+</script>
 </body>
 </html>
