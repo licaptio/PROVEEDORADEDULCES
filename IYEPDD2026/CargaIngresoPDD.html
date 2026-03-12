@@ -119,7 +119,10 @@ let periodoAnio = null;
 
 if (infoGlobal) {
   periodoMes = infoGlobal.getAttribute("Meses") || null;
-  periodoAnio = infoGlobal.getAttribute("Año") || null;
+  periodoAnio =
+  infoGlobal.getAttribute("Año") ||
+  infoGlobal.getAttribute("Anio") ||
+  null;
 }
          
        
