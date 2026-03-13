@@ -534,20 +534,20 @@
             tipoFactura = "GLOBAL";
           }
 
-          if (infoGlobal) {
-periodoMes = infoGlobal.getAttribute("Meses")
-          || infoGlobal.getAttribute("meses")
-          || infoGlobal.getAttribute("Mes")
-          || infoGlobal.getAttribute("mes");
-            ]);
+if (infoGlobal) {
 
-periodoAnio = infoGlobal.getAttribute("Año")
-           || infoGlobal.getAttribute("Anio")
-           || infoGlobal.getAttribute("Ano")
-           || infoGlobal.getAttribute("anio")
-           || infoGlobal.getAttribute("año");
-            ]);
-          }
+  periodoMes = infoGlobal.getAttribute("Meses")
+      || infoGlobal.getAttribute("meses")
+      || infoGlobal.getAttribute("Mes")
+      || infoGlobal.getAttribute("mes");
+
+  periodoAnio = infoGlobal.getAttribute("Año")
+      || infoGlobal.getAttribute("Anio")
+      || infoGlobal.getAttribute("Ano")
+      || infoGlobal.getAttribute("anio")
+      || infoGlobal.getAttribute("año");
+
+}
 
           if (tipoFactura === "GLOBAL") {
             if (!infoGlobal || !periodoMes || !periodoAnio) {
