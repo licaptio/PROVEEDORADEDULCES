@@ -2,55 +2,62 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<title>Facturas por Rango – PROVSOFT ULTRA FAST</title>
+<title>Facturas por Rango – PROVSOFT SMART LIVE</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
   :root{
     --bg:#eef3f8;
     --card:#ffffff;
-    --line:#dfe7f1;
-    --text:#1e293b;
-    --muted:#64748b;
+    --line:#dbe4ee;
+    --text:#17212f;
+    --muted:#6b7a90;
     --blue:#0c6cbd;
-    --blue2:#0a58a0;
-    --green:#0f9d58;
-    --orange:#f59e0b;
+    --blue2:#09579b;
+    --green:#0d9b63;
+    --greenBg:#ecfdf5;
     --red:#dc2626;
-    --shadow:0 12px 30px rgba(15, 23, 42, .08);
+    --redBg:#fef2f2;
+    --orange:#b45309;
+    --orangeBg:#fff7ed;
+    --shadow:0 10px 28px rgba(15,23,42,.08);
     --radius:16px;
   }
 
   *{box-sizing:border-box}
+
   body{
     margin:0;
     padding:24px;
     font-family:'Poppins',Arial,sans-serif;
     color:var(--text);
     background:
-      radial-gradient(circle at top left, #f8fbff 0%, #eef3f8 45%, #e7edf5 100%);
+      radial-gradient(circle at top left, #f9fbfe 0%, #eef3f8 45%, #e8eef6 100%);
   }
 
   .wrap{
-    max-width:1600px;
+    max-width:1650px;
     margin:0 auto;
   }
 
-  .topbar{
+  .top{
     display:flex;
     justify-content:space-between;
-    align-items:center;
-    gap:12px;
+    align-items:flex-start;
+    gap:16px;
     flex-wrap:wrap;
     margin-bottom:16px;
   }
 
   h2{
-    margin:0;
+    margin:0 0 6px 0;
     font-size:28px;
-    letter-spacing:.2px;
+  }
+
+  .sub{
+    color:var(--muted);
+    font-size:14px;
   }
 
   .badges{
@@ -60,19 +67,21 @@
   }
 
   .badge{
-    padding:9px 12px;
+    padding:10px 12px;
     border-radius:999px;
-    font-size:13px;
-    font-weight:700;
+    border:1px solid var(--line);
     background:#fff;
     box-shadow:var(--shadow);
-    border:1px solid var(--line);
+    font-size:13px;
+    font-weight:700;
+    white-space:nowrap;
   }
 
-  .badge.online{color:#065f46;background:#ecfdf5}
-  .badge.offline{color:#991b1b;background:#fef2f2}
-  .badge.cache{color:#92400e;background:#fff7ed}
-  .badge.live{color:#1d4ed8;background:#eff6ff}
+  .online{ background:#ecfdf5; color:#065f46; }
+  .offline{ background:#fef2f2; color:#991b1b; }
+  .cache{ background:#fff7ed; color:#9a3412; }
+  .live{ background:#eff6ff; color:#1d4ed8; }
+  .mutedBadge{ background:#f8fafc; color:#64748b; }
 
   .controls{
     background:var(--card);
@@ -81,7 +90,7 @@
     box-shadow:var(--shadow);
     padding:16px;
     display:grid;
-    grid-template-columns:repeat(6,minmax(160px,1fr));
+    grid-template-columns:repeat(6,minmax(150px,1fr));
     gap:12px;
     margin-bottom:18px;
   }
@@ -95,21 +104,21 @@
   .field label{
     font-size:12px;
     color:var(--muted);
-    font-weight:700;
     text-transform:uppercase;
-    letter-spacing:.4px;
+    letter-spacing:.45px;
+    font-weight:800;
   }
 
   input,select,button{
-    border-radius:12px;
-    border:1px solid #cfd9e5;
-    padding:11px 12px;
-    font:inherit;
     min-height:44px;
+    border-radius:12px;
+    font:inherit;
   }
 
   input,select{
+    border:1px solid #cfd9e5;
     background:#fff;
+    padding:10px 12px;
     color:var(--text);
   }
 
@@ -123,28 +132,32 @@
     border:none;
     background:var(--blue);
     color:#fff;
-    font-weight:700;
+    padding:10px 14px;
+    font-weight:800;
     cursor:pointer;
     transition:.15s ease;
   }
 
-  button:hover{background:var(--blue2)}
+  button:hover{ background:var(--blue2); }
   button:disabled{
     opacity:.55;
     cursor:not-allowed;
   }
 
-  .btn-secondary{
+  .btnSoft{
     background:#e2e8f0;
     color:#0f172a;
   }
 
-  .btn-secondary:hover{background:#cfd8e3}
+  .btnSoft:hover{
+    background:#cfd8e3;
+  }
 
   .actions{
     display:flex;
     gap:10px;
     align-items:end;
+    flex-wrap:wrap;
   }
 
   .panel{
@@ -155,56 +168,76 @@
     overflow:hidden;
   }
 
-  .panel-head{
+  .panelHead{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    gap:10px;
+    gap:12px;
     flex-wrap:wrap;
     padding:14px 16px;
     border-bottom:1px solid var(--line);
-    background:linear-gradient(180deg,#f9fbfe 0%,#f4f8fc 100%);
+    background:linear-gradient(180deg,#fbfdff 0%, #f5f8fc 100%);
   }
 
-  .panel-title{
+  .title{
     font-weight:800;
   }
 
-  .subinfo{
-    color:var(--muted);
+  .meta{
     font-size:13px;
+    color:var(--muted);
   }
 
-  .table-wrap{
+  .loading{
+    display:none;
+    padding:12px 16px;
+    font-weight:800;
+    color:#1d4ed8;
+    background:#eff6ff;
+    border-bottom:1px solid #dbeafe;
+  }
+
+  .liveRow{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    padding:10px 16px;
+    background:#fcfdff;
+    border-bottom:1px solid var(--line);
+  }
+
+  .tableWrap{
     overflow:auto;
-    max-height:70vh;
+    max-height:72vh;
   }
 
   table{
     width:100%;
+    min-width:1320px;
     border-collapse:collapse;
-    min-width:1300px;
     background:#fff;
   }
 
   th,td{
-    padding:11px 10px;
-    font-size:13px;
+    padding:10px;
     border-bottom:1px solid #edf2f7;
+    font-size:13px;
     text-align:left;
-    vertical-align:top;
     white-space:nowrap;
+    vertical-align:top;
   }
 
   th{
     position:sticky;
     top:0;
-    z-index:1;
+    z-index:2;
     background:#f4f7fb;
     color:#334155;
-    font-size:12px;
     text-transform:uppercase;
     letter-spacing:.35px;
+    font-size:12px;
   }
 
   tbody tr:hover{
@@ -213,25 +246,26 @@
 
   .monto{
     font-weight:800;
-    color:#0f172a;
   }
 
-  .uuid-link{
+  .uuidLink{
     color:#0c6cbd;
     text-decoration:none;
     font-weight:700;
   }
 
-  .uuid-link:hover{text-decoration:underline}
+  .uuidLink:hover{
+    text-decoration:underline;
+  }
 
-  .status-row{
-    padding:12px 16px;
-    border-top:1px solid var(--line);
+  .status{
     display:flex;
     justify-content:space-between;
     align-items:center;
     gap:12px;
     flex-wrap:wrap;
+    padding:12px 16px;
+    border-top:1px solid var(--line);
     background:#fcfdff;
   }
 
@@ -242,40 +276,25 @@
     flex-wrap:wrap;
   }
 
-  .hint{
-    color:var(--muted);
-    font-size:13px;
-  }
-
-  .loading{
-    display:none;
-    padding:12px 16px;
-    background:#eff6ff;
-    color:#1d4ed8;
-    border-bottom:1px solid #dbeafe;
-    font-weight:700;
-  }
-
-  .message{
-    padding:16px;
-    text-align:center;
-    color:var(--muted);
-  }
-
-  .empty{
-    padding:40px 20px;
-    text-align:center;
-    color:var(--muted);
-  }
-
   .pill{
     display:inline-block;
-    padding:4px 8px;
+    padding:5px 9px;
     border-radius:999px;
     background:#f1f5f9;
-    font-size:12px;
-    font-weight:700;
     color:#475569;
+    font-size:12px;
+    font-weight:800;
+  }
+
+  .message, .empty{
+    padding:28px 16px;
+    text-align:center;
+    color:var(--muted);
+  }
+
+  .tiny{
+    font-size:12px;
+    color:var(--muted);
   }
 
   @media (max-width:1100px){
@@ -284,28 +303,29 @@
     }
   }
 
-  @media (max-width:640px){
-    body{padding:14px}
+  @media (max-width:680px){
+    body{ padding:14px; }
     .controls{
       grid-template-columns:1fr;
     }
-    h2{font-size:22px}
+    h2{ font-size:22px; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <div class="topbar">
+  <div class="top">
     <div>
       <h2>📄 Facturas por Rango – PROVSOFT</h2>
-      <div class="hint">Versión ultra rápida con cache local, memoria y modo offline</div>
+      <div class="sub">Histórico paginado + monitoreo inteligente solo para fecha de hoy</div>
     </div>
 
     <div class="badges">
-      <div id="netBadge" class="badge">Verificando red…</div>
-      <div id="sourceBadge" class="badge live">Fuente: —</div>
-      <div id="clientsBadge" class="badge">Clientes: cargando…</div>
+      <div id="netBadge" class="badge mutedBadge">Red: verificando…</div>
+      <div id="modeBadge" class="badge mutedBadge">Modo: esperando…</div>
+      <div id="sourceBadge" class="badge mutedBadge">Fuente: —</div>
+      <div id="clientsBadge" class="badge mutedBadge">Clientes: cargando…</div>
     </div>
   </div>
 
@@ -348,23 +368,29 @@
     </div>
 
     <div class="actions">
-      <button id="btnHoy" type="button" class="btn-secondary">Últimos 7 días</button>
-      <button id="btnLimpiar" type="button" class="btn-secondary">Limpiar</button>
+      <button id="btnHoy" class="btnSoft" type="button">Hoy</button>
+      <button id="btn7" class="btnSoft" type="button">Últimos 7 días</button>
+      <button id="btnLimpiar" class="btnSoft" type="button">Limpiar</button>
     </div>
   </div>
 
   <div class="panel">
-    <div class="panel-head">
+    <div class="panelHead">
       <div>
-        <div class="panel-title">Resultado</div>
-        <div id="resumen" class="subinfo">Sin consulta</div>
+        <div class="title">Resultado</div>
+        <div id="resumen" class="meta">Sin consulta</div>
       </div>
-      <div class="subinfo" id="lastUpdate">Última actualización: —</div>
+      <div id="lastUpdate" class="meta">Última actualización: —</div>
     </div>
 
-    <div id="loading" class="loading">⏳ Consultando facturas…</div>
+    <div id="loading" class="loading">⏳ Consultando…</div>
 
-    <div class="table-wrap">
+    <div class="liveRow">
+      <div id="liveInfo" class="tiny">Monitor detenido</div>
+      <div id="pageInfo" class="tiny">Sin datos</div>
+    </div>
+
+    <div class="tableWrap">
       <table>
         <thead>
           <tr>
@@ -388,13 +414,13 @@
       </table>
     </div>
 
-    <div class="status-row">
+    <div class="status">
       <div class="pagination">
         <button id="btnPrev" type="button">⬅ Anterior</button>
         <span id="pagina" class="pill">Página 1</span>
         <button id="btnNext" type="button">Siguiente ➡</button>
       </div>
-      <div id="pageHint" class="hint">Sin datos</div>
+      <div id="cacheInfo" class="tiny">Cache local: listo</div>
     </div>
   </div>
 </div>
@@ -404,16 +430,15 @@
    CONFIG
 ========================= */
 const SUPABASE_URL = 'https://cvpbtjlupswbyxenugpz.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
-
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+const SUPABASE_KEY = 'TU_ANON_KEY_AQUI'; // <-- PON TU KEY ANON
 const TABLE = 'ingresos_pdd';
-const CLIENTS_VIEW = 'clientes_unicos'; // opcional: si existe, vuela
+const CLIENTS_VIEW = 'clientes_unicos';  // si no existe, usa fallback
 const PAGE_SIZE = 50;
-const CLIENTS_TTL_MS = 24 * 60 * 60 * 1000;   // 24 horas
-const QUERY_TTL_MS = 60 * 60 * 1000;          // 1 hora
-const MEMORY_LIMIT = 80;
+const LIVE_CHECK_MS = 30000;             // 30 segundos
+const CLIENTS_TTL_MS = 24 * 60 * 60 * 1000;
+const QUERY_TTL_PAST_MS = 60 * 60 * 1000;
+const QUERY_TTL_TODAY_MS = 5 * 60 * 1000;
+const MEMORY_LIMIT = 100;
 
 const SUCURSALES = {
   LMN:'MATRIZ',
@@ -427,78 +452,82 @@ const SUCURSALES = {
   LV:'PROVILEON'
 };
 
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const state = {
   page: 0,
   hasMore: false,
   loading: false,
-  requestId: 0,
-  currentFilters: null,
-  currentSource: '—',
+  reqId: 0,
+  filters: null,
+  lastHeadSignature: '',
+  lastLiveCheckAt: null,
   queryMemory: new Map(),
-  clientes: []
+  monitorTimer: null
 };
 
 /* =========================
    DOM
 ========================= */
-const $ = (id) => document.getElementById(id);
+const $ = id => document.getElementById(id);
 
-const tabla = $('tabla');
-const pagina = $('pagina');
-const loading = $('loading');
-const resumen = $('resumen');
-const lastUpdate = $('lastUpdate');
-const netBadge = $('netBadge');
-const sourceBadge = $('sourceBadge');
+const netBadge   = $('netBadge');
+const modeBadge  = $('modeBadge');
+const sourceBadge= $('sourceBadge');
 const clientsBadge = $('clientsBadge');
-const pageHint = $('pageHint');
 
 const clienteInput = $('cliente');
 const clientesList = $('clientesList');
-const sucursalSelect = $('sucursal');
+const sucursalSel = $('sucursal');
 const fechaInicio = $('fecha_inicio');
 const fechaFin = $('fecha_fin');
 
 const btnBuscar = $('btnBuscar');
+const btnHoy = $('btnHoy');
+const btn7 = $('btn7');
+const btnLimpiar = $('btnLimpiar');
 const btnPrev = $('btnPrev');
 const btnNext = $('btnNext');
-const btnHoy = $('btnHoy');
-const btnLimpiar = $('btnLimpiar');
+
+const resumen = $('resumen');
+const lastUpdate = $('lastUpdate');
+const loading = $('loading');
+const liveInfo = $('liveInfo');
+const pageInfo = $('pageInfo');
+const cacheInfo = $('cacheInfo');
+const pagina = $('pagina');
+const tabla = $('tabla');
 
 /* =========================
-   UTILS
+   HELPERS
 ========================= */
-function escapeHtml(value){
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+function esc(v){
+  return String(v ?? '')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
 }
 
 function fmtMoney(n){
-  return Number(n || 0).toLocaleString('es-MX', {
+  return Number(n || 0).toLocaleString('es-MX',{
     style:'currency',
     currency:'MXN'
   });
 }
 
-function fmtDate(value){
-  if(!value) return '';
-  try{
-    const d = new Date(value);
-    if(Number.isNaN(d.getTime())) return escapeHtml(value);
-    return d.toLocaleString('es-MX', {
-      year:'numeric',
-      month:'2-digit',
-      day:'2-digit',
-      hour:'2-digit',
-      minute:'2-digit'
-    });
-  }catch{
-    return escapeHtml(value);
-  }
+function fmtDate(v){
+  if(!v) return '';
+  const d = new Date(v);
+  if(Number.isNaN(d.getTime())) return esc(v);
+  return d.toLocaleString('es-MX',{
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit',
+    hour:'2-digit',
+    minute:'2-digit'
+  });
 }
 
 function fp(v){
@@ -506,8 +535,8 @@ function fp(v){
     '01':'Efectivo',
     '02':'Cheque',
     '03':'Transferencia',
-    '04':'Tarjeta de crédito',
-    '28':'Tarjeta de débito',
+    '04':'Tarjeta crédito',
+    '28':'Tarjeta débito',
     '99':'Por definir'
   }[v] || v || '';
 }
@@ -524,8 +553,8 @@ function sucursalLabel(code){
   return `${code} - ${SUCURSALES[code] || 'DESCONOCIDA'}`;
 }
 
-function formatNow(){
-  return new Date().toLocaleString('es-MX', {
+function nowText(){
+  return new Date().toLocaleString('es-MX',{
     year:'numeric',
     month:'2-digit',
     day:'2-digit',
@@ -535,20 +564,49 @@ function formatNow(){
   });
 }
 
-function setDefaultDates(days = 7){
-  const today = new Date();
-  const from = new Date();
-  from.setDate(today.getDate() - (days - 1));
-
-  fechaInicio.value = toInputDate(from);
-  fechaFin.value = toInputDate(today);
-}
-
 function toInputDate(date){
   const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
   return `${y}-${m}-${d}`;
+}
+
+function todayLocalISO(){
+  return toInputDate(new Date());
+}
+
+function setTodayRange(){
+  const t = todayLocalISO();
+  fechaInicio.value = t;
+  fechaFin.value = t;
+}
+
+function setLast7Days(){
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 6);
+  fechaInicio.value = toInputDate(start);
+  fechaFin.value = toInputDate(end);
+}
+
+function resetFilters(){
+  clienteInput.value = '';
+  sucursalSel.value = '';
+  setLast7Days();
+}
+
+function readFilters(){
+  return {
+    fi: fechaInicio.value,
+    ff: fechaFin.value,
+    cliente: clienteInput.value.trim(),
+    sucursal: sucursalSel.value
+  };
+}
+
+function isTodayRange(filters = readFilters()){
+  const today = todayLocalISO();
+  return filters.fi === today && filters.ff === today;
 }
 
 function rangoUTC(fi, ff){
@@ -558,16 +616,7 @@ function rangoUTC(fi, ff){
   };
 }
 
-function readFilters(){
-  const fi = fechaInicio.value;
-  const ff = fechaFin.value;
-  const cliente = clienteInput.value.trim();
-  const sucursal = sucursalSelect.value;
-
-  return { fi, ff, cliente, sucursal };
-}
-
-function buildKey(filters, page){
+function buildQueryKey(filters, page){
   return [
     'facturas',
     filters.fi,
@@ -578,7 +627,19 @@ function buildKey(filters, page){
   ].join('|');
 }
 
-function updateNetBadge(){
+function getQueryTTL(filters){
+  return isTodayRange(filters) ? QUERY_TTL_TODAY_MS : QUERY_TTL_PAST_MS;
+}
+
+function remember(key, payload){
+  state.queryMemory.set(key, payload);
+  if(state.queryMemory.size > MEMORY_LIMIT){
+    const first = state.queryMemory.keys().next().value;
+    state.queryMemory.delete(first);
+  }
+}
+
+function setNetworkBadge(){
   if(navigator.onLine){
     netBadge.textContent = '🟢 En línea';
     netBadge.className = 'badge online';
@@ -588,20 +649,23 @@ function updateNetBadge(){
   }
 }
 
-function setSourceBadge(type){
-  state.currentSource = type;
-  sourceBadge.textContent = `Fuente: ${type}`;
-  sourceBadge.className = `badge ${type === 'CACHE' ? 'cache' : 'live'}`;
+function setModeBadge(text, cls = 'mutedBadge'){
+  modeBadge.textContent = text;
+  modeBadge.className = `badge ${cls}`;
 }
 
-function setLoading(isLoading, text = '⏳ Consultando facturas…'){
-  state.loading = isLoading;
-  loading.style.display = isLoading ? 'block' : 'none';
-  loading.textContent = text;
+function setSourceBadge(text, cls = 'mutedBadge'){
+  sourceBadge.textContent = `Fuente: ${text}`;
+  sourceBadge.className = `badge ${cls}`;
+}
 
-  btnBuscar.disabled = isLoading;
-  btnPrev.disabled = isLoading || state.page === 0;
-  btnNext.disabled = isLoading || !state.hasMore;
+function setLoading(on, text='⏳ Consultando…'){
+  state.loading = on;
+  loading.style.display = on ? 'block' : 'none';
+  loading.textContent = text;
+  btnBuscar.disabled = on;
+  btnPrev.disabled = on || state.page === 0;
+  btnNext.disabled = on || !state.hasMore;
 }
 
 function updatePagination(){
@@ -610,33 +674,29 @@ function updatePagination(){
   btnNext.disabled = state.loading || !state.hasMore;
 }
 
-function setSummary(text){
-  resumen.textContent = text;
+function setSummary(){
+  const f = state.filters || readFilters();
+  resumen.textContent =
+    `Rango: ${f.fi || '—'} a ${f.ff || '—'}`
+    + (f.cliente ? ` · Cliente: ${f.cliente}` : '')
+    + (f.sucursal ? ` · Sucursal: ${f.sucursal}` : '');
 }
 
-function renderEmpty(text){
-  tabla.innerHTML = `<tr><td colspan="12" class="empty">${escapeHtml(text)}</td></tr>`;
-  pageHint.textContent = text;
+function normalizeClientName(v){
+  return String(v || '').trim().replace(/\s+/g,' ');
 }
 
-function remember(key, payload){
-  state.queryMemory.set(key, payload);
-  if(state.queryMemory.size > MEMORY_LIMIT){
-    const firstKey = state.queryMemory.keys().next().value;
-    state.queryMemory.delete(firstKey);
-  }
-}
-
-function normalizeClientName(value){
-  return String(value || '').trim().replace(/\s+/g, ' ');
+function makeHeadSignature(row){
+  if(!row) return '';
+  return `${row.uuid_cfdi || ''}|${row.fecha || ''}`;
 }
 
 /* =========================
    INDEXEDDB
 ========================= */
 function openDB(){
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('provsoft-fast-cache', 1);
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open('provsoft-smart-cache', 1);
 
     req.onupgradeneeded = () => {
       const dbi = req.result;
@@ -652,8 +712,8 @@ function openDB(){
 
 async function idbGet(key){
   const dbi = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = dbi.transaction('kv', 'readonly');
+  return new Promise((resolve, reject)=>{
+    const tx = dbi.transaction('kv','readonly');
     const store = tx.objectStore('kv');
     const req = store.get(key);
     req.onsuccess = () => resolve(req.result || null);
@@ -663,8 +723,8 @@ async function idbGet(key){
 
 async function idbSet(key, value){
   const dbi = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = dbi.transaction('kv', 'readwrite');
+  return new Promise((resolve, reject)=>{
+    const tx = dbi.transaction('kv','readwrite');
     const store = tx.objectStore('kv');
     const req = store.put({
       key,
@@ -699,14 +759,12 @@ async function setCached(key, value){
    CLIENTES
 ========================= */
 function renderClientes(names){
-  state.clientes = names;
-  clientesList.innerHTML = names
-    .map(n => `<option value="${escapeHtml(n)}"></option>`)
-    .join('');
+  clientesList.innerHTML = names.map(n => `<option value="${esc(n)}"></option>`).join('');
   clientsBadge.textContent = `Clientes: ${names.length.toLocaleString('es-MX')}`;
+  clientsBadge.className = 'badge mutedBadge';
 }
 
-async function fetchClientesFromView(){
+async function fetchClientesView(){
   const { data, error } = await db
     .from(CLIENTS_VIEW)
     .select('razon_social_receptor');
@@ -717,7 +775,7 @@ async function fetchClientesFromView(){
     (data || [])
       .map(r => normalizeClientName(r.razon_social_receptor))
       .filter(Boolean)
-  )].sort((a,b) => a.localeCompare(b, 'es'));
+  )].sort((a,b)=>a.localeCompare(b,'es'));
 }
 
 async function fetchClientesFallback(){
@@ -733,7 +791,7 @@ async function fetchClientesFallback(){
     const { data, error } = await db
       .from(TABLE)
       .select('razon_social_receptor')
-      .not('razon_social_receptor', 'is', null)
+      .not('razon_social_receptor','is',null)
       .order('razon_social_receptor', { ascending:true })
       .range(from, to);
 
@@ -759,7 +817,7 @@ async function fetchClientesFallback(){
     page++;
   }
 
-  return [...set].sort((a,b) => a.localeCompare(b, 'es'));
+  return [...set].sort((a,b)=>a.localeCompare(b,'es'));
 }
 
 async function loadClientes(){
@@ -769,13 +827,11 @@ async function loadClientes(){
   if(cached?.length){
     renderClientes(cached);
     clientsBadge.textContent = `Clientes: ${cached.length.toLocaleString('es-MX')} (cache)`;
-  }else{
-    clientsBadge.textContent = 'Clientes: cargando…';
   }
 
   if(!navigator.onLine){
     if(!cached?.length){
-      clientsBadge.textContent = 'Clientes: sin red y sin cache';
+      clientsBadge.textContent = 'Clientes: sin red';
     }
     return;
   }
@@ -783,16 +839,15 @@ async function loadClientes(){
   try{
     let names = [];
     try{
-      names = await fetchClientesFromView();
+      names = await fetchClientesView();
     }catch{
       names = await fetchClientesFallback();
     }
 
     renderClientes(names);
-    clientsBadge.textContent = `Clientes: ${names.length.toLocaleString('es-MX')}`;
     await setCached(cacheKey, names);
   }catch(err){
-    console.error('Error cargando clientes:', err);
+    console.error('Error clientes:', err);
     if(!cached?.length){
       clientsBadge.textContent = 'Clientes: error';
     }
@@ -802,7 +857,7 @@ async function loadClientes(){
 /* =========================
    CONSULTAS
 ========================= */
-async function fetchFacturas(filters, page){
+async function fetchPage(filters, page){
   const { ini, fin } = rangoUTC(filters.fi, filters.ff);
 
   let q = db
@@ -824,14 +879,11 @@ async function fetchFacturas(filters, page){
     .gte('fecha', ini)
     .lte('fecha', fin)
     .order('fecha', { ascending:false })
+    .order('uuid_cfdi', { ascending:false })
     .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
-  if(filters.cliente){
-    q = q.eq('razon_social_receptor', filters.cliente);
-  }
-  if(filters.sucursal){
-    q = q.eq('serie', filters.sucursal);
-  }
+  if(filters.cliente) q = q.eq('razon_social_receptor', filters.cliente);
+  if(filters.sucursal) q = q.eq('serie', filters.sucursal);
 
   const { data, error } = await q;
   if(error) throw error;
@@ -842,66 +894,85 @@ async function fetchFacturas(filters, page){
   };
 }
 
+async function fetchHead(filters){
+  const { ini, fin } = rangoUTC(filters.fi, filters.ff);
+
+  let q = db
+    .from(TABLE)
+    .select('uuid_cfdi,fecha')
+    .gte('fecha', ini)
+    .lte('fecha', fin)
+    .order('fecha', { ascending:false })
+    .order('uuid_cfdi', { ascending:false })
+    .limit(1);
+
+  if(filters.cliente) q = q.eq('razon_social_receptor', filters.cliente);
+  if(filters.sucursal) q = q.eq('serie', filters.sucursal);
+
+  const { data, error } = await q;
+  if(error) throw error;
+
+  return (data && data[0]) ? data[0] : null;
+}
+
 function renderRows(rows){
   if(!rows || rows.length === 0){
-    renderEmpty('No se encontraron facturas para ese rango / filtro.');
+    tabla.innerHTML = `<tr><td colspan="12" class="empty">No se encontraron facturas con esos filtros.</td></tr>`;
     return;
   }
 
   tabla.innerHTML = rows.map(r => {
     const uuid = String(r.uuid_cfdi || '');
-    const uuidShort = uuid.length > 16 ? `${uuid.slice(0,16)}…` : uuid;
+    const shortUuid = uuid.length > 16 ? uuid.slice(0,16) + '…' : uuid;
 
     return `
       <tr>
-        <td>${escapeHtml(fmtDate(r.fecha))}</td>
+        <td>${esc(fmtDate(r.fecha))}</td>
         <td>
-          <a class="uuid-link" target="_blank"
-             href="factura_detalle.html?uuid=${encodeURIComponent(uuid)}">
-             ${escapeHtml(uuidShort)}
+          <a class="uuidLink" target="_blank" href="factura_detalle.html?uuid=${encodeURIComponent(uuid)}">
+            ${esc(shortUuid)}
           </a>
         </td>
-        <td>${escapeHtml(r.rfc_receptor || '')}</td>
-        <td title="${escapeHtml(r.razon_social_receptor || '')}">
-          ${escapeHtml(r.razon_social_receptor || '')}
-        </td>
-        <td>${escapeHtml(sucursalLabel(r.serie))}</td>
-        <td>${escapeHtml(r.folio || '')}</td>
-        <td class="monto">${escapeHtml(fmtMoney(r.subtotal))}</td>
-        <td class="monto">${escapeHtml(fmtMoney(r.total_iva))}</td>
-        <td class="monto">${escapeHtml(fmtMoney(r.total_ieps))}</td>
-        <td class="monto">${escapeHtml(fmtMoney(r.total))}</td>
-        <td>${escapeHtml(fp(r.forma_pago))}</td>
-        <td>${escapeHtml(mp(r.metodo_pago))}</td>
+        <td>${esc(r.rfc_receptor || '')}</td>
+        <td title="${esc(r.razon_social_receptor || '')}">${esc(r.razon_social_receptor || '')}</td>
+        <td>${esc(sucursalLabel(r.serie))}</td>
+        <td>${esc(r.folio || '')}</td>
+        <td class="monto">${esc(fmtMoney(r.subtotal))}</td>
+        <td class="monto">${esc(fmtMoney(r.total_iva))}</td>
+        <td class="monto">${esc(fmtMoney(r.total_ieps))}</td>
+        <td class="monto">${esc(fmtMoney(r.total))}</td>
+        <td>${esc(fp(r.forma_pago))}</td>
+        <td>${esc(mp(r.metodo_pago))}</td>
       </tr>
     `;
   }).join('');
 }
 
 async function prefetchNextPage(){
-  if(!navigator.onLine || !state.currentFilters || !state.hasMore) return;
+  if(!navigator.onLine || !state.filters || !state.hasMore) return;
 
   const nextPage = state.page + 1;
-  const nextKey = buildKey(state.currentFilters, nextPage);
+  const nextKey = buildQueryKey(state.filters, nextPage);
+  const ttl = getQueryTTL(state.filters);
 
   if(state.queryMemory.has(nextKey)) return;
 
-  const cached = await getCached(nextKey, QUERY_TTL_MS);
-  if(cached) {
+  const cached = await getCached(nextKey, ttl);
+  if(cached){
     remember(nextKey, cached);
     return;
   }
 
   try{
-    const payload = await fetchFacturas(state.currentFilters, nextPage);
+    const payload = await fetchPage(state.filters, nextPage);
     remember(nextKey, payload);
     await setCached(nextKey, payload);
   }catch(err){
-    console.warn('Prefetch siguiente página falló:', err);
+    console.warn('Prefetch falló:', err);
   }
 }
 
-async function cargar(){
+async function cargar({ forceLive = false, silent = false } = {}){
   const filters = readFilters();
 
   if(!filters.fi || !filters.ff){
@@ -913,55 +984,58 @@ async function cargar(){
     return;
   }
 
-  state.currentFilters = filters;
-  updatePagination();
+  state.filters = filters;
+  setSummary();
 
-  const key = buildKey(filters, state.page);
-  const thisRequest = ++state.requestId;
+  const reqId = ++state.reqId;
+  const key = buildQueryKey(filters, state.page);
+  const ttl = getQueryTTL(filters);
 
-  setLoading(true);
+  if(!silent){
+    setLoading(true, '⏳ Consultando facturas…');
+  }
 
-  setSummary(`Consultando del ${filters.fi} al ${filters.ff}${filters.cliente ? ` · Cliente: ${filters.cliente}` : ''}${filters.sucursal ? ` · Sucursal: ${filters.sucursal}` : ''}`);
-  pageHint.textContent = 'Buscando…';
-
-  const memoryPayload = state.queryMemory.get(key);
-  if(memoryPayload){
+  const memoryPayload = !forceLive ? state.queryMemory.get(key) : null;
+  if(memoryPayload && !silent){
     renderRows(memoryPayload.rows);
     state.hasMore = memoryPayload.hasMore;
     updatePagination();
-    setSourceBadge('CACHE');
-    pageHint.textContent = `${memoryPayload.rows.length} registros (memoria local)`;
-  }else{
-    const diskPayload = await getCached(key, QUERY_TTL_MS);
-    if(diskPayload){
+    setSourceBadge('CACHE MEMORIA', 'cache');
+    pageInfo.textContent = `${memoryPayload.rows.length} registros (memoria)`;
+  }
+
+  if(!forceLive){
+    const diskPayload = await getCached(key, ttl);
+    if(diskPayload && !memoryPayload && !silent){
       renderRows(diskPayload.rows);
       state.hasMore = diskPayload.hasMore;
       updatePagination();
-      setSourceBadge('CACHE');
-      pageHint.textContent = `${diskPayload.rows.length} registros (cache local)`;
       remember(key, diskPayload);
+      setSourceBadge('CACHE LOCAL', 'cache');
+      pageInfo.textContent = `${diskPayload.rows.length} registros (cache local)`;
     }
   }
 
   if(!navigator.onLine){
-    setLoading(false);
-    if(!memoryPayload){
-      const diskPayload = await getCached(key, QUERY_TTL_MS);
-      if(!diskPayload){
-        renderEmpty('Estás offline y esta consulta aún no existe en cache.');
-        state.hasMore = false;
-        updatePagination();
-        setSourceBadge('CACHE');
-      }
+    if(!silent) setLoading(false);
+
+    const fallback = memoryPayload || await getCached(key, ttl);
+    if(!fallback){
+      tabla.innerHTML = `<tr><td colspan="12" class="empty">Estás offline y esta consulta no existe en cache.</td></tr>`;
+      state.hasMore = false;
+      updatePagination();
+      pageInfo.textContent = 'Sin datos offline';
     }
-    lastUpdate.textContent = `Última actualización: ${formatNow()} · modo offline`;
+
+    setSourceBadge('CACHE', 'cache');
+    lastUpdate.textContent = `Última actualización: ${nowText()} · modo offline`;
+    updateMonitorState();
     return;
   }
 
   try{
-    const payload = await fetchFacturas(filters, state.page);
-
-    if(thisRequest !== state.requestId) return;
+    const payload = await fetchPage(filters, state.page);
+    if(reqId !== state.reqId) return;
 
     remember(key, payload);
     await setCached(key, payload);
@@ -970,31 +1044,134 @@ async function cargar(){
     state.hasMore = payload.hasMore;
     updatePagination();
 
-    setSourceBadge('LIVE');
-    pageHint.textContent = `${payload.rows.length} registros ${payload.hasMore ? '· hay más páginas' : '· fin de resultados'}`;
-    lastUpdate.textContent = `Última actualización: ${formatNow()}`;
-    setLoading(false);
+    setSourceBadge('LIVE', 'live');
+    pageInfo.textContent = `${payload.rows.length} registros ${payload.hasMore ? '· hay más páginas' : '· fin de resultados'}`;
+    lastUpdate.textContent = `Última actualización: ${nowText()}`;
 
+    if(payload.rows.length > 0){
+      state.lastHeadSignature = makeHeadSignature(payload.rows[0]);
+    }else{
+      try{
+        const head = await fetchHead(filters);
+        state.lastHeadSignature = makeHeadSignature(head);
+      }catch{
+        state.lastHeadSignature = '';
+      }
+    }
+
+    if(!silent) setLoading(false);
     prefetchNextPage();
   }catch(err){
     console.error(err);
-    setLoading(false);
+    if(!silent) setLoading(false);
 
-    const fallback = state.queryMemory.get(key) || await getCached(key, QUERY_TTL_MS);
+    const fallback = state.queryMemory.get(key) || await getCached(key, ttl);
     if(fallback){
       renderRows(fallback.rows);
       state.hasMore = fallback.hasMore;
       updatePagination();
-      setSourceBadge('CACHE');
-      pageHint.textContent = `${fallback.rows.length} registros (cache por error de red)`;
-      lastUpdate.textContent = `Última actualización: ${formatNow()} · usando cache`;
+      setSourceBadge('CACHE ERROR', 'cache');
+      pageInfo.textContent = `${fallback.rows.length} registros (cache por error)`;
+      lastUpdate.textContent = `Última actualización: ${nowText()} · usando cache`;
       return;
     }
 
-    renderEmpty(`Error al consultar: ${err.message || err}`);
+    tabla.innerHTML = `<tr><td colspan="12" class="empty">Error: ${esc(err.message || err)}</td></tr>`;
     state.hasMore = false;
     updatePagination();
+    pageInfo.textContent = 'Error';
+  }finally{
+    updateMonitorState();
   }
+}
+
+/* =========================
+   MONITOR INTELIGENTE
+========================= */
+function monitorEligible(){
+  const f = readFilters();
+  return (
+    navigator.onLine &&
+    document.visibilityState === 'visible' &&
+    isTodayRange(f)
+  );
+}
+
+function stopMonitor(){
+  if(state.monitorTimer){
+    clearInterval(state.monitorTimer);
+    state.monitorTimer = null;
+  }
+}
+
+function updateMonitorState(){
+  if(!navigator.onLine){
+    setModeBadge('Modo: offline', 'offline');
+    liveInfo.textContent = 'Monitor detenido: sin conexión';
+    return;
+  }
+
+  if(document.visibilityState !== 'visible'){
+    setModeBadge('Modo: pausa', 'mutedBadge');
+    liveInfo.textContent = 'Monitor detenido: pestaña oculta';
+    return;
+  }
+
+  if(!isTodayRange(readFilters())){
+    setModeBadge('Modo: histórico', 'mutedBadge');
+    liveInfo.textContent = 'Monitor detenido: el rango no es hoy';
+    return;
+  }
+
+  setModeBadge('Modo: monitor hoy', 'online');
+  liveInfo.textContent = `Monitor activo: revisión mínima cada ${LIVE_CHECK_MS / 1000}s`;
+}
+
+async function liveCheck(){
+  if(state.loading) return;
+  if(!monitorEligible()) return;
+  if(!state.filters) return;
+
+  try{
+    state.lastLiveCheckAt = Date.now();
+    liveInfo.textContent = `Monitor activo: verificando cambios… ${new Date().toLocaleTimeString('es-MX')}`;
+
+    const head = await fetchHead(state.filters);
+    const newSig = makeHeadSignature(head);
+
+    if(!newSig){
+      liveInfo.textContent = 'Monitor activo: sin facturas en el rango de hoy';
+      return;
+    }
+
+    if(!state.lastHeadSignature){
+      state.lastHeadSignature = newSig;
+      liveInfo.textContent = 'Monitor activo: referencia inicial establecida';
+      return;
+    }
+
+    if(newSig !== state.lastHeadSignature){
+      liveInfo.textContent = 'Cambio detectado: actualizando tabla…';
+      await cargar({ forceLive:true, silent:true });
+      liveInfo.textContent = `Monitor activo: tabla actualizada ${new Date().toLocaleTimeString('es-MX')}`;
+    }else{
+      liveInfo.textContent = `Monitor activo: sin cambios ${new Date().toLocaleTimeString('es-MX')}`;
+    }
+  }catch(err){
+    console.warn('Live check error:', err);
+    liveInfo.textContent = 'Monitor activo: error al revisar cambios';
+  }
+}
+
+function restartMonitor(){
+  stopMonitor();
+  updateMonitorState();
+
+  if(!monitorEligible()) return;
+
+  state.monitorTimer = setInterval(()=>{
+    liveCheck();
+  }, LIVE_CHECK_MS);
 }
 
 /* =========================
@@ -1002,69 +1179,87 @@ async function cargar(){
 ========================= */
 function buscar(){
   state.page = 0;
-  cargar();
+  cargar({ forceLive:true, silent:false });
 }
 
 function nextPage(){
-  if(!state.hasMore || state.loading) return;
+  if(state.loading || !state.hasMore) return;
   state.page++;
-  cargar();
+  cargar({ forceLive:true, silent:false });
 }
 
 function prevPage(){
-  if(state.page <= 0 || state.loading) return;
+  if(state.loading || state.page === 0) return;
   state.page--;
-  cargar();
-}
-
-function limpiarFiltros(){
-  clienteInput.value = '';
-  sucursalSelect.value = '';
-  setDefaultDates(7);
-  state.page = 0;
-  setSummary('Filtros reiniciados');
-  renderEmpty('Filtros reiniciados. Ejecuta una consulta.');
-  pageHint.textContent = 'Sin datos';
-  setSourceBadge('LIVE');
+  cargar({ forceLive:true, silent:false });
 }
 
 btnBuscar.addEventListener('click', buscar);
 btnNext.addEventListener('click', nextPage);
 btnPrev.addEventListener('click', prevPage);
 
-btnHoy.addEventListener('click', () => {
-  setDefaultDates(7);
+btnHoy.addEventListener('click', ()=>{
+  setTodayRange();
   state.page = 0;
-  buscar();
+  cargar({ forceLive:true });
 });
 
-btnLimpiar.addEventListener('click', limpiarFiltros);
+btn7.addEventListener('click', ()=>{
+  setLast7Days();
+  state.page = 0;
+  cargar({ forceLive:true });
+});
 
-[clienteInput, sucursalSelect, fechaInicio, fechaFin].forEach(el => {
-  el.addEventListener('keydown', (e) => {
+btnLimpiar.addEventListener('click', ()=>{
+  resetFilters();
+  state.page = 0;
+  tabla.innerHTML = `<tr><td colspan="12" class="message">Filtros reiniciados. Ejecuta una consulta.</td></tr>`;
+  pageInfo.textContent = 'Sin datos';
+  state.lastHeadSignature = '';
+  setSummary();
+  restartMonitor();
+});
+
+[clienteInput, sucursalSel, fechaInicio, fechaFin].forEach(el=>{
+  el.addEventListener('change', ()=>{
+    restartMonitor();
+  });
+
+  el.addEventListener('keydown', e=>{
     if(e.key === 'Enter'){
       buscar();
     }
   });
 });
 
-window.addEventListener('online', () => {
-  updateNetBadge();
+window.addEventListener('online', ()=>{
+  setNetworkBadge();
   loadClientes();
+  restartMonitor();
 });
 
-window.addEventListener('offline', updateNetBadge);
+window.addEventListener('offline', ()=>{
+  setNetworkBadge();
+  restartMonitor();
+});
+
+document.addEventListener('visibilitychange', ()=>{
+  restartMonitor();
+});
 
 /* =========================
    INIT
 ========================= */
 (async function init(){
-  updateNetBadge();
-  setDefaultDates(7);
-  setSourceBadge('LIVE');
+  setNetworkBadge();
+  setLast7Days();
   updatePagination();
+  setSummary();
+  setSourceBadge('—', 'mutedBadge');
+  cacheInfo.textContent = 'Cache local + memoria activa';
   await loadClientes();
-  buscar();
+  await cargar({ forceLive:true, silent:false });
+  restartMonitor();
 })();
 </script>
 </body>
