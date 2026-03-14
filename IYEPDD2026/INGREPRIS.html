@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<title>Facturas por Rango – PROVSOFT SMART LIVE</title>
+<title>Facturas por Rango – PROVSOFT LIVE REALTIME</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -15,7 +15,7 @@
     --muted:#6b7a90;
     --blue:#0c6cbd;
     --blue2:#09579b;
-    --green:#0d9b63;
+    --green:#0f9d58;
     --greenBg:#ecfdf5;
     --red:#dc2626;
     --redBg:#fef2f2;
@@ -77,10 +77,10 @@
     white-space:nowrap;
   }
 
-  .online{ background:#ecfdf5; color:#065f46; }
-  .offline{ background:#fef2f2; color:#991b1b; }
-  .cache{ background:#fff7ed; color:#9a3412; }
+  .online{ background:var(--greenBg); color:#065f46; }
+  .offline{ background:var(--redBg); color:#991b1b; }
   .live{ background:#eff6ff; color:#1d4ed8; }
+  .cache{ background:var(--orangeBg); color:#9a3412; }
   .mutedBadge{ background:#f8fafc; color:#64748b; }
 
   .controls{
@@ -139,6 +139,7 @@
   }
 
   button:hover{ background:var(--blue2); }
+
   button:disabled{
     opacity:.55;
     cursor:not-allowed;
@@ -206,6 +207,23 @@
     padding:10px 16px;
     background:#fcfdff;
     border-bottom:1px solid var(--line);
+  }
+
+  .tiny{
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  .liveNotice{
+    display:none;
+    margin:12px 16px 0;
+    padding:12px 14px;
+    border-radius:12px;
+    background:#fff7ed;
+    border:1px solid #fed7aa;
+    color:#9a3412;
+    font-size:13px;
+    font-weight:700;
   }
 
   .tableWrap{
@@ -292,9 +310,13 @@
     color:var(--muted);
   }
 
-  .tiny{
-    font-size:12px;
-    color:var(--muted);
+  .flashNew{
+    animation:flashNew 2.2s ease;
+  }
+
+  @keyframes flashNew{
+    0%{ background:#dcfce7; }
+    100%{ background:transparent; }
   }
 
   @media (max-width:1100px){
@@ -318,13 +340,13 @@
   <div class="top">
     <div>
       <h2>📄 Facturas por Rango – PROVSOFT</h2>
-      <div class="sub">Histórico paginado + monitoreo inteligente solo para fecha de hoy</div>
+      <div class="sub">Histórico paginado + live realtime para fecha de hoy sin polling bruto</div>
     </div>
 
     <div class="badges">
       <div id="netBadge" class="badge mutedBadge">Red: verificando…</div>
       <div id="modeBadge" class="badge mutedBadge">Modo: esperando…</div>
-      <div id="sourceBadge" class="badge mutedBadge">Fuente: —</div>
+      <div id="rtBadge" class="badge mutedBadge">Realtime: —</div>
       <div id="clientsBadge" class="badge mutedBadge">Clientes: cargando…</div>
     </div>
   </div>
@@ -386,8 +408,12 @@
     <div id="loading" class="loading">⏳ Consultando…</div>
 
     <div class="liveRow">
-      <div id="liveInfo" class="tiny">Monitor detenido</div>
+      <div id="liveInfo" class="tiny">Live detenido</div>
       <div id="pageInfo" class="tiny">Sin datos</div>
+    </div>
+
+    <div id="liveNotice" class="liveNotice">
+      Llegaron nuevas facturas. <button id="btnApplyLive" type="button" style="margin-left:8px;padding:6px 10px;min-height:auto;border-radius:8px;">Ir a página 1</button>
     </div>
 
     <div class="tableWrap">
@@ -420,7 +446,7 @@
         <span id="pagina" class="pill">Página 1</span>
         <button id="btnNext" type="button">Siguiente ➡</button>
       </div>
-      <div id="cacheInfo" class="tiny">Cache local: listo</div>
+      <div id="cacheInfo" class="tiny">Live por eventos + carga manual para histórico</div>
     </div>
   </div>
 </div>
@@ -432,13 +458,8 @@
 const SUPABASE_URL = 'https://cvpbtjlupswbyxenugpz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'; // <-- PON TU KEY ANON
 const TABLE = 'ingresos_pdd';
-const CLIENTS_VIEW = 'clientes_unicos';  // si no existe, usa fallback
+const CLIENTS_VIEW = 'clientes_unicos';
 const PAGE_SIZE = 50;
-const LIVE_CHECK_MS = 30000;             // 30 segundos
-const CLIENTS_TTL_MS = 24 * 60 * 60 * 1000;
-const QUERY_TTL_PAST_MS = 60 * 60 * 1000;
-const QUERY_TTL_TODAY_MS = 5 * 60 * 1000;
-const MEMORY_LIMIT = 100;
 
 const SUCURSALES = {
   LMN:'MATRIZ',
@@ -452,7 +473,7 @@ const SUCURSALES = {
   LV:'PROVILEON'
 };
 
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const state = {
   page: 0,
@@ -460,10 +481,10 @@ const state = {
   loading: false,
   reqId: 0,
   filters: null,
-  lastHeadSignature: '',
-  lastLiveCheckAt: null,
-  queryMemory: new Map(),
-  monitorTimer: null
+  rows: [],
+  uuidSet: new Set(),
+  liveChannel: null,
+  pendingLiveCount: 0
 };
 
 /* =========================
@@ -471,32 +492,34 @@ const state = {
 ========================= */
 const $ = id => document.getElementById(id);
 
-const netBadge   = $('netBadge');
-const modeBadge  = $('modeBadge');
-const sourceBadge= $('sourceBadge');
-const clientsBadge = $('clientsBadge');
+const netBadge    = $('netBadge');
+const modeBadge   = $('modeBadge');
+const rtBadge     = $('rtBadge');
+const clientsBadge= $('clientsBadge');
 
-const clienteInput = $('cliente');
-const clientesList = $('clientesList');
+const clienteInput= $('cliente');
+const clientesList= $('clientesList');
 const sucursalSel = $('sucursal');
 const fechaInicio = $('fecha_inicio');
-const fechaFin = $('fecha_fin');
+const fechaFin    = $('fecha_fin');
 
-const btnBuscar = $('btnBuscar');
-const btnHoy = $('btnHoy');
-const btn7 = $('btn7');
-const btnLimpiar = $('btnLimpiar');
-const btnPrev = $('btnPrev');
-const btnNext = $('btnNext');
+const btnBuscar   = $('btnBuscar');
+const btnHoy      = $('btnHoy');
+const btn7        = $('btn7');
+const btnLimpiar  = $('btnLimpiar');
+const btnPrev     = $('btnPrev');
+const btnNext     = $('btnNext');
+const btnApplyLive= $('btnApplyLive');
 
-const resumen = $('resumen');
-const lastUpdate = $('lastUpdate');
-const loading = $('loading');
-const liveInfo = $('liveInfo');
-const pageInfo = $('pageInfo');
-const cacheInfo = $('cacheInfo');
-const pagina = $('pagina');
-const tabla = $('tabla');
+const resumen     = $('resumen');
+const lastUpdate  = $('lastUpdate');
+const loading     = $('loading');
+const liveInfo    = $('liveInfo');
+const pageInfo    = $('pageInfo');
+const cacheInfo   = $('cacheInfo');
+const pagina      = $('pagina');
+const tabla       = $('tabla');
+const liveNotice  = $('liveNotice');
 
 /* =========================
    HELPERS
@@ -609,34 +632,15 @@ function isTodayRange(filters = readFilters()){
   return filters.fi === today && filters.ff === today;
 }
 
+function normalizeClientName(v){
+  return String(v || '').trim().replace(/\s+/g,' ');
+}
+
 function rangoUTC(fi, ff){
   return {
     ini: new Date(fi + 'T00:00:00').toISOString(),
     fin: new Date(ff + 'T23:59:59').toISOString()
   };
-}
-
-function buildQueryKey(filters, page){
-  return [
-    'facturas',
-    filters.fi,
-    filters.ff,
-    filters.cliente || '_ALL_',
-    filters.sucursal || '_ALL_',
-    page
-  ].join('|');
-}
-
-function getQueryTTL(filters){
-  return isTodayRange(filters) ? QUERY_TTL_TODAY_MS : QUERY_TTL_PAST_MS;
-}
-
-function remember(key, payload){
-  state.queryMemory.set(key, payload);
-  if(state.queryMemory.size > MEMORY_LIMIT){
-    const first = state.queryMemory.keys().next().value;
-    state.queryMemory.delete(first);
-  }
 }
 
 function setNetworkBadge(){
@@ -649,14 +653,14 @@ function setNetworkBadge(){
   }
 }
 
-function setModeBadge(text, cls = 'mutedBadge'){
+function setModeBadge(text, cls='mutedBadge'){
   modeBadge.textContent = text;
   modeBadge.className = `badge ${cls}`;
 }
 
-function setSourceBadge(text, cls = 'mutedBadge'){
-  sourceBadge.textContent = `Fuente: ${text}`;
-  sourceBadge.className = `badge ${cls}`;
+function setRealtimeBadge(text, cls='mutedBadge'){
+  rtBadge.textContent = `Realtime: ${text}`;
+  rtBadge.className = `badge ${cls}`;
 }
 
 function setLoading(on, text='⏳ Consultando…'){
@@ -682,77 +686,30 @@ function setSummary(){
     + (f.sucursal ? ` · Sucursal: ${f.sucursal}` : '');
 }
 
-function normalizeClientName(v){
-  return String(v || '').trim().replace(/\s+/g,' ');
+function showLiveNotice(show){
+  liveNotice.style.display = show ? 'block' : 'none';
 }
 
-function makeHeadSignature(row){
-  if(!row) return '';
-  return `${row.uuid_cfdi || ''}|${row.fecha || ''}`;
-}
+function rowMatchesFilters(row, filters){
+  if(!row || !filters) return false;
 
-/* =========================
-   INDEXEDDB
-========================= */
-function openDB(){
-  return new Promise((resolve, reject)=>{
-    const req = indexedDB.open('provsoft-smart-cache', 1);
-
-    req.onupgradeneeded = () => {
-      const dbi = req.result;
-      if(!dbi.objectStoreNames.contains('kv')){
-        dbi.createObjectStore('kv', { keyPath:'key' });
-      }
-    };
-
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function idbGet(key){
-  const dbi = await openDB();
-  return new Promise((resolve, reject)=>{
-    const tx = dbi.transaction('kv','readonly');
-    const store = tx.objectStore('kv');
-    const req = store.get(key);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function idbSet(key, value){
-  const dbi = await openDB();
-  return new Promise((resolve, reject)=>{
-    const tx = dbi.transaction('kv','readwrite');
-    const store = tx.objectStore('kv');
-    const req = store.put({
-      key,
-      value,
-      savedAt: Date.now()
-    });
-    req.onsuccess = () => resolve(true);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function getCached(key, ttlMs){
-  try{
-    const item = await idbGet(key);
-    if(!item) return null;
-    if(Date.now() - item.savedAt > ttlMs) return null;
-    return item.value;
-  }catch{
-    return null;
+  if(filters.cliente){
+    const a = normalizeClientName(row.razon_social_receptor);
+    const b = normalizeClientName(filters.cliente);
+    if(a !== b) return false;
   }
-}
 
-async function setCached(key, value){
-  try{
-    await idbSet(key, value);
-  }catch(err){
-    console.warn('No se pudo guardar cache:', err);
+  if(filters.sucursal && row.serie !== filters.sucursal){
+    return false;
   }
+
+  if(filters.fi && filters.ff){
+    const { ini, fin } = rangoUTC(filters.fi, filters.ff);
+    const f = new Date(row.fecha).toISOString();
+    if(f < ini || f > fin) return false;
+  }
+
+  return true;
 }
 
 /* =========================
@@ -821,21 +778,6 @@ async function fetchClientesFallback(){
 }
 
 async function loadClientes(){
-  const cacheKey = 'catalogo_clientes';
-  const cached = await getCached(cacheKey, CLIENTS_TTL_MS);
-
-  if(cached?.length){
-    renderClientes(cached);
-    clientsBadge.textContent = `Clientes: ${cached.length.toLocaleString('es-MX')} (cache)`;
-  }
-
-  if(!navigator.onLine){
-    if(!cached?.length){
-      clientsBadge.textContent = 'Clientes: sin red';
-    }
-    return;
-  }
-
   try{
     let names = [];
     try{
@@ -843,19 +785,15 @@ async function loadClientes(){
     }catch{
       names = await fetchClientesFallback();
     }
-
     renderClientes(names);
-    await setCached(cacheKey, names);
   }catch(err){
     console.error('Error clientes:', err);
-    if(!cached?.length){
-      clientsBadge.textContent = 'Clientes: error';
-    }
+    clientsBadge.textContent = 'Clientes: error';
   }
 }
 
 /* =========================
-   CONSULTAS
+   DATA
 ========================= */
 async function fetchPage(filters, page){
   const { ini, fin } = rangoUTC(filters.fi, filters.ff);
@@ -894,39 +832,22 @@ async function fetchPage(filters, page){
   };
 }
 
-async function fetchHead(filters){
-  const { ini, fin } = rangoUTC(filters.fi, filters.ff);
+function renderRows(rows, flashUuid = null){
+  state.rows = rows || [];
+  state.uuidSet = new Set(state.rows.map(r => r.uuid_cfdi));
 
-  let q = db
-    .from(TABLE)
-    .select('uuid_cfdi,fecha')
-    .gte('fecha', ini)
-    .lte('fecha', fin)
-    .order('fecha', { ascending:false })
-    .order('uuid_cfdi', { ascending:false })
-    .limit(1);
-
-  if(filters.cliente) q = q.eq('razon_social_receptor', filters.cliente);
-  if(filters.sucursal) q = q.eq('serie', filters.sucursal);
-
-  const { data, error } = await q;
-  if(error) throw error;
-
-  return (data && data[0]) ? data[0] : null;
-}
-
-function renderRows(rows){
-  if(!rows || rows.length === 0){
+  if(!state.rows.length){
     tabla.innerHTML = `<tr><td colspan="12" class="empty">No se encontraron facturas con esos filtros.</td></tr>`;
     return;
   }
 
-  tabla.innerHTML = rows.map(r => {
+  tabla.innerHTML = state.rows.map(r => {
     const uuid = String(r.uuid_cfdi || '');
     const shortUuid = uuid.length > 16 ? uuid.slice(0,16) + '…' : uuid;
+    const flashClass = flashUuid && flashUuid === uuid ? 'flashNew' : '';
 
     return `
-      <tr>
+      <tr class="${flashClass}" data-uuid="${esc(uuid)}">
         <td>${esc(fmtDate(r.fecha))}</td>
         <td>
           <a class="uuidLink" target="_blank" href="factura_detalle.html?uuid=${encodeURIComponent(uuid)}">
@@ -948,31 +869,7 @@ function renderRows(rows){
   }).join('');
 }
 
-async function prefetchNextPage(){
-  if(!navigator.onLine || !state.filters || !state.hasMore) return;
-
-  const nextPage = state.page + 1;
-  const nextKey = buildQueryKey(state.filters, nextPage);
-  const ttl = getQueryTTL(state.filters);
-
-  if(state.queryMemory.has(nextKey)) return;
-
-  const cached = await getCached(nextKey, ttl);
-  if(cached){
-    remember(nextKey, cached);
-    return;
-  }
-
-  try{
-    const payload = await fetchPage(state.filters, nextPage);
-    remember(nextKey, payload);
-    await setCached(nextKey, payload);
-  }catch(err){
-    console.warn('Prefetch falló:', err);
-  }
-}
-
-async function cargar({ forceLive = false, silent = false } = {}){
+async function cargar(){
   const filters = readFilters();
 
   if(!filters.fi || !filters.ff){
@@ -985,193 +882,136 @@ async function cargar({ forceLive = false, silent = false } = {}){
   }
 
   state.filters = filters;
+  state.pendingLiveCount = 0;
+  showLiveNotice(false);
   setSummary();
 
   const reqId = ++state.reqId;
-  const key = buildQueryKey(filters, state.page);
-  const ttl = getQueryTTL(filters);
-
-  if(!silent){
-    setLoading(true, '⏳ Consultando facturas…');
-  }
-
-  const memoryPayload = !forceLive ? state.queryMemory.get(key) : null;
-  if(memoryPayload && !silent){
-    renderRows(memoryPayload.rows);
-    state.hasMore = memoryPayload.hasMore;
-    updatePagination();
-    setSourceBadge('CACHE MEMORIA', 'cache');
-    pageInfo.textContent = `${memoryPayload.rows.length} registros (memoria)`;
-  }
-
-  if(!forceLive){
-    const diskPayload = await getCached(key, ttl);
-    if(diskPayload && !memoryPayload && !silent){
-      renderRows(diskPayload.rows);
-      state.hasMore = diskPayload.hasMore;
-      updatePagination();
-      remember(key, diskPayload);
-      setSourceBadge('CACHE LOCAL', 'cache');
-      pageInfo.textContent = `${diskPayload.rows.length} registros (cache local)`;
-    }
-  }
-
-  if(!navigator.onLine){
-    if(!silent) setLoading(false);
-
-    const fallback = memoryPayload || await getCached(key, ttl);
-    if(!fallback){
-      tabla.innerHTML = `<tr><td colspan="12" class="empty">Estás offline y esta consulta no existe en cache.</td></tr>`;
-      state.hasMore = false;
-      updatePagination();
-      pageInfo.textContent = 'Sin datos offline';
-    }
-
-    setSourceBadge('CACHE', 'cache');
-    lastUpdate.textContent = `Última actualización: ${nowText()} · modo offline`;
-    updateMonitorState();
-    return;
-  }
+  setLoading(true, '⏳ Consultando facturas…');
 
   try{
     const payload = await fetchPage(filters, state.page);
     if(reqId !== state.reqId) return;
 
-    remember(key, payload);
-    await setCached(key, payload);
-
-    renderRows(payload.rows);
     state.hasMore = payload.hasMore;
+    renderRows(payload.rows);
     updatePagination();
 
-    setSourceBadge('LIVE', 'live');
     pageInfo.textContent = `${payload.rows.length} registros ${payload.hasMore ? '· hay más páginas' : '· fin de resultados'}`;
     lastUpdate.textContent = `Última actualización: ${nowText()}`;
+    liveInfo.textContent = isTodayRange(filters)
+      ? 'Modo hoy: esperando eventos nuevos'
+      : 'Modo histórico: consulta manual';
 
-    if(payload.rows.length > 0){
-      state.lastHeadSignature = makeHeadSignature(payload.rows[0]);
-    }else{
-      try{
-        const head = await fetchHead(filters);
-        state.lastHeadSignature = makeHeadSignature(head);
-      }catch{
-        state.lastHeadSignature = '';
-      }
-    }
-
-    if(!silent) setLoading(false);
-    prefetchNextPage();
+    setLoading(false);
+    refreshRealtimeMode();
   }catch(err){
     console.error(err);
-    if(!silent) setLoading(false);
-
-    const fallback = state.queryMemory.get(key) || await getCached(key, ttl);
-    if(fallback){
-      renderRows(fallback.rows);
-      state.hasMore = fallback.hasMore;
-      updatePagination();
-      setSourceBadge('CACHE ERROR', 'cache');
-      pageInfo.textContent = `${fallback.rows.length} registros (cache por error)`;
-      lastUpdate.textContent = `Última actualización: ${nowText()} · usando cache`;
-      return;
-    }
-
+    setLoading(false);
     tabla.innerHTML = `<tr><td colspan="12" class="empty">Error: ${esc(err.message || err)}</td></tr>`;
     state.hasMore = false;
     updatePagination();
     pageInfo.textContent = 'Error';
-  }finally{
-    updateMonitorState();
   }
 }
 
 /* =========================
-   MONITOR INTELIGENTE
+   REALTIME
 ========================= */
-function monitorEligible(){
-  const f = readFilters();
-  return (
-    navigator.onLine &&
-    document.visibilityState === 'visible' &&
-    isTodayRange(f)
-  );
+function stopRealtime(){
+  if(state.liveChannel){
+    db.removeChannel(state.liveChannel);
+    state.liveChannel = null;
+  }
+  setRealtimeBadge('detenido', 'mutedBadge');
 }
 
-function stopMonitor(){
-  if(state.monitorTimer){
-    clearInterval(state.monitorTimer);
-    state.monitorTimer = null;
+function prependLiveRow(row){
+  if(state.uuidSet.has(row.uuid_cfdi)) return;
+
+  const nextRows = [row, ...state.rows];
+  if(nextRows.length > PAGE_SIZE){
+    nextRows.pop();
+    state.hasMore = true;
+  }
+
+  renderRows(nextRows, row.uuid_cfdi);
+  updatePagination();
+  pageInfo.textContent = `${state.rows.length} registros · actualizado en vivo`;
+  lastUpdate.textContent = `Última actualización: ${nowText()} · realtime`;
+}
+
+function handleRealtimeInsert(row){
+  if(!state.filters) return;
+  if(!isTodayRange(state.filters)) return;
+  if(!rowMatchesFilters(row, state.filters)) return;
+
+  if(state.page === 0){
+    prependLiveRow(row);
+    liveInfo.textContent = `Nueva factura recibida: ${row.uuid_cfdi || ''}`;
+  }else{
+    state.pendingLiveCount++;
+    liveInfo.textContent = `Llegaron ${state.pendingLiveCount} facturas nuevas fuera de esta página`;
+    showLiveNotice(true);
   }
 }
 
-function updateMonitorState(){
+function startRealtime(){
+  stopRealtime();
+
   if(!navigator.onLine){
     setModeBadge('Modo: offline', 'offline');
-    liveInfo.textContent = 'Monitor detenido: sin conexión';
+    liveInfo.textContent = 'Live detenido: sin conexión';
     return;
   }
 
-  if(document.visibilityState !== 'visible'){
-    setModeBadge('Modo: pausa', 'mutedBadge');
-    liveInfo.textContent = 'Monitor detenido: pestaña oculta';
-    return;
-  }
-
-  if(!isTodayRange(readFilters())){
+  if(!state.filters || !isTodayRange(state.filters)){
     setModeBadge('Modo: histórico', 'mutedBadge');
-    liveInfo.textContent = 'Monitor detenido: el rango no es hoy';
+    liveInfo.textContent = 'Live detenido: el rango no es hoy';
     return;
   }
 
-  setModeBadge('Modo: monitor hoy', 'online');
-  liveInfo.textContent = `Monitor activo: revisión mínima cada ${LIVE_CHECK_MS / 1000}s`;
+  setModeBadge('Modo: hoy en vivo', 'online');
+  liveInfo.textContent = 'Conectando realtime…';
+
+  const channelName = `live-ingresos-pdd-${Date.now()}`;
+
+  state.liveChannel = db
+    .channel(channelName)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: TABLE
+      },
+      payload => {
+        if(payload?.new){
+          handleRealtimeInsert(payload.new);
+        }
+      }
+    )
+    .subscribe(status => {
+      if(status === 'SUBSCRIBED'){
+        setRealtimeBadge('conectado', 'online');
+        liveInfo.textContent = 'Realtime activo: escuchando nuevas facturas';
+      }else if(status === 'CHANNEL_ERROR'){
+        setRealtimeBadge('error', 'offline');
+        liveInfo.textContent = 'Realtime con error';
+      }else if(status === 'TIMED_OUT'){
+        setRealtimeBadge('timeout', 'cache');
+        liveInfo.textContent = 'Realtime agotó tiempo de espera';
+      }else if(status === 'CLOSED'){
+        setRealtimeBadge('cerrado', 'mutedBadge');
+        liveInfo.textContent = 'Realtime cerrado';
+      }else{
+        setRealtimeBadge(status || 'conectando', 'live');
+      }
+    });
 }
 
-async function liveCheck(){
-  if(state.loading) return;
-  if(!monitorEligible()) return;
-  if(!state.filters) return;
-
-  try{
-    state.lastLiveCheckAt = Date.now();
-    liveInfo.textContent = `Monitor activo: verificando cambios… ${new Date().toLocaleTimeString('es-MX')}`;
-
-    const head = await fetchHead(state.filters);
-    const newSig = makeHeadSignature(head);
-
-    if(!newSig){
-      liveInfo.textContent = 'Monitor activo: sin facturas en el rango de hoy';
-      return;
-    }
-
-    if(!state.lastHeadSignature){
-      state.lastHeadSignature = newSig;
-      liveInfo.textContent = 'Monitor activo: referencia inicial establecida';
-      return;
-    }
-
-    if(newSig !== state.lastHeadSignature){
-      liveInfo.textContent = 'Cambio detectado: actualizando tabla…';
-      await cargar({ forceLive:true, silent:true });
-      liveInfo.textContent = `Monitor activo: tabla actualizada ${new Date().toLocaleTimeString('es-MX')}`;
-    }else{
-      liveInfo.textContent = `Monitor activo: sin cambios ${new Date().toLocaleTimeString('es-MX')}`;
-    }
-  }catch(err){
-    console.warn('Live check error:', err);
-    liveInfo.textContent = 'Monitor activo: error al revisar cambios';
-  }
-}
-
-function restartMonitor(){
-  stopMonitor();
-  updateMonitorState();
-
-  if(!monitorEligible()) return;
-
-  state.monitorTimer = setInterval(()=>{
-    liveCheck();
-  }, LIVE_CHECK_MS);
+function refreshRealtimeMode(){
+  startRealtime();
 }
 
 /* =========================
@@ -1179,19 +1019,19 @@ function restartMonitor(){
 ========================= */
 function buscar(){
   state.page = 0;
-  cargar({ forceLive:true, silent:false });
+  cargar();
 }
 
 function nextPage(){
   if(state.loading || !state.hasMore) return;
   state.page++;
-  cargar({ forceLive:true, silent:false });
+  cargar();
 }
 
 function prevPage(){
   if(state.loading || state.page === 0) return;
   state.page--;
-  cargar({ forceLive:true, silent:false });
+  cargar();
 }
 
 btnBuscar.addEventListener('click', buscar);
@@ -1201,28 +1041,38 @@ btnPrev.addEventListener('click', prevPage);
 btnHoy.addEventListener('click', ()=>{
   setTodayRange();
   state.page = 0;
-  cargar({ forceLive:true });
+  cargar();
 });
 
 btn7.addEventListener('click', ()=>{
   setLast7Days();
   state.page = 0;
-  cargar({ forceLive:true });
+  cargar();
 });
 
 btnLimpiar.addEventListener('click', ()=>{
   resetFilters();
   state.page = 0;
+  state.rows = [];
+  state.uuidSet = new Set();
+  state.pendingLiveCount = 0;
+  showLiveNotice(false);
   tabla.innerHTML = `<tr><td colspan="12" class="message">Filtros reiniciados. Ejecuta una consulta.</td></tr>`;
   pageInfo.textContent = 'Sin datos';
-  state.lastHeadSignature = '';
   setSummary();
-  restartMonitor();
+  refreshRealtimeMode();
+});
+
+btnApplyLive.addEventListener('click', ()=>{
+  state.page = 0;
+  state.pendingLiveCount = 0;
+  showLiveNotice(false);
+  cargar();
 });
 
 [clienteInput, sucursalSel, fechaInicio, fechaFin].forEach(el=>{
   el.addEventListener('change', ()=>{
-    restartMonitor();
+    refreshRealtimeMode();
   });
 
   el.addEventListener('keydown', e=>{
@@ -1234,17 +1084,12 @@ btnLimpiar.addEventListener('click', ()=>{
 
 window.addEventListener('online', ()=>{
   setNetworkBadge();
-  loadClientes();
-  restartMonitor();
+  refreshRealtimeMode();
 });
 
 window.addEventListener('offline', ()=>{
   setNetworkBadge();
-  restartMonitor();
-});
-
-document.addEventListener('visibilitychange', ()=>{
-  restartMonitor();
+  refreshRealtimeMode();
 });
 
 /* =========================
@@ -1255,11 +1100,8 @@ document.addEventListener('visibilitychange', ()=>{
   setLast7Days();
   updatePagination();
   setSummary();
-  setSourceBadge('—', 'mutedBadge');
-  cacheInfo.textContent = 'Cache local + memoria activa';
   await loadClientes();
-  await cargar({ forceLive:true, silent:false });
-  restartMonitor();
+  await cargar();
 })();
 </script>
 </body>
