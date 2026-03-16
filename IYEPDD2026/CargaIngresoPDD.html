@@ -112,20 +112,28 @@
 
 // Identificar tipo de factura usando InformacionGlobal
 const infoGlobal = xml.getElementsByTagNameNS(cfdiNS, "InformacionGlobal")[0];
-const tipoFactura = infoGlobal ? "GLOBAL" : "INDIVIDUAL";
 
+let tipoFactura = "INDIVIDUAL";
 let periodoMes = null;
 let periodoAnio = null;
 
 if (infoGlobal) {
-  periodoMes = infoGlobal.getAttribute("Meses") || null;
+  tipoFactura = "GLOBAL";
+
+  periodoMes =
+    infoGlobal.getAttribute("Meses") ||
+    infoGlobal.getAttribute("meses") ||
+    infoGlobal.getAttribute("Mes") ||
+    null;
+
   periodoAnio =
-  infoGlobal.getAttribute("Año") ||
-  infoGlobal.getAttribute("Anio") ||
-  null;
-}
-         
-       
+    infoGlobal.getAttribute("Año") ||
+    infoGlobal.getAttribute("Anio") ||
+    infoGlobal.getAttribute("ANO") ||
+    infoGlobal.getAttribute("anio") ||
+    null;
+}       
+ 
           // Conceptos e impuestos
           const conceptos = [];
           const ivaDetalle = [];
