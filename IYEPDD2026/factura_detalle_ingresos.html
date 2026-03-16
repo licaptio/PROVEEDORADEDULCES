@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>CFDI Ingresos – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- QR -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    :root{
+      --azul:#0b2c52;
+      --azul2:#163d6b;
+      --gris:#5b6675;
+      --borde:#d9e1ea;
+      --fondo:#eef3f8;
+      --blanco:#ffffff;
+      --verde:#11895b;
+      --rojo:#b42318;
+      --sombra:0 8px 24px rgba(0,0,0,.08);
+    }
+
+    body{
+      margin:0;
+      background:var(--fondo);
+      font-family:Arial, Helvetica, sans-serif;
+      color:#1b2430;
+      padding:20px 20px 90px;
+    }
+
+    .topbar{
+      max-width:1200px;
+      margin:0 auto 16px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .acciones{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .btn{
+      border:none;
+      border-radius:12px;
+      padding:12px 16px;
+      font-size:14px;
+      font-weight:700;
+      cursor:pointer;
+      transition:.2s ease;
+    }
+
+    .btn:hover{ transform:translateY(-1px); }
+
+    .btn-azul{ background:var(--azul); color:#fff; }
+    .btn-verde{ background:var(--verde); color:#fff; }
+    .btn-gris{ background:#fff; color:var(--azul); border:1px solid var(--borde); }
+
+    .layout{
+      max-width:1200px;
+      margin:0 auto;
+    }
+
+    .msg{
+      background:#fff;
+      border-radius:16px;
+      box-shadow:var(--sombra);
+      padding:22px;
+      text-align:center;
+      color:var(--gris);
+    }
+
+    .cfdi{
+      background:#fff;
+      border-radius:18px;
+      box-shadow:var(--sombra);
+      overflow:hidden;
+      border:1px solid #e6edf5;
+    }
+
+    .encabezado{
+      background:linear-gradient(135deg,var(--azul),var(--azul2));
+      color:#fff;
+      padding:22px;
+      display:grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap:18px;
+    }
+
+    .encabezado h1{
+      margin:0 0 8px;
+      font-size:24px;
+      line-height:1.2;
+    }
+
+    .encabezado p{
+      margin:4px 0;
+      font-size:14px;
+      line-height:1.35;
+    }
+
+    .bloque-titulo{
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      opacity:.9;
+      margin-bottom:8px;
+    }
+
+    .folio-box{
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:14px;
+      padding:16px;
+      align-self:start;
+    }
+
+    .folio-box .tipo{
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:.5px;
+      text-transform:uppercase;
+      margin-bottom:6px;
+    }
+
+    .folio-box .serie-folio{
+      font-size:28px;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+
+    .folio-box .estado{
+      display:inline-block;
+      background:#fff;
+      color:var(--azul);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      font-weight:700;
+      margin-top:8px;
+    }
+
+    .contenido{
+      padding:18px;
+    }
+
+    .grid-2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+      margin-bottom:16px;
+    }
+
+    .card{
+      border:1px solid var(--borde);
+      border-radius:14px;
+      padding:14px;
+      background:#fff;
+    }
+
+    .card h3{
+      margin:0 0 10px;
+      color:var(--azul);
+      font-size:16px;
+    }
+
+    .card p{
+      margin:6px 0;
+      font-size:14px;
+      line-height:1.35;
+    }
+
+    .datos-mini{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:10px;
+      margin-bottom:16px;
+    }
+
+    .mini{
+      background:#f8fbff;
+      border:1px solid var(--borde);
+      border-radius:12px;
+      padding:12px;
+    }
+
+    .mini .k{
+      font-size:11px;
+      text-transform:uppercase;
+      font-weight:700;
+      color:var(--gris);
+      margin-bottom:6px;
+    }
+
+    .mini .v{
+      font-size:15px;
+      font-weight:700;
+      color:#1f2937;
+      word-break:break-word;
+    }
+
+    .tabla-wrap{
+      overflow:auto;
+      border:1px solid var(--borde);
+      border-radius:14px;
+      margin-bottom:16px;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:980px;
+      background:#fff;
+    }
+
+    th, td{
+      padding:10px 10px;
+      border-bottom:1px solid #e8edf3;
+      font-size:13px;
+      vertical-align:top;
+    }
+
+    th{
+      background:var(--azul);
+      color:#fff;
+      text-align:left;
+    }
+
+    tbody tr:nth-child(even){
+      background:#fafcff;
+    }
+
+    tfoot td{
+      background:#f4f8fc;
+      font-weight:700;
+    }
+
+    .right{ text-align:right; }
+    .center{ text-align:center; }
+
+    .totales{
+      display:grid;
+      grid-template-columns:1.4fr .8fr;
+      gap:16px;
+      margin-bottom:16px;
+    }
+
+    .totales-box{
+      border:1px solid var(--borde);
+      border-radius:14px;
+      padding:14px;
+      background:#fff;
+    }
+
+    .totales-box h3{
+      margin:0 0 10px;
+      color:var(--azul);
+      font-size:16px;
+    }
+
+    .row-total{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px 0;
+      border-bottom:1px dashed #dde5ee;
+      font-size:14px;
+    }
+
+    .row-total:last-child{
+      border-bottom:none;
+    }
+
+    .grand-total{
+      margin-top:10px;
+      background:var(--azul);
+      color:#fff;
+      border-radius:12px;
+      padding:14px;
+      display:flex;
+      justify-content:space-between;
+      font-size:18px;
+      font-weight:700;
+    }
+
+    .sellos{
+      border:1px solid var(--borde);
+      border-radius:14px;
+      padding:14px;
+      background:#fff;
+      margin-bottom:16px;
+    }
+
+    .sellos h3{
+      margin:0 0 10px;
+      color:var(--azul);
+      font-size:16px;
+    }
+
+    .sello-item{
+      margin-bottom:12px;
+    }
+
+    .sello-item:last-child{
+      margin-bottom:0;
+    }
+
+    .sello-item .label{
+      font-size:12px;
+      font-weight:700;
+      color:var(--gris);
+      margin-bottom:4px;
+      text-transform:uppercase;
+    }
+
+    .sello-item .valor{
+      font-size:12px;
+      line-height:1.45;
+      word-break:break-all;
+      background:#f7fafc;
+      border:1px solid #e8edf3;
+      border-radius:10px;
+      padding:10px;
+      min-height:42px;
+      white-space:pre-wrap;
+    }
+
+    .qr-grid{
+      display:grid;
+      grid-template-columns:220px 1fr;
+      gap:16px;
+      align-items:start;
+      border:1px solid var(--borde);
+      border-radius:14px;
+      padding:14px;
+      background:#fff;
+      margin-bottom:16px;
+    }
+
+    #qr{
+      width:180px;
+      height:180px;
+      background:#fff;
+      border:1px solid var(--borde);
+      border-radius:12px;
+      padding:8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .leyenda{
+      font-size:12px;
+      color:var(--gris);
+      text-align:center;
+      margin-top:14px;
+      border-top:1px solid #e8edf3;
+      padding-top:12px;
+    }
+
+    .cancelada{
+      background:#fff3f2;
+      border:1px solid #f3c7c2;
+      color:var(--rojo);
+      padding:12px 14px;
+      border-radius:12px;
+      font-weight:700;
+      margin-bottom:16px;
+    }
+
+    .footer-fijo{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      background:var(--azul);
+      color:#fff;
+      padding:10px 16px;
+      display:flex;
+      gap:10px;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow:0 -8px 20px rgba(0,0,0,.12);
+      z-index:1000;
+      flex-wrap:wrap;
+    }
+
+    .footer-fijo .txt{
+      font-size:13px;
+      opacity:.95;
+    }
+
+    @media (max-width: 980px){
+      .encabezado,
+      .grid-2,
+      .totales,
+      .qr-grid,
+      .datos-mini{
+        grid-template-columns:1fr;
+      }
+
+      #qr{
+        margin:0 auto;
+      }
+    }
+
+    @media print {
+      body{
+        background:#fff;
+        padding:0;
+      }
+
+      .topbar,
+      .footer-fijo,
+      .no-print{
+        display:none !important;
+      }
+
+      .layout{
+        max-width:none;
+        margin:0;
+      }
+
+      .cfdi{
+        box-shadow:none;
+        border:none;
+        border-radius:0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar no-print">
+    <div class="acciones">
+      <button class="btn btn-gris" onclick="history.back()">⬅ Regresar</button>
+      <button class="btn btn-azul" id="btnRecargar">↻ Recargar</button>
+      <button class="btn btn-verde" id="btnPDF">📄 Generar PDF</button>
+    </div>
+    <div style="font-weight:700;color:#18324f;">Visor CFDI Ingresos – PROVSOFT</div>
+  </div>
+
+  <div class="layout">
+    <div id="estado" class="msg">Cargando CFDI...</div>
+    <div id="visor"></div>
+  </div>
+
+  <div class="footer-fijo no-print">
+    <div class="txt">PROVSOFT · Visor CFDI interno para clientes</div>
+    <div class="txt" id="footerUUID">UUID: --</div>
+  </div>
+
+  <script>
+    // ============================================================
+    // CONFIG
+    // ============================================================
+    const SUPA_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
+    const SUPA_KEY = "PON_AQUI_TU_SUPABASE_ANON_KEY";
+    const TABLA = "ingresos_pdd";
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
+    function $(id){ return document.getElementById(id); }
+
+    function safe(v){
+      return (v === null || v === undefined || v === "null") ? "" : v;
+    }
+
+    function num(v){
+      const n = Number(v);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function money(v){
+      return new Intl.NumberFormat("es-MX", {
+        style: "currency",
+        currency: "MXN"
+      }).format(num(v));
+    }
+
+    function prettyDate(fechaRaw){
+      if (!fechaRaw) return "";
+      const d = new Date(fechaRaw);
+      if (isNaN(d.getTime())) return safe(fechaRaw);
+
+      const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+      const dd = String(d.getDate()).padStart(2,"0");
+      const mm = meses[d.getMonth()];
+      const yyyy = d.getFullYear();
+
+      let hh = d.getHours();
+      const mi = String(d.getMinutes()).padStart(2,"0");
+      const ss = String(d.getSeconds()).padStart(2,"0");
+      const ap = hh >= 12 ? "PM" : "AM";
+      hh = hh % 12;
+      hh = hh === 0 ? 12 : hh;
+
+      return `${dd}-${mm}-${yyyy} ${hh}:${mi}:${ss} ${ap}`;
+    }
+
+    function jsonArray(v){
+      if (!v) return [];
+      if (Array.isArray(v)) return v;
+      try{
+        const p = JSON.parse(v);
+        return Array.isArray(p) ? p : [];
+      }catch{
+        return [];
+      }
+    }
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#39;");
+    }
+
+    function uuidFromURL(){
+      const params = new URLSearchParams(location.search);
+      return params.get("uuid");
+    }
+
+    function buildSATQRLink(f){
+      // Formato mínimo útil con lo que sí tienes
+      const total = num(f.total).toFixed(6);
+      return `https://verificacfdi.facturaelectronica.sat.gob.mx/default.aspx?id=${encodeURIComponent(safe(f.uuid_cfdi))}&re=${encodeURIComponent(safe(f.rfc_emisor))}&rr=${encodeURIComponent(safe(f.rfc_receptor))}&tt=${encodeURIComponent(total)}`;
+    }
+
+    function montoLetraBasico(n){
+      // Versión simple MXN. No perfecta para todos los casos, pero suficiente para representación.
+      const entero = Math.floor(num(n));
+      const centavos = Math.round((num(n) - entero) * 100);
+      return `${numeroALetras(entero)} PESOS ${String(centavos).padStart(2,"0")}/100 MXN`;
+    }
+
+    function numeroALetras(numInput){
+      const num = Math.floor(Number(numInput || 0));
+      if (num === 0) return "CERO";
+
+      const unidades = ["","UN","DOS","TRES","CUATRO","CINCO","SEIS","SIETE","OCHO","NUEVE"];
+      const especiales = ["DIEZ","ONCE","DOCE","TRECE","CATORCE","QUINCE","DIECISÉIS","DIECISIETE","DIECIOCHO","DIECINUEVE"];
+      const decenas = ["","","VEINTE","TREINTA","CUARENTA","CINCUENTA","SESENTA","SETENTA","OCHENTA","NOVENTA"];
+      const centenas = ["","CIENTO","DOSCIENTOS","TRESCIENTOS","CUATROCIENTOS","QUINIENTOS","SEISCIENTOS","SETECIENTOS","OCHOCIENTOS","NOVECIENTOS"];
+
+      function seccion(n){
+        let out = "";
+
+        if (n === 100) return "CIEN";
+
+        const c = Math.floor(n / 100);
+        const d = Math.floor((n % 100) / 10);
+        const u = n % 10;
+        const du = n % 100;
+
+        if (c > 0) out += centenas[c] + " ";
+
+        if (du >= 10 && du <= 19){
+          out += especiales[du - 10];
+          return out.trim();
+        }
+
+        if (du >= 20 && du <= 29){
+          if (du === 20) return (out + "VEINTE").trim();
+          return (out + "VEINTI" + unidades[u].toLowerCase()).toUpperCase();
+        }
+
+        if (d > 0){
+          out += decenas[d];
+          if (u > 0) out += " Y ";
+        }
+
+        if (u > 0) out += unidades[u];
+
+        return out.trim();
+      }
+
+      function miles(n){
+        if (n < 1000) return seccion(n);
+        const m = Math.floor(n / 1000);
+        const r = n % 1000;
+        let txt = "";
+
+        if (m === 1) txt = "MIL";
+        else txt = `${seccion(m)} MIL`;
+
+        if (r > 0) txt += ` ${seccion(r)}`;
+        return txt.trim();
+      }
+
+      function millones(n){
+        if (n < 1000000) return miles(n);
+        const m = Math.floor(n / 1000000);
+        const r = n % 1000000;
+        let txt = "";
+
+        if (m === 1) txt = "UN MILLÓN";
+        else txt = `${miles(m)} MILLONES`;
+
+        if (r > 0) txt += ` ${miles(r)}`;
+        return txt.trim();
+      }
+
+      return millones(num);
+    }
+
+    // ============================================================
+    // ESTADO
+    // ============================================================
+    let FACTURA = null;
+
+    // ============================================================
+    // CARGA
+    // ============================================================
+    async function cargarCFDI(){
+      const estado = $("estado");
+      const visor = $("visor");
+      const uuid = uuidFromURL();
+
+      visor.innerHTML = "";
+
+      if (!uuid){
+        estado.className = "msg";
+        estado.textContent = "No hay UUID en la URL. Usa ?uuid=TU_UUID";
+        return;
+      }
+
+      try{
+        estado.className = "msg";
+        estado.textContent = "Consultando CFDI...";
+
+        const url = `${SUPA_URL}/rest/v1/${TABLA}?uuid_cfdi=eq.${encodeURIComponent(uuid)}&select=*`;
+
+        const res = await fetch(url, {
+          headers: {
+            apikey: SUPA_KEY,
+            Authorization: `Bearer ${SUPA_KEY}`
+          }
+        });
+
+        if (!res.ok){
+          const txt = await res.text();
+          console.error(txt);
+          estado.textContent = "Error al consultar Supabase.";
+          return;
+        }
+
+        const rows = await res.json();
+
+        if (!Array.isArray(rows) || !rows.length){
+          estado.textContent = "No se encontró el CFDI.";
+          return;
+        }
+
+        FACTURA = rows[0];
+        renderFactura(FACTURA);
+        estado.style.display = "none";
+        $("footerUUID").textContent = `UUID: ${safe(FACTURA.uuid_cfdi)}`;
+      }catch(err){
+        console.error(err);
+        estado.className = "msg";
+        estado.textContent = "Ocurrió un error al cargar el CFDI.";
+      }
+    }
+
+    // ============================================================
+    // RENDER
+    // ============================================================
+    function renderFactura(f){
+      const visor = $("visor");
+
+      const conceptos = jsonArray(f.conceptos);
+      const ivaDetalle = jsonArray(f.iva_detalle);
+      const iepsDetalle = jsonArray(f.ieps_detalle);
+
+      const subtotal = num(f.subtotal);
+      const descuento = num(f.descuento);
+      const totalIVA = num(f.total_iva);
+      const totalIEPS = num(f.total_ieps);
+      const total = num(f.total);
+
+      const qrLink = buildSATQRLink(f);
+
+      let filas = "";
+      conceptos.forEach((c, i) => {
+        const impuestos = jsonArray(c.impuestos);
+        const iva = num(impuestos.find(x => safe(x.impuesto) === "002")?.importe || 0);
+        const ieps = num(impuestos.find(x => safe(x.impuesto) === "003")?.importe || 0);
+        const importe = num(c.importe || (num(c.cantidad) * num(c.valorUnitario)));
+
+        filas += `
+          <tr>
+            <td class="center">${num(c.cantidad)}</td>
+            <td>${escapeHtml(safe(c.claveProdServ))}</td>
+            <td>${escapeHtml(safe(c.descripcion))}</td>
+            <td class="right">${money(c.valorUnitario)}</td>
+            <td class="right">${money(importe)}</td>
+            <td class="right">${money(iva)}</td>
+            <td class="right">${money(ieps)}</td>
+            <td>${impuestos.length ? impuestos.map(x => {
+              const imp = safe(x.impuesto) === "002" ? "IVA" : safe(x.impuesto) === "003" ? "IEPS" : safe(x.impuesto);
+              return `${imp} ${(num(x.tasa) * 100).toFixed(2)}%`;
+            }).join("<br>") : "—"}</td>
+          </tr>
+        `;
+      });
+
+      let desgloseTras = "";
+      if (ivaDetalle.length || iepsDetalle.length){
+        const union = [...ivaDetalle, ...iepsDetalle];
+        union.forEach(x => {
+          const tipo = safe(x.impuesto) === "002" ? "IVA" : safe(x.impuesto) === "003" ? "IEPS" : safe(x.impuesto);
+          desgloseTras += `
+            <div class="row-total">
+              <span>${tipo} ${(num(x.tasa) * 100).toFixed(2)}%</span>
+              <span>${money(x.importe)}</span>
+            </div>
+          `;
+        });
+      } else {
+        desgloseTras = `<div class="row-total"><span>Sin desglose</span><span>—</span></div>`;
+      }
+
+      visor.innerHTML = `
+        <div class="cfdi" id="areaPDF">
+          <div class="encabezado">
+            <div>
+              <div class="bloque-titulo">Emisor</div>
+              <h1>${escapeHtml(safe(f.razon_social_emisor || "EMISOR"))}</h1>
+              <p><strong>RFC:</strong> ${escapeHtml(safe(f.rfc_emisor))}</p>
+              <p><strong>Régimen fiscal:</strong> No disponible en tabla</p>
+              <p><strong>Lugar de expedición:</strong> No disponible en tabla</p>
+              <p><strong>Moneda:</strong> ${escapeHtml(safe(f.moneda || "MXN"))}</p>
+              <p><strong>Tipo CFDI:</strong> ${escapeHtml(safe(f.tipo_factura || "INGRESO"))}</p>
+            </div>
+
+            <div class="folio-box">
+              <div class="tipo">Representación impresa de CFDI</div>
+              <div class="serie-folio">${escapeHtml(safe(f.serie))} ${escapeHtml(safe(f.folio))}</div>
+              <p><strong>Folio fiscal:</strong><br>${escapeHtml(safe(f.uuid_cfdi))}</p>
+              <p><strong>Fecha emisión:</strong><br>${escapeHtml(prettyDate(f.fecha))}</p>
+              <p><strong>Fecha certificación:</strong><br>${escapeHtml(prettyDate(f.fecha_certificacion))}</p>
+              <p><strong>No. certificado SAT:</strong><br>${escapeHtml(safe(f.no_certificado_sat) || "N/D")}</p>
+              <div class="estado">${f.cancelado ? "CANCELADA" : "ACTIVA"}</div>
+            </div>
+          </div>
+
+          <div class="contenido">
+            ${f.cancelado ? `<div class="cancelada">CFDI CANCELADO${f.fecha_cancelacion ? ` · ${escapeHtml(prettyDate(f.fecha_cancelacion))}` : ""}</div>` : ""}
+
+            <div class="grid-2">
+              <div class="card">
+                <h3>Datos del receptor</h3>
+                <p><strong>Nombre:</strong> ${escapeHtml(safe(f.razon_social_receptor))}</p>
+                <p><strong>RFC:</strong> ${escapeHtml(safe(f.rfc_receptor))}</p>
+                <p><strong>Uso del CFDI:</strong> ${escapeHtml(safe(f.uso_cfdi))}</p>
+                <p><strong>Domicilio fiscal:</strong> No disponible en tabla</p>
+                <p><strong>Régimen fiscal receptor:</strong> No disponible en tabla</p>
+              </div>
+
+              <div class="card">
+                <h3>Datos de pago</h3>
+                <p><strong>Forma de pago:</strong> ${escapeHtml(safe(f.forma_pago))}</p>
+                <p><strong>Método de pago:</strong> ${escapeHtml(safe(f.metodo_pago))}</p>
+                <p><strong>Periodo mes:</strong> ${escapeHtml(safe(f.periodo_mes) || "N/D")}</p>
+                <p><strong>Periodo año:</strong> ${escapeHtml(safe(f.periodo_anio) || "N/D")}</p>
+                <p><strong>Insertado en:</strong> ${escapeHtml(prettyDate(f.insertado_en))}</p>
+              </div>
+            </div>
+
+            <div class="datos-mini">
+              <div class="mini">
+                <div class="k">UUID</div>
+                <div class="v">${escapeHtml(safe(f.uuid_cfdi))}</div>
+              </div>
+              <div class="mini">
+                <div class="k">Serie</div>
+                <div class="v">${escapeHtml(safe(f.serie))}</div>
+              </div>
+              <div class="mini">
+                <div class="k">Folio</div>
+                <div class="v">${escapeHtml(safe(f.folio))}</div>
+              </div>
+              <div class="mini">
+                <div class="k">Moneda</div>
+                <div class="v">${escapeHtml(safe(f.moneda || "MXN"))}</div>
+              </div>
+            </div>
+
+            <div class="tabla-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:8%">Cant.</th>
+                    <th style="width:12%">Clave Prod/Serv</th>
+                    <th>Descripción</th>
+                    <th style="width:12%" class="right">Valor Unit.</th>
+                    <th style="width:12%" class="right">Importe</th>
+                    <th style="width:10%" class="right">IVA</th>
+                    <th style="width:10%" class="right">IEPS</th>
+                    <th style="width:14%">Impuestos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filas || `<tr><td colspan="8" class="center">Sin conceptos</td></tr>`}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="totales">
+              <div class="totales-box">
+                <h3>Desglose de impuestos trasladados</h3>
+                ${desgloseTras}
+              </div>
+
+              <div class="totales-box">
+                <h3>Importes</h3>
+                <div class="row-total">
+                  <span>Subtotal</span>
+                  <span>${money(subtotal)}</span>
+                </div>
+                <div class="row-total">
+                  <span>Descuento</span>
+                  <span>${money(descuento)}</span>
+                </div>
+                <div class="row-total">
+                  <span>IVA</span>
+                  <span>${money(totalIVA)}</span>
+                </div>
+                <div class="row-total">
+                  <span>IEPS</span>
+                  <span>${money(totalIEPS)}</span>
+                </div>
+                <div class="grand-total">
+                  <span>Total</span>
+                  <span>${money(total)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px;">
+              <h3>Importe con letra</h3>
+              <p style="font-weight:700;">${escapeHtml(montoLetraBasico(total))}</p>
+            </div>
+
+            <div class="qr-grid">
+              <div>
+                <div id="qr"></div>
+                <div class="leyenda">Verificación SAT</div>
+              </div>
+              <div>
+                <div class="sello-item">
+                  <div class="label">URL de verificación SAT</div>
+                  <div class="valor">${escapeHtml(qrLink)}</div>
+                </div>
+                <div class="sello-item">
+                  <div class="label">PAC / certificado SAT</div>
+                  <div class="valor">No. Certificado SAT: ${escapeHtml(safe(f.no_certificado_sat) || "N/D")}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="sellos">
+              <h3>Sellos y cadena</h3>
+
+              <div class="sello-item">
+                <div class="label">Sello del SAT</div>
+                <div class="valor">${escapeHtml(safe(f.sello_sat) || "NO DISPONIBLE EN TABLA")}</div>
+              </div>
+
+              <div class="sello-item">
+                <div class="label">Sello digital del CFDI</div>
+                <div class="valor">NO DISPONIBLE EN TABLA</div>
+              </div>
+
+              <div class="sello-item">
+                <div class="label">Cadena original del complemento de certificación digital del SAT</div>
+                <div class="valor">NO DISPONIBLE EN TABLA</div>
+              </div>
+            </div>
+
+            <div class="leyenda">
+              Este documento es una representación impresa de un CFDI.<br>
+              Generado desde PROVSOFT con base en la tabla <strong>${TABLA}</strong>.
+            </div>
+          </div>
+        </div>
+      `;
+
+      renderQR(qrLink);
+    }
+
+    // ============================================================
+    // QR
+    // ============================================================
+    function renderQR(texto){
+      const el = $("qr");
+      if (!el) return;
+      el.innerHTML = "";
+      new QRCode(el, {
+        text: texto,
+        width: 160,
+        height: 160,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    // ============================================================
+    // PDF
+    // ============================================================
+    async function generarPDF(){
+      if (!FACTURA){
+        alert("No hay CFDI cargado.");
+        return;
+      }
+
+      const area = $("areaPDF");
+      if (!area){
+        alert("No existe el área de PDF.");
+        return;
+      }
+
+      const filename = `CFDI_${safe(FACTURA.serie)}${safe(FACTURA.folio)}_${safe(FACTURA.uuid_cfdi)}.pdf`;
+
+      const opt = {
+        margin: [6, 6, 6, 6],
+        filename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          scrollY: 0
+        },
+        jsPDF: {
+          unit: "mm",
+          format: "a4",
+          orientation: "portrait"
+        },
+        pagebreak: {
+          mode: ["css", "legacy"]
+        }
+      };
+
+      await html2pdf().set(opt).from(area).save();
+    }
+
+    // ============================================================
+    // EVENTOS
+    // ============================================================
+    $("btnRecargar").addEventListener("click", cargarCFDI);
+    $("btnPDF").addEventListener("click", generarPDF);
+
+    // ============================================================
+    // START
+    // ============================================================
+    cargarCFDI();
+  </script>
+</body>
+</html>
