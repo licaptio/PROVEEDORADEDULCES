@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pedidos – PROVSOFT</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  body{
+    margin:0;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(to bottom right,#0f2027,#203a43,#2c5364);
+    color:white;
+    padding:20px;
+  }
+
+  h1{
+    margin-bottom:10px;
+  }
+
+  .filtros{
+    margin-bottom:15px;
+  }
+
+  button{
+    padding:8px 14px;
+    margin-right:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+  }
+
+  .btn-all{background:#3498db;}
+  .btn-pendiente{background:#e67e22;}
+  .btn-surtido{background:#2ecc71;}
+
+  .card{
+    background:rgba(255,255,255,0.08);
+    padding:15px;
+    border-radius:12px;
+    margin-bottom:12px;
+    backdrop-filter: blur(6px);
+  }
+
+  .top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+
+  .estatus{
+    padding:5px 10px;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:bold;
+  }
+
+  .PENDIENTE{background:#e67e22;}
+  .SURTIDO{background:#2ecc71;}
+
+  .fecha{
+    font-size:13px;
+    opacity:0.8;
+  }
+
+  .notas{
+    margin-top:8px;
+    font-size:14px;
+    opacity:0.9;
+  }
+
+</style>
+</head>
+<body>
+
+<h1>📦 Pedidos PDD</h1>
+
+<div class="filtros">
+  <button class="btn-all" onclick="cargarPedidos()">Todos</button>
+  <button class="btn-pendiente" onclick="cargarPedidos('PENDIENTE')">Pendientes</button>
+  <button class="btn-surtido" onclick="cargarPedidos('SURTIDO')">Surtidos</button>
+</div>
+
+<div id="lista"></div>
+
+<script>
+
+const supabase = supabase.createClient(
+  "https://cvpbtjlupswbyxenugpz.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY"
+);
+
+async function cargarPedidos(filtro=null){
+
+  let query = supabase
+    .from("pedidos_pdd")
+    .select("*")
+    .order("pedido_fecha", { ascending: false });
+
+  if(filtro){
+    query = query.eq("estatus", filtro);
+  }
+
+  const { data, error } = await query;
+
+  if(error){
+    alert("Error cargando pedidos");
+    console.error(error);
+    return;
+  }
+
+  render(data);
+}
+
+function render(pedidos){
+  const cont = document.getElementById("lista");
+  cont.innerHTML = "";
+
+  if(!pedidos.length){
+    cont.innerHTML = "<p>No hay pedidos</p>";
+    return;
+  }
+
+  pedidos.forEach(p => {
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <div class="top">
+        <strong>${p.proveedor_nombre}</strong>
+        <span class="estatus ${p.estatus}">${p.estatus}</span>
+      </div>
+
+      <div class="fecha">
+        📅 ${p.pedido_fecha}
+      </div>
+
+      <div class="notas">
+        📝 ${p.notas || "Sin notas"}
+      </div>
+
+      <div style="margin-top:8px;font-size:12px;opacity:.7">
+        ID: ${p.id}
+      </div>
+    `;
+
+    cont.appendChild(card);
+  });
+}
+
+// Carga inicial
+cargarPedidos();
+
+</script>
+
+</body>
+</html>
