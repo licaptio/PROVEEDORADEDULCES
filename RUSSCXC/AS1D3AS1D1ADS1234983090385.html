@@ -353,6 +353,7 @@
       'https://cvpbtjlupswbyxenugpz.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
     );
+    
 
     let DATA_FINAL = [];
 
@@ -366,6 +367,10 @@
       PAUSADO: "PAUSADO",
       MANUAL: "MANUAL"
     };
+
+const PROVEEDORES_ESPECIALES = {
+  "DCE981012KWA": 20 // DECASA DEL CENTRO
+};    
 
     let ordenActual = ORDEN.DIAS_DESC;
     let gruposProveedores = [];
@@ -443,6 +448,10 @@
           ? f.razon_social_emisor
           : (f.rfc_emisor || "SIN NOMBRE");
     }
+
+    function limiteDiasProveedor(f){
+  return PROVEEDORES_ESPECIALES[f.rfc_emisor] || 30;
+}
 
     function calcularDias(fechaStr) {
       const hoy = new Date();
@@ -689,12 +698,16 @@
         const dias = calcularDias(f.fecha);
         const proveedor = proveedorReal(f);
         const folioFinal = f.serie_folio || [f.serie, f.folio].filter(Boolean).join("-") || f.factura || "—";
-        const claseVencido = dias >= 30 ? "vencido" : "";
+        const limite = limiteDiasProveedor(f);
+const claseVencido = dias >= limite ? "vencido" : "";
 
         html += `
           <tr class="${claseVencido}">
             <td>${fechaYMD(f.fecha)}</td>
-            <td>${dias}</td>
+            <td>
+  ${dias}
+  <span style="font-size:0.8rem;color:#888;">/${limite}</span>
+</td>
             <td>
               <a href="detalle.html?uuid=${encodeURIComponent(f.uuid_cfdi || "")}" target="_blank" class="uuid-corto" title="${f.uuid_cfdi || ""}">
                 ${f.uuid_cfdi || "—"}
