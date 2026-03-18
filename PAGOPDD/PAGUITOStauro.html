@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Pagos – BOLSAS TAURO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+  font-family:Poppins,Arial,sans-serif;
+  background:#eef1f5;
+  padding:20px;
+  margin:0;
+}
+
+h2{
+  margin:0 0 16px 0;
+  font-size:28px;
+  color:#1f2937;
+}
+
+.card{
+  background:#fff;
+  padding:16px;
+  border-radius:14px;
+  box-shadow:0 6px 18px rgba(0,0,0,.10);
+  margin-bottom:12px;
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  font-weight:700;
+  font-size:18px;
+  color:#111827;
+}
+
+.muted{
+  color:#6b7280;
+  font-size:14px;
+  margin-top:6px;
+}
+
+.idline{
+  margin-top:8px;
+  font-size:13px;
+  color:#4b5563;
+  font-family:monospace;
+}
+
+.idline a{
+  color:#2563eb;
+  text-decoration:none;
+}
+
+.idline a:hover{
+  text-decoration:underline;
+}
+
+.totalBox{
+  position:sticky;
+  bottom:0;
+  background:#ffffff;
+  padding:16px;
+  border-radius:14px;
+  box-shadow:0 -2px 12px rgba(0,0,0,.08);
+  margin-top:18px;
+}
+
+.total{
+  font-size:22px;
+  font-weight:800;
+  color:#111827;
+}
+
+.sub{
+  color:#6b7280;
+  font-size:13px;
+  margin-top:4px;
+}
+</style>
+</head>
+<body>
+
+<h2>🏦 Pagos realizados a BOLSAS TAURO</h2>
+
+<div id="lista"></div>
+
+<div class="totalBox">
+  <div class="total">Total pagado: <span id="total">$0.00</span></div>
+  <div class="sub">RFC: BTA010327AD3</div>
+</div>
+
+<script>
+const sb = window.supabase.createClient(
+  'https://cvpbtjlupswbyxenugpz.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+);
+
+const formatoMXN = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  minimumFractionDigits: 2
+});
+
+async function cargar(){
+  const { data, error } = await sb
+    .from('pagos_proveedor')
+    .select('id,fecha_pago,banco,proveedor_nombre,importe_pagado,rfc_emisor')
+    .eq('rfc_emisor', 'BTA010327AD3')
+    .order('fecha_pago', { ascending:false });
+
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  const lista = document.getElementById('lista');
+  lista.innerHTML = '';
+
+  let total = 0;
+
+  if(!data || data.length === 0){
+    lista.innerHTML = `
+      <div class="card">
+        <div class="muted">No se encontraron pagos para este RFC.</div>
+      </div>
+    `;
+    document.getElementById('total').innerText = formatoMXN.format(0);
+    return;
+  }
+
+  data.forEach(p => {
+    total += Number(p.importe_pagado || 0);
+
+    lista.innerHTML += `
+      <div class="card">
+        <div class="top">
+          <div>${formatoMXN.format(p.importe_pagado || 0)}</div>
+          <div>${p.fecha_pago || ''}</div>
+        </div>
+
+        <div class="muted">${p.proveedor_nombre || 'SIN NOMBRE'}</div>
+        <div class="muted">Banco: ${p.banco || 'SIN BANCO'}</div>
+
+        <div class="idline">
+          ID:
+          <a href="CARDEX.html?id=${p.id}" target="_blank">${p.id}</a>
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById('total').innerText = formatoMXN.format(total);
+}
+
+cargar();
+</script>
+
+</body>
+</html>
