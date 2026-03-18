@@ -4,5 +4,5 @@
   { "nombre": "PAGO CONTADO", "archivo": "PAGOCONTA.html" },
   { "nombre": "PRONTOS PAGO", "archivo": "PPPAGOPDD.html" },
   { "nombre": "PROVEEDORES ESPECIALES", "archivo": "PROVESPE.html" },
-  { "nombre": "ARRENDATARIOS", "archivo": "ARRENDATARIOS.html" },
+  { "nombre": "ARRENDATARIOS", "archivo": "ARRENDATARIOS.html" }
 ]
