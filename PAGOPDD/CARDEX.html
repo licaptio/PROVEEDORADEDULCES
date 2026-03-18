@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <title>Comprobante de Pago – Proveedora</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 :root{
@@ -18,16 +18,28 @@
   --card:#ffffff;
   --texto:#222;
   --muted:#666;
-  --shadow:0 6px 18px rgba(0,0,0,.12);
+  --line:#e5e7eb;
+  --shadow:0 6px 18px rgba(0,0,0,.10);
   --r:14px;
 }
 
-body{
+*{ box-sizing:border-box; }
+
+html,body{
   margin:0;
-  padding:30px;
+  padding:0;
   font-family:'Poppins',sans-serif;
   background:var(--gris);
   color:var(--texto);
+}
+
+body{
+  padding:20px;
+}
+
+.page{
+  max-width:1360px;
+  margin:0 auto;
 }
 
 .header{
@@ -37,24 +49,86 @@ body{
   box-shadow:var(--shadow);
   display:flex;
   align-items:center;
-  gap:20px;
-  margin-bottom:20px;
+  gap:18px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
 }
 
-.header img{ max-height:70px; }
-.header .title{ flex:1; }
-.header h2{ margin:0; color:var(--rojo); }
-.header .sub{ font-size:13px; color:var(--muted); }
+.header img{
+  max-height:68px;
+  width:auto;
+  object-fit:contain;
+}
 
-.card{
-  background:var(--card);
-  padding:20px;
-  border-radius:var(--r);
-  box-shadow:var(--shadow);
+.header .title{
+  flex:1;
+  min-width:240px;
+}
+
+.header h2{
+  margin:0 0 4px 0;
+  color:var(--rojo);
+  font-size:clamp(1.2rem, 2vw, 1.8rem);
+}
+
+.header .sub{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
   margin-bottom:18px;
 }
 
-h3{ margin:0 0 10px; color:var(--verde); }
+button{
+  border:none;
+  border-radius:12px;
+  padding:12px 14px;
+  font-family:'Poppins',sans-serif;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow:var(--shadow);
+  transition:.18s ease;
+}
+
+button:hover{
+  transform:translateY(-1px);
+}
+
+.btn-primary{
+  background:var(--rojo);
+  color:#fff;
+}
+
+.btn-secondary{
+  background:#111827;
+  color:#fff;
+}
+
+.smallhint{
+  font-size:12px;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+}
+
+.card{
+  background:var(--card);
+  padding:18px;
+  border-radius:var(--r);
+  box-shadow:var(--shadow);
+  margin-bottom:18px;
+  overflow:hidden;
+}
+
+h3{
+  margin:0 0 12px 0;
+  color:var(--verde);
+  font-size:clamp(1rem, 1.4vw, 1.35rem);
+}
 
 .grid{
   display:grid;
@@ -62,29 +136,72 @@ h3{ margin:0 0 10px; color:var(--verde); }
   gap:12px;
 }
 
-.label{ font-size:12px; color:var(--muted); }
-.value{ font-size:14px; font-weight:600; }
+.label{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:3px;
+}
+
+.value{
+  font-size:14px;
+  font-weight:700;
+  word-break:break-word;
+}
+
+.total{
+  font-size:28px;
+  font-weight:800;
+  color:var(--rojo);
+  line-height:1.1;
+}
+
+.table-wrap{
+  width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  border-radius:12px;
+}
 
 table{
   width:100%;
   border-collapse:collapse;
   font-size:13px;
+  min-width:900px;
 }
+
 th,td{
   padding:10px;
   border-bottom:1px solid #ddd;
   vertical-align:top;
 }
+
 th{
   background:#f9fafb;
   text-align:left;
+  position:sticky;
+  top:0;
+  z-index:1;
 }
 
-.total{
-  font-size:20px;
-  font-weight:700;
-  color:var(--rojo);
+.t-right{
   text-align:right;
+}
+
+.uuid-cell{
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12px;
+  word-break:break-all;
+}
+
+.neg{
+  color:#b91c1c;
+  font-weight:700;
+}
+
+.note{
+  font-size:11px;
+  color:#6b7280;
+  margin-top:4px;
 }
 
 pre{
@@ -96,86 +213,71 @@ pre{
   overflow:auto;
   white-space:pre-wrap;
   word-break:break-word;
+  margin:0;
 }
 
 .footer{
   text-align:center;
   font-size:11px;
   color:#777;
-  margin-top:30px;
+  margin-top:24px;
 }
 
-/* Botones */
-.actions{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-bottom:18px;
-}
-button{
-  border:none;
-  border-radius:12px;
-  padding:12px 14px;
-  font-family:'Poppins',sans-serif;
-  font-weight:600;
-  cursor:pointer;
-  box-shadow:var(--shadow);
-}
-.btn-primary{ background:var(--rojo); color:#fff; }
-.btn-secondary{ background:#111827; color:#fff; }
-.smallhint{ font-size:12px; color:var(--muted); margin-top:6px; }
-
-/* Tarjeta especial para imagen */
+/* Tarjeta imagen */
 .share-card{
   background:#ffffff;
   border-radius:16px;
   padding:18px;
   border:1px solid #e5e7eb;
 }
+
 .share-top{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:space-between;
   gap:12px;
   margin-bottom:10px;
+  flex-wrap:wrap;
 }
+
 .badge{
   background:#dcfce7;
   color:#166534;
-  font-weight:700;
+  font-weight:800;
   border-radius:999px;
   padding:6px 10px;
   font-size:12px;
+  white-space:nowrap;
 }
+
 .brand{
   font-weight:800;
   color:var(--rojo);
   font-size:14px;
 }
+
 .share-title{
-  margin:0;
+  margin:2px 0 0 0;
   font-size:16px;
   color:#111827;
 }
+
 .mono{
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size:12px;
 }
+
 hr{
   border:none;
   border-top:1px solid #e5e7eb;
   margin:12px 0;
 }
 
-/* EXTRA PARA IMAGEN (COMPROBANTE + FACTURAS) */
 .twocol{
   display:grid;
-  grid-template-columns: 1.15fr 1fr;
+  grid-template-columns:1.15fr 1fr;
   gap:12px;
   margin-top:12px;
-}
-@media (max-width: 900px){
-  .twocol{ grid-template-columns:1fr; }
 }
 
 .bankpre{
@@ -188,225 +290,355 @@ hr{
   white-space:pre-wrap;
   word-break:break-word;
   border:1px solid #1118271a;
+  min-height:180px;
+}
+
+.fact-table-wrap{
+  width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  border-radius:12px;
 }
 
 .fact-table{
   width:100%;
   border-collapse:collapse;
   font-size:12px;
+  min-width:420px;
   border:1px solid #e5e7eb;
   border-radius:12px;
   overflow:hidden;
 }
+
 .fact-table th,.fact-table td{
   padding:7px 8px;
   border-bottom:1px solid #e5e7eb;
   vertical-align:top;
 }
+
 .fact-table th{
   background:#f9fafb;
   font-size:11px;
   color:#6b7280;
   letter-spacing:.02em;
 }
+
 .uuid{
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size:11px;
+  word-break:break-all;
 }
+
 .mutedline{
   font-size:11px;
   color:#6b7280;
   margin-top:6px;
 }
 
-.neg{ color:#b91c1c; font-weight:700; }
-.note{ font-size:11px; color:#6b7280; margin-top:4px; }
+.debug{
+  font-size:12px;
+  color:#6b7280;
+  margin-top:10px;
+  word-break:break-word;
+}
 
-/* 🖨️ MODO IMPRESIÓN */
+@media (max-width: 900px){
+  body{
+    padding:12px;
+  }
+
+  .header{
+    padding:16px;
+  }
+
+  .card{
+    padding:14px;
+    border-radius:12px;
+  }
+
+  .grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .twocol{
+    grid-template-columns:1fr;
+  }
+
+  .total{
+    font-size:24px;
+  }
+}
+
+@media (max-width: 640px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+  .actions{
+    flex-direction:column;
+  }
+
+  .actions button{
+    width:100%;
+  }
+
+  .smallhint{
+    display:block;
+  }
+
+  .header{
+    align-items:flex-start;
+  }
+
+  .header img{
+    max-height:56px;
+  }
+
+  .share-card{
+    padding:14px;
+  }
+
+  .brand{
+    font-size:13px;
+  }
+
+  .share-title{
+    font-size:15px;
+  }
+
+  .total{
+    font-size:22px;
+  }
+}
+
 @media print{
-  body{ background:#fff; padding:0; }
-  .card, .header{ box-shadow:none; border-radius:0; }
-  .actions{ display:none; }
-  .footer{ margin-top:15px; }
+  body{
+    background:#fff;
+    padding:0;
+  }
+
+  .card,.header{
+    box-shadow:none;
+    border-radius:0;
+  }
+
+  .actions{
+    display:none;
+  }
+
+  .footer{
+    margin-top:15px;
+  }
 }
 </style>
 </head>
-
 <body>
 
-<!-- HEADER -->
-<div class="header">
-  <img src="proveedora_logo.jpg" alt="La Proveedora">
-  <div class="title">
-    <h2>Comprobante de Pago</h2>
-    <div class="sub">Documento informativo de pago a proveedor</div>
-  </div>
-</div>
+<div class="page">
 
-<!-- Acciones -->
-<div class="actions">
-  <button class="btn-primary" onclick="generarImagenResumen()">📸 Generar imagen (Resumen)</button>
-  <button class="btn-secondary" onclick="window.print()">🖨️ Imprimir</button>
-  <div class="smallhint">Tip: si no copia al portapapeles, se descargará el PNG.</div>
-</div>
-
-<div class="card">
-  <div class="label">ID del Pago</div>
-  <div class="value" id="pagoId">—</div>
-</div>
-
-<div class="card">
-  <h3>Datos Generales</h3>
-  <div class="grid">
-    <div><div class="label">Proveedor</div><div class="value" id="proveedor"></div></div>
-    <div><div class="label">RFC</div><div class="value" id="rfc"></div></div>
-    <div><div class="label">Banco</div><div class="value" id="banco"></div></div>
-    <div><div class="label">Fecha de Pago</div><div class="value" id="fecha"></div></div>
-  </div>
-</div>
-
-<div class="card">
-  <h3>Facturas Pagadas</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Serie / Folio</th>
-        <th>UUID CFDI</th>
-        <th style="text-align:right">Importe Original</th>
-        <th style="text-align:right">Descuento</th>
-        <th style="text-align:right">Importe Final</th>
-      </tr>
-    </thead>
-    <tbody id="facturas"></tbody>
-  </table>
-</div>
-
-<div class="card">
-  <h3>Resumen</h3>
-  <div class="grid">
-    <div><div class="label">Total Facturas (original)</div><div class="value" id="totalFacturasOriginal"></div></div>
-    <div><div class="label">Descuentos por factura</div><div class="value" id="totalDescFacturas"></div></div>
-    <div><div class="label">Total Facturas (neto)</div><div class="value" id="totalFacturas"></div></div>
-    <div><div class="label">Ajustes</div><div class="value" id="totalAjustes"></div></div>
-    <div><div class="label">Importe Pagado</div><div class="value total" id="importe"></div></div>
-  </div>
-</div>
-
-<!-- TARJETA A IMAGEN -->
-<div class="card" id="resumenImagenWrap">
-  <h3>Resumen para Proveedor (Imagen)</h3>
-
-  <div id="resumenImagen" class="share-card">
-    <div class="share-top">
-      <div>
-        <div class="brand">LA PROVEEDORA · PROVSOFT</div>
-        <h4 class="share-title">Confirmación de pago</h4>
-      </div>
-      <div class="badge">PAGO REGISTRADO</div>
+  <div class="header">
+    <img src="proveedora_logo.jpg" alt="La Proveedora">
+    <div class="title">
+      <h2>Comprobante de Pago</h2>
+      <div class="sub">Documento informativo de pago a proveedor</div>
     </div>
+  </div>
 
+  <div class="actions">
+    <button class="btn-primary" onclick="generarImagenResumen()">📸 Generar imagen (Resumen)</button>
+    <button class="btn-secondary" onclick="window.print()">🖨️ Imprimir</button>
+    <div class="smallhint">Si no se copia al portapapeles, se descargará el PNG.</div>
+  </div>
+
+  <div class="card">
+    <div class="label">ID del Pago</div>
+    <div class="value" id="pagoId">—</div>
+  </div>
+
+  <div class="card">
+    <h3>Datos Generales</h3>
     <div class="grid">
-      <div><div class="label">ID Pago</div><div class="value mono" id="img_pagoId">—</div></div>
-      <div><div class="label">Fecha</div><div class="value" id="img_fecha">—</div></div>
-      <div><div class="label">Proveedor</div><div class="value" id="img_proveedor">—</div></div>
-      <div><div class="label">RFC</div><div class="value mono" id="img_rfc">—</div></div>
-      <div><div class="label">Banco</div><div class="value" id="img_banco">—</div></div>
-      <div><div class="label">Importe Pagado</div><div class="value total" id="img_importe">—</div></div>
-    </div>
-
-    <hr>
-
-    <div class="grid">
-      <div><div class="label">Facturas (original)</div><div class="value" id="img_totalFacturasOriginal">—</div></div>
-      <div><div class="label">Descuentos factura</div><div class="value" id="img_totalDescFacturas">—</div></div>
-      <div><div class="label">Facturas (neto)</div><div class="value" id="img_totalFacturas">—</div></div>
-      <div><div class="label">Ajustes</div><div class="value" id="img_totalAjustes">—</div></div>
-      <div><div class="label">Facturas Incluidas</div><div class="value" id="img_numFacturas">—</div></div>
-    </div>
-
-    <div class="twocol">
-      <div>
-        <div class="label" style="margin-bottom:6px">Comprobante Bancario (extracto)</div>
-        <div id="img_comprobante" class="bankpre">—</div>
-        <div id="img_comprobante_extra" class="mutedline"></div>
-      </div>
-
-      <div>
-        <div class="label" style="margin-bottom:6px">Relación de Facturas</div>
-        <table class="fact-table">
-          <thead>
-            <tr>
-              <th>Serie/Folio</th>
-              <th>UUID</th>
-              <th style="text-align:right">Final</th>
-            </tr>
-          </thead>
-          <tbody id="img_facturas"></tbody>
-        </table>
-        <div id="img_facturas_extra" class="mutedline"></div>
-      </div>
-    </div>
-
-    <div style="margin-top:10px" class="label">
-      Documento informativo. Para detalle completo, revisar el visor del pago.
+      <div><div class="label">Proveedor</div><div class="value" id="proveedor">—</div></div>
+      <div><div class="label">RFC</div><div class="value" id="rfc">—</div></div>
+      <div><div class="label">Banco</div><div class="value" id="banco">—</div></div>
+      <div><div class="label">Fecha de Pago</div><div class="value" id="fecha">—</div></div>
     </div>
   </div>
 
-  <div class="smallhint">Esto es lo que se convierte a PNG cuando picas “Generar imagen”.</div>
-</div>
+  <div class="card">
+    <h3>Facturas Pagadas</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Serie / Folio</th>
+            <th>UUID CFDI</th>
+            <th class="t-right">Importe Original</th>
+            <th class="t-right">Descuento</th>
+            <th class="t-right">Importe Final</th>
+          </tr>
+        </thead>
+        <tbody id="facturas"></tbody>
+      </table>
+    </div>
+  </div>
 
-<div class="card">
-  <h3>Comprobante Bancario</h3>
-  <pre id="comprobante"></pre>
-</div>
+  <div class="card">
+    <h3>Resumen</h3>
+    <div class="grid">
+      <div><div class="label">Total Facturas (original)</div><div class="value" id="totalFacturasOriginal">—</div></div>
+      <div><div class="label">Descuentos por factura</div><div class="value" id="totalDescFacturas">—</div></div>
+      <div><div class="label">Total Facturas (neto)</div><div class="value" id="totalFacturas">—</div></div>
+      <div><div class="label">Ajustes</div><div class="value" id="totalAjustes">—</div></div>
+      <div><div class="label">Importe Pagado</div><div class="value total" id="importe">—</div></div>
+    </div>
+  </div>
 
-<div class="card">
-  <h3>Notas</h3>
-  <div id="notas"></div>
-</div>
+  <div class="card" id="resumenImagenWrap">
+    <h3>Resumen para Proveedor (Imagen)</h3>
 
-<div class="footer">
-  Documento generado por PROVSOFT · Uso informativo
+    <div id="resumenImagen" class="share-card">
+      <div class="share-top">
+        <div>
+          <div class="brand">LA PROVEEDORA · PROVSOFT</div>
+          <h4 class="share-title">Confirmación de pago</h4>
+        </div>
+        <div class="badge">PAGO REGISTRADO</div>
+      </div>
+
+      <div class="grid">
+        <div><div class="label">ID Pago</div><div class="value mono" id="img_pagoId">—</div></div>
+        <div><div class="label">Fecha</div><div class="value" id="img_fecha">—</div></div>
+        <div><div class="label">Proveedor</div><div class="value" id="img_proveedor">—</div></div>
+        <div><div class="label">RFC</div><div class="value mono" id="img_rfc">—</div></div>
+        <div><div class="label">Banco</div><div class="value" id="img_banco">—</div></div>
+        <div><div class="label">Importe Pagado</div><div class="value total" id="img_importe">—</div></div>
+      </div>
+
+      <hr>
+
+      <div class="grid">
+        <div><div class="label">Facturas (original)</div><div class="value" id="img_totalFacturasOriginal">—</div></div>
+        <div><div class="label">Descuentos factura</div><div class="value" id="img_totalDescFacturas">—</div></div>
+        <div><div class="label">Facturas (neto)</div><div class="value" id="img_totalFacturas">—</div></div>
+        <div><div class="label">Ajustes</div><div class="value" id="img_totalAjustes">—</div></div>
+        <div><div class="label">Facturas Incluidas</div><div class="value" id="img_numFacturas">—</div></div>
+      </div>
+
+      <div class="twocol">
+        <div>
+          <div class="label" style="margin-bottom:6px">Comprobante Bancario (extracto)</div>
+          <div id="img_comprobante" class="bankpre">—</div>
+          <div id="img_comprobante_extra" class="mutedline"></div>
+        </div>
+
+        <div>
+          <div class="label" style="margin-bottom:6px">Relación de Facturas</div>
+          <div class="fact-table-wrap">
+            <table class="fact-table">
+              <thead>
+                <tr>
+                  <th>Serie/Folio</th>
+                  <th>UUID</th>
+                  <th style="text-align:right">Final</th>
+                </tr>
+              </thead>
+              <tbody id="img_facturas"></tbody>
+            </table>
+          </div>
+          <div id="img_facturas_extra" class="mutedline"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:10px" class="label">
+        Documento informativo. Para detalle completo, revisar el visor del pago.
+      </div>
+    </div>
+
+    <div class="smallhint">Este bloque es el que se convierte a PNG.</div>
+  </div>
+
+  <div class="card">
+    <h3>Comprobante Bancario</h3>
+    <pre id="comprobante"></pre>
+  </div>
+
+  <div class="card">
+    <h3>Notas</h3>
+    <div id="notas">—</div>
+  </div>
+
+  <div class="footer">
+    Documento generado por PROVSOFT · Uso informativo
+  </div>
+
 </div>
 
 <script>
 const sb = window.supabase.createClient(
   'https://cvpbtjlupswbyxenugpz.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzYiIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
 );
 
 const params = new URLSearchParams(window.location.search);
 const pagoId = params.get('id');
 
 function mxn(n){
-  return new Intl.NumberFormat('es-MX', { style:'currency', currency:'MXN' })
-    .format(Number(n || 0));
+  return new Intl.NumberFormat('es-MX', {
+    style:'currency',
+    currency:'MXN'
+  }).format(Number(n || 0));
 }
 
 function fechaMx(v){
   if(!v) return '—';
   const d = new Date(v);
-  if (isNaN(d.getTime())) return String(v);
-  return d.toLocaleDateString('es-MX', { year:'numeric', month:'2-digit', day:'2-digit' });
+  if(isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('es-MX', {
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit'
+  });
 }
 
 function shortUuid(u){
   if(!u) return '—';
   const s = String(u);
-  if(s.length <= 16) return s;
-  return s.slice(0, 8) + '…' + s.slice(-4);
+  if(s.length <= 18) return s;
+  return s.slice(0,8) + '…' + s.slice(-4);
 }
 
-// ✅ Soporta jsonb real O string con JSON adentro (como te regresó en tu ejemplo)
+function num(v){
+  if(v === null || v === undefined || v === '') return 0;
+  if(typeof v === 'number') return isFinite(v) ? v : 0;
+
+  let s = String(v).trim();
+  if(!s) return 0;
+
+  s = s.replace(/\$/g, '')
+       .replace(/,/g, '')
+       .replace(/\s+/g, '');
+
+  const n = Number(s);
+  return isNaN(n) ? 0 : n;
+}
+
 function parseMaybeJson(v, fallback){
   if(Array.isArray(v)) return v;
   if(v && typeof v === 'object') return v;
+
   if(typeof v === 'string'){
     const s = v.trim();
     if(!s) return fallback;
-    try{ return JSON.parse(s); }catch(e){ return fallback; }
+    try{
+      return JSON.parse(s);
+    }catch(err){
+      console.error('Error al parsear JSON:', err, v);
+      return fallback;
+    }
   }
+
   return fallback;
 }
 
@@ -418,32 +650,37 @@ function recortarComprobante(raw, maxLineas = 14){
 
   const shown = lines.slice(0, maxLineas).join('\n');
   const extra = lines.length > maxLineas ? `… y ${lines.length - maxLineas} líneas más` : '';
+
   return { shown, extra, total: lines.length };
 }
 
-// Unifica campos (compatibilidad con pagos viejos y nuevos)
 function getImportesFactura(f){
   const orig = Number(
-    f.importe_original ?? f.importe ?? f.total ?? 0
+    f.importe_original ??
+    f.total_factura ??
+    f.importe ??
+    f.total ??
+    0
   );
 
-  // descuento puede venir como objeto {monto,nota} o no venir
   const desc = Number(
-    f?.descuento?.monto ?? 0
+    f?.descuento?.monto ??
+    f.descuento_factura ??
+    f.descuento_monto ??
+    0
   );
 
-  // neto (prioriza importe_final si existe)
   let neto = Number(
-    f.importe_final ?? (orig - desc)
+    f.importe_final ??
+    f.total_neto ??
+    (orig - desc)
   );
 
-  // redondeo suave
-  neto = Number(neto.toFixed(2));
-
-  // si viene un pago viejo con f.importe solamente, haz coherente
-  const descFinal = Number((orig - neto).toFixed(2)) > 0 ? Number((orig - neto).toFixed(2)) : desc;
-
-  return { orig, desc: descFinal, neto };
+  return {
+    orig: Number(orig.toFixed(2)),
+    desc: Number(desc.toFixed(2)),
+    neto: Number(neto.toFixed(2))
+  };
 }
 
 async function cargarPago(){
@@ -459,30 +696,42 @@ async function cargarPago(){
     .single();
 
   if(error){
+    console.error(error);
     alert(error.message);
     return;
   }
 
-  // ✅ Parse robusto
+  console.log('PAGO RAW:', data);
+
   const factList = parseMaybeJson(data.facturas_info, []);
   const ajustesList = parseMaybeJson(data.ajustes, []);
 
-  // ✅ Calcula totales desde facturas (para que SIEMPRE salga bien)
+  console.log('FACTURAS PARSEADAS:', factList);
+  console.log('AJUSTES PARSEADOS:', ajustesList);
+
   let sumOrig = 0;
   let sumDesc = 0;
   let sumNeto = 0;
 
-  factList.forEach(f=>{
+  factList.forEach(f => {
     const { orig, desc, neto } = getImportesFactura(f);
     sumOrig += orig;
     sumDesc += desc;
     sumNeto += neto;
   });
 
-  // Ajustes globales (si tu tabla guarda total_ajustes ya calculado, lo respetamos, pero también sumamos por seguridad)
-  const sumAj = ajustesList.reduce((s,a)=> s + Number(a?.monto || 0), 0);
+  let sumAj = 0;
 
-  // ===== VISOR NORMAL =====
+  if(Array.isArray(ajustesList)){
+    ajustesList.forEach(a => {
+      sumAj += num(a?.monto ?? 0);
+    });
+  }
+
+  const totalAjustesShown = (data.total_ajustes != null)
+    ? num(data.total_ajustes)
+    : sumAj;
+
   document.getElementById('pagoId').innerText = data.id ?? '—';
   document.getElementById('proveedor').innerText = data.proveedor_nombre ?? '—';
   document.getElementById('rfc').innerText = data.rfc_emisor ?? '—';
@@ -492,39 +741,44 @@ async function cargarPago(){
   document.getElementById('totalFacturasOriginal').innerText = mxn(sumOrig);
   document.getElementById('totalDescFacturas').innerText = sumDesc > 0 ? ('-' + mxn(sumDesc)) : mxn(0);
   document.getElementById('totalFacturas').innerText = mxn(sumNeto);
-
-  // Usa total_ajustes si existe; si no, sumAj
-  const totalAjustesShown = (data.total_ajustes != null) ? Number(data.total_ajustes) : sumAj;
   document.getElementById('totalAjustes').innerText = mxn(totalAjustesShown);
-
   document.getElementById('importe').innerText = mxn(data.importe_pagado);
   document.getElementById('comprobante').innerText = data.comprobante_raw || '';
-  document.getElementById('notas').innerText = data.notas || '';
+  document.getElementById('notas').innerText = data.notas || '—';
 
-  // tabla facturas normal (con descuento)
   const tbody = document.getElementById('facturas');
   tbody.innerHTML = '';
 
-  factList.forEach(f=>{
-    const { orig, desc, neto } = getImportesFactura(f);
-    const nota = (f?.descuento?.nota || '').trim();
-
-    tbody.innerHTML += `
+  if(!factList.length){
+    tbody.innerHTML = `
       <tr>
-        <td>${fechaMx(f.fecha)}</td>
-        <td>${(f.serie || '')} ${(f.folio || '')}</td>
-        <td style="font-family:monospace;font-size:12px">${f.uuid_cfdi || '—'}</td>
-        <td style="text-align:right;font-weight:700">${mxn(orig)}</td>
-        <td style="text-align:right" class="${desc>0 ? 'neg' : ''}">
-          ${desc>0 ? ('-' + mxn(desc)) : mxn(0)}
-          ${nota ? `<div class="note">${nota}</div>` : ''}
+        <td colspan="6" style="text-align:center;color:#6b7280;padding:18px">
+          No se encontró detalle de facturas en este pago.
         </td>
-        <td style="text-align:right;font-weight:800">${mxn(neto)}</td>
       </tr>
     `;
-  });
+  } else {
+    factList.forEach(f => {
+      const { orig, desc, neto } = getImportesFactura(f);
+      const nota = desc > 0 ? 'Diferencia vs lista aplicada' : '';
+      const serieFolio = `${f.serie || ''} ${f.folio || ''}`.trim() || '—';
 
-  // ===== DATOS PARA IMAGEN =====
+      tbody.innerHTML += `
+        <tr>
+          <td>${fechaMx(f.fecha)}</td>
+          <td>${serieFolio}</td>
+          <td class="uuid-cell">${f.uuid_cfdi || '—'}</td>
+          <td class="t-right" style="font-weight:700">${mxn(orig)}</td>
+          <td class="t-right ${desc > 0 ? 'neg' : ''}">
+            ${desc > 0 ? ('-' + mxn(desc)) : mxn(0)}
+            ${nota ? `<div class="note">${nota}</div>` : ''}
+          </td>
+          <td class="t-right" style="font-weight:800">${mxn(neto)}</td>
+        </tr>
+      `;
+    });
+  }
+
   document.getElementById('img_pagoId').innerText = data.id ?? '—';
   document.getElementById('img_fecha').innerText = fechaMx(data.fecha_pago);
   document.getElementById('img_proveedor').innerText = data.proveedor_nombre ?? '—';
@@ -535,54 +789,64 @@ async function cargarPago(){
   document.getElementById('img_totalFacturasOriginal').innerText = mxn(sumOrig);
   document.getElementById('img_totalDescFacturas').innerText = sumDesc > 0 ? ('-' + mxn(sumDesc)) : mxn(0);
   document.getElementById('img_totalFacturas').innerText = mxn(sumNeto);
-
   document.getElementById('img_totalAjustes').innerText = mxn(totalAjustesShown);
   document.getElementById('img_numFacturas').innerText = factList.length;
 
-  // comprobante en imagen
   const { shown, extra } = recortarComprobante(data.comprobante_raw, 14);
   document.getElementById('img_comprobante').innerText = shown || '—';
   document.getElementById('img_comprobante_extra').innerText = extra || '';
 
-  // facturas en imagen (muestra neto final + marca descuento si aplica)
   const tbodyImg = document.getElementById('img_facturas');
   tbodyImg.innerHTML = '';
 
   const MAX_FACT_IMG = 10;
-  factList.slice(0, MAX_FACT_IMG).forEach(f => {
-    const serie = (f.serie || '').trim();
-    const folio = (f.folio || '').trim();
-    const sf = `${serie}${serie && folio ? ' ' : ''}${folio}`.trim() || '—';
 
-    const { desc, neto } = getImportesFactura(f);
-
-    tbodyImg.innerHTML += `
+  if(!factList.length){
+    tbodyImg.innerHTML = `
       <tr>
-        <td>
-          ${sf}
-          ${desc>0 ? `<div class="mutedline">Desc: -${mxn(desc)}</div>` : ''}
+        <td colspan="3" style="text-align:center;color:#6b7280;padding:12px">
+          Sin detalle
         </td>
-        <td class="uuid">${shortUuid(f.uuid_cfdi)}</td>
-        <td style="text-align:right;font-weight:800">${mxn(neto)}</td>
       </tr>
     `;
-  });
+    document.getElementById('img_facturas_extra').innerText = '';
+  } else {
+    factList.slice(0, MAX_FACT_IMG).forEach(f => {
+      const { desc, neto } = getImportesFactura(f);
+      const sf = `${f.serie || ''}${(f.serie && f.folio) ? ' ' : ''}${f.folio || ''}`.trim() || '—';
 
-  document.getElementById('img_facturas_extra').innerText =
-    factList.length > MAX_FACT_IMG ? `Mostrando ${MAX_FACT_IMG} de ${factList.length} facturas.` : '';
+      tbodyImg.innerHTML += `
+        <tr>
+          <td>
+            ${sf}
+            ${desc > 0 ? `<div class="mutedline">Desc: -${mxn(desc)}</div>` : ''}
+          </td>
+          <td class="uuid">${shortUuid(f.uuid_cfdi)}</td>
+          <td style="text-align:right;font-weight:800">${mxn(neto)}</td>
+        </tr>
+      `;
+    });
+
+    document.getElementById('img_facturas_extra').innerText =
+      factList.length > MAX_FACT_IMG
+        ? `Mostrando ${MAX_FACT_IMG} de ${factList.length} facturas.`
+        : '';
+  }
 }
 
 async function generarImagenResumen(){
   const nodo = document.getElementById('resumenImagen');
 
-  if (document.fonts && document.fonts.ready) {
-    try { await document.fonts.ready; } catch(e){}
+  if(document.fonts && document.fonts.ready){
+    try{
+      await document.fonts.ready;
+    }catch(e){}
   }
 
   const canvas = await html2canvas(nodo, {
-    backgroundColor: '#ffffff',
-    scale: 2,
-    useCORS: true
+    backgroundColor:'#ffffff',
+    scale:2,
+    useCORS:true
   });
 
   canvas.toBlob(async (blob) => {
@@ -591,24 +855,23 @@ async function generarImagenResumen(){
       return;
     }
 
-    // intentar copiar
     try{
-      if (navigator.clipboard && window.ClipboardItem) {
+      if(navigator.clipboard && window.ClipboardItem){
         const item = new ClipboardItem({ "image/png": blob });
         await navigator.clipboard.write([item]);
-        alert('✅ Imagen copiada. Pégala en WhatsApp/Telegram con Ctrl+V');
+        alert('Imagen copiada. Pégala en WhatsApp o Telegram con Ctrl+V.');
         return;
       }
     }catch(err){
       console.warn('Clipboard falló:', err);
     }
 
-    // fallback descargar
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `resumen_pago_${pagoId || 'sin_id'}.png`;
     link.click();
-    setTimeout(()=>URL.revokeObjectURL(link.href), 2000);
+
+    setTimeout(() => URL.revokeObjectURL(link.href), 2000);
   }, 'image/png');
 }
 
