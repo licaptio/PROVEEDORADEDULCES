@@ -1,15 +1,9 @@
 [
+  { "nombre": "CARRUSEL DEUDA", "archivo": "AS1D3AS1D1ADS1234983090385.html" },
   { "nombre": "DEUDA OLD PDD", "archivo": "DEUDAOLDPDD.html" },
   { "nombre": "PAGO CONTADO", "archivo": "PAGOCONTA.html" },
   { "nombre": "PRONTOS PAGO", "archivo": "PPPAGOPDD.html" },
   { "nombre": "PROVEEDORES ESPECIALES", "archivo": "PROVESPE.html" },
-  { "nombre": "DISTRIBUIDORA DE DULCES UGARTE", "archivo": "ga65fd4654fdg654.html" },
-  { "nombre": "ABARROTES CXC PDD", "archivo": "CXCABAPDD.html" },
-  { "nombre": "ALMAGUER CXC PDD", "archivo": "josegpeALmaguer.html" },
-  { "nombre": "BONLATTI CXC PDD", "archivo": "bonlatti.html" },
-  { "nombre": "CONVERMEX", "archivo": "CONVERMEX.html" },
-  { "nombre": "DIST DEL NORTE", "archivo": "DDN.html" },
   { "nombre": "ARRENDATARIOS", "archivo": "ARRENDATARIOS.html" },
   { "nombre": "BOLSAS TAURO", "archivo": "ASD4F6SFD04GVF455.html" }
-  
 ]
