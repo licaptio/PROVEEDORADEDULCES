@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Resumen Deudas No Pagadas</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <style>
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:#eef1f5;
+      margin:0;
+      padding:20px;
+      color:#1f2937;
+    }
+
+    h2{
+      font-size:1.8rem;
+      margin:0 0 18px 0;
+      line-height:1.35;
+    }
+
+    .subinfo{
+      display:block;
+      margin-top:8px;
+      font-size:1rem;
+      font-weight:400;
+      color:#556070;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-bottom:20px;
+      align-items:center;
+    }
+
+    button{
+      padding:14px 18px;
+      font-size:1rem;
+      border-radius:14px;
+      border:none;
+      background:#0d6efd;
+      color:white;
+      cursor:pointer;
+      font-weight:600;
+      box-shadow:0 4px 10px rgba(0,0,0,0.12);
+    }
+
+    button:hover{
+      filter:brightness(1.03);
+    }
+
+    .pill{
+      font-size:1rem;
+      padding:10px 16px;
+      border-radius:999px;
+      background:white;
+      box-shadow:0 3px 8px rgba(0,0,0,0.15);
+      color:#374151;
+      font-weight:600;
+    }
+
+    .status-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      font-size:1rem;
+      padding:10px 16px;
+      border-radius:999px;
+      background:white;
+      box-shadow:0 3px 8px rgba(0,0,0,0.15);
+      color:#374151;
+      font-weight:700;
+    }
+
+    .status-dot{
+      width:14px;
+      height:14px;
+      border-radius:50%;
+      display:inline-block;
+      flex:0 0 14px;
+      box-shadow:0 0 0 3px rgba(0,0,0,0.05) inset;
+    }
+
+    .status-activo .status-dot{
+      background:#16a34a;
+      animation:latido 1.2s infinite;
+    }
+
+    .status-pausado .status-dot{
+      background:#dc2626;
+    }
+
+    .status-manual .status-dot{
+      background:#d97706;
+    }
+
+    @keyframes latido{
+      0%{ transform:scale(1); opacity:1; }
+      50%{ transform:scale(1.18); opacity:0.82; }
+      100%{ transform:scale(1); opacity:1; }
+    }
+
+    .panel{
+      background:white;
+      border-radius:18px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.10);
+      padding:0;
+      overflow:hidden;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:white;
+    }
+
+    th, td{
+      padding:12px 10px;
+      border-bottom:1px solid #e9ecef;
+      font-size:0.95rem;
+      vertical-align:middle;
+    }
+
+    th{
+      background:#0d6efd;
+      color:white;
+      text-align:left;
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+
+    tbody tr:hover{
+      background:#f8fafc;
+    }
+
+    .numero{
+      text-align:right;
+      font-weight:700;
+      color:#0a6c21;
+    }
+
+    .btn-pagar{
+      width:42px;
+      height:42px;
+      border-radius:50%;
+      background:#28a745;
+      color:white;
+      font-size:1.1rem;
+      cursor:pointer;
+      padding:0;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .uuid-corto{
+      display:inline-block;
+      max-width:220px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      vertical-align:bottom;
+    }
+
+    .proveedor-destacado{
+      font-weight:700;
+    }
+
+    .sin-datos{
+      padding:30px;
+      text-align:center;
+      font-size:1.05rem;
+      color:#6b7280;
+      background:white;
+      border-radius:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    @keyframes parpadeoVencido{
+      0%{background:#fff3cd;}
+      50%{background:#ffe066;}
+      100%{background:#fff3cd;}
+    }
+
+    .vencido{
+      animation:parpadeoVencido 1.2s infinite;
+    }
+
+    .desintegrando{
+      opacity:0;
+      transition:all 1.2s ease;
+      transform:translateY(8px);
+    }
+
+    @media (min-width:601px) and (max-width:1024px){
+      table, thead, tbody, th, td, tr{
+        display:block;
+        width:100%;
+      }
+
+      thead{ display:none; }
+
+      tr{
+        background:white;
+        margin-bottom:16px;
+        padding:16px 20px;
+        border-radius:16px;
+        box-shadow:0 4px 12px rgba(0,0,0,0.12);
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        grid-row-gap:6px;
+        grid-column-gap:20px;
+        align-items:center;
+      }
+
+      td{
+        border:none;
+        padding:2px 0;
+        font-size:0.95rem;
+        display:flex;
+        justify-content:space-between;
+        gap:12px;
+      }
+
+      td::before{
+        font-weight:600;
+        color:#666;
+      }
+
+      td:nth-child(1)::before{content:"Fecha";}
+      td:nth-child(2)::before{content:"Días";}
+      td:nth-child(3)::before{content:"UUID";}
+      td:nth-child(4)::before{content:"RFC";}
+      td:nth-child(5)::before{content:"Proveedor";}
+      td:nth-child(6)::before{content:"Folio";}
+      td:nth-child(7)::before{content:"Total";}
+      td:nth-child(8)::before{content:"Física";}
+      td:nth-child(9)::before{content:"Fotos";}
+      td:nth-child(10)::before{content:"Pagar";}
+
+      td:nth-child(7){
+        font-weight:bold;
+        font-size:1.05rem;
+        color:#0a6c21;
+      }
+
+      .btn-pagar{
+        width:40px;
+        height:40px;
+      }
+
+      .uuid-corto{
+        max-width:180px;
+      }
+    }
+
+    @media (max-width:600px){
+      body{
+        padding:14px;
+      }
+
+      h2{
+        font-size:1.35rem;
+      }
+
+      .toolbar{
+        gap:10px;
+      }
+
+      button{
+        width:100%;
+      }
+
+      .pill, .status-pill{
+        width:100%;
+        box-sizing:border-box;
+      }
+
+      table, thead, tbody, th, td, tr{
+        display:block;
+        width:100%;
+      }
+
+      thead{ display:none; }
+
+      tr{
+        background:white;
+        margin-bottom:14px;
+        padding:14px;
+        border-radius:16px;
+        box-shadow:0 4px 12px rgba(0,0,0,0.10);
+      }
+
+      td{
+        border:none;
+        padding:6px 0;
+        display:flex;
+        justify-content:space-between;
+        gap:10px;
+        font-size:0.95rem;
+      }
+
+      td::before{
+        font-weight:700;
+        color:#555;
+      }
+
+      td:nth-child(1)::before{content:"Fecha";}
+      td:nth-child(2)::before{content:"Días";}
+      td:nth-child(3)::before{content:"UUID";}
+      td:nth-child(4)::before{content:"RFC";}
+      td:nth-child(5)::before{content:"Proveedor";}
+      td:nth-child(6)::before{content:"Folio";}
+      td:nth-child(7)::before{content:"Total";}
+      td:nth-child(8)::before{content:"Física";}
+      td:nth-child(9)::before{content:"Fotos";}
+      td:nth-child(10)::before{content:"Pagar";}
+
+      .uuid-corto{
+        max-width:150px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <h2 id="tituloPrincipal">
+    📌 Facturas Pendientes
+    <small class="subinfo">Cargando...</small>
+  </h2>
+
+  <div class="toolbar">
+    <button id="btnOrdenDias">Orden: Más viejas primero</button>
+    <button id="btnOrdenProveedor">Orden: Proveedor (A→Z)</button>
+    <button id="btnPrev">⬅ Anterior</button>
+    <button id="btnNext">Siguiente ➡</button>
+    <span id="estadoOrden" class="pill"></span>
+    <span id="estadoCarrusel" class="status-pill status-activo">
+      <span class="status-dot"></span>
+      <span id="textoCarrusel">Carrusel activo</span>
+    </span>
+  </div>
+
+  <div id="tabla"></div>
+
+  <script>
+    const _supabase = window.supabase.createClient(
+      'https://cvpbtjlupswbyxenugpz.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+    );
+
+    let DATA_FINAL = [];
+
+    const ORDEN = {
+      DIAS_DESC: "DIAS_DESC",
+      PROVEEDOR_ASC_DIAS_DESC: "PROVEEDOR_ASC_DIAS_DESC"
+    };
+
+    const ESTADO_CARRUSEL = {
+      ACTIVO: "ACTIVO",
+      PAUSADO: "PAUSADO",
+      MANUAL: "MANUAL"
+    };
+
+    let ordenActual = ORDEN.DIAS_DESC;
+    let gruposProveedores = [];
+    let indexProveedor = 0;
+    let intervaloRotacion = null;
+    let timeoutReanudar = null;
+    let ultimaInteraccion = 0;
+    let estadoCarrusel = ESTADO_CARRUSEL.ACTIVO;
+
+    const datosViejos = [];
+
+    function actualizarIndicadorCarrusel(estado, extra = "") {
+      estadoCarrusel = estado;
+
+      const el = document.getElementById("estadoCarrusel");
+      const texto = document.getElementById("textoCarrusel");
+
+      el.classList.remove("status-activo", "status-pausado", "status-manual");
+
+      if (estado === ESTADO_CARRUSEL.ACTIVO) {
+        el.classList.add("status-activo");
+        texto.textContent = extra || "Carrusel activo";
+        return;
+      }
+
+      if (estado === ESTADO_CARRUSEL.PAUSADO) {
+        el.classList.add("status-pausado");
+        texto.textContent = extra || "Carrusel pausado";
+        return;
+      }
+
+      el.classList.add("status-manual");
+      texto.textContent = extra || "Modo manual";
+    }
+
+    function fechaYMD(value) {
+      if (!value) return "";
+      if (typeof value === "string") return value.split("T")[0];
+
+      if (value instanceof Date && !isNaN(value)) {
+        const y = value.getFullYear();
+        const m = String(value.getMonth() + 1).padStart(2, "0");
+        const d = String(value.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      return String(value).split("T")[0];
+    }
+
+    function normalizarFactura(f) {
+      const uuid = (f.uuid_cfdi || f.uuid || "").trim();
+
+      return {
+        uuid_cfdi: uuid,
+        fecha: fechaYMD(f.fecha),
+        rfc_emisor: f.rfc_emisor || "",
+        razon_social_emisor: f.razon_social_emisor || "",
+        proveedor: (f.proveedor || "").trim(),
+        factura: f.factura || "",
+        folio: f.folio || "",
+        serie: f.serie || "",
+        serie_folio: f.serie_folio || "",
+        total: parseFloat(f.total || 0),
+        factura_pagada: (f.factura_pagada || "").toUpperCase().trim(),
+        factura_fisicamente: (f.factura_fisicamente || "").toUpperCase().trim(),
+        fotos: Array.isArray(f.fotos) ? f.fotos : [],
+        ...f
+      };
+    }
+
+    function proveedorReal(f) {
+      return (f.proveedor && f.proveedor.trim() !== "")
+        ? f.proveedor
+        : (f.razon_social_emisor && f.razon_social_emisor.trim() !== "")
+          ? f.razon_social_emisor
+          : (f.rfc_emisor || "SIN NOMBRE");
+    }
+
+    function calcularDias(fechaStr) {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+
+      if (!fechaStr) return 0;
+
+      const ymd = fechaYMD(fechaStr);
+      const [y, m, d] = ymd.split("-").map(Number);
+
+      if (!y || !m || !d) return 0;
+
+      const f = new Date(y, m - 1, d);
+      f.setHours(0, 0, 0, 0);
+
+      return Math.floor((hoy - f) / 86400000);
+    }
+
+    function ordenarDatos(arr, modo) {
+      const copia = [...arr];
+
+      if (modo === ORDEN.DIAS_DESC) {
+        copia.sort((a, b) => {
+          const da = calcularDias(a.fecha);
+          const db = calcularDias(b.fecha);
+          if (db !== da) return db - da;
+
+          const pa = proveedorReal(a).toLowerCase();
+          const pb = proveedorReal(b).toLowerCase();
+          if (pa !== pb) return pa.localeCompare(pb);
+
+          return (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0);
+        });
+        return copia;
+      }
+
+      if (modo === ORDEN.PROVEEDOR_ASC_DIAS_DESC) {
+        copia.sort((a, b) => {
+          const pa = proveedorReal(a).toLowerCase();
+          const pb = proveedorReal(b).toLowerCase();
+          if (pa !== pb) return pa.localeCompare(pb);
+
+          const da = calcularDias(a.fecha);
+          const db = calcularDias(b.fecha);
+          if (db !== da) return db - da;
+
+          return (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0);
+        });
+        return copia;
+      }
+
+      return copia;
+    }
+
+    function agruparPorProveedor(data) {
+      const mapa = {};
+
+      for (const f of data) {
+        const prov = proveedorReal(f);
+        if (!mapa[prov]) mapa[prov] = [];
+        mapa[prov].push(f);
+      }
+
+      return Object.entries(mapa).map(([proveedor, facturas]) => {
+        const ordenadas = [...facturas].sort((a, b) => {
+          const da = calcularDias(a.fecha);
+          const db = calcularDias(b.fecha);
+
+          if (db !== da) return db - da;
+          return (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0);
+        });
+
+        const saldoTotal = ordenadas.reduce((sum, f) => sum + (parseFloat(f.total) || 0), 0);
+        const maxDias = ordenadas.length ? Math.max(...ordenadas.map(f => calcularDias(f.fecha))) : 0;
+        const minDias = ordenadas.length ? Math.min(...ordenadas.map(f => calcularDias(f.fecha))) : 0;
+
+        return {
+          proveedor,
+          facturas: ordenadas,
+          saldoTotal,
+          maxDias,
+          minDias
+        };
+      });
+    }
+
+    function setEstadoOrden() {
+      const el = document.getElementById("estadoOrden");
+      el.textContent =
+        ordenActual === ORDEN.DIAS_DESC
+          ? "Orden actual: Más viejas primero"
+          : "Orden actual: Proveedor (A→Z) y más viejas primero";
+    }
+
+    function detenerRotacion(cambiarIndicador = true) {
+      if (intervaloRotacion) {
+        clearInterval(intervaloRotacion);
+        intervaloRotacion = null;
+      }
+
+      if (cambiarIndicador) {
+        actualizarIndicadorCarrusel(ESTADO_CARRUSEL.MANUAL, "Modo manual");
+      }
+    }
+
+    function iniciarRotacion() {
+      detenerRotacion(false);
+
+      if (!gruposProveedores.length) return;
+
+      intervaloRotacion = setInterval(() => {
+        siguienteProveedor();
+      }, 12000);
+
+      actualizarIndicadorCarrusel(ESTADO_CARRUSEL.ACTIVO, "Carrusel activo");
+    }
+
+    function pausarYProgramarReanudacion() {
+      const ahora = Date.now();
+      if (ahora - ultimaInteraccion < 500) return;
+      ultimaInteraccion = ahora;
+
+      if (intervaloRotacion) {
+        clearInterval(intervaloRotacion);
+        intervaloRotacion = null;
+      }
+
+      actualizarIndicadorCarrusel(ESTADO_CARRUSEL.PAUSADO, "Pausado · reanuda en 10 s");
+
+      if (timeoutReanudar) {
+        clearTimeout(timeoutReanudar);
+        timeoutReanudar = null;
+      }
+
+      timeoutReanudar = setTimeout(() => {
+        iniciarRotacion();
+      }, 10000);
+    }
+
+    async function cargar() {
+      const { data, error } = await _supabase
+        .from("v_deuda_proveedores")
+        .select("*")
+        .neq("factura_pagada", "SI");
+
+      if (error) {
+        console.error(error);
+        document.getElementById("tabla").innerHTML = `
+          <div class="sin-datos">Error cargando datos.</div>
+        `;
+        return;
+      }
+
+      const noPagadasSupabase = (data || []).filter(f =>
+        (f.factura_pagada || "NO").toUpperCase().trim() !== "SI"
+      );
+
+      const unidas = [
+        ...datosViejos.map(normalizarFactura),
+        ...noPagadasSupabase.map(normalizarFactura)
+      ];
+
+      const unicas = Object.values(
+        unidas.reduce((acc, f) => {
+          const key = f.uuid_cfdi || crypto.randomUUID();
+          if (!acc[key]) acc[key] = f;
+          return acc;
+        }, {})
+      );
+
+      DATA_FINAL = unicas;
+
+      setEstadoOrden();
+      render();
+    }
+
+    function render() {
+      const ordenados = ordenarDatos(DATA_FINAL, ordenActual);
+      gruposProveedores = agruparPorProveedor(ordenados);
+
+      if (indexProveedor >= gruposProveedores.length) {
+        indexProveedor = 0;
+      }
+
+      mostrarGrupoActual();
+
+      if (estadoCarrusel !== ESTADO_CARRUSEL.MANUAL) {
+        iniciarRotacion();
+      }
+    }
+
+    function mostrarGrupoActual() {
+      if (!gruposProveedores.length) {
+        document.getElementById("tituloPrincipal").innerHTML = `
+          📌 Facturas Pendientes
+          <small class="subinfo">No hay facturas pendientes.</small>
+        `;
+        document.getElementById("tabla").innerHTML = `
+          <div class="sin-datos">No hay facturas pendientes.</div>
+        `;
+        return;
+      }
+
+      const grupo = gruposProveedores[indexProveedor];
+
+      document.getElementById("tituloPrincipal").innerHTML = `
+        📌 ${grupo.proveedor}
+        <small class="subinfo">
+          Facturas: ${grupo.facturas.length}
+          &nbsp; | &nbsp;
+          Saldo: $${grupo.saldoTotal.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+          &nbsp; | &nbsp;
+          Días recorridos: ${grupo.maxDias}${grupo.maxDias !== grupo.minDias ? ` a ${grupo.minDias}` : ""}
+          &nbsp; | &nbsp;
+          ${indexProveedor + 1} de ${gruposProveedores.length}
+        </small>
+      `;
+
+      mostrarTabla(grupo.facturas);
+    }
+
+    function mostrarTabla(data) {
+      let html = `
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Días</th>
+                <th>UUID</th>
+                <th>RFC</th>
+                <th>Proveedor</th>
+                <th>Serie/Folio</th>
+                <th>Total</th>
+                <th>Física</th>
+                <th>Fotos</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      for (const f of data) {
+        const dias = calcularDias(f.fecha);
+        const proveedor = proveedorReal(f);
+        const folioFinal = f.serie_folio || [f.serie, f.folio].filter(Boolean).join("-") || f.factura || "—";
+        const claseVencido = dias >= 30 ? "vencido" : "";
+
+        html += `
+          <tr class="${claseVencido}">
+            <td>${fechaYMD(f.fecha)}</td>
+            <td>${dias}</td>
+            <td>
+              <a href="detalle.html?uuid=${encodeURIComponent(f.uuid_cfdi || "")}" target="_blank" class="uuid-corto" title="${f.uuid_cfdi || ""}">
+                ${f.uuid_cfdi || "—"}
+              </a>
+            </td>
+            <td>${f.rfc_emisor || ""}</td>
+            <td class="proveedor-destacado">${proveedor}</td>
+            <td>${folioFinal}</td>
+            <td class="numero">
+              ${Number(f.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+            </td>
+            <td style="text-align:center">${(f.factura_fisicamente || "") === "SI" ? "✅" : ""}</td>
+            <td style="text-align:center">
+              ${
+                (f.fotos && f.fotos.length > 0)
+                  ? f.fotos.map(url => `<a href="${url}" target="_blank">📷</a>`).join("")
+                  : ""
+              }
+            </td>
+            <td style="text-align:center">
+              <button class="btn-pagar" title="Marcar como pagada" onclick="marcarPagada('${String(f.uuid_cfdi || "").replace(/'/g, "\\'")}', this)">💸</button>
+            </td>
+          </tr>
+        `;
+      }
+
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      document.getElementById("tabla").innerHTML = html;
+    }
+
+    function siguienteProveedor() {
+      if (!gruposProveedores.length) return;
+      indexProveedor = (indexProveedor + 1) % gruposProveedores.length;
+      mostrarGrupoActual();
+    }
+
+    function proveedorAnterior() {
+      if (!gruposProveedores.length) return;
+      indexProveedor = (indexProveedor - 1 + gruposProveedores.length) % gruposProveedores.length;
+      mostrarGrupoActual();
+    }
+
+    async function marcarPagada(uuid_cfdi, boton) {
+      const fila = boton.closest("tr");
+      boton.disabled = true;
+      boton.style.background = "#6c757d";
+
+      const { error } = await _supabase
+        .from("deuda_limpia_pdd")
+        .update({ factura_pagada: "SI" })
+        .eq("uuid_cfdi", uuid_cfdi);
+
+      if (error) {
+        alert("❌ Error al marcar como pagada");
+        console.error(error);
+        boton.disabled = false;
+        boton.style.background = "#28a745";
+        return;
+      }
+
+      fila.style.background = "#e8f5e9";
+
+      setTimeout(() => {
+        fila.classList.add("desintegrando");
+        setTimeout(() => {
+          DATA_FINAL = DATA_FINAL.filter(f => f.uuid_cfdi !== uuid_cfdi);
+          render();
+        }, 1200);
+      }, 1000);
+    }
+
+    document.getElementById("btnOrdenDias").addEventListener("click", () => {
+      ordenActual = ORDEN.DIAS_DESC;
+      setEstadoOrden();
+      if (estadoCarrusel !== ESTADO_CARRUSEL.MANUAL) {
+        estadoCarrusel = ESTADO_CARRUSEL.ACTIVO;
+      }
+      render();
+    });
+
+    document.getElementById("btnOrdenProveedor").addEventListener("click", () => {
+      ordenActual = ORDEN.PROVEEDOR_ASC_DIAS_DESC;
+      setEstadoOrden();
+      if (estadoCarrusel !== ESTADO_CARRUSEL.MANUAL) {
+        estadoCarrusel = ESTADO_CARRUSEL.ACTIVO;
+      }
+      render();
+    });
+
+    document.getElementById("btnNext").addEventListener("click", () => {
+      if (timeoutReanudar) clearTimeout(timeoutReanudar);
+      detenerRotacion();
+      actualizarIndicadorCarrusel(ESTADO_CARRUSEL.MANUAL, "Modo manual");
+      siguienteProveedor();
+    });
+
+    document.getElementById("btnPrev").addEventListener("click", () => {
+      if (timeoutReanudar) clearTimeout(timeoutReanudar);
+      detenerRotacion();
+      actualizarIndicadorCarrusel(ESTADO_CARRUSEL.MANUAL, "Modo manual");
+      proveedorAnterior();
+    });
+
+    document.body.addEventListener("click", (e) => {
+      const control = e.target.closest("button, a");
+      if (!control) {
+        pausarYProgramarReanudacion();
+      }
+    });
+
+    document.body.addEventListener("touchstart", (e) => {
+      const control = e.target.closest("button, a");
+      if (!control) {
+        pausarYProgramarReanudacion();
+      }
+    }, { passive: true });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setEstadoOrden();
+      actualizarIndicadorCarrusel(ESTADO_CARRUSEL.ACTIVO, "Carrusel activo");
+      cargar();
+
+      setInterval(() => {
+        cargar();
+      }, 60000);
+    });
+  </script>
+</body>
+</html>
