@@ -3,96 +3,257 @@
 <head>
 <meta charset="UTF-8">
 <title>Pagos – BOLSAS TAURO</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-body{
-  font-family:Poppins,Arial,sans-serif;
-  background:#eef1f5;
-  padding:20px;
-  margin:0;
+:root{
+  --bg:#eef1f5;
+  --card:#ffffff;
+  --text:#111827;
+  --muted:#6b7280;
+  --line:#e5e7eb;
+  --blue:#2563eb;
+  --shadow:0 4px 16px rgba(0,0,0,.08);
 }
 
-h2{
-  margin:0 0 16px 0;
-  font-size:28px;
-  color:#1f2937;
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;
+  padding:0;
+  background:var(--bg);
+  font-family:Poppins,Arial,sans-serif;
+  color:var(--text);
+}
+
+body{
+  padding:12px 12px 92px;
+}
+
+.header{
+  background:linear-gradient(135deg,#1d4ed8,#2563eb);
+  color:#fff;
+  border-radius:18px;
+  padding:16px 14px;
+  box-shadow:var(--shadow);
+  margin-bottom:12px;
+}
+
+.header h1{
+  margin:0;
+  font-size:20px;
+  line-height:1.15;
+  font-weight:800;
+}
+
+.header .sub{
+  margin-top:6px;
+  font-size:13px;
+  opacity:.95;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:12px;
+}
+
+.stat{
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:12px;
+  padding:10px;
+  backdrop-filter: blur(4px);
+}
+
+.stat .label{
+  font-size:11px;
+  opacity:.9;
+  margin-bottom:4px;
+}
+
+.stat .value{
+  font-size:15px;
+  font-weight:800;
+  line-height:1.2;
+}
+
+#lista{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
 }
 
 .card{
-  background:#fff;
-  padding:16px;
-  border-radius:14px;
-  box-shadow:0 6px 18px rgba(0,0,0,.10);
-  margin-bottom:12px;
+  background:var(--card);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  padding:14px;
 }
 
 .top{
   display:flex;
+  align-items:flex-start;
   justify-content:space-between;
-  align-items:center;
   gap:10px;
+}
+
+.amount{
+  font-size:20px;
+  font-weight:900;
+  line-height:1.1;
+  color:#0f172a;
+  word-break:break-word;
+}
+
+.date{
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+  text-align:right;
+  padding-top:3px;
+}
+
+.name{
+  margin-top:10px;
+  font-size:15px;
   font-weight:700;
-  font-size:18px;
-  color:#111827;
+  line-height:1.25;
 }
 
-.muted{
-  color:#6b7280;
-  font-size:14px;
-  margin-top:6px;
-}
-
-.idline{
+.meta{
   margin-top:8px;
-  font-size:13px;
-  color:#4b5563;
-  font-family:monospace;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
 }
 
-.idline a{
-  color:#2563eb;
+.badge{
+  background:#f3f4f6;
+  border:1px solid var(--line);
+  color:#374151;
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+  line-height:1;
+}
+
+.idbox{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid var(--line);
+  font-size:12px;
+  color:var(--muted);
+  word-break:break-all;
+}
+
+.idbox a{
+  color:var(--blue);
   text-decoration:none;
+  font-weight:700;
 }
 
-.idline a:hover{
+.idbox a:hover{
   text-decoration:underline;
 }
 
-.totalBox{
-  position:sticky;
+.empty{
+  background:#fff;
+  border-radius:16px;
+  padding:18px;
+  box-shadow:var(--shadow);
+  text-align:center;
+  color:var(--muted);
+}
+
+.totalBar{
+  position:fixed;
+  left:0;
+  right:0;
   bottom:0;
-  background:#ffffff;
-  padding:16px;
-  border-radius:14px;
-  box-shadow:0 -2px 12px rgba(0,0,0,.08);
-  margin-top:18px;
+  background:rgba(255,255,255,.96);
+  backdrop-filter:blur(10px);
+  border-top:1px solid #dbe1e8;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  box-shadow:0 -4px 14px rgba(0,0,0,.08);
 }
 
-.total{
-  font-size:22px;
-  font-weight:800;
+.totalWrap{
+  max-width:700px;
+  margin:0 auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+
+.totalLabel{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:2px;
+}
+
+.totalValue{
+  font-size:21px;
+  font-weight:900;
   color:#111827;
+  line-height:1.1;
 }
 
-.sub{
-  color:#6b7280;
-  font-size:13px;
-  margin-top:4px;
+.totalCount{
+  text-align:right;
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+}
+
+@media (min-width:700px){
+  body{
+    max-width:700px;
+    margin:0 auto;
+  }
+
+  .header h1{
+    font-size:24px;
+  }
+
+  .amount{
+    font-size:22px;
+  }
 }
 </style>
 </head>
 <body>
 
-<h2>🏦 Pagos realizados a BOLSAS TAURO</h2>
+<div class="header">
+  <h1>Pagos a BOLSAS TAURO</h1>
+  <div class="sub">RFC: BTA010327AD3</div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Pagos encontrados</div>
+      <div class="value" id="conteoHeader">0</div>
+    </div>
+    <div class="stat">
+      <div class="label">Último pago</div>
+      <div class="value" id="ultimoHeader">—</div>
+    </div>
+  </div>
+</div>
 
 <div id="lista"></div>
 
-<div class="totalBox">
-  <div class="total">Total pagado: <span id="total">$0.00</span></div>
-  <div class="sub">RFC: BTA010327AD3</div>
+<div class="totalBar">
+  <div class="totalWrap">
+    <div>
+      <div class="totalLabel">Total pagado</div>
+      <div class="totalValue" id="total">$0.00</div>
+    </div>
+    <div class="totalCount" id="conteoFooter">0 movimientos</div>
+  </div>
 </div>
 
 <script>
@@ -107,6 +268,17 @@ const formatoMXN = new Intl.NumberFormat('es-MX', {
   minimumFractionDigits: 2
 });
 
+function fechaBonita(valor){
+  if(!valor) return '—';
+  const d = new Date(valor + 'T00:00:00');
+  if(isNaN(d)) return valor;
+  return d.toLocaleDateString('es-MX', {
+    day:'2-digit',
+    month:'short',
+    year:'numeric'
+  });
+}
+
 async function cargar(){
   const { data, error } = await sb
     .from('pagos_proveedor')
@@ -120,34 +292,42 @@ async function cargar(){
   }
 
   const lista = document.getElementById('lista');
+  const totalEl = document.getElementById('total');
+  const conteoHeader = document.getElementById('conteoHeader');
+  const ultimoHeader = document.getElementById('ultimoHeader');
+  const conteoFooter = document.getElementById('conteoFooter');
+
   lista.innerHTML = '';
 
-  let total = 0;
-
   if(!data || data.length === 0){
-    lista.innerHTML = `
-      <div class="card">
-        <div class="muted">No se encontraron pagos para este RFC.</div>
-      </div>
-    `;
-    document.getElementById('total').innerText = formatoMXN.format(0);
+    lista.innerHTML = `<div class="empty">No se encontraron pagos para este RFC.</div>`;
+    totalEl.textContent = formatoMXN.format(0);
+    conteoHeader.textContent = '0';
+    ultimoHeader.textContent = '—';
+    conteoFooter.textContent = '0 movimientos';
     return;
   }
 
+  let total = 0;
+
   data.forEach(p => {
-    total += Number(p.importe_pagado || 0);
+    const importe = Number(p.importe_pagado || 0);
+    total += importe;
 
     lista.innerHTML += `
       <div class="card">
         <div class="top">
-          <div>${formatoMXN.format(p.importe_pagado || 0)}</div>
-          <div>${p.fecha_pago || ''}</div>
+          <div class="amount">${formatoMXN.format(importe)}</div>
+          <div class="date">${fechaBonita(p.fecha_pago)}</div>
         </div>
 
-        <div class="muted">${p.proveedor_nombre || 'SIN NOMBRE'}</div>
-        <div class="muted">Banco: ${p.banco || 'SIN BANCO'}</div>
+        <div class="name">${p.proveedor_nombre || 'SIN NOMBRE'}</div>
 
-        <div class="idline">
+        <div class="meta">
+          <div class="badge">${p.banco || 'SIN BANCO'}</div>
+        </div>
+
+        <div class="idbox">
           ID:
           <a href="CARDEX.html?id=${p.id}" target="_blank">${p.id}</a>
         </div>
@@ -155,7 +335,10 @@ async function cargar(){
     `;
   });
 
-  document.getElementById('total').innerText = formatoMXN.format(total);
+  totalEl.textContent = formatoMXN.format(total);
+  conteoHeader.textContent = data.length;
+  ultimoHeader.textContent = fechaBonita(data[0]?.fecha_pago);
+  conteoFooter.textContent = `${data.length} movimiento${data.length === 1 ? '' : 's'}`;
 }
 
 cargar();
