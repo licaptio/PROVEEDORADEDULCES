@@ -452,7 +452,13 @@ const PROVEEDORES_ESPECIALES = {
     function limiteDiasProveedor(f){
   return PROVEEDORES_ESPECIALES[f.rfc_emisor] || 30;
 }
+function excesoDias(f){
+  return calcularDias(f.fecha) - limiteDiasProveedor(f);
+}
 
+function estaVencido(f){
+  return excesoDias(f) >= 0;
+}
     function calcularDias(fechaStr) {
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
@@ -470,41 +476,51 @@ const PROVEEDORES_ESPECIALES = {
       return Math.floor((hoy - f) / 86400000);
     }
 
-    function ordenarDatos(arr, modo) {
-      const copia = [...arr];
+function ordenarDatos(arr, modo) {
+  const copia = [...arr];
 
-      if (modo === ORDEN.DIAS_DESC) {
-        copia.sort((a, b) => {
-          const da = calcularDias(a.fecha);
-          const db = calcularDias(b.fecha);
-          if (db !== da) return db - da;
+  copia.sort((a, b) => {
+    const diasA = calcularDias(a.fecha);
+    const diasB = calcularDias(b.fecha);
 
-          const pa = proveedorReal(a).toLowerCase();
-          const pb = proveedorReal(b).toLowerCase();
-          if (pa !== pb) return pa.localeCompare(pb);
+    const limiteA = limiteDiasProveedor(a);
+    const limiteB = limiteDiasProveedor(b);
 
-          return (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0);
-        });
-        return copia;
-      }
+    const excesoA = diasA - limiteA;
+    const excesoB = diasB - limiteB;
 
-      if (modo === ORDEN.PROVEEDOR_ASC_DIAS_DESC) {
-        copia.sort((a, b) => {
-          const pa = proveedorReal(a).toLowerCase();
-          const pb = proveedorReal(b).toLowerCase();
-          if (pa !== pb) return pa.localeCompare(pb);
+    const vencidoA = excesoA >= 0;
+    const vencidoB = excesoB >= 0;
 
-          const da = calcularDias(a.fecha);
-          const db = calcularDias(b.fecha);
-          if (db !== da) return db - da;
-
-          return (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0);
-        });
-        return copia;
-      }
-
-      return copia;
+    // 1. vencidos primero
+    if (vencidoA !== vencidoB) {
+      return vencidoB - vencidoA;
     }
+
+    // 2. si ambos están vencidos, primero el más excedido
+    if (vencidoA && vencidoB && excesoB !== excesoA) {
+      return excesoB - excesoA;
+    }
+
+    // 3. si ninguno está vencido, o están empatados en exceso,
+    //    manda el de más días reales
+    if (diasB !== diasA) {
+      return diasB - diasA;
+    }
+
+    // 4. desempate por proveedor
+    const pa = proveedorReal(a).toLowerCase();
+    const pb = proveedorReal(b).toLowerCase();
+    if (pa !== pb) {
+      return pa.localeCompare(pb);
+    }
+
+    // 5. desempate por total
+    return (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0);
+  });
+
+  return copia;
+}
 
     function agruparPorProveedor(data) {
       const mapa = {};
@@ -516,13 +532,30 @@ const PROVEEDORES_ESPECIALES = {
       }
 
       return Object.entries(mapa).map(([proveedor, facturas]) => {
-        const ordenadas = [...facturas].sort((a, b) => {
-          const da = calcularDias(a.fecha);
-          const db = calcularDias(b.fecha);
+const ordenadas = [...facturas].sort((a, b) => {
+  const diasA = calcularDias(a.fecha);
+  const diasB = calcularDias(b.fecha);
 
-          if (db !== da) return db - da;
-          return (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0);
-        });
+  const excesoA = excesoDias(a);
+  const excesoB = excesoDias(b);
+
+  const vencidoA = estaVencido(a);
+  const vencidoB = estaVencido(b);
+
+  if (vencidoA !== vencidoB) {
+    return vencidoB - vencidoA;
+  }
+
+  if (vencidoA && vencidoB && excesoB !== excesoA) {
+    return excesoB - excesoA;
+  }
+
+  if (diasB !== diasA) {
+    return diasB - diasA;
+  }
+
+  return (parseFloat(b.total) || 0) - (parseFloat(a.total) || 0);
+});
 
         const saldoTotal = ordenadas.reduce((sum, f) => sum + (parseFloat(f.total) || 0), 0);
         const maxDias = ordenadas.length ? Math.max(...ordenadas.map(f => calcularDias(f.fecha))) : 0;
