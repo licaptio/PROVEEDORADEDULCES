@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Descarga Cruda Excel – Ingresos PDD</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root{
+      --bg1:#0f2027;
+      --bg2:#203a43;
+      --bg3:#2c5364;
+      --card:rgba(255,255,255,.10);
+      --line:rgba(255,255,255,.16);
+      --text:#f5f7fa;
+      --muted:#bfd3df;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --blue:#38bdf8;
+      --danger:#ef4444;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      background:linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3));
+      min-height:100vh;
+      padding:22px;
+    }
+
+    .wrap{
+      max-width:1200px;
+      margin:0 auto;
+    }
+
+    .card{
+      background:var(--card);
+      backdrop-filter:blur(10px);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+      margin-bottom:18px;
+    }
+
+    h1,h2,h3{margin:0 0 10px 0}
+    .sub{color:var(--muted); margin-bottom:14px; line-height:1.45}
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:12px;
+    }
+
+    label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:6px;
+      font-weight:bold;
+    }
+
+    input, select{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      outline:none;
+    }
+
+    input::placeholder{color:#d5e3ec99}
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:14px;
+    }
+
+    button{
+      border:none;
+      border-radius:12px;
+      padding:12px 16px;
+      font-weight:bold;
+      cursor:pointer;
+      color:white;
+    }
+
+    .btn-blue{background:var(--blue); color:#062535}
+    .btn-green{background:var(--ok)}
+    .btn-warn{background:var(--warn); color:#2d1b00}
+    .btn-red{background:var(--danger)}
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:12px;
+      margin-top:14px;
+    }
+
+    .kpi{
+      background:rgba(255,255,255,.08);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+    }
+
+    .kpi .tt{font-size:12px; color:var(--muted); margin-bottom:8px}
+    .kpi .vv{font-size:24px; font-weight:bold}
+
+    .log{
+      background:#07131a;
+      border:1px solid #17303d;
+      border-radius:14px;
+      padding:12px;
+      min-height:130px;
+      max-height:300px;
+      overflow:auto;
+      font-family:Consolas, monospace;
+      font-size:13px;
+      white-space:pre-wrap;
+    }
+
+    .table-wrap{
+      overflow:auto;
+      border-radius:14px;
+      border:1px solid var(--line);
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:1100px;
+      background:rgba(255,255,255,.05);
+    }
+
+    th,td{
+      padding:10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      text-align:left;
+      font-size:13px;
+      vertical-align:top;
+    }
+
+    th{
+      background:rgba(255,255,255,.08);
+      position:sticky;
+      top:0;
+    }
+
+    .tag{
+      display:inline-block;
+      padding:5px 9px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:bold;
+      background:rgba(255,255,255,.10);
+    }
+
+    .ok{background:rgba(34,197,94,.2); color:#b4f0c5}
+    .cancel{background:rgba(239,68,68,.2); color:#fecaca}
+    .small{font-size:12px; color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Descarga cruda a Excel — ingresos_pdd</h1>
+      <div class="sub">
+        Exportación cruda de <b>public.ingresos_pdd</b> a Excel.  
+        Los campos JSON (<b>iva_detalle</b>, <b>ieps_detalle</b>, <b>conceptos</b>) se exportan como texto JSON.
+        <br><br>
+        <b>Nota:</b> para evitar timeout, la exportación completa se procesa por meses dentro del rango de fechas.
+      </div>
+
+      <div class="grid">
+        <div>
+          <label>SUPABASE URL</label>
+          <input
+            id="supabaseUrl"
+            type="text"
+            value="https://cvpbtjlupswbyxenugpz.supabase.co"
+            placeholder="https://tu-proyecto.supabase.co"
+          />
+        </div>
+        <div>
+          <label>SUPABASE ANON KEY</label>
+          <input
+            id="supabaseKey"
+            type="password"
+            value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY"
+            placeholder="eyJ..."
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Filtros</h2>
+      <div class="grid">
+        <div>
+          <label>Fecha inicial <span style="color:#fecaca">*</span></label>
+          <input type="date" id="fechaInicio" />
+        </div>
+        <div>
+          <label>Fecha final <span style="color:#fecaca">*</span></label>
+          <input type="date" id="fechaFin" />
+        </div>
+        <div>
+          <label>Serie</label>
+          <input type="text" id="serie" placeholder="Ej. A" />
+        </div>
+        <div>
+          <label>Cliente / razón social receptor</label>
+          <input type="text" id="cliente" placeholder="Nombre del cliente" />
+        </div>
+        <div>
+          <label>UUID</label>
+          <input type="text" id="uuid" placeholder="UUID exacto o parcial" />
+        </div>
+        <div>
+          <label>Folio</label>
+          <input type="text" id="folio" placeholder="Folio exacto o parcial" />
+        </div>
+        <div>
+          <label>Cancelado</label>
+          <select id="cancelado">
+            <option value="todos">Todos</option>
+            <option value="false">Solo activos</option>
+            <option value="true">Solo cancelados</option>
+          </select>
+        </div>
+        <div>
+          <label>Límite visual previa</label>
+          <select id="previewLimit">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+            <option value="500">500</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-blue" onclick="probarConexion()">Probar conexión</button>
+        <button class="btn-warn" onclick="verPrevia()">Ver previa</button>
+        <button class="btn-green" onclick="descargarExcel()">Descargar todo en Excel</button>
+        <button class="btn-red" onclick="limpiarFiltros()">Limpiar filtros</button>
+      </div>
+
+      <div class="stats">
+        <div class="kpi">
+          <div class="tt">Registros exportados</div>
+          <div class="vv" id="kpiRegistros">0</div>
+        </div>
+        <div class="kpi">
+          <div class="tt">Total acumulado</div>
+          <div class="vv" id="kpiTotal">0.00</div>
+        </div>
+        <div class="kpi">
+          <div class="tt">IVA acumulado</div>
+          <div class="vv" id="kpiIva">0.00</div>
+        </div>
+        <div class="kpi">
+          <div class="tt">IEPS acumulado</div>
+          <div class="vv" id="kpiIeps">0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Bitácora</h2>
+      <div id="log" class="log"></div>
+    </div>
+
+    <div class="card">
+      <h2>Previa</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>UUID</th>
+              <th>Serie</th>
+              <th>Folio</th>
+              <th>Cliente</th>
+              <th>Total</th>
+              <th>IVA</th>
+              <th>IEPS</th>
+              <th>Estatus</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyPreview">
+            <tr><td colspan="9" class="small">Sin datos</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+  let supabaseClient = null;
+
+  function log(msg){
+    const el = document.getElementById('log');
+    const stamp = new Date().toLocaleString('es-MX');
+    el.textContent += `[${stamp}] ${msg}\n`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function money(v){
+    return Number(v || 0).toLocaleString('es-MX', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function isoStartOfDay(dateStr){
+    return `${dateStr}T00:00:00.000`;
+  }
+
+  function isoEndOfDay(dateStr){
+    return `${dateStr}T23:59:59.999`;
+  }
+
+  function requireDateRange(){
+    const fechaInicio = document.getElementById('fechaInicio').value;
+    const fechaFin = document.getElementById('fechaFin').value;
+
+    if(!fechaInicio || !fechaFin){
+      throw new Error('Debes capturar fecha inicial y fecha final para exportar.');
+    }
+
+    if(fechaInicio > fechaFin){
+      throw new Error('La fecha inicial no puede ser mayor a la final.');
+    }
+
+    return { fechaInicio, fechaFin };
+  }
+
+  function getClient(){
+    const url = document.getElementById('supabaseUrl').value.trim();
+    const key = document.getElementById('supabaseKey').value.trim();
+
+    if(!url || !key){
+      throw new Error('Falta SUPABASE URL o ANON KEY');
+    }
+
+    if(!supabaseClient){
+      supabaseClient = window.supabase.createClient(url, key);
+    }
+
+    return supabaseClient;
+  }
+
+  function limpiarFiltros(){
+    ['fechaInicio','fechaFin','serie','cliente','uuid','folio'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('cancelado').value = 'todos';
+    document.getElementById('previewLimit').value = '100';
+    document.getElementById('tbodyPreview').innerHTML = '<tr><td colspan="9" class="small">Sin datos</td></tr>';
+    updateKpis([]);
+    log('Filtros limpiados.');
+  }
+
+  function updateKpis(rows){
+    const total = rows.reduce((a,b) => a + Number(b.total || 0), 0);
+    const iva = rows.reduce((a,b) => a + Number(b.total_iva || 0), 0);
+    const ieps = rows.reduce((a,b) => a + Number(b.total_ieps || 0), 0);
+
+    document.getElementById('kpiRegistros').textContent = rows.length.toLocaleString('es-MX');
+    document.getElementById('kpiTotal').textContent = money(total);
+    document.getElementById('kpiIva').textContent = money(iva);
+    document.getElementById('kpiIeps').textContent = money(ieps);
+  }
+
+  function renderPreview(rows){
+    const tbody = document.getElementById('tbodyPreview');
+
+    if(!rows.length){
+      tbody.innerHTML = '<tr><td colspan="9" class="small">Sin datos</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.fecha ? new Date(r.fecha).toLocaleString('es-MX') : ''}</td>
+        <td>${r.uuid_cfdi || ''}</td>
+        <td>${r.serie || ''}</td>
+        <td>${r.folio || ''}</td>
+        <td>${r.razon_social_receptor || ''}</td>
+        <td>${money(r.total)}</td>
+        <td>${money(r.total_iva)}</td>
+        <td>${money(r.total_ieps)}</td>
+        <td>${r.cancelado ? '<span class="tag cancel">Cancelado</span>' : '<span class="tag ok">Activo</span>'}</td>
+      </tr>
+    `).join('');
+  }
+  function safeCellText(value, max = 32000){
+  if(value === null || value === undefined) return '';
+
+  let text = typeof value === 'string' ? value : JSON.stringify(value);
+
+  if(text.length > max){
+    return text.slice(0, max) + ' ...[TRUNCADO]';
+  }
+
+  return text;
+}
+
+function flattenRow(r){
+  return {
+    id: r.id,
+    uuid_cfdi: r.uuid_cfdi,
+    fecha: r.fecha,
+    periodo_mes: r.periodo_mes,
+    periodo_anio: r.periodo_anio,
+    tipo_factura: r.tipo_factura,
+    rfc_emisor: r.rfc_emisor,
+    razon_social_emisor: r.razon_social_emisor,
+    rfc_receptor: r.rfc_receptor,
+    razon_social_receptor: r.razon_social_receptor,
+    folio: r.folio,
+    serie: r.serie,
+    subtotal: r.subtotal,
+    descuento: r.descuento,
+    total: r.total,
+    moneda: r.moneda,
+    forma_pago: r.forma_pago,
+    metodo_pago: r.metodo_pago,
+    uso_cfdi: r.uso_cfdi,
+    sello_sat: r.sello_sat,
+    no_certificado_sat: r.no_certificado_sat,
+    fecha_certificacion: r.fecha_certificacion,
+    total_iva: r.total_iva,
+    total_ieps: r.total_ieps,
+
+    iva_detalle: safeCellText(r.iva_detalle),
+    ieps_detalle: safeCellText(r.ieps_detalle),
+    conceptos: safeCellText(r.conceptos),
+
+    iva_detalle_truncado: (r.iva_detalle ? JSON.stringify(r.iva_detalle).length > 32000 : false),
+    ieps_detalle_truncado: (r.ieps_detalle ? JSON.stringify(r.ieps_detalle).length > 32000 : false),
+    conceptos_truncado: (r.conceptos ? JSON.stringify(r.conceptos).length > 32000 : false),
+
+    insertado_en: r.insertado_en,
+    cancelado: r.cancelado,
+    fecha_cancelacion: r.fecha_cancelacion
+  };
+}
+
+  function getMonthRanges(startDate, endDate){
+    const ranges = [];
+    let current = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+
+    current = new Date(current.getFullYear(), current.getMonth(), 1);
+
+    while(current <= end){
+      const y = current.getFullYear();
+      const m = current.getMonth();
+
+      const monthStart = new Date(y, m, 1);
+      const monthEnd = new Date(y, m + 1, 0);
+
+      const realStart = monthStart < new Date(startDate + 'T00:00:00')
+        ? new Date(startDate + 'T00:00:00')
+        : monthStart;
+
+      const realEnd = monthEnd > end
+        ? end
+        : monthEnd;
+
+      const startStr = `${realStart.getFullYear()}-${String(realStart.getMonth()+1).padStart(2,'0')}-${String(realStart.getDate()).padStart(2,'0')}`;
+      const endStr = `${realEnd.getFullYear()}-${String(realEnd.getMonth()+1).padStart(2,'0')}-${String(realEnd.getDate()).padStart(2,'0')}`;
+      const label = `${y}-${String(m+1).padStart(2,'0')}`;
+
+      ranges.push({ startStr, endStr, label });
+      current = new Date(y, m + 1, 1);
+    }
+
+    return ranges;
+  }
+
+  function applyCommonFilters(query, startDate, endDate){
+    const serie = document.getElementById('serie').value.trim();
+    const cliente = document.getElementById('cliente').value.trim();
+    const uuid = document.getElementById('uuid').value.trim();
+    const folio = document.getElementById('folio').value.trim();
+    const cancelado = document.getElementById('cancelado').value;
+
+    query = query.gte('fecha', isoStartOfDay(startDate));
+    query = query.lte('fecha', isoEndOfDay(endDate));
+
+    if(serie) query = query.ilike('serie', `%${serie}%`);
+    if(cliente) query = query.ilike('razon_social_receptor', `%${cliente}%`);
+    if(uuid) query = query.ilike('uuid_cfdi', `%${uuid}%`);
+    if(folio) query = query.ilike('folio', `%${folio}%`);
+    if(cancelado === 'true') query = query.eq('cancelado', true);
+    if(cancelado === 'false') query = query.eq('cancelado', false);
+
+    return query;
+  }
+
+  async function probarConexion(){
+    try{
+      supabaseClient = null;
+      const sb = getClient();
+      const { error } = await sb.from('ingresos_pdd').select('id').limit(1);
+
+      if(error) throw error;
+
+      log('Conexión OK con Supabase y tabla ingresos_pdd.');
+      alert('Conexión correcta.');
+    }catch(err){
+      log(`Error de conexión: ${err.message}`);
+      alert(`Error: ${err.message}`);
+    }
+  }
+
+  async function verPrevia(){
+    try{
+      const { fechaInicio, fechaFin } = requireDateRange();
+      const sb = getClient();
+      const limit = Number(document.getElementById('previewLimit').value || 100);
+
+      log(`Consultando previa (${limit} filas máximas)...`);
+
+      let query = sb.from('ingresos_pdd').select('*', { count: 'exact' });
+      query = applyCommonFilters(query, fechaInicio, fechaFin);
+      query = query.order('fecha', { ascending: false }).order('id', { ascending: false }).limit(limit);
+
+      const { data, error, count } = await query;
+      if(error) throw error;
+
+      renderPreview(data || []);
+      updateKpis(data || []);
+      log(`Previa lista. Filas visibles: ${(data || []).length}. Coincidencias aproximadas: ${count ?? 'N/D'}.`);
+    }catch(err){
+      log(`Error en previa: ${err.message}`);
+      alert(`Error en previa: ${err.message}`);
+    }
+  }
+
+  async function fetchRowsForRange(startDate, endDate, label){
+    const sb = getClient();
+    const chunk = 150;
+    let all = [];
+    let lastId = 0;
+    let page = 1;
+
+    while(true){
+      let query = sb
+        .from('ingresos_pdd')
+        .select(`
+          id,
+          uuid_cfdi,
+          fecha,
+          periodo_mes,
+          periodo_anio,
+          tipo_factura,
+          rfc_emisor,
+          razon_social_emisor,
+          rfc_receptor,
+          razon_social_receptor,
+          folio,
+          serie,
+          subtotal,
+          descuento,
+          total,
+          moneda,
+          forma_pago,
+          metodo_pago,
+          uso_cfdi,
+          sello_sat,
+          no_certificado_sat,
+          fecha_certificacion,
+          total_iva,
+          total_ieps,
+          iva_detalle,
+          ieps_detalle,
+          conceptos,
+          insertado_en,
+          cancelado,
+          fecha_cancelacion
+        `)
+        .gt('id', lastId);
+
+      query = applyCommonFilters(query, startDate, endDate);
+
+      const { data, error } = await query
+        .order('id', { ascending: true })
+        .limit(chunk);
+
+      if(error) throw error;
+
+      const rows = data || [];
+      if(!rows.length){
+        log(`Mes ${label}: sin más filas.`);
+        break;
+      }
+
+      all = all.concat(rows);
+      lastId = rows[rows.length - 1].id;
+
+      log(`Mes ${label} | Página ${page}: ${rows.length} filas (acumulado mes ${all.length}) | Último ID ${lastId}`);
+
+      if(rows.length < chunk) break;
+
+      page++;
+    }
+
+    return all;
+  }
+
+ async function descargarExcel(){
+  try{
+    const { fechaInicio, fechaFin } = requireDateRange();
+
+    log('Iniciando descarga completa...');
+    log(`Rango solicitado: ${fechaInicio} a ${fechaFin}`);
+
+    const monthRanges = getMonthRanges(fechaInicio, fechaFin);
+    let allRows = [];
+
+    for(const part of monthRanges){
+      log(`Procesando mes ${part.label}: ${part.startStr} a ${part.endStr}`);
+      const rows = await fetchRowsForRange(part.startStr, part.endStr, part.label);
+      allRows = allRows.concat(rows);
+    }
+
+    if(!allRows.length){
+      alert('No se encontraron registros con esos filtros.');
+      log('Descarga cancelada: sin registros.');
+      updateKpis([]);
+      renderPreview([]);
+      return;
+    }
+
+    updateKpis(allRows);
+    renderPreview(allRows.slice(0, Number(document.getElementById('previewLimit').value || 100)));
+
+    const hojaPrincipal = allRows.map(flattenRow);
+
+    const hojaJson = allRows.map(r => ({
+      id: r.id,
+      uuid_cfdi: r.uuid_cfdi,
+      fecha: r.fecha,
+      iva_detalle_full: safeCellText(r.iva_detalle, 32000),
+      ieps_detalle_full: safeCellText(r.ieps_detalle, 32000),
+      conceptos_full: safeCellText(r.conceptos, 32000)
+    }));
+
+    const wb = XLSX.utils.book_new();
+
+    const ws1 = XLSX.utils.json_to_sheet(hojaPrincipal);
+    XLSX.utils.book_append_sheet(wb, ws1, 'ingresos_pdd');
+
+    const ws2 = XLSX.utils.json_to_sheet(hojaJson);
+    XLSX.utils.book_append_sheet(wb, ws2, 'json_crudo');
+
+    const hoy = new Date();
+    const y = hoy.getFullYear();
+    const m = String(hoy.getMonth()+1).padStart(2,'0');
+    const d = String(hoy.getDate()).padStart(2,'0');
+    const hh = String(hoy.getHours()).padStart(2,'0');
+    const mm = String(hoy.getMinutes()).padStart(2,'0');
+    const ss = String(hoy.getSeconds()).padStart(2,'0');
+
+    const fileName = `ingresos_pdd_crudo_${fechaInicio}_${fechaFin}_${y}${m}${d}_${hh}${mm}${ss}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+
+    log(`Excel generado correctamente: ${fileName}`);
+    alert(`Excel generado: ${fileName}`);
+  }catch(err){
+    console.error(err);
+    log(`Error al descargar Excel: ${err.message}`);
+    alert(`Error al descargar Excel: ${err.message}`);
+  }
+}
+</script>
+</body>
+</html>
