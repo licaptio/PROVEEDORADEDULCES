@@ -110,7 +110,7 @@
           const selloSAT = timbre?.getAttribute("SelloSAT") || "";
           const noCertificadoSAT = timbre?.getAttribute("NoCertificadoSAT") || "";
 
-// Identificar tipo de factura usando InformacionGlobal
+// Identificar tipo de factura SOLO por InformacionGlobal
 const infoGlobal = xml.getElementsByTagNameNS(cfdiNS, "InformacionGlobal")[0];
 
 let tipoFactura = "INDIVIDUAL";
@@ -124,17 +124,24 @@ if (infoGlobal) {
     infoGlobal.getAttribute("Meses") ||
     infoGlobal.getAttribute("meses") ||
     infoGlobal.getAttribute("Mes") ||
+    infoGlobal.getAttribute("mes") ||
     null;
 
   periodoAnio =
     infoGlobal.getAttribute("Año") ||
     infoGlobal.getAttribute("Anio") ||
+    infoGlobal.getAttribute("Ano") ||
     infoGlobal.getAttribute("ANO") ||
     infoGlobal.getAttribute("anio") ||
+    infoGlobal.getAttribute("año") ||
     null;
-}       
+}
  
-          // Conceptos e impuestos
+  if (tipoFactura === "GLOBAL" && (!periodoMes || !periodoAnio)) {
+  valido = false;
+  motivo = "GLOBAL sin InformacionGlobal completa (Mes/Año)";
+}         
+           // Conceptos e impuestos
           const conceptos = [];
           const ivaDetalle = [];
           const iepsDetalle = [];
