@@ -227,7 +227,8 @@
   }
 
 .tableWrap{
-  overflow:hidden;
+  overflow-x:auto;
+  overflow-y:auto;
   max-height:78vh;
 }
 
@@ -237,43 +238,44 @@ table{
   table-layout:fixed;
 }
 
-th,td{
-  padding:8px;
-  border-bottom:1px solid #edf2f7;
-  font-size:12px;
-  text-align:left;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+tbody{
+  vertical-align:top;
 }
 
-th{
-  position:sticky;
-  top:0;
-  z-index:2;
-  background:#f4f7fb;
-  color:#334155;
-  text-transform:uppercase;
-  letter-spacing:.3px;
-  font-size:11px;
-}
+  th,td{
+    padding:8px;
+    border-bottom:1px solid #edf2f7;
+    font-size:12px;
+    text-align:left;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
 
-/* ===== ANCHOS POR COLUMNA ===== */
+  th{
+    position:sticky;
+    top:0;
+    z-index:2;
+    background:#f4f7fb;
+    color:#334155;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    font-size:11px;
+  }
 
-th:nth-child(1),td:nth-child(1){ width:130px; }  /* fecha */
-th:nth-child(2),td:nth-child(2){ width:150px; }  /* uuid */
-th:nth-child(3),td:nth-child(3){ width:110px; }  /* rfc */
-th:nth-child(4),td:nth-child(4){ width:230px; }  /* cliente */
-th:nth-child(5),td:nth-child(5){ width:120px; }  /* sucursal */
-th:nth-child(6),td:nth-child(6){ width:90px; }   /* folio */
+  th:nth-child(1),td:nth-child(1){ width:130px; }
+  th:nth-child(2),td:nth-child(2){ width:150px; }
+  th:nth-child(3),td:nth-child(3){ width:110px; }
+  th:nth-child(4),td:nth-child(4){ width:230px; }
+  th:nth-child(5),td:nth-child(5){ width:120px; }
+  th:nth-child(6),td:nth-child(6){ width:90px; }
+  th:nth-child(7),td:nth-child(7){ width:110px; text-align:right;}
+  th:nth-child(8),td:nth-child(8){ width:110px; text-align:right;}
+  th:nth-child(9),td:nth-child(9){ width:110px; text-align:right;}
+  th:nth-child(10),td:nth-child(10){ width:120px; text-align:right;}
+  th:nth-child(11),td:nth-child(11){ width:130px;}
+  th:nth-child(12),td:nth-child(12){ width:140px;}
 
-th:nth-child(7),td:nth-child(7){ width:110px; text-align:right;}
-th:nth-child(8),td:nth-child(8){ width:110px; text-align:right;}
-th:nth-child(9),td:nth-child(9){ width:110px; text-align:right;}
-th:nth-child(10),td:nth-child(10){ width:120px; text-align:right;}
-
-th:nth-child(11),td:nth-child(11){ width:130px;}
-th:nth-child(12),td:nth-child(12){ width:140px;}
   tbody tr:hover{
     background:#f8fbff;
   }
@@ -378,7 +380,9 @@ th:nth-child(12),td:nth-child(12){ width:140px;}
       <label for="sucursal">Sucursal</label>
       <select id="sucursal">
         <option value="">— Todas las sucursales —</option>
-        <option value="LMN">MATRIZ</option>
+        <option value="LMN">MATRIZ (LMN)</option>
+        <option value="RM1">RM1</option>
+        <option value="RM2">RM2</option>
         <option value="GM">BODEGA 41</option>
         <option value="SAN">ALLENDE II</option>
         <option value="AM">ALLENDE I</option>
@@ -429,7 +433,10 @@ th:nth-child(12),td:nth-child(12){ width:140px;}
     </div>
 
     <div id="liveNotice" class="liveNotice">
-      Llegaron nuevas facturas. <button id="btnApplyLive" type="button" style="margin-left:8px;padding:6px 10px;min-height:auto;border-radius:8px;">Ir a página 1</button>
+      Llegaron nuevas facturas. 
+      <button id="btnApplyLive" type="button" style="margin-left:8px;padding:6px 10px;min-height:auto;border-radius:8px;">
+        Ir a página 1
+      </button>
     </div>
 
     <div class="tableWrap">
@@ -479,6 +486,8 @@ const PAGE_SIZE = 50;
 
 const SUCURSALES = {
   LMN:'MATRIZ',
+  RM1:'RM1',
+  RM2:'RM2',
   GM:'BODEGA 41',
   SAN:'ALLENDE II',
   AM:'ALLENDE I',
@@ -494,6 +503,7 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const state = {
   page: 0,
   hasMore: false,
+  totalCount: 0,
   loading: false,
   reqId: 0,
   filters: null,
@@ -508,34 +518,34 @@ const state = {
 ========================= */
 const $ = id => document.getElementById(id);
 
-const netBadge    = $('netBadge');
-const modeBadge   = $('modeBadge');
-const rtBadge     = $('rtBadge');
-const clientsBadge= $('clientsBadge');
+const netBadge     = $('netBadge');
+const modeBadge    = $('modeBadge');
+const rtBadge      = $('rtBadge');
+const clientsBadge = $('clientsBadge');
 
-const clienteInput= $('cliente');
-const clientesList= $('clientesList');
-const sucursalSel = $('sucursal');
-const fechaInicio = $('fecha_inicio');
-const fechaFin    = $('fecha_fin');
+const clienteInput = $('cliente');
+const clientesList = $('clientesList');
+const sucursalSel  = $('sucursal');
+const fechaInicio  = $('fecha_inicio');
+const fechaFin     = $('fecha_fin');
 
-const btnBuscar   = $('btnBuscar');
-const btnHoy      = $('btnHoy');
-const btn7        = $('btn7');
-const btnLimpiar  = $('btnLimpiar');
-const btnPrev     = $('btnPrev');
-const btnNext     = $('btnNext');
-const btnApplyLive= $('btnApplyLive');
+const btnBuscar    = $('btnBuscar');
+const btnHoy       = $('btnHoy');
+const btn7         = $('btn7');
+const btnLimpiar   = $('btnLimpiar');
+const btnPrev      = $('btnPrev');
+const btnNext      = $('btnNext');
+const btnApplyLive = $('btnApplyLive');
 
-const resumen     = $('resumen');
-const lastUpdate  = $('lastUpdate');
-const loading     = $('loading');
-const liveInfo    = $('liveInfo');
-const pageInfo    = $('pageInfo');
-const cacheInfo   = $('cacheInfo');
-const pagina      = $('pagina');
-const tabla       = $('tabla');
-const liveNotice  = $('liveNotice');
+const resumen      = $('resumen');
+const lastUpdate   = $('lastUpdate');
+const loading      = $('loading');
+const liveInfo     = $('liveInfo');
+const pageInfo     = $('pageInfo');
+const cacheInfo    = $('cacheInfo');
+const pagina       = $('pagina');
+const tabla        = $('tabla');
+const liveNotice   = $('liveNotice');
 
 /* =========================
    HELPERS
@@ -652,10 +662,39 @@ function normalizeClientName(v){
   return String(v || '').trim().replace(/\s+/g,' ');
 }
 
-function rangoUTC(fi, ff){
+function localOffsetString(date){
+  const totalMinutes = -date.getTimezoneOffset();
+  const sign = totalMinutes >= 0 ? '+' : '-';
+  const abs = Math.abs(totalMinutes);
+  const hh = String(Math.floor(abs / 60)).padStart(2,'0');
+  const mm = String(abs % 60).padStart(2,'0');
+  return `${sign}${hh}:${mm}`;
+}
+
+function buildLocalDateTime(dateStr, endOfDay = false){
+  if(!dateStr) return null;
+
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const dt = endOfDay
+    ? new Date(y, m - 1, d, 23, 59, 59, 999)
+    : new Date(y, m - 1, d, 0, 0, 0, 0);
+
+  const yyyy = dt.getFullYear();
+  const MM = String(dt.getMonth() + 1).padStart(2,'0');
+  const DD = String(dt.getDate()).padStart(2,'0');
+  const HH = String(dt.getHours()).padStart(2,'0');
+  const MI = String(dt.getMinutes()).padStart(2,'0');
+  const SS = String(dt.getSeconds()).padStart(2,'0');
+  const frac = endOfDay ? '.999' : '';
+  const tz = localOffsetString(dt);
+
+  return `${yyyy}-${MM}-${DD}T${HH}:${MI}:${SS}${frac}${tz}`;
+}
+
+function rangoDB(fi, ff){
   return {
-    ini: new Date(fi + 'T00:00:00').toISOString(),
-    fin: new Date(ff + 'T23:59:59').toISOString()
+    ini: buildLocalDateTime(fi, false),
+    fin: buildLocalDateTime(ff, true)
   };
 }
 
@@ -710,20 +749,17 @@ function rowMatchesFilters(row, filters){
   if(!row || !filters) return false;
 
   if(filters.cliente){
-    const a = normalizeClientName(row.razon_social_receptor);
-    const b = normalizeClientName(filters.cliente);
-    if(a !== b) return false;
+    const a = normalizeClientName(row.razon_social_receptor).toUpperCase();
+    const b = normalizeClientName(filters.cliente).toUpperCase();
+    if(!a.includes(b)) return false;
   }
 
-  if(filters.sucursal && row.serie !== filters.sucursal){
-    return false;
+  if(filters.sucursal){
+    if(row.serie !== filters.sucursal) return false;
   }
 
-  if(filters.fi && filters.ff){
-    const { ini, fin } = rangoUTC(filters.fi, filters.ff);
-    const f = new Date(row.fecha).toISOString();
-    if(f < ini || f > fin) return false;
-  }
+// ⚠️ NO filtrar por fecha aquí
+// Supabase ya hizo el filtro correctamente
 
   return true;
 }
@@ -812,7 +848,7 @@ async function loadClientes(){
    DATA
 ========================= */
 async function fetchPage(filters, page){
-  const { ini, fin } = rangoUTC(filters.fi, filters.ff);
+  const { ini, fin } = rangoDB(filters.fi, filters.ff);
 
   let q = db
     .from(TABLE)
@@ -829,22 +865,28 @@ async function fetchPage(filters, page){
       total,
       forma_pago,
       metodo_pago
-    `)
+    `, { count:'exact' })
     .gte('fecha', ini)
     .lte('fecha', fin)
     .order('fecha', { ascending:false })
     .order('uuid_cfdi', { ascending:false })
     .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
-  if(filters.cliente) q = q.eq('razon_social_receptor', filters.cliente);
-  if(filters.sucursal) q = q.eq('serie', filters.sucursal);
+  if(filters.cliente){
+    q = q.ilike('razon_social_receptor', `%${filters.cliente}%`);
+  }
 
-  const { data, error } = await q;
+  if(filters.sucursal){
+    q = q.eq('serie', filters.sucursal);
+  }
+
+  const { data, error, count } = await q;
   if(error) throw error;
 
   return {
     rows: data || [],
-    hasMore: (data || []).length === PAGE_SIZE
+    count: count || 0,
+    hasMore: (count || 0) > ((page + 1) * PAGE_SIZE)
   };
 }
 
@@ -892,6 +934,7 @@ async function cargar(){
     alert('Selecciona rango de fechas');
     return;
   }
+
   if(filters.fi > filters.ff){
     alert('La fecha inicial no puede ser mayor que la final');
     return;
@@ -899,6 +942,7 @@ async function cargar(){
 
   state.filters = filters;
   state.pendingLiveCount = 0;
+  state.totalCount = 0;
   showLiveNotice(false);
   setSummary();
 
@@ -910,10 +954,18 @@ async function cargar(){
     if(reqId !== state.reqId) return;
 
     state.hasMore = payload.hasMore;
+    state.totalCount = payload.count || 0;
+
     renderRows(payload.rows);
     updatePagination();
 
-    pageInfo.textContent = `${payload.rows.length} registros ${payload.hasMore ? '· hay más páginas' : '· fin de resultados'}`;
+    const desde = state.totalCount === 0 ? 0 : (state.page * PAGE_SIZE) + 1;
+    const hasta = (state.page * PAGE_SIZE) + payload.rows.length;
+
+    pageInfo.textContent =
+      `${state.totalCount.toLocaleString('es-MX')} registros totales`
+      + (payload.rows.length ? ` · mostrando ${desde}-${hasta}` : '');
+
     lastUpdate.textContent = `Última actualización: ${nowText()}`;
     liveInfo.textContent = isTodayRange(filters)
       ? 'Modo hoy: esperando eventos nuevos'
@@ -926,6 +978,7 @@ async function cargar(){
     setLoading(false);
     tabla.innerHTML = `<tr><td colspan="12" class="empty">Error: ${esc(err.message || err)}</td></tr>`;
     state.hasMore = false;
+    state.totalCount = 0;
     updatePagination();
     pageInfo.textContent = 'Error';
   }
@@ -948,12 +1001,20 @@ function prependLiveRow(row){
   const nextRows = [row, ...state.rows];
   if(nextRows.length > PAGE_SIZE){
     nextRows.pop();
-    state.hasMore = true;
   }
 
+  state.totalCount += 1;
   renderRows(nextRows, row.uuid_cfdi);
+  state.hasMore = state.totalCount > ((state.page + 1) * PAGE_SIZE);
   updatePagination();
-  pageInfo.textContent = `${state.rows.length} registros · actualizado en vivo`;
+
+  const desde = 1;
+  const hasta = nextRows.length;
+
+  pageInfo.textContent =
+    `${state.totalCount.toLocaleString('es-MX')} registros totales`
+    + ` · mostrando ${desde}-${hasta}`;
+
   lastUpdate.textContent = `Última actualización: ${nowText()} · realtime`;
 }
 
@@ -1072,6 +1133,7 @@ btnLimpiar.addEventListener('click', ()=>{
   state.rows = [];
   state.uuidSet = new Set();
   state.pendingLiveCount = 0;
+  state.totalCount = 0;
   showLiveNotice(false);
   tabla.innerHTML = `<tr><td colspan="12" class="message">Filtros reiniciados. Ejecuta una consulta.</td></tr>`;
   pageInfo.textContent = 'Sin datos';
