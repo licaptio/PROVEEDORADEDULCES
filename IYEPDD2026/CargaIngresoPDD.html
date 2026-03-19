@@ -43,7 +43,10 @@
           const text = await file.text();
           const parser = new DOMParser();
           const xml = parser.parseFromString(text, "application/xml");
-
+          const parserError = xml.getElementsByTagName("parsererror");
+if (parserError.length > 0) {
+  throw new Error("XML inválido o corrupto");
+}
           const cfdiNS = "http://www.sat.gob.mx/cfd/4";
           const comprobante = xml.getElementsByTagNameNS(cfdiNS, "Comprobante")[0];
           const emisor = xml.getElementsByTagNameNS(cfdiNS, "Emisor")[0];
@@ -141,6 +144,14 @@ if (infoGlobal) {
   valido = false;
   motivo = "GLOBAL sin InformacionGlobal completa (Mes/Año)";
 }         
+if (!valido) {
+  const li = document.createElement("li");
+  li.dataset.uuid = uuid;
+  li.innerHTML = `❌ <b>${file.name}</b> <span class="err">→ Rechazado (${motivo})</span>`;
+  lista.appendChild(li);
+  continue;
+}
+          
            // Conceptos e impuestos
           const conceptos = [];
           const ivaDetalle = [];
@@ -246,14 +257,11 @@ async function procesarArchivos() {
         const existe = await fetch(`${SUPABASE_URL}/rest/v1/ingresos_pdd?uuid_cfdi=eq.${data.uuid}`, {
           headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` },
         });
-        const yaExiste = await existe.json();
-        if (yaExiste.length > 0) {
-          item.querySelector("span").textContent = `⚠️ Ya existe`;
-          item.querySelector("span").className = "warn";
-          logBitacora(`⚠️ Ya existía: ${data.uuid}`);
-          continue;
-        }
 
+const existe = await fetch(`${SUPABASE_URL}/rest/v1/ingresos_pdd?select=uuid_cfdi&uuid_cfdi=eq.${data.uuid}`, {
+  headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` },
+});
+        
         // Insertar nuevo registro
         const insert = await fetch(`${SUPABASE_URL}/rest/v1/ingresos_pdd`, {
           method: "POST",
@@ -322,7 +330,7 @@ async function procesarArchivos() {
   }
 
   progreso.style.width = `100%`;
-  logBitacora("✅ Carga completa sin errores. Todos los CFDI procesados correctamente.");
+  logBitacora("✅ Proceso de carga terminado.");
 }
 
     function logBitacora(mensaje) {
