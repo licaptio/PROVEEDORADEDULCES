@@ -252,17 +252,33 @@ async function procesarArchivos() {
       progreso.style.width = `${avance}%`;
       logBitacora(`📄 Subiendo ${index + 1}/${totalArchivos} → UUID: ${data.uuid}`);
 
-      try {
-        // Verificar si ya existe el registro
-        const existe = await fetch(`${SUPABASE_URL}/rest/v1/ingresos_pdd?uuid_cfdi=eq.${data.uuid}`, {
-          headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` },
-        });
+try {
+// Verificar si ya existe el registro
+const existeResp = await fetch(
+  `${SUPABASE_URL}/rest/v1/ingresos_pdd?select=uuid_cfdi&uuid_cfdi=eq.${data.uuid}`,
+  {
+    headers: {
+      apikey: API_KEY,
+      Authorization: `Bearer ${API_KEY}`
+    }
+  }
+);
 
-const existe = await fetch(`${SUPABASE_URL}/rest/v1/ingresos_pdd?select=uuid_cfdi&uuid_cfdi=eq.${data.uuid}`, {
-  headers: { apikey: API_KEY, Authorization: `Bearer ${API_KEY}` },
-});
-        
-        // Insertar nuevo registro
+if (!existeResp.ok) {
+  const err = await existeResp.text();
+  throw new Error(`Error verificando existencia: ${err}`);
+}
+
+const yaExiste = await existeResp.json();
+
+if (yaExiste.length > 0) {
+  item.querySelector("span").textContent = `⚠️ Ya existe`;
+  item.querySelector("span").className = "warn";
+  logBitacora(`⚠️ Ya existía: ${data.uuid}`);
+  continue;
+}        
+  
+  // Insertar nuevo registro
         const insert = await fetch(`${SUPABASE_URL}/rest/v1/ingresos_pdd`, {
           method: "POST",
           headers: {
