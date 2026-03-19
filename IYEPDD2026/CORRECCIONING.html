@@ -250,7 +250,7 @@
       </div>
 
       <div class="small">
-        Lotes recomendados: consulta existencia en chunks de 300 UUID y upsert en lotes de 1000 registros.
+        Lotes recomendados: consulta existencia en chunks de 300 UUID y upsert en lotes de 100 registros.
       </div>
     </div>
 
@@ -279,8 +279,8 @@
     const RFC_EMISOR_VALIDO = "PDD031204KL5";
 
     const CHUNK_EXISTENCIA = 300;
-    const LOTE_UPSERT = 1000;
-    const PAUSA_ENTRE_OPERACIONES = 0;
+    const LOTE_UPSERT = 100;
+    const PAUSA_ENTRE_OPERACIONES = 120;
 
     let archivosDatos = [];
     let mapaEstados = new Map();
@@ -535,20 +535,10 @@
           }
 
 if (infoGlobal) {
-
-  periodoMes = infoGlobal.getAttribute("Meses")
-      || infoGlobal.getAttribute("meses")
-      || infoGlobal.getAttribute("Mes")
-      || infoGlobal.getAttribute("mes");
-
-  periodoAnio = infoGlobal.getAttribute("Año")
-      || infoGlobal.getAttribute("Anio")
-      || infoGlobal.getAttribute("Ano")
-      || infoGlobal.getAttribute("anio")
-      || infoGlobal.getAttribute("año");
-
+  periodoMes = obtenerAtributoFlexible(infoGlobal, ["Meses", "meses", "Mes", "mes"]);
+  periodoAnio = obtenerAtributoFlexible(infoGlobal, ["Año", "Anio", "Ano", "anio", "año"]);
 }
-
+ 
           if (tipoFactura === "GLOBAL") {
             if (!infoGlobal || !periodoMes || !periodoAnio) {
               valido = false;
@@ -652,30 +642,68 @@ if (infoGlobal) {
       return existentes;
     }
 
-    async function upsertLoteMasivo(registros, loteIndex, totalLotes) {
-      const url = `${SUPABASE_URL}/rest/v1/${TABLA}?on_conflict=uuid_cfdi`;
+async function upsertLoteMasivo(registros, loteIndex, totalLotes) {
+  const url = `${SUPABASE_URL}/rest/v1/${TABLA}?on_conflict=uuid_cfdi`;
 
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          apikey: API_KEY,
-          Authorization: `Bearer ${API_KEY}`,
-          "Content-Type": "application/json",
-          "Prefer": "resolution=merge-duplicates,return=representation"
-        },
-        body: JSON.stringify(registros)
-      });
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      apikey: API_KEY,
+      Authorization: `Bearer ${API_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": "resolution=merge-duplicates,return=minimal"
+    },
+    body: JSON.stringify(registros)
+  });
 
-      if (!resp.ok) {
-        const err = await resp.text();
-        throw new Error(`Lote ${loteIndex}/${totalLotes}: ${err}`);
-      }
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Lote ${loteIndex}/${totalLotes}: ${err}`);
+  }
 
-      const data = await resp.json();
-      return data || [];
+  return true;
+}
+async function procesarLoteConDiagnostico(lote, loteIndex, totalLotes) {
+  try {
+    await upsertLoteMasivo(lote, loteIndex, totalLotes);
+    logBitacora(`✅ Sublote ${loteIndex}/${totalLotes} OK con ${lote.length} registros.`);
+    return {
+      ok: true,
+      actualizados: lote.map(x => x.uuid_cfdi),
+      fallidos: []
+    };
+  } catch (error) {
+    logBitacora(`❌ Falló lote ${loteIndex}/${totalLotes} con ${lote.length} registros. ${error.message}`);
+
+    if (lote.length === 1) {
+      return {
+        ok: false,
+        actualizados: [],
+        fallidos: [{
+          uuid: lote[0].uuid_cfdi,
+          error: error.message,
+          registro: lote[0]
+        }]
+      };
     }
 
-    async function procesarTurbo() {
+    const mitad = Math.ceil(lote.length / 2);
+    const parte1 = lote.slice(0, mitad);
+    const parte2 = lote.slice(mitad);
+
+    logBitacora(`🔍 Dividiendo lote ${loteIndex} en sublotes de ${parte1.length} y ${parte2.length} para aislar error...`);
+
+    const r1 = await procesarLoteConDiagnostico(parte1, `${loteIndex}.1`, totalLotes);
+    const r2 = await procesarLoteConDiagnostico(parte2, `${loteIndex}.2`, totalLotes);
+
+    return {
+      ok: r1.ok && r2.ok,
+      actualizados: [...r1.actualizados, ...r2.actualizados],
+      fallidos: [...r1.fallidos, ...r2.fallidos]
+    };
+  }
+}
+  async function procesarTurbo() {
       const btnProcesar = document.getElementById("btnProcesar");
       const btnPrecargar = document.getElementById("btnPrecargar");
 
@@ -739,31 +767,45 @@ if (infoGlobal) {
 
           logBitacora(`🛠️ Ejecutando lote ${numLote}/${lotes.length} con ${lote.length} registros...`);
 
-          const resultado = await upsertLoteMasivo(lote, numLote, lotes.length);
+const diagnostico = await procesarLoteConDiagnostico(lote, numLote, lotes.length);
 
-          const uuidsActualizados = new Set(
-            (resultado || [])
-              .map(r => String(r.uuid_cfdi || "").toUpperCase().trim())
-              .filter(Boolean)
-          );
+const uuidsActualizados = new Set(
+  (diagnostico.actualizados || []).map(x => String(x).toUpperCase().trim())
+);
 
-          for (const row of lote) {
-            if (uuidsActualizados.has(row.uuid_cfdi)) {
-              stats.actualizados++;
-              totalActualizados++;
+const uuidsFallidos = new Map(
+  (diagnostico.fallidos || []).map(x => [String(x.uuid).toUpperCase().trim(), x.error])
+);
 
-              actualizarItem(
-                row.uuid_cfdi,
-                `✅ <b>${escapeHtml(row.uuid_cfdi)}</b> <span class="ok">→ Corregido (${escapeHtml(row.tipo_factura)}, mes=${escapeHtml(row.periodo_mes ?? "NULL")}, año=${escapeHtml(row.periodo_anio ?? "NULL")})</span>`
-              );
-            } else {
-              stats.errores++;
-              actualizarItem(
-                row.uuid_cfdi,
-                `❌ <b>${escapeHtml(row.uuid_cfdi)}</b> <span class="err">→ Sin confirmación en respuesta</span>`
-              );
-            }
-          }
+for (const row of lote) {
+  const uuid = String(row.uuid_cfdi || "").toUpperCase().trim();
+
+  if (uuidsActualizados.has(uuid)) {
+    stats.actualizados++;
+    totalActualizados++;
+
+    actualizarItem(
+      uuid,
+      `✅ <b>${escapeHtml(uuid)}</b> <span class="ok">→ Corregido (${escapeHtml(row.tipo_factura)}, mes=${escapeHtml(row.periodo_mes ?? "NULL")}, año=${escapeHtml(row.periodo_anio ?? "NULL")})</span>`
+    );
+  } else if (uuidsFallidos.has(uuid)) {
+    stats.errores++;
+
+    actualizarItem(
+      uuid,
+      `❌ <b>${escapeHtml(uuid)}</b> <span class="err">→ Error: ${escapeHtml(uuidsFallidos.get(uuid))}</span>`
+    );
+
+    logBitacora(`❌ UUID problemático: ${uuid} -> ${uuidsFallidos.get(uuid)}`);
+  } else {
+    stats.errores++;
+
+    actualizarItem(
+      uuid,
+      `❌ <b>${escapeHtml(uuid)}</b> <span class="err">→ No confirmado</span>`
+    );
+  }
+}
 
           actualizarKPIs();
 
