@@ -222,13 +222,80 @@ if (!valido) {
         }
       }
     });
+async function insertarCFDIConReintento(data, reintentos = 2) {
+  let ultimoError = null;
 
+  for (let intento = 1; intento <= reintentos; intento++) {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/rest/v1/ingresos_pdd`, {
+        method: "POST",
+        headers: {
+          apikey: API_KEY,
+          Authorization: `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal"
+        },
+        body: JSON.stringify({
+          uuid_cfdi: data.uuid,
+          fecha: data.fecha,
+          periodo_mes: data.periodoMes,
+          periodo_anio: data.periodoAnio,
+          tipo_factura: data.tipoFactura,
+          rfc_emisor: data.emisorRFC,
+          razon_social_emisor: data.razonSocial,
+          rfc_receptor: data.receptorRFC,
+          razon_social_receptor: data.receptorNombre,
+          folio: data.folio,
+          serie: data.serie,
+          subtotal: data.subtotal,
+          descuento: data.descuento,
+          total: data.total,
+          moneda: data.moneda,
+          forma_pago: data.formaPago,
+          metodo_pago: data.metodoPago,
+          uso_cfdi: data.usoCFDI,
+          sello_sat: data.selloSAT,
+          no_certificado_sat: data.noCertificadoSAT,
+          fecha_certificacion: data.fecha_certificacion,
+          total_iva: data.totalIVA,
+          total_ieps: data.totalIEPS,
+          iva_detalle: data.ivaDetalle,
+          ieps_detalle: data.iepsDetalle,
+          conceptos: data.conceptos
+        })
+      });
+
+      if (resp.ok) {
+        return { ok: true };
+      }
+
+      const errText = await resp.text();
+      ultimoError = errText;
+
+      if (
+        errText.includes("57014") ||
+        errText.toLowerCase().includes("statement timeout")
+      ) {
+        await new Promise(r => setTimeout(r, 2500 * intento));
+        continue;
+      }
+
+      return { ok: false, error: errText };
+
+    } catch (error) {
+      ultimoError = error.message;
+      await new Promise(r => setTimeout(r, 2000 * intento));
+    }
+  }
+
+  return { ok: false, error: ultimoError || "Error desconocido al insertar" };
+}
 async function procesarArchivos() {
   const progreso = document.getElementById("progreso");
   const totalArchivos = archivosDatos.length;
-  const loteTamaño = 50;           // ✅ tamaño del lote
-  const pausaEntreArchivos = 500;  // 0.5 s entre cada XML
-  const pausaEntreLotes = 2000;    // 2 s entre lotes
+  const loteTamaño = 10;           // ✅ tamaño del lote
+  const pausaEntreArchivos = 900;  // 0.5 s entre cada XML
+  const pausaEntreLotes = 3500;    // 2 s entre lotes
 
   logBitacora(`🚀 Iniciando carga de ${totalArchivos} CFDI en lotes de ${loteTamaño}...`);
 
@@ -278,55 +345,18 @@ if (yaExiste.length > 0) {
   continue;
 }        
   
-  // Insertar nuevo registro
-        const insert = await fetch(`${SUPABASE_URL}/rest/v1/ingresos_pdd`, {
-          method: "POST",
-          headers: {
-            apikey: API_KEY,
-            Authorization: `Bearer ${API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-  uuid_cfdi: data.uuid,
-  fecha: data.fecha,
-  periodo_mes: data.periodoMes,
-  periodo_anio: data.periodoAnio,
-  tipo_factura: data.tipoFactura,
-  rfc_emisor: data.emisorRFC,
-  razon_social_emisor: data.razonSocial,
-  rfc_receptor: data.receptorRFC,
-  razon_social_receptor: data.receptorNombre,
-  folio: data.folio,
-  serie: data.serie,
-  subtotal: data.subtotal,
-  descuento: data.descuento,
-  total: data.total,
-  moneda: data.moneda,
-  forma_pago: data.formaPago,
-  metodo_pago: data.metodoPago,
-  uso_cfdi: data.usoCFDI,
-  sello_sat: data.selloSAT,
-  no_certificado_sat: data.noCertificadoSAT,
-  fecha_certificacion: data.fecha_certificacion,
-  total_iva: data.totalIVA,
-  total_ieps: data.totalIEPS,
-  iva_detalle: data.ivaDetalle,
-  ieps_detalle: data.iepsDetalle,
-  conceptos: data.conceptos
-}),
+// Insertar nuevo registro con reintento
+const resultadoInsert = await insertarCFDIConReintento(data, 2);
 
-        });
-
-        if (insert.ok) {
-          item.querySelector("span").textContent = `✅ Subido`;
-          item.querySelector("span").className = "ok";
-          logBitacora(`✔️ Subida exitosa`);
-        } else {
-          const err = await insert.text();
-          item.querySelector("span").textContent = `❌ Error: ${err}`;
-          item.querySelector("span").className = "err";
-          logBitacora(`❌ Error al subir: ${err}`);
-        }
+if (resultadoInsert.ok) {
+  item.querySelector("span").textContent = `✅ Subido`;
+  item.querySelector("span").className = "ok";
+  logBitacora(`✔️ Subida exitosa`);
+} else {
+  item.querySelector("span").textContent = `❌ Error: ${resultadoInsert.error}`;
+  item.querySelector("span").className = "err";
+  logBitacora(`❌ Error al subir: ${resultadoInsert.error}`);
+}
 
       } catch (error) {
         item.querySelector("span").textContent = `❌ Error de red`;
