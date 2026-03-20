@@ -4,64 +4,35 @@
 <meta charset="UTF-8">
 <title>Ingresos SAT por Mes – PROVSOFT</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-
-body{
-font-family:Arial;
-background:#eef2f7;
-padding:20px;
-}
-
-h2{
-margin-bottom:15px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-}
-
-th,td{
-padding:10px;
-border-bottom:1px solid #e5e7eb;
-font-size:13px;
-}
-
-th{
-background:#f3f6fb;
-}
-
+body{font-family:Arial;background:#eef2f7;padding:20px}
+h2{margin-bottom:15px}
+table{width:100%;border-collapse:collapse;background:white}
+th,td{padding:10px;border-bottom:1px solid #e5e7eb;font-size:13px}
+th{background:#f3f6fb}
 .num{text-align:right}
-
 .global{
-background:#fff3cd;
-color:#92400e;
-font-weight:bold;
-padding:3px 8px;
-border-radius:20px;
+  background:#fff3cd;
+  color:#92400e;
+  font-weight:bold;
+  padding:3px 8px;
+  border-radius:20px;
 }
-
 .individual{
-background:#dbeafe;
-color:#1e3a8a;
-font-weight:bold;
-padding:3px 8px;
-border-radius:20px;
+  background:#dbeafe;
+  color:#1e3a8a;
+  font-weight:bold;
+  padding:3px 8px;
+  border-radius:20px;
 }
-
 .totales{
-margin-top:20px;
-font-size:18px;
-font-weight:bold;
+  margin-top:20px;
+  font-size:18px;
+  font-weight:bold;
 }
-
 </style>
 </head>
-
 <body>
 
 <h2>Ingresos SAT por Mes – PROVSOFT</h2>
@@ -71,20 +42,18 @@ Año
 
 Mes
 <select id="mes">
-
-<option value="01">Enero</option>
-<option value="02">Febrero</option>
-<option value="03">Marzo</option>
-<option value="04">Abril</option>
-<option value="05">Mayo</option>
-<option value="06">Junio</option>
-<option value="07">Julio</option>
-<option value="08">Agosto</option>
-<option value="09">Septiembre</option>
-<option value="10">Octubre</option>
-<option value="11">Noviembre</option>
-<option value="12">Diciembre</option>
-
+  <option value="01">Enero</option>
+  <option value="02">Febrero</option>
+  <option value="03">Marzo</option>
+  <option value="04">Abril</option>
+  <option value="05">Mayo</option>
+  <option value="06">Junio</option>
+  <option value="07">Julio</option>
+  <option value="08">Agosto</option>
+  <option value="09">Septiembre</option>
+  <option value="10">Octubre</option>
+  <option value="11">Noviembre</option>
+  <option value="12">Diciembre</option>
 </select>
 
 <button onclick="buscar()">Construir tabla</button>
@@ -92,213 +61,225 @@ Mes
 <br><br>
 
 <table>
-
-<thead>
-
-<tr>
-
-<th>#</th>
-<th>Fecha</th>
-<th>UUID</th>
-<th>Serie</th>
-<th>Folio</th>
-
-<th class="num">Subtotal</th>
-<th class="num">IVA</th>
-<th class="num">IEPS</th>
-<th class="num">Total</th>
-
-<th>Periodo Mes</th>
-<th>Periodo Año</th>
-
-<th>Clasificación</th>
-
-</tr>
-
-</thead>
-
-<tbody id="tabla"></tbody>
-
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Fecha Timbrado</th>
+      <th>UUID</th>
+      <th>Serie</th>
+      <th>Folio</th>
+      <th class="num">Subtotal</th>
+      <th class="num">IVA</th>
+      <th class="num">IEPS</th>
+      <th class="num">Total</th>
+      <th>Año Reportado</th>
+      <th>Mes Reportado</th>
+      <th>Clasificación</th>
+    </tr>
+  </thead>
+  <tbody id="tabla"></tbody>
 </table>
 
 <div class="totales">
-
-Subtotal: <span id="t_subtotal">$0.00</span> |
-IVA: <span id="t_iva">$0.00</span> |
-IEPS: <span id="t_ieps">$0.00</span> |
-Total: <span id="t_total">$0.00</span>
-
+  Subtotal: <span id="t_subtotal">$0.00</span> |
+  IVA: <span id="t_iva">$0.00</span> |
+  IEPS: <span id="t_ieps">$0.00</span> |
+  Total: <span id="t_total">$0.00</span>
 </div>
 
 <script>
-
-const { createClient } = supabase
+const { createClient } = supabase;
 
 const db = createClient(
 'https://cvpbtjlupswbyxenugpz.supabase.co',
 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
 )
 
-const TABLA = 'v_ingresos_sat_mes'
-
-
 function llenarAnios(){
-
-let actual=new Date().getFullYear()
-
-for(let y=actual+1;y>=2020;y--){
-
-let op=document.createElement("option")
-op.value=y
-op.text=y
-
-document.getElementById("anio").appendChild(op)
-
+  const actual = new Date().getFullYear();
+  for(let y=actual+1; y>=2020; y--){
+    const op = document.createElement("option");
+    op.value = String(y);
+    op.text = String(y);
+    document.getElementById("anio").appendChild(op);
+  }
+  document.getElementById("anio").value = String(actual);
 }
-
-document.getElementById("anio").value=actual
-
-}
-
-llenarAnios()
-
+llenarAnios();
 
 function money(n){
-
-return Number(n||0).toLocaleString(
-'es-MX',
-{style:'currency',currency:'MXN'}
-)
-
+  return Number(n || 0).toLocaleString('es-MX', {
+    style:'currency',
+    currency:'MXN'
+  });
 }
 
+function fmtFecha(fechaIso){
+  if(!fechaIso) return '';
+  const d = new Date(fechaIso);
+  if (isNaN(d)) return fechaIso;
+  return d.toLocaleString('es-MX', {
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit',
+    hour:'2-digit',
+    minute:'2-digit',
+    second:'2-digit',
+    hour12:false
+  });
+}
+
+function construirRangoMesMX(anio, mes){
+  const y = Number(anio);
+  const m = Number(mes);
+
+  const inicio = `${anio}-${String(m).padStart(2,'0')}-01T00:00:00-06:00`;
+
+  let nextY = y;
+  let nextM = m + 1;
+  if(nextM === 13){
+    nextM = 1;
+    nextY++;
+  }
+
+  const fin = `${nextY}-${String(nextM).padStart(2,'0')}-01T00:00:00-06:00`;
+
+  return { inicio, fin };
+}
 
 async function buscar(){
+  const anio = document.getElementById("anio").value;
+  const mes = document.getElementById("mes").value;
+  const { inicio, fin } = construirRangoMesMX(anio, mes);
 
-let anio=document.getElementById("anio").value
-let mes=document.getElementById("mes").value
+  const cols = `
+    id,
+    uuid_cfdi,
+    fecha,
+    periodo_mes,
+    periodo_anio,
+    tipo_factura,
+    serie,
+    folio,
+    subtotal,
+    total_iva,
+    total_ieps,
+    total
+  `;
 
-let inicio=`${anio}-${mes}-01`
-let fin=new Date(anio,mes,1).toISOString().slice(0,10)
+  const qGlobales = db
+    .from('ingresos_pdd')
+    .select(cols)
+    .eq('cancelado', false)
+    .eq('tipo_factura', 'GLOBAL')
+    .eq('periodo_anio', anio)
+    .eq('periodo_mes', mes);
 
+  const qIndividuales = db
+    .from('ingresos_pdd')
+    .select(cols)
+    .eq('cancelado', false)
+    .or('tipo_factura.neq.GLOBAL,tipo_factura.is.null')
+    .gte('fecha', inicio)
+    .lt('fecha', fin);
 
-let globales=await db
-.from(TABLA)
-.select('*')
-.eq('tipo_factura','GLOBAL')
-.eq('periodo_anio',anio)
-.eq('periodo_mes',mes)
+  const [resGlobales, resIndividuales] = await Promise.all([qGlobales, qIndividuales]);
 
+  if(resGlobales.error || resIndividuales.error){
+    const err = resGlobales.error || resIndividuales.error;
+    console.error(err);
+    document.getElementById("tabla").innerHTML =
+      `<tr><td colspan="12">Error: ${err.message}</td></tr>`;
+    limpiarTotales();
+    return;
+  }
 
-let individuales=await db
-.from(TABLA)
-.select('*')
-.neq('tipo_factura','GLOBAL')
-.is('periodo_mes',null)
-.is('periodo_anio',null)
-.gte('fecha',inicio)
-.lt('fecha',fin)
+  const globales = (resGlobales.data || []).map(r => ({
+    ...r,
+    anio_reportado: r.periodo_anio || '',
+    mes_reportado: String(r.periodo_mes || '').padStart(2, '0')
+  }));
 
+  const individuales = (resIndividuales.data || []).map(r => {
+    const d = new Date(r.fecha);
+    const anioRep = isNaN(d) ? '' : String(d.getFullYear());
+    const mesRep = isNaN(d) ? '' : String(d.getMonth() + 1).padStart(2, '0');
 
-let rows=[...(globales.data||[]),...(individuales.data||[])]
+    return {
+      ...r,
+      anio_reportado: anioRep,
+      mes_reportado: mesRep
+    };
+  });
 
+  const rows = [...globales, ...individuales].sort((a,b) => {
+    const fa = new Date(a.fecha).getTime() || 0;
+    const fb = new Date(b.fecha).getTime() || 0;
+    if (fa !== fb) return fa - fb;
+    return (a.id || 0) - (b.id || 0);
+  });
 
-rows.sort((a,b)=>new Date(a.fecha)-new Date(b.fecha))
-
-
-render(rows)
-
-calcularTotales(rows)
-
+  render(rows);
+  calcularTotales(rows);
 }
 
+function limpiarTotales(){
+  document.getElementById("t_subtotal").innerText = money(0);
+  document.getElementById("t_iva").innerText = money(0);
+  document.getElementById("t_ieps").innerText = money(0);
+  document.getElementById("t_total").innerText = money(0);
+}
 
 function calcularTotales(rows){
+  let subtotal = 0;
+  let iva = 0;
+  let ieps = 0;
+  let total = 0;
 
-let subtotal=0
-let iva=0
-let ieps=0
-let total=0
+  rows.forEach(r => {
+    subtotal += Number(r.subtotal || 0);
+    iva += Number(r.total_iva || 0);
+    ieps += Number(r.total_ieps || 0);
+    total += Number(r.total || 0);
+  });
 
-rows.forEach(r=>{
-
-subtotal+=Number(r.subtotal||0)
-iva+=Number(r.total_iva||0)
-ieps+=Number(r.total_ieps||0)
-total+=Number(r.total||0)
-
-})
-
-document.getElementById("t_subtotal").innerText=money(subtotal)
-document.getElementById("t_iva").innerText=money(iva)
-document.getElementById("t_ieps").innerText=money(ieps)
-document.getElementById("t_total").innerText=money(total)
-
+  document.getElementById("t_subtotal").innerText = money(subtotal);
+  document.getElementById("t_iva").innerText = money(iva);
+  document.getElementById("t_ieps").innerText = money(ieps);
+  document.getElementById("t_total").innerText = money(total);
 }
-
 
 function render(rows){
+  const tb = document.getElementById("tabla");
 
-let tb=document.getElementById("tabla")
+  if(!rows.length){
+    tb.innerHTML = "<tr><td colspan='12'>Sin resultados</td></tr>";
+    return;
+  }
 
-if(!rows.length){
+  tb.innerHTML = rows.map((r, i) => {
+    const tipo = String(r.tipo_factura || '').toUpperCase() === 'GLOBAL'
+      ? `<span class="global">GLOBAL</span>`
+      : `<span class="individual">INDIVIDUAL</span>`;
 
-tb.innerHTML="<tr><td colspan='12'>Sin resultados</td></tr>"
-return
-
+    return `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${fmtFecha(r.fecha)}</td>
+        <td>${r.uuid_cfdi || ''}</td>
+        <td>${r.serie || ''}</td>
+        <td>${r.folio || ''}</td>
+        <td class="num">${money(r.subtotal)}</td>
+        <td class="num">${money(r.total_iva)}</td>
+        <td class="num">${money(r.total_ieps)}</td>
+        <td class="num"><b>${money(r.total)}</b></td>
+        <td>${r.anio_reportado || ''}</td>
+        <td>${r.mes_reportado || ''}</td>
+        <td>${tipo}</td>
+      </tr>
+    `;
+  }).join('');
 }
-
-
-tb.innerHTML=rows.map((r,i)=>{
-
-
-let tipo=r.tipo_factura==='GLOBAL'
-?`<span class="global">GLOBAL</span>`
-:`<span class="individual">INDIVIDUAL</span>`
-
-
-let periodoMes=r.tipo_factura==='GLOBAL'
-?r.periodo_mes
-:'-'
-
-
-let periodoAnio=r.tipo_factura==='GLOBAL'
-?r.periodo_anio
-:'-'
-
-
-return`
-
-<tr>
-
-<td>${i+1}</td>
-
-<td>${r.fecha||''}</td>
-
-<td>${r.uuid_cfdi||''}</td>
-
-<td>${r.serie||''}</td>
-
-<td>${r.folio||''}</td>
-
-<td class="num">${money(r.subtotal)}</td>
-<td class="num">${money(r.total_iva)}</td>
-<td class="num">${money(r.total_ieps)}</td>
-<td class="num"><b>${money(r.total)}</b></td>
-
-<td>${periodoMes}</td>
-<td>${periodoAnio}</td>
-
-<td>${tipo}</td>
-
-</tr>
-
-`
-
-}).join("")
-
-}
-
 </script>
 
 </body>
