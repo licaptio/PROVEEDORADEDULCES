@@ -177,7 +177,12 @@
 
         const card = document.createElement("div");
         card.className = "card";
+        card.style.cursor = "pointer";
 
+        card.onclick = () => {
+        window.location.href = `visor_pedido.html?id=${id}`;
+        };
+        
         card.innerHTML = `
           <div class="top">
             <strong>${escapeHTML(proveedor)}</strong>
