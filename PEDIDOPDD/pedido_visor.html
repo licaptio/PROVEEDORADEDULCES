@@ -1,350 +1,1597 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Visor Pedido – PDD</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Visor de Pedido – PDD</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<style>
-body{font-family:Arial;background:#f4f6f9;margin:0;padding:20px}
-.card{max-width:1100px;margin:auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 3px 12px rgba(0,0,0,.08)}
-.label{font-weight:bold}
-.badge{display:inline-block;padding:6px 12px;border-radius:999px;background:#eee;font-size:13px}
-button{padding:6px 12px;border-radius:8px;border:0;background:#111;color:#fff;cursor:pointer}
-.btnDanger{background:#b00020}
-.btnGhost{background:#e9edf3;color:#111}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:15px}
-.thumb{background:#fafafa;border:1px solid #ddd;border-radius:10px;padding:8px}
-.thumb img{width:100%;height:130px;object-fit:cover;border-radius:6px}
-.thumbName{font-size:12px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.actions{display:flex;justify-content:space-between;margin-top:6px;gap:8px}
-.actions button{flex:1}
-input[type=file]{display:none}
-.topActions{margin-top:15px;display:flex;gap:10px;flex-wrap:wrap}
-.muted{color:#64748b;font-size:12px}
+  <style>
+    :root{
+      --bg-1:#06131f;
+      --bg-2:#0b2033;
+      --bg-3:#10314d;
 
-/* ===== Modal Pegado ===== */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:18px;z-index:999}
-.hidden{display:none}
-.modalCard{width:min(720px,100%);background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:14px}
-.modalHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:6px 6px 10px 6px}
-.modalTitle{font-weight:800;font-size:16px}
-.modalSub{color:#64748b;font-size:12px;margin-top:2px}
-.pasteZone{border:2px dashed #cbd5e1;border-radius:12px;padding:14px;min-height:210px;outline:none;display:flex;flex-direction:column;gap:10px;cursor:text}
-.pasteZone:focus{border-color:#111}
-.pasteHint{color:#64748b;font-size:13px;line-height:1.4}
-.pastePreview img{max-width:100%;border-radius:10px;border:1px solid #e2e8f0}
-.modalFoot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 6px 6px 6px}
-</style>
+      --card:rgba(255,255,255,.94);
+      --card-solid:#ffffff;
+      --line:#dbe5f0;
+      --line-soft:#e9eef5;
+
+      --text:#0f172a;
+      --muted:#64748b;
+
+      --primary:#0c6cbd;
+      --primary-2:#00416A;
+
+      --success:#16a34a;
+      --warning:#d97706;
+      --danger:#dc2626;
+      --info:#2563eb;
+
+      --radius-xxl:28px;
+      --radius-xl:22px;
+      --radius-lg:18px;
+      --radius-md:14px;
+      --radius-sm:12px;
+
+      --shadow-lg:0 24px 60px rgba(2,6,23,.24);
+      --shadow-md:0 14px 28px rgba(15,23,42,.10);
+      --shadow-sm:0 8px 18px rgba(15,23,42,.08);
+
+      --pad:22px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    html{
+      -webkit-text-size-adjust:100%;
+      text-size-adjust:100%;
+    }
+
+    body{
+      font-family:Arial, Helvetica, sans-serif;
+      min-height:100vh;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(12,108,189,.34), transparent 24%),
+        radial-gradient(circle at top right, rgba(0,65,106,.30), transparent 22%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2) 48%, var(--bg-3));
+      padding:
+        max(14px, env(safe-area-inset-top))
+        max(14px, env(safe-area-inset-right))
+        max(14px, env(safe-area-inset-bottom))
+        max(14px, env(safe-area-inset-left));
+    }
+
+    .shell{
+      max-width:1280px;
+      margin:0 auto;
+    }
+
+    .hero{
+      margin-bottom:18px;
+      border-radius:30px;
+      padding:22px;
+      background:linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:var(--shadow-lg);
+      backdrop-filter:blur(14px);
+      color:#fff;
+    }
+
+    .heroTop{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:14px;
+      flex-wrap:wrap;
+    }
+
+    .hero h1{
+      margin:0;
+      font-size:34px;
+      line-height:1.05;
+      letter-spacing:.2px;
+    }
+
+    .heroSub{
+      margin-top:10px;
+      max-width:760px;
+      color:rgba(255,255,255,.86);
+      font-size:15px;
+      line-height:1.45;
+    }
+
+    .heroPills{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:16px;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      color:#fff;
+      font-size:13px;
+      font-weight:800;
+      white-space:nowrap;
+    }
+
+    .mainCard{
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.54);
+      border-radius:30px;
+      backdrop-filter:blur(12px);
+      box-shadow:var(--shadow-lg);
+      overflow:hidden;
+    }
+
+    .topBar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:14px;
+      flex-wrap:wrap;
+      padding:20px 22px;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.9));
+    }
+
+    .leftTitle h2{
+      margin:0;
+      font-size:24px;
+      line-height:1.1;
+    }
+
+    .muted{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.4;
+    }
+
+    .btnRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    button,
+    select,
+    input{
+      font:inherit;
+    }
+
+    button{
+      appearance:none;
+      border:none;
+      border-radius:14px;
+      padding:13px 16px;
+      cursor:pointer;
+      font-weight:900;
+      transition:.18s ease;
+      box-shadow:var(--shadow-sm);
+      min-height:46px;
+    }
+
+    button:hover{transform:translateY(-1px)}
+    button:disabled{opacity:.58;cursor:not-allowed;transform:none}
+
+    .btnPrimary{
+      background:linear-gradient(135deg, var(--primary), var(--primary-2));
+      color:#fff;
+    }
+
+    .btnGhost{
+      background:#edf3f9;
+      color:#0f172a;
+    }
+
+    .btnDanger{
+      background:linear-gradient(135deg, #ef4444, #b91c1c);
+      color:#fff;
+    }
+
+    .btnSuccess{
+      background:linear-gradient(135deg, #22c55e, #15803d);
+      color:#fff;
+    }
+
+    .content{
+      padding:22px;
+    }
+
+    .loadingBox{
+      padding:16px;
+      border-radius:16px;
+      background:#eff6ff;
+      color:#1d4ed8;
+      border:1px solid #bfdbfe;
+      font-weight:900;
+      margin-bottom:16px;
+    }
+
+    .hidden{display:none !important}
+
+    .gridTop{
+      display:grid;
+      grid-template-columns:1.2fr .95fr;
+      gap:18px;
+      margin-bottom:18px;
+    }
+
+    .panel{
+      background:rgba(255,255,255,.92);
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:18px;
+      box-shadow:var(--shadow-md);
+      min-width:0;
+    }
+
+    .panelHead{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+
+    .panelHead h3{
+      margin:0;
+      font-size:18px;
+      line-height:1.15;
+    }
+
+    .panelSub{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    .infoGrid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(190px,1fr));
+      gap:12px;
+    }
+
+    .infoItem{
+      border:1px solid var(--line-soft);
+      border-radius:18px;
+      padding:14px;
+      background:linear-gradient(180deg,#fff,#f8fbff);
+      min-width:0;
+    }
+
+    .infoLabel{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      margin-bottom:8px;
+    }
+
+    .infoValue{
+      font-size:15px;
+      font-weight:900;
+      line-height:1.35;
+      word-break:break-word;
+    }
+
+    .estatusHero{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+      padding:16px;
+      border-radius:20px;
+      background:linear-gradient(135deg,#eff6ff,#f8fbff);
+      border:1px solid #dbeafe;
+    }
+
+    .estatusMetaLabel{
+      font-size:12px;
+      color:#64748b;
+      font-weight:900;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      margin-bottom:8px;
+    }
+
+    .estatusBadge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:11px 16px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:900;
+      border:1px solid transparent;
+      letter-spacing:.03em;
+      white-space:nowrap;
+    }
+
+    .badgePendiente{background:#e5e7eb;color:#374151;border-color:#d1d5db}
+    .badgeProceso{background:#fef3c7;color:#92400e;border-color:#fde68a}
+    .badgeSurtido{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+    .badgeParcial{background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe}
+    .badgeCancelado{background:#fee2e2;color:#991b1b;border-color:#fecaca}
+
+    .estatusControls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      width:100%;
+    }
+
+    .estatusSelect{
+      min-width:220px;
+      flex:1 1 220px;
+      padding:13px 14px;
+      min-height:48px;
+      border-radius:14px;
+      border:1px solid #cbd5e1;
+      background:#fff;
+      font-weight:900;
+      color:#0f172a;
+      outline:none;
+    }
+
+    .quickStatus{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .miniBtn{
+      padding:10px 13px;
+      min-height:40px;
+      border-radius:999px;
+      background:#f1f5f9;
+      color:#0f172a;
+      border:1px solid #dbe5f0;
+      font-size:12px;
+      font-weight:900;
+      box-shadow:none;
+    }
+
+    .sectionWrap{
+      background:rgba(255,255,255,.92);
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:18px;
+      box-shadow:var(--shadow-md);
+    }
+
+    .sectionTitle{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+
+    .sectionTitle h3{
+      margin:0;
+      font-size:20px;
+      line-height:1.15;
+    }
+
+    .summaryBar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .summaryChip{
+      padding:10px 12px;
+      border-radius:999px;
+      background:#f1f5f9;
+      border:1px solid #e2e8f0;
+      font-size:12px;
+      font-weight:900;
+      color:#334155;
+      white-space:nowrap;
+    }
+
+    .toolbar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    .toolbar button{
+      flex:0 0 auto;
+    }
+
+    .dropHint{
+      margin-top:12px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(210px,1fr));
+      gap:14px;
+      margin-top:16px;
+    }
+
+    .thumb{
+      overflow:hidden;
+      border-radius:20px;
+      border:1px solid var(--line);
+      background:var(--card-solid);
+      box-shadow:var(--shadow-md);
+      transition:.18s ease;
+      min-width:0;
+    }
+
+    .thumb:hover{
+      transform:translateY(-2px);
+    }
+
+    .thumbPreview{
+      position:relative;
+      background:linear-gradient(180deg,#f8fafc,#eef2f7);
+      aspect-ratio:1 / 1;
+      overflow:hidden;
+      border-bottom:1px solid var(--line);
+    }
+
+    .thumb img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      cursor:pointer;
+      transition:transform .18s ease;
+    }
+
+    .thumb:hover img{
+      transform:scale(1.03);
+    }
+
+    .thumbIndex{
+      position:absolute;
+      top:10px;
+      left:10px;
+      background:rgba(15,23,42,.74);
+      color:#fff;
+      padding:7px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:900;
+      backdrop-filter:blur(8px);
+    }
+
+    .thumbBody{
+      padding:14px;
+    }
+
+    .thumbName{
+      font-size:13px;
+      font-weight:900;
+      line-height:1.35;
+      word-break:break-word;
+      min-height:36px;
+    }
+
+    .thumbMeta{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+
+    .actions{
+      display:flex;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .actions button{
+      flex:1 1 0;
+      padding:11px 12px;
+      min-height:42px;
+      box-shadow:none;
+      font-size:13px;
+    }
+
+    .emptyState{
+      margin-top:14px;
+      border:2px dashed #dbe5f0;
+      border-radius:20px;
+      padding:32px 18px;
+      text-align:center;
+      color:var(--muted);
+      background:linear-gradient(180deg,#f8fbff,#f8fafc);
+    }
+
+    .emptyState strong{
+      display:block;
+      color:#334155;
+      margin-bottom:6px;
+      font-size:16px;
+    }
+
+    input[type="file"]{display:none}
+
+    .toastWrap{
+      position:fixed;
+      top:max(14px, env(safe-area-inset-top));
+      right:max(14px, env(safe-area-inset-right));
+      z-index:4000;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      pointer-events:none;
+    }
+
+    .toast{
+      min-width:260px;
+      max-width:min(420px, calc(100vw - 28px));
+      padding:14px 16px;
+      border-radius:16px;
+      color:#fff;
+      font-size:14px;
+      font-weight:800;
+      box-shadow:0 22px 36px rgba(0,0,0,.25);
+      animation:toastIn .18s ease;
+    }
+
+    .toast.success{background:linear-gradient(135deg,#16a34a,#166534)}
+    .toast.error{background:linear-gradient(135deg,#dc2626,#991b1b)}
+    .toast.warn{background:linear-gradient(135deg,#d97706,#92400e)}
+    .toast.info{background:linear-gradient(135deg,#2563eb,#1d4ed8)}
+
+    @keyframes toastIn{
+      from{opacity:0;transform:translateY(-8px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+
+    .modal{
+      position:fixed;
+      inset:0;
+      padding:
+        max(14px, env(safe-area-inset-top))
+        max(14px, env(safe-area-inset-right))
+        max(14px, env(safe-area-inset-bottom))
+        max(14px, env(safe-area-inset-left));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(2,6,23,.62);
+      z-index:3000;
+      backdrop-filter:blur(8px);
+    }
+
+    .modalCard{
+      width:min(780px,100%);
+      max-height:100%;
+      background:#fff;
+      border-radius:24px;
+      overflow:hidden;
+      border:1px solid #e2e8f0;
+      box-shadow:0 36px 80px rgba(0,0,0,.35);
+      display:flex;
+      flex-direction:column;
+    }
+
+    .modalHead{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      padding:18px 18px 14px;
+      border-bottom:1px solid #e2e8f0;
+      background:linear-gradient(180deg,#ffffff,#f8fafc);
+    }
+
+    .modalTitle{
+      font-size:20px;
+      font-weight:900;
+      line-height:1.15;
+      margin:0;
+    }
+
+    .modalSub{
+      margin-top:6px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    .modalBody{
+      padding:16px 18px;
+      overflow:auto;
+    }
+
+    .pasteZone{
+      min-height:250px;
+      border:2px dashed #cbd5e1;
+      border-radius:22px;
+      padding:16px;
+      background:linear-gradient(180deg,#f8fbff,#f8fafc);
+      outline:none;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      transition:.18s ease;
+    }
+
+    .pasteZone:focus,
+    .pasteZone.dragover{
+      border-color:var(--primary);
+      background:#fff;
+      box-shadow:inset 0 0 0 4px rgba(37,99,235,.06);
+    }
+
+    .pasteHint{
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.6;
+    }
+
+    .pastePreview{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:56px;
+    }
+
+    .pastePreview img{
+      max-width:100%;
+      max-height:360px;
+      border-radius:18px;
+      border:1px solid #e2e8f0;
+      display:block;
+      box-shadow:0 14px 26px rgba(15,23,42,.10);
+      background:#fff;
+    }
+
+    .modalFoot{
+      padding:14px 18px 18px;
+      border-top:1px solid #e2e8f0;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+      background:#fff;
+    }
+
+    .statusText{
+      color:var(--muted);
+      font-size:13px;
+      font-weight:800;
+      line-height:1.4;
+    }
+
+    .viewerModal{
+      position:fixed;
+      inset:0;
+      z-index:3200;
+      padding:
+        max(12px, env(safe-area-inset-top))
+        max(12px, env(safe-area-inset-right))
+        max(12px, env(safe-area-inset-bottom))
+        max(12px, env(safe-area-inset-left));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(2,6,23,.88);
+      backdrop-filter:blur(6px);
+    }
+
+    .viewerCard{
+      position:relative;
+      width:min(1200px,100%);
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .viewerCard img{
+      max-width:100%;
+      max-height:100%;
+      border-radius:18px;
+      box-shadow:0 30px 70px rgba(0,0,0,.45);
+      background:#fff;
+      object-fit:contain;
+    }
+
+    .viewerClose{
+      position:absolute;
+      top:0;
+      right:0;
+      width:46px;
+      height:46px;
+      border-radius:999px;
+      background:#fff;
+      color:#111827;
+      border:none;
+      font-size:20px;
+      font-weight:900;
+      box-shadow:0 16px 30px rgba(0,0,0,.22);
+      min-height:auto;
+      padding:0;
+    }
+
+    @media (max-width:1100px){
+      .gridTop{
+        grid-template-columns:1fr;
+      }
+    }
+
+    @media (max-width:768px){
+      body{
+        padding:
+          max(10px, env(safe-area-inset-top))
+          max(10px, env(safe-area-inset-right))
+          max(10px, env(safe-area-inset-bottom))
+          max(10px, env(safe-area-inset-left));
+      }
+
+      .hero,
+      .mainCard{
+        border-radius:24px;
+      }
+
+      .hero{
+        padding:18px;
+      }
+
+      .hero h1{
+        font-size:28px;
+      }
+
+      .heroSub{
+        font-size:14px;
+      }
+
+      .topBar{
+        padding:16px;
+      }
+
+      .leftTitle h2{
+        font-size:21px;
+      }
+
+      .content{
+        padding:14px;
+      }
+
+      .panel,
+      .sectionWrap{
+        padding:14px;
+        border-radius:20px;
+      }
+
+      .infoGrid{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .summaryBar{
+        width:100%;
+      }
+
+      .summaryChip{
+        max-width:100%;
+        white-space:normal;
+      }
+
+      .toolbar{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+      }
+
+      .toolbar button{
+        width:100%;
+      }
+
+      .actions{
+        flex-direction:column;
+      }
+
+      .actions button{
+        width:100%;
+      }
+
+      .modalCard{
+        border-radius:20px;
+      }
+    }
+
+    @media (max-width:560px){
+      .heroTop,
+      .topBar,
+      .sectionTitle,
+      .panelHead,
+      .modalHead,
+      .modalFoot{
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .btnRow{
+        width:100%;
+      }
+
+      .btnRow button{
+        width:100%;
+      }
+
+      .heroPills{
+        gap:8px;
+      }
+
+      .pill{
+        font-size:12px;
+        padding:9px 12px;
+      }
+
+      .infoGrid{
+        grid-template-columns:1fr;
+      }
+
+      .estatusHero{
+        padding:14px;
+      }
+
+      .estatusControls{
+        flex-direction:column;
+        align-items:stretch;
+      }
+
+      .estatusSelect,
+      #btnGuardarEstatus{
+        width:100%;
+      }
+
+      .quickStatus{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+      }
+
+      .quickStatus .miniBtn{
+        width:100%;
+        min-height:42px;
+      }
+
+      .toolbar{
+        grid-template-columns:1fr;
+      }
+
+      .grid{
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+      }
+
+      .thumb{
+        border-radius:16px;
+      }
+
+      .thumbBody{
+        padding:10px;
+      }
+
+      .thumbName{
+        font-size:12px;
+        min-height:32px;
+      }
+
+      .modal{
+        align-items:flex-end;
+      }
+
+      .modalCard{
+        width:100%;
+        border-radius:20px 20px 0 0;
+        max-height:92vh;
+      }
+
+      .modalBody{
+        padding:14px;
+      }
+
+      .pasteZone{
+        min-height:220px;
+        border-radius:18px;
+      }
+
+      .pastePreview img{
+        max-height:260px;
+      }
+    }
+
+    @media (max-width:400px){
+      .hero h1{
+        font-size:24px;
+      }
+
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .quickStatus{
+        grid-template-columns:1fr;
+      }
+
+      .toast{
+        min-width:unset;
+        width:calc(100vw - 28px);
+      }
+    }
+  </style>
 </head>
 <body>
+  <div class="toastWrap" id="toastWrap"></div>
 
-<div class="card">
+  <div class="shell">
+    <div class="hero">
+      <div class="heroTop">
+        <div>
+          <h1>Visor de Pedido PDD</h1>
+          <div class="heroSub">
+            Panel de control para revisar pedido, cambiar estatus y cargar evidencias con una experiencia fuerte en escritorio y completamente usable en celular.
+          </div>
 
-<button onclick="history.back()">← Volver</button>
+          <div class="heroPills">
+            <div class="pill">⚡ Cambio de estatus</div>
+            <div class="pill">📸 Evidencias</div>
+            <div class="pill">📱 Adaptado a celular</div>
+            <div class="pill">☁️ Supabase</div>
+          </div>
+        </div>
 
-<h2>Visor de Pedido</h2>
-
-<div id="info"></div>
-
-<div class="topActions">
-  <button id="btnOpenPaste">📋 Pegar captura (Win+Shift+S → Ctrl+V)</button>
-  <button onclick="document.getElementById('fileInput').click()">+ Agregar Fotos</button>
-  <input type="file" id="fileInput" multiple accept="image/*">
-</div>
-
-<h3 style="margin-top:20px">Archivos</h3>
-<div id="grid" class="grid"></div>
-
-</div>
-
-<!-- ===== Modal para pegar / drag&drop ===== -->
-<div id="pasteModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Pegar captura">
-  <div class="modalCard">
-    <div class="modalHead">
-      <div>
-        <div class="modalTitle">Pegar captura</div>
-        <div class="modalSub">Usa Win+Shift+S, luego Ctrl+V aquí. (También arrastra una imagen)</div>
+        <div class="btnRow">
+          <button class="btnGhost" onclick="history.back()">← Volver</button>
+        </div>
       </div>
-      <button id="btnCloseModal" class="btnGhost" title="Cerrar">✕</button>
     </div>
 
-    <div id="pasteZone" class="pasteZone" tabindex="0">
-      <div class="pasteHint">
-        1) Toma captura con <b>Win+Shift+S</b><br>
-        2) Haz click aquí<br>
-        3) Pega con <b>Ctrl+V</b><br><br>
-        Tip: Puedes abrir este modal y pegar directo sin seleccionar archivos.
-      </div>
-      <div id="pastePreview" class="pastePreview"></div>
-    </div>
+    <div class="mainCard">
+      <div class="topBar">
+        <div class="leftTitle">
+          <h2>Control del pedido</h2>
+          <div class="muted">Consulta general, avance de surtido y evidencias del registro.</div>
+        </div>
 
-    <div class="modalFoot">
-      <span id="pasteStatus" class="muted"></span>
-      <div style="display:flex; gap:10px;">
-        <button id="btnPasteUpload" disabled>Subir</button>
-        <button id="btnPasteCancel" class="btnDanger">Cancelar</button>
+        <div class="summaryBar">
+          <div class="summaryChip" id="chipPedido">Pedido: --</div>
+          <div class="summaryChip" id="chipFotos">Fotos: 0</div>
+          <div class="summaryChip" id="chipProveedor">Proveedor: --</div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div id="loadingBox" class="loadingBox">Cargando pedido...</div>
+
+        <div id="appContent" class="hidden">
+          <div class="gridTop">
+            <div class="panel">
+              <div class="panelHead">
+                <div>
+                  <h3>Información del pedido</h3>
+                  <div class="panelSub">Resumen principal del registro almacenado.</div>
+                </div>
+              </div>
+
+              <div id="infoGrid" class="infoGrid"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panelHead">
+                <div>
+                  <h3>Control de estatus</h3>
+                  <div class="panelSub">Actualiza el avance del pedido desde esta misma pantalla.</div>
+                </div>
+              </div>
+
+              <div class="estatusHero">
+                <div>
+                  <div class="estatusMetaLabel">Estatus actual</div>
+                  <div id="estatusBadgeWrap"></div>
+                </div>
+
+                <div>
+                  <div class="estatusMetaLabel">Acción</div>
+                  <div style="font-size:14px;font-weight:900;color:#0f172a;">Editar y guardar</div>
+                </div>
+              </div>
+
+              <div class="estatusControls">
+                <select id="estatusSelect" class="estatusSelect">
+                  <option value="PENDIENTE">PENDIENTE</option>
+                  <option value="EN PROCESO">EN PROCESO</option>
+                  <option value="SURTIDO">SURTIDO</option>
+                  <option value="PARCIAL">PARCIAL</option>
+                  <option value="CANCELADO">CANCELADO</option>
+                </select>
+
+                <button id="btnGuardarEstatus" class="btnPrimary">Guardar estatus</button>
+              </div>
+
+              <div class="quickStatus">
+                <button class="miniBtn" data-status="PENDIENTE">PENDIENTE</button>
+                <button class="miniBtn" data-status="EN PROCESO">EN PROCESO</button>
+                <button class="miniBtn" data-status="SURTIDO">SURTIDO</button>
+                <button class="miniBtn" data-status="PARCIAL">PARCIAL</button>
+                <button class="miniBtn" data-status="CANCELADO">CANCELADO</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sectionWrap">
+            <div class="sectionTitle">
+              <div>
+                <h3>Archivos y evidencias</h3>
+                <div class="panelSub">Sube imágenes, pega capturas o selecciona fotos desde el teléfono.</div>
+              </div>
+            </div>
+
+            <div class="toolbar">
+              <button id="btnOpenPaste" class="btnPrimary">📋 Pegar captura</button>
+              <button id="btnOpenFile" class="btnGhost">🖼️ Agregar fotos</button>
+              <input type="file" id="fileInput" multiple accept="image/*" capture="environment">
+            </div>
+
+            <div class="dropHint">
+              En celular puedes elegir fotos desde galería o cámara. En escritorio puedes usar <strong>Win + Shift + S</strong> y luego pegar con <strong>Ctrl + V</strong>.
+            </div>
+
+            <div id="grid" class="grid"></div>
+
+            <div id="emptyState" class="emptyState hidden">
+              <strong>Sin evidencias todavía</strong>
+              Este pedido aún no tiene archivos cargados.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<script>
+  <!-- Modal pegar -->
+  <div id="pasteModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Pegar captura">
+    <div class="modalCard">
+      <div class="modalHead">
+        <div>
+          <div class="modalTitle">Pegar captura o arrastrar imagen</div>
+          <div class="modalSub">
+            En escritorio usa <b>Win + Shift + S</b> y luego <b>Ctrl + V</b>. En celular normalmente usarás el botón de agregar fotos.
+          </div>
+        </div>
+        <button id="btnCloseModal" class="btnGhost">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div id="pasteZone" class="pasteZone" tabindex="0">
+          <div class="pasteHint">
+            1) Toma la captura<br>
+            2) Haz click aquí<br>
+            3) Pega con <b>Ctrl + V</b><br><br>
+            O arrastra una imagen.
+          </div>
+          <div id="pastePreview" class="pastePreview"></div>
+        </div>
+      </div>
+
+      <div class="modalFoot">
+        <div id="pasteStatus" class="statusText">Esperando imagen...</div>
+        <div class="btnRow">
+          <button id="btnPasteUpload" class="btnSuccess" disabled>Subir</button>
+          <button id="btnPasteCancel" class="btnDanger">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Viewer -->
+  <div id="viewerModal" class="viewerModal hidden">
+    <div class="viewerCard">
+      <button id="viewerClose" class="viewerClose">✕</button>
+      <img id="viewerImage" src="" alt="Vista previa">
+    </div>
+  </div>
+
+  <script>
 const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
 const BUCKET = "pedidospdd";
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const TABLE = "pedidos_pdd";
 
-let pedidoActual = null;
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* ===== Helpers ===== */
-function qp(name){
-  return new URLSearchParams(window.location.search).get(name);
-}
+    let pedidoActual = null;
+    let pastedFile = null;
+    let uploading = false;
 
-function getPublicUrl(path){
-  return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-}
+    const loadingBox = document.getElementById("loadingBox");
+    const appContent = document.getElementById("appContent");
+    const infoGrid = document.getElementById("infoGrid");
+    const estatusSelect = document.getElementById("estatusSelect");
+    const estatusBadgeWrap = document.getElementById("estatusBadgeWrap");
+    const btnGuardarEstatus = document.getElementById("btnGuardarEstatus");
+    const grid = document.getElementById("grid");
+    const emptyState = document.getElementById("emptyState");
+    const fileInput = document.getElementById("fileInput");
+    const btnOpenFile = document.getElementById("btnOpenFile");
+    const chipPedido = document.getElementById("chipPedido");
+    const chipFotos = document.getElementById("chipFotos");
+    const chipProveedor = document.getElementById("chipProveedor");
 
-function safeName(name){
-  // Evita caracteres raros en rutas
-  return (name || "image.png")
-    .replace(/[^\w.\-]+/g, "_")
-    .replace(/_+/g, "_")
-    .slice(0, 120);
-}
+    const pasteModal = document.getElementById("pasteModal");
+    const pasteZone = document.getElementById("pasteZone");
+    const pastePreview = document.getElementById("pastePreview");
+    const pasteStatus = document.getElementById("pasteStatus");
+    const btnPasteUpload = document.getElementById("btnPasteUpload");
+    const btnOpenPaste = document.getElementById("btnOpenPaste");
+    const btnCloseModal = document.getElementById("btnCloseModal");
+    const btnPasteCancel = document.getElementById("btnPasteCancel");
 
-async function subirArchivoYRegistrar(file){
-  if(!pedidoActual?.id) throw new Error("Pedido no cargado.");
+    const viewerModal = document.getElementById("viewerModal");
+    const viewerImage = document.getElementById("viewerImage");
+    const viewerClose = document.getElementById("viewerClose");
 
-  const ext = (file.name && file.name.includes(".")) ? file.name.split(".").pop() : "png";
-  const base = safeName(file.name || `captura.${ext}`);
-  const path = `${pedidoActual.id}/${Date.now()}_${base}`;
+    const toastWrap = document.getElementById("toastWrap");
 
-  const { error } = await sb.storage.from(BUCKET).upload(path, file, { upsert:false });
-  if(error) throw error;
+    function qp(name){
+      return new URLSearchParams(window.location.search).get(name);
+    }
 
-  pedidoActual.fotos = pedidoActual.fotos || [];
-  pedidoActual.fotos.push(path);
+    function escapeHtml(value){
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
 
-  const { error: e2 } = await sb
-    .from("pedidos_pdd")
-    .update({ fotos: pedidoActual.fotos })
-    .eq("id", pedidoActual.id);
+    function safeName(name){
+      return (name || "imagen.png")
+        .replace(/[^\w.\-]+/g, "_")
+        .replace(/_+/g, "_")
+        .slice(0, 120);
+    }
 
-  if(e2) throw e2;
+    function formatValue(value){
+      if(value === null || value === undefined || value === "") return "—";
+      return String(value);
+    }
 
-  return path;
-}
+    function normalizeStatus(status){
+      const s = String(status || "PENDIENTE").trim().toUpperCase();
+      if(["PENDIENTE","EN PROCESO","SURTIDO","PARCIAL","CANCELADO"].includes(s)) return s;
+      return "PENDIENTE";
+    }
 
-/* ===== Carga pedido ===== */
-async function cargarPedido(){
-  const id = qp("id");
+    function getStatusClass(status){
+      const s = normalizeStatus(status);
+      if(s === "SURTIDO") return "badgeSurtido";
+      if(s === "EN PROCESO") return "badgeProceso";
+      if(s === "PARCIAL") return "badgeParcial";
+      if(s === "CANCELADO") return "badgeCancelado";
+      return "badgePendiente";
+    }
 
-  const { data, error } = await sb
-    .from("pedidos_pdd")
-    .select("*")
-    .eq("id", id)
-    .single();
+    function renderStatusBadge(status){
+      const s = normalizeStatus(status);
+      return `<span class="estatusBadge ${getStatusClass(s)}">${escapeHtml(s)}</span>`;
+    }
 
-  if(error){
-    document.getElementById("info").innerHTML = "Error cargando pedido";
-    return;
-  }
+    function getPublicUrl(path){
+      return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+    }
 
-  pedidoActual = data;
+    function showToast(message, type = "success", timeout = 3200){
+      const div = document.createElement("div");
+      div.className = `toast ${type}`;
+      div.textContent = message;
+      toastWrap.appendChild(div);
 
-  document.getElementById("info").innerHTML = `
-    <div><span class="label">Proveedor:</span> ${data.proveedor_nombre}</div>
-    <div><span class="label">Fecha:</span> ${data.pedido_fecha}</div>
-    <div><span class="label">Estatus:</span> <span class="badge">${data.estatus}</span></div>
-    <div><span class="label">Notas:</span> ${data.notas || ""}</div>
-  `;
+      setTimeout(() => {
+        div.style.opacity = "0";
+        div.style.transform = "translateY(-6px)";
+        div.style.transition = ".2s ease";
+        setTimeout(() => div.remove(), 220);
+      }, timeout);
+    }
 
-  renderFotos();
-}
+    function setLoading(text){
+      loadingBox.textContent = text || "Cargando...";
+      loadingBox.classList.remove("hidden");
+      appContent.classList.add("hidden");
+    }
 
-function renderFotos(){
-  const grid = document.getElementById("grid");
-  const fotos = pedidoActual?.fotos || [];
+    function hideLoading(){
+      loadingBox.classList.add("hidden");
+      appContent.classList.remove("hidden");
+    }
 
-  if(fotos.length === 0){
-    grid.innerHTML = "Sin archivos";
-    return;
-  }
-
-  grid.innerHTML = fotos.map(path=>{
-    const url = getPublicUrl(path);
-    const name = path.split("/").pop();
-
-    return `
-      <div class="thumb">
-        <img src="${url}" onclick="window.open('${url}','_blank')" title="Abrir">
-        <div class="thumbName" title="${name}">${name}</div>
-        <div class="actions">
-          <button onclick="window.open('${url}','_blank')">Abrir</button>
-          <button class="btnDanger" onclick="eliminarFoto('${path}')">Eliminar</button>
+    function buildInfoItem(label, value){
+      return `
+        <div class="infoItem">
+          <div class="infoLabel">${escapeHtml(label)}</div>
+          <div class="infoValue">${escapeHtml(formatValue(value))}</div>
         </div>
-      </div>
-    `;
-  }).join("");
-}
-
-async function eliminarFoto(path){
-  if(!confirm("¿Eliminar esta foto?")) return;
-
-  const { error } = await sb.storage.from(BUCKET).remove([path]);
-  if(error){
-    alert("Error eliminando archivo");
-    return;
-  }
-
-  pedidoActual.fotos = (pedidoActual.fotos || []).filter(f => f !== path);
-
-  const { error: e2 } = await sb
-    .from("pedidos_pdd")
-    .update({ fotos: pedidoActual.fotos })
-    .eq("id", pedidoActual.id);
-
-  if(e2){
-    alert("Error actualizando base");
-    return;
-  }
-
-  renderFotos();
-}
-
-/* ===== Subida por input file (normal) ===== */
-document.getElementById("fileInput").addEventListener("change", async (e)=>{
-  const files = Array.from(e.target.files || []);
-  if(files.length === 0) return;
-
-  try{
-    for(const file of files){
-      await subirArchivoYRegistrar(file);
-    }
-    renderFotos();
-  }catch(err){
-    console.error(err);
-    alert("Error subiendo archivo");
-  }finally{
-    e.target.value = "";
-  }
-});
-
-/* ===== Pegado desde portapapeles (Win+Shift+S -> Ctrl+V) ===== */
-const pasteModal = document.getElementById("pasteModal");
-const pasteZone = document.getElementById("pasteZone");
-const pastePreview = document.getElementById("pastePreview");
-const pasteStatus = document.getElementById("pasteStatus");
-const btnPasteUpload = document.getElementById("btnPasteUpload");
-
-let pastedFile = null;
-
-function openPasteModal(){
-  if(!pedidoActual?.id){
-    alert("Primero debe cargar el pedido.");
-    return;
-  }
-  pastedFile = null;
-  pastePreview.innerHTML = "";
-  pasteStatus.textContent = "";
-  btnPasteUpload.disabled = true;
-
-  pasteModal.classList.remove("hidden");
-  setTimeout(()=>pasteZone.focus(), 50);
-}
-
-function closePasteModal(){
-  pasteModal.classList.add("hidden");
-}
-
-document.getElementById("btnOpenPaste").addEventListener("click", openPasteModal);
-document.getElementById("btnCloseModal").addEventListener("click", closePasteModal);
-document.getElementById("btnPasteCancel").addEventListener("click", closePasteModal);
-
-// Cerrar con Escape + click fuera
-document.addEventListener("keydown", (e)=>{
-  if(e.key === "Escape" && !pasteModal.classList.contains("hidden")) closePasteModal();
-});
-pasteModal.addEventListener("click", (e)=>{
-  if(e.target === pasteModal) closePasteModal();
-});
-
-// Capturar pegado cuando el modal está abierto (si el foco está en pasteZone o dentro)
-pasteZone.addEventListener("paste", async (e)=>{
-  try{
-    const items = Array.from(e.clipboardData?.items || []);
-    const imgItem = items.find(it => it.type && it.type.startsWith("image/"));
-    if(!imgItem){
-      pasteStatus.textContent = "No hay imagen en el portapapeles (copia una captura o imagen).";
-      return;
+      `;
     }
 
-    const blob = imgItem.getAsFile(); // File/Blob
-    if(!blob){
-      pasteStatus.textContent = "No pude leer la imagen del portapapeles.";
-      return;
+    function updateHeaderChips(){
+      chipPedido.textContent = `Pedido: ${pedidoActual?.id || "--"}`;
+      chipFotos.textContent = `Fotos: ${(pedidoActual?.fotos || []).length}`;
+      chipProveedor.textContent = `Proveedor: ${pedidoActual?.proveedor_nombre || "--"}`;
     }
 
-    const fileName = `captura_${new Date().toISOString().replace(/[:.]/g,"-")}.png`;
-    pastedFile = new File([blob], fileName, { type: blob.type || "image/png" });
+    function setPasteState(file = null, text = "Esperando imagen..."){
+      pastedFile = file;
+      pasteStatus.textContent = text;
+      btnPasteUpload.disabled = !file || uploading;
+    }
 
-    const url = URL.createObjectURL(pastedFile);
-    pastePreview.innerHTML = `<img src="${url}" alt="preview">`;
-    pasteStatus.textContent = `Listo: ${Math.round(pastedFile.size/1024)} KB`;
-    btnPasteUpload.disabled = false;
+    function resetPasteModal(){
+      pastePreview.innerHTML = "";
+      pasteZone.classList.remove("dragover");
+      setPasteState(null, "Esperando imagen...");
+    }
 
-  }catch(err){
-    console.error(err);
-    pasteStatus.textContent = "Error leyendo el portapapeles.";
-  }
-});
+    function openViewer(url){
+      viewerImage.src = url;
+      viewerModal.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+    }
 
-// Drag & Drop al pasteZone (opcional)
-pasteZone.addEventListener("dragover", (e)=>{
-  e.preventDefault();
-});
-pasteZone.addEventListener("drop", (e)=>{
-  e.preventDefault();
-  const file = (e.dataTransfer?.files && e.dataTransfer.files[0]) ? e.dataTransfer.files[0] : null;
-  if(!file || !file.type.startsWith("image/")){
-    pasteStatus.textContent = "Suelta una imagen válida.";
-    return;
-  }
-  const fileName = safeName(file.name || `drop_${Date.now()}.png`);
-  pastedFile = new File([file], fileName, { type: file.type || "image/png" });
+    function closeViewer(){
+      viewerModal.classList.add("hidden");
+      viewerImage.src = "";
+      document.body.style.overflow = "";
+    }
 
-  const url = URL.createObjectURL(pastedFile);
-  pastePreview.innerHTML = `<img src="${url}" alt="preview">`;
-  pasteStatus.textContent = `Listo: ${Math.round(pastedFile.size/1024)} KB`;
-  btnPasteUpload.disabled = false;
-});
+    async function cargarPedido(){
+      try{
+        const id = qp("id");
+        if(!id) throw new Error("Falta el parámetro ?id en la URL.");
 
-// Subir la imagen pegada
-btnPasteUpload.addEventListener("click", async ()=>{
-  if(!pastedFile) return;
+        setLoading("Cargando pedido...");
 
-  btnPasteUpload.disabled = true;
-  pasteStatus.textContent = "Subiendo...";
+        const { data, error } = await sb
+          .from(TABLE)
+          .select("*")
+          .eq("id", id)
+          .single();
 
-  try{
-    await subirArchivoYRegistrar(pastedFile);
-    pasteStatus.textContent = "Subido ✅";
-    renderFotos();
-    setTimeout(closePasteModal, 400);
-  }catch(err){
-    console.error(err);
-    pasteStatus.textContent = "Error subiendo. Revisa consola.";
-    btnPasteUpload.disabled = false;
-  }
-});
+        if(error) throw error;
+        if(!data) throw new Error("No se encontró el pedido.");
 
-/* ===== Init ===== */
-cargarPedido();
-</script>
+        pedidoActual = data;
+        renderPedido();
+        renderFotos();
+        hideLoading();
+      }catch(err){
+        console.error(err);
+        setLoading("Error cargando pedido.");
+        showToast(err.message || "No se pudo cargar el pedido", "error", 4800);
+      }
+    }
 
+    async function actualizarCampoPedido(payload){
+      const { error } = await sb
+        .from(TABLE)
+        .update(payload)
+        .eq("id", pedidoActual.id);
+
+      if(error) throw error;
+    }
+
+    async function actualizarEstatusPedido(nuevoEstatus){
+      if(!pedidoActual?.id) throw new Error("Pedido no cargado.");
+
+      const estatusNormalizado = normalizeStatus(nuevoEstatus);
+      await actualizarCampoPedido({ estatus: estatusNormalizado });
+      pedidoActual.estatus = estatusNormalizado;
+    }
+
+    async function subirArchivoYRegistrar(file){
+      if(!pedidoActual?.id) throw new Error("Pedido no cargado.");
+
+      const base = safeName(file.name || "imagen.png");
+      const path = `${pedidoActual.id}/${Date.now()}_${base}`;
+
+      const { error: uploadError } = await sb.storage
+        .from(BUCKET)
+        .upload(path, file, { upsert:false });
+
+      if(uploadError) throw uploadError;
+
+      const nuevasFotos = [...(pedidoActual.fotos || []), path];
+      await actualizarCampoPedido({ fotos: nuevasFotos });
+      pedidoActual.fotos = nuevasFotos;
+      return path;
+    }
+
+    async function eliminarFoto(path){
+      const ok = confirm("¿Eliminar esta foto?");
+      if(!ok) return;
+
+      try{
+        const { error: removeError } = await sb.storage.from(BUCKET).remove([path]);
+        if(removeError) throw removeError;
+
+        const nuevasFotos = (pedidoActual.fotos || []).filter(f => f !== path);
+        await actualizarCampoPedido({ fotos: nuevasFotos });
+        pedidoActual.fotos = nuevasFotos;
+
+        renderFotos();
+        updateHeaderChips();
+        showToast("Archivo eliminado", "success");
+      }catch(err){
+        console.error(err);
+        showToast(err.message || "Error eliminando archivo", "error", 4500);
+      }
+    }
+
+    function renderPedido(){
+      infoGrid.innerHTML = `
+        ${buildInfoItem("Proveedor", pedidoActual.proveedor_nombre)}
+        ${buildInfoItem("Fecha", pedidoActual.pedido_fecha)}
+        ${buildInfoItem("Notas", pedidoActual.notas)}
+        ${buildInfoItem("ID", pedidoActual.id)}
+      `;
+
+      estatusSelect.value = normalizeStatus(pedidoActual.estatus);
+      estatusBadgeWrap.innerHTML = renderStatusBadge(pedidoActual.estatus);
+      updateHeaderChips();
+    }
+
+    function renderFotos(){
+      const fotos = pedidoActual?.fotos || [];
+
+      if(!fotos.length){
+        grid.innerHTML = "";
+        emptyState.classList.remove("hidden");
+        chipFotos.textContent = "Fotos: 0";
+        return;
+      }
+
+      emptyState.classList.add("hidden");
+
+      grid.innerHTML = fotos.map((path, index) => {
+        const url = getPublicUrl(path);
+        const name = path.split("/").pop();
+
+        return `
+          <div class="thumb">
+            <div class="thumbPreview">
+              <div class="thumbIndex">#${index + 1}</div>
+              <img src="${url}" alt="${escapeHtml(name)}" loading="lazy" data-url="${url}">
+            </div>
+            <div class="thumbBody">
+              <div class="thumbName">${escapeHtml(name)}</div>
+              <div class="thumbMeta">Ruta almacenada en bucket</div>
+              <div class="actions">
+                <button class="btnGhost" data-open="${url}">Abrir</button>
+                <button class="btnDanger" data-delete="${escapeHtml(path)}">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      chipFotos.textContent = `Fotos: ${fotos.length}`;
+    }
+
+    btnGuardarEstatus.addEventListener("click", async () => {
+      try{
+        await actualizarEstatusPedido(estatusSelect.value);
+        renderPedido();
+        showToast("Estatus actualizado correctamente", "success");
+      }catch(err){
+        console.error(err);
+        showToast(err.message || "Error actualizando estatus", "error", 4500);
+      }
+    });
+
+    document.querySelectorAll(".miniBtn[data-status]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        estatusSelect.value = btn.getAttribute("data-status");
+      });
+    });
+
+    btnOpenFile.addEventListener("click", () => fileInput.click());
+
+    fileInput.addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []);
+      if(!files.length) return;
+
+      try{
+        uploading = true;
+        showToast(`Subiendo ${files.length} archivo(s)...`, "info", 1600);
+
+        for(const file of files){
+          await subirArchivoYRegistrar(file);
+        }
+
+        renderFotos();
+        updateHeaderChips();
+        showToast("Archivos subidos correctamente", "success");
+      }catch(err){
+        console.error(err);
+        showToast(err.message || "Error subiendo archivos", "error", 4500);
+      }finally{
+        uploading = false;
+        e.target.value = "";
+      }
+    });
+
+    function openPasteModal(){
+      if(!pedidoActual?.id){
+        showToast("Primero debe cargarse el pedido", "warn");
+        return;
+      }
+
+      resetPasteModal();
+      pasteModal.classList.remove("hidden");
+      setTimeout(() => pasteZone.focus(), 40);
+      document.body.style.overflow = "hidden";
+    }
+
+    function closePasteModal(){
+      if(uploading) return;
+      pasteModal.classList.add("hidden");
+      resetPasteModal();
+      document.body.style.overflow = "";
+    }
+
+    function loadPreviewFromFile(file){
+      const url = URL.createObjectURL(file);
+      pastePreview.innerHTML = `<img src="${url}" alt="preview">`;
+      setPasteState(file, `Imagen lista: ${Math.round(file.size / 1024)} KB`);
+    }
+
+    btnOpenPaste.addEventListener("click", openPasteModal);
+    btnCloseModal.addEventListener("click", closePasteModal);
+    btnPasteCancel.addEventListener("click", closePasteModal);
+
+    pasteModal.addEventListener("click", (e) => {
+      if(e.target === pasteModal) closePasteModal();
+    });
+
+    pasteZone.addEventListener("paste", (e) => {
+      try{
+        const items = Array.from(e.clipboardData?.items || []);
+        const imgItem = items.find(it => it.type && it.type.startsWith("image/"));
+
+        if(!imgItem){
+          setPasteState(null, "No se detectó imagen en el portapapeles.");
+          return;
+        }
+
+        const blob = imgItem.getAsFile();
+        if(!blob){
+          setPasteState(null, "No pude leer la imagen pegada.");
+          return;
+        }
+
+        const fileName = `captura_${new Date().toISOString().replace(/[:.]/g, "-")}.png`;
+        const file = new File([blob], fileName, { type: blob.type || "image/png" });
+        loadPreviewFromFile(file);
+      }catch(err){
+        console.error(err);
+        setPasteState(null, "Error leyendo el portapapeles.");
+      }
+    });
+
+    pasteZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      pasteZone.classList.add("dragover");
+    });
+
+    pasteZone.addEventListener("dragleave", () => {
+      pasteZone.classList.remove("dragover");
+    });
+
+    pasteZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      pasteZone.classList.remove("dragover");
+
+      const file = e.dataTransfer?.files?.[0];
+      if(!file || !file.type.startsWith("image/")){
+        setPasteState(null, "Suelta una imagen válida.");
+        return;
+      }
+
+      const normalized = new File([file], safeName(file.name || `drop_${Date.now()}.png`), {
+        type: file.type || "image/png"
+      });
+
+      loadPreviewFromFile(normalized);
+    });
+
+    btnPasteUpload.addEventListener("click", async () => {
+      if(!pastedFile || uploading) return;
+
+      try{
+        uploading = true;
+        btnPasteUpload.disabled = true;
+        pasteStatus.textContent = "Subiendo imagen...";
+
+        await subirArchivoYRegistrar(pastedFile);
+
+        renderFotos();
+        updateHeaderChips();
+        pasteStatus.textContent = "Subido correctamente ✅";
+        showToast("Imagen subida correctamente", "success");
+
+        setTimeout(() => {
+          uploading = false;
+          closePasteModal();
+        }, 320);
+      }catch(err){
+        console.error(err);
+        uploading = false;
+        setPasteState(pastedFile, err.message || "Error subiendo imagen.");
+        showToast(err.message || "Error subiendo imagen", "error", 4500);
+      }
+    });
+
+    grid.addEventListener("click", (e) => {
+      const openUrl = e.target.getAttribute("data-open");
+      const deletePath = e.target.getAttribute("data-delete");
+      const img = e.target.closest("img[data-url]");
+
+      if(openUrl){
+        openViewer(openUrl);
+        return;
+      }
+
+      if(deletePath){
+        eliminarFoto(deletePath);
+        return;
+      }
+
+      if(img){
+        const url = img.getAttribute("data-url");
+        if(url) openViewer(url);
+      }
+    });
+
+    viewerClose.addEventListener("click", closeViewer);
+
+    viewerModal.addEventListener("click", (e) => {
+      if(e.target === viewerModal) closeViewer();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "Escape"){
+        if(!pasteModal.classList.contains("hidden")) closePasteModal();
+        if(!viewerModal.classList.contains("hidden")) closeViewer();
+      }
+    });
+
+    cargarPedido();
+  </script>
 </body>
 </html>
