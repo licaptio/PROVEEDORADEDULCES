@@ -175,13 +175,14 @@
         const notas = p.notas || "Sin notas";
         const id = p.id ?? "Sin ID";
 
-        const card = document.createElement("div");
-        card.className = "card";
-        card.style.cursor = "pointer";
+const card = document.createElement("div");
+card.className = "card";
 
-        card.onclick = () => {
-        window.location.href = `pedido_visor.htm?id=${id}`;
-        };
+card.style.cursor = "pointer";
+
+card.onclick = () => {
+  window.location.href = `pedido_visor.htm?id=${id}`;
+};
         
         card.innerHTML = `
           <div class="top">
