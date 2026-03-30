@@ -63,11 +63,14 @@ td:nth-last-child(2){
 }
 </style>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
 </head>
 
 <body>
 
 <h1>📦 Inventario ALLENDE 1</h1>
+  <button onclick="descargarExcel()">📥 Descargar Excel</button>
 
 <input type="text" id="buscador" placeholder="Buscar..." />
 
@@ -268,6 +271,31 @@ buscador.addEventListener("input", () => {
 
 // 🚀 INICIAR
 cargarDatos();
+  // 📥 EXPORTAR A EXCEL
+window.descargarExcel = function(){
+
+  if(datosGlobal.length === 0){
+    alert("No hay datos para exportar");
+    return;
+  }
+
+const dataLimpia = datosGlobal.map(item => ({
+  "Código": item.codigo,
+  "Descripción": item.descripcion,
+  "Cantidad": item.cantidad,
+  "Usuario": item.usuario,
+  "Hora": item.hora,
+  "Fecha": item.fecha,
+  "Costo Unitario": Number(item.costo_unitario || 0),
+  "Costo Total": Number(item.costo_total || 0)
+}));
+
+  const ws = XLSX.utils.json_to_sheet(dataLimpia);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+
+  XLSX.writeFile(wb, "Inventario_Allende_1.xlsx");
+};
 
 </script>
 
