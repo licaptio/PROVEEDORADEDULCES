@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Listado de Transferencias - PROVSOFT</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      margin: 0;
+      padding: 20px;
+      color: #1f2937;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 10px 0;
+      color: #00416A;
+    }
+
+    .sub {
+      color: #6b7280;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    input, select, button {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #cfd8e3;
+      font-size: 14px;
+    }
+
+    button {
+      background: #00416A;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: .95;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      font-size: 14px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #0c6cbd;
+      color: white;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      background: #e5f3ff;
+      color: #0c6cbd;
+    }
+
+    .totales {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .mini {
+      background: #eef5ff;
+      border-radius: 10px;
+      padding: 10px 14px;
+      min-width: 160px;
+    }
+
+    .estado {
+      margin-top: 10px;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+
+    .ok {
+      color: #166534;
+    }
+
+    .error {
+      color: #b91c1c;
+    }
+
+    .muted {
+      color: #6b7280;
+    }
+
+    .link-folio {
+      color: #00416A;
+      text-decoration: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .link-folio:hover {
+      text-decoration: underline;
+    }
+
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 999;
+    }
+
+    .modal {
+      background: white;
+      width: min(1100px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.2);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .close-btn {
+      background: #b91c1c;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .box {
+      background: #eef5ff;
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .value {
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+    .right {
+      text-align: right;
+    }
+
+    .small {
+      font-size: 12px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #111827;
+      color: #e5e7eb;
+      padding: 12px;
+      border-radius: 10px;
+      overflow: auto;
+    }
+
+    @media (max-width: 768px) {
+      th, td {
+        padding: 8px;
+        font-size: 12px;
+      }
+
+      .modal {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Listado de Transferencias</h1>
+      <div class="sub">Ruta fija: <strong>/TIENDAS/ALLENDE 1/transferencias1</strong></div>
+
+      <div class="row">
+        <input type="text" id="folioFiltro" placeholder="Buscar por folio" />
+        <select id="estatusFiltro">
+          <option value="">Todos los estatus</option>
+          <option value="SOLICITADA">SOLICITADA</option>
+          <option value="ENVIADA">ENVIADA</option>
+          <option value="RECIBIDA">RECIBIDA</option>
+          <option value="CANCELADA">CANCELADA</option>
+        </select>
+        <button id="btnCargar">Cargar</button>
+      </div>
+
+      <div class="estado" id="estado">Inicializando...</div>
+
+      <div style="overflow:auto; margin-top:16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Folio</th>
+              <th>Fecha</th>
+              <th>Estatus</th>
+              <th>Partidas</th>
+              <th>Piezas</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody id="tablaBody"></tbody>
+        </table>
+      </div>
+
+      <div class="totales">
+        <div class="mini"><strong>Total transferencias:</strong> <span id="totalTransferencias">0</span></div>
+        <div class="mini"><strong>Total piezas:</strong> <span id="totalPiezas">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL VISOR -->
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 style="margin:0;">Visor de Transferencia</h2>
+        <button class="close-btn" id="btnCerrarModal">Cerrar</button>
+      </div>
+
+      <div class="estado" id="estadoModal">Cargando detalle...</div>
+
+      <div class="grid" id="resumenModal"></div>
+
+      <div class="card" style="box-shadow:none; padding:0; margin-top:18px;">
+        <h3>Detalle del carrito</h3>
+        <div style="overflow:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio Público</th>
+                <th>Importe</th>
+                <th>Origen</th>
+              </tr>
+            </thead>
+            <tbody id="tablaCarrito"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="box-shadow:none; padding:0; margin-top:18px;">
+        <h3>JSON crudo</h3>
+        <pre id="jsonCrudo"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { firebaseConfig } from "./config.js";
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const SUCURSAL_FIJA = "ALLENDE 1";
+
+    const tablaBody = document.getElementById("tablaBody");
+    const estado = document.getElementById("estado");
+    const totalTransferencias = document.getElementById("totalTransferencias");
+    const totalPiezas = document.getElementById("totalPiezas");
+    const folioFiltro = document.getElementById("folioFiltro");
+    const estatusFiltro = document.getElementById("estatusFiltro");
+    const btnCargar = document.getElementById("btnCargar");
+
+    const modalBg = document.getElementById("modalBg");
+    const btnCerrarModal = document.getElementById("btnCerrarModal");
+    const estadoModal = document.getElementById("estadoModal");
+    const resumenModal = document.getElementById("resumenModal");
+    const tablaCarrito = document.getElementById("tablaCarrito");
+    const jsonCrudo = document.getElementById("jsonCrudo");
+
+    function formatearFecha(valor) {
+      if (!valor) return "-";
+
+      try {
+        if (valor && typeof valor.toDate === "function") {
+          return valor.toDate().toLocaleString("es-MX");
+        }
+
+        const fecha = new Date(valor);
+        if (!isNaN(fecha.getTime())) {
+          return fecha.toLocaleString("es-MX");
+        }
+
+        return String(valor);
+      } catch {
+        return String(valor);
+      }
+    }
+
+    function fechaMillis(valor) {
+      if (!valor) return 0;
+
+      try {
+        if (valor && typeof valor.toDate === "function") {
+          return valor.toDate().getTime();
+        }
+
+        const fecha = new Date(valor);
+        if (!isNaN(fecha.getTime())) {
+          return fecha.getTime();
+        }
+
+        return 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    function escaparHtml(texto) {
+      if (texto == null) return "";
+      return String(texto)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function money(valor) {
+      return new Intl.NumberFormat("es-MX", {
+        style: "currency",
+        currency: "MXN"
+      }).format(Number(valor || 0));
+    }
+
+    function box(label, value) {
+      return `
+        <div class="box">
+          <div class="label">${escaparHtml(label)}</div>
+          <div class="value">${value}</div>
+        </div>
+      `;
+    }
+
+    function abrirModal() {
+      modalBg.style.display = "flex";
+    }
+
+    function cerrarModal() {
+      modalBg.style.display = "none";
+      estadoModal.textContent = "Cargando detalle...";
+      resumenModal.innerHTML = "";
+      tablaCarrito.innerHTML = "";
+      jsonCrudo.textContent = "";
+    }
+
+    async function verTransferencia(folio) {
+      abrirModal();
+
+      estadoModal.className = "estado";
+      estadoModal.textContent = `Cargando detalle de ${folio}...`;
+      resumenModal.innerHTML = "";
+      tablaCarrito.innerHTML = "";
+      jsonCrudo.textContent = "";
+
+      try {
+        const docRef = db
+          .collection("TIENDAS")
+          .doc(SUCURSAL_FIJA)
+          .collection("transferencias1")
+          .doc(folio);
+
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+          estadoModal.className = "estado error";
+          estadoModal.textContent = "No se encontró la transferencia.";
+          return;
+        }
+
+        const data = docSnap.data() || {};
+        const carrito = Array.isArray(data.carrito) ? data.carrito : [];
+
+        estadoModal.className = "estado ok";
+        estadoModal.textContent = "Transferencia cargada correctamente.";
+
+        resumenModal.innerHTML = `
+          ${box("Folio", escaparHtml(data.folio || folio))}
+          ${box("Sucursal", escaparHtml(data.sucursal || SUCURSAL_FIJA))}
+          ${box("Estatus", `<span class="badge">${escaparHtml(data.estatus || "-")}</span>`)}
+          ${box("Fecha solicitud", escaparHtml(formatearFecha(data.fechaSolicitud)))}
+          ${box("Origen", escaparHtml(data.origen || "-"))}
+          ${box("Partidas", Number(data.totalPartidas || carrito.length || 0))}
+          ${box("Piezas", Number(data.totalPiezas || 0))}
+          ${box("Observaciones", escaparHtml(data.observaciones || ""))}
+        `;
+
+        let totalImporte = 0;
+        tablaCarrito.innerHTML = "";
+
+        carrito.forEach((item, index) => {
+          const cantidad = Number(item.cantidad || 0);
+          const precio = Number(item.precioPublico || 0);
+          const importe = cantidad * precio;
+          totalImporte += importe;
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${escaparHtml(item.codigo || "")}</td>
+            <td>${escaparHtml(item.nombre || "")}</td>
+            <td>${cantidad}</td>
+            <td>${money(precio)}</td>
+            <td>${money(importe)}</td>
+            <td>${escaparHtml(item.origen || "")}</td>
+          `;
+          tablaCarrito.appendChild(tr);
+        });
+
+        const trTotal = document.createElement("tr");
+        trTotal.innerHTML = `
+          <td colspan="5" class="right"><strong>Total estimado</strong></td>
+          <td><strong>${money(totalImporte)}</strong></td>
+          <td></td>
+        `;
+        tablaCarrito.appendChild(trTotal);
+
+        jsonCrudo.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        console.error(error);
+        estadoModal.className = "estado error";
+        estadoModal.textContent = "Error al cargar detalle: " + error.message;
+      }
+    }
+
+    async function cargarTransferencias() {
+      const folio = folioFiltro.value.trim().toUpperCase();
+      const estatus = estatusFiltro.value.trim().toUpperCase();
+
+      estado.className = "estado";
+      estado.textContent = "Cargando transferencias de ALLENDE 1...";
+      tablaBody.innerHTML = "";
+      totalTransferencias.textContent = "0";
+      totalPiezas.textContent = "0";
+
+      try {
+        const ref = db
+          .collection("TIENDAS")
+          .doc(SUCURSAL_FIJA)
+          .collection("transferencias1");
+
+        const snap = await ref.get();
+
+        console.log("Proyecto:", firebaseConfig.projectId);
+        console.log("Sucursal:", SUCURSAL_FIJA);
+        console.log("Cantidad docs:", snap.size);
+        console.log("Vacío:", snap.empty);
+
+        if (snap.empty) {
+          estado.className = "estado error";
+          estado.textContent = "La colección regresó vacía.";
+          return;
+        }
+
+        let docs = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        docs.sort((a, b) => fechaMillis(b.fechaSolicitud) - fechaMillis(a.fechaSolicitud));
+
+        if (folio) {
+          docs = docs.filter(x =>
+            String(x.folio || x.id || "").toUpperCase().includes(folio)
+          );
+        }
+
+        if (estatus) {
+          docs = docs.filter(x =>
+            String(x.estatus || "").toUpperCase() === estatus
+          );
+        }
+
+        if (!docs.length) {
+          estado.className = "estado error";
+          estado.textContent = "Sí hay documentos, pero con esos filtros no se encontró nada.";
+          return;
+        }
+
+        let sumaPiezas = 0;
+
+        docs.forEach(item => {
+          const piezas = Number(item.totalPiezas || 0);
+          sumaPiezas += piezas;
+
+          const folioDoc = item.folio || item.id || "-";
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><a href="#" class="link-folio" data-folio="${escaparHtml(folioDoc)}">${escaparHtml(folioDoc)}</a></td>
+            <td>${escaparHtml(formatearFecha(item.fechaSolicitud))}</td>
+            <td><span class="badge">${escaparHtml(item.estatus || "-")}</span></td>
+            <td>${Number(item.totalPartidas || 0)}</td>
+            <td>${piezas}</td>
+            <td>${escaparHtml(item.observaciones || "")}</td>
+          `;
+
+          tablaBody.appendChild(tr);
+        });
+
+        totalTransferencias.textContent = docs.length;
+        totalPiezas.textContent = sumaPiezas;
+        estado.className = "estado ok";
+        estado.textContent = `Se cargaron ${docs.length} transferencia(s) de ALLENDE 1.`;
+
+        document.querySelectorAll(".link-folio").forEach(link => {
+          link.addEventListener("click", (e) => {
+            e.preventDefault();
+            const folioSel = e.currentTarget.getAttribute("data-folio");
+            verTransferencia(folioSel);
+          });
+        });
+      } catch (error) {
+        console.error("Error Firestore:", error);
+        estado.className = "estado error";
+        estado.textContent = "Error al cargar transferencias: " + error.message;
+      }
+    }
+
+    btnCargar.addEventListener("click", cargarTransferencias);
+    btnCerrarModal.addEventListener("click", cerrarModal);
+
+    modalBg.addEventListener("click", (e) => {
+      if (e.target === modalBg) {
+        cerrarModal();
+      }
+    });
+
+    cargarTransferencias();
+  </script>
+</body>
+</html>
