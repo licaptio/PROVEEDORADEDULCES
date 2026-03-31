@@ -342,7 +342,25 @@ tbody{
       grid-template-columns:repeat(2,minmax(160px,1fr));
     }
   }
+th:nth-child(13),td:nth-child(13){ width:120px; text-align:center; }
 
+.statusCancelado{
+  color:#991b1b;
+  background:#fef2f2;
+  font-weight:800;
+  border-radius:8px;
+  padding:4px 8px;
+  display:inline-block;
+}
+
+.statusVigente{
+  color:#065f46;
+  background:#ecfdf5;
+  font-weight:800;
+  border-radius:8px;
+  padding:4px 8px;
+  display:inline-block;
+}
   @media (max-width:680px){
     body{ padding:14px; }
     .controls{
@@ -442,23 +460,24 @@ tbody{
     <div class="tableWrap">
       <table>
         <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>UUID</th>
-            <th>RFC</th>
-            <th>Cliente</th>
-            <th>Sucursal</th>
-            <th>Folio</th>
-            <th>Subtotal</th>
-            <th>IVA</th>
-            <th>IEPS</th>
-            <th>Total</th>
-            <th>Forma Pago</th>
-            <th>Método Pago</th>
-          </tr>
+<tr>
+  <th>Fecha</th>
+  <th>UUID</th>
+  <th>RFC</th>
+  <th>Cliente</th>
+  <th>Sucursal</th>
+  <th>Folio</th>
+  <th>Subtotal</th>
+  <th>IVA</th>
+  <th>IEPS</th>
+  <th>Total</th>
+  <th>Forma Pago</th>
+  <th>Método Pago</th>
+  <th>Estatus</th>
+</tr>
         </thead>
         <tbody id="tabla">
-          <tr><td colspan="12" class="message">Esperando consulta…</td></tr>
+          <tr><td colspan="13" class="message">Esperando consulta…</td></tr>
         </tbody>
       </table>
     </div>
@@ -850,28 +869,30 @@ async function loadClientes(){
 async function fetchPage(filters, page){
   const { ini, fin } = rangoDB(filters.fi, filters.ff);
 
-  let q = db
-    .from(TABLE)
-    .select(`
-      fecha,
-      uuid_cfdi,
-      rfc_receptor,
-      razon_social_receptor,
-      serie,
-      folio,
-      subtotal,
-      total_iva,
-      total_ieps,
-      total,
-      forma_pago,
-      metodo_pago
-    `, { count:'exact' })
-    .gte('fecha', ini)
-    .lte('fecha', fin)
-    .order('fecha', { ascending:false })
-    .order('uuid_cfdi', { ascending:false })
-    .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
-
+let q = db
+  .from(TABLE)
+  .select(`
+    fecha,
+    uuid_cfdi,
+    rfc_receptor,
+    razon_social_receptor,
+    serie,
+    folio,
+    subtotal,
+    total_iva,
+    total_ieps,
+    total,
+    forma_pago,
+    metodo_pago,
+    cancelado,
+    fecha_cancelacion
+  `, { count:'exact' })
+  .gte('fecha', ini)
+  .lte('fecha', fin)
+  .order('fecha', { ascending:false })
+  .order('uuid_cfdi', { ascending:false })
+  .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+  
   if(filters.cliente){
     q = q.ilike('razon_social_receptor', `%${filters.cliente}%`);
   }
@@ -895,7 +916,7 @@ function renderRows(rows, flashUuid = null){
   state.uuidSet = new Set(state.rows.map(r => r.uuid_cfdi));
 
   if(!state.rows.length){
-    tabla.innerHTML = `<tr><td colspan="12" class="empty">No se encontraron facturas con esos filtros.</td></tr>`;
+    tabla.innerHTML = `<tr><td colspan="13" class="empty">No se encontraron facturas con esos filtros.</td></tr>`;
     return;
   }
 
@@ -903,6 +924,8 @@ function renderRows(rows, flashUuid = null){
     const uuid = String(r.uuid_cfdi || '');
     const shortUuid = uuid.length > 16 ? uuid.slice(0,16) + '…' : uuid;
     const flashClass = flashUuid && flashUuid === uuid ? 'flashNew' : '';
+    const estatus = estatusCFDI(r);
+    const estatusClass = estatus === 'CANCELADO' ? 'statusCancelado' : 'statusVigente';
 
     return `
       <tr class="${flashClass}" data-uuid="${esc(uuid)}">
@@ -922,11 +945,12 @@ function renderRows(rows, flashUuid = null){
         <td class="monto">${esc(fmtMoney(r.total))}</td>
         <td>${esc(fp(r.forma_pago))}</td>
         <td>${esc(mp(r.metodo_pago))}</td>
+        <td><span class="${estatusClass}">${estatus}</span></td>
       </tr>
     `;
   }).join('');
 }
-
+  
 async function cargar(){
   const filters = readFilters();
 
@@ -976,7 +1000,7 @@ async function cargar(){
   }catch(err){
     console.error(err);
     setLoading(false);
-    tabla.innerHTML = `<tr><td colspan="12" class="empty">Error: ${esc(err.message || err)}</td></tr>`;
+    tabla.innerHTML = `<tr><td colspan="13" class="empty">Error: ${esc(err.message || err)}</td></tr>`;
     state.hasMore = false;
     state.totalCount = 0;
     updatePagination();
@@ -1104,7 +1128,12 @@ function nextPage(){
   state.page++;
   cargar();
 }
-
+function estatusCFDI(row){
+  if(row?.cancelado === true || row?.fecha_cancelacion){
+    return 'CANCELADO';
+  }
+  return 'VIGENTE';
+}
 function prevPage(){
   if(state.loading || state.page === 0) return;
   state.page--;
@@ -1135,7 +1164,7 @@ btnLimpiar.addEventListener('click', ()=>{
   state.pendingLiveCount = 0;
   state.totalCount = 0;
   showLiveNotice(false);
-  tabla.innerHTML = `<tr><td colspan="12" class="message">Filtros reiniciados. Ejecuta una consulta.</td></tr>`;
+  tabla.innerHTML = `<tr><td colspan="13" class="message">Filtros reiniciados. Ejecuta una consulta.</td></tr>`;
   pageInfo.textContent = 'Sin datos';
   setSummary();
   refreshRealtimeMode();
