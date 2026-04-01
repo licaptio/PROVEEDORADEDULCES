@@ -183,10 +183,10 @@
 <script type="module">
   // --- IMPORTACIÓN DE CONFIGURACIÓN ---
   // Reinstaurar el import de config.js paraFirebase
-  // import { firebaseConfig } from "./config.js"; 
+  import { firebaseConfig } from "./config.js";
   
   // Placeholder para que no rompa si no está config.js durante la prueba local
-  const firebaseConfig = { apiKey: "demo", authDomain: "demo", projectId: "demo", storageBucket: "demo", messagingSenderId: "demo", appId: "demo" };
+  
 
   // --- IMPORTACIÓN DE LIBRERÍAS DE FIREBASE ---
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
