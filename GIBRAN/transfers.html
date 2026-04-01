@@ -24,12 +24,15 @@
     }
 
     /* ENCABEZADO CON LOGO ANTERIOR RESTAURADO */
-    .top-header {
-      height: 60px; background: #ffffff; display: flex; align-items: center;
-      justify-content: space-between; padding: 0 10px;
-      border-bottom: 3px solid var(--rojo); box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      flex-shrink: 0; z-index: 100;
-    }
+.top-header {
+  height: 60px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px; /* ← agrega esto */
+  padding: 0 10px;
+}
     
     /* Restaurado el diseño anterior del logo con imagen */
     .logo-area { display: flex; align-items: center; max-width: 50%; }
@@ -50,22 +53,10 @@
     .folio-header small { font-size: 8px; color: white; display: block; opacity: 0.8; letter-spacing: 0.5px; }
     .folio-header #folioText { font-size: 11px; font-weight: 800; color: white; }
 
-    /* PANEL DE DATOS DESPLEGABLE (MINI) CON TEXTO ACTUALIZADO */
-    .mini-datos-header {
-      background: #e2e8f0; padding: 6px 12px; font-size: 11px; font-weight: bold; color: #475569;
-      display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-      border-bottom: 1px solid var(--border);
-    }
-    .mini-datos-content {
-      background: white; max-height: 0; overflow: hidden;
-      transition: max-height 0.3s ease-out; border-bottom: 1px solid var(--border);
-    }
-    .mini-datos-content.open { max-height: 150px; padding: 10px; }
-
-    .app-container { 
-      display: flex; flex-direction: column; height: calc(100vh - 60px - 26px); /* Ajuste por la barra mini */
-      overflow: hidden; padding: 8px; gap: 8px;
-    }
+.app-container { 
+  display: flex; flex-direction: column; height: calc(100vh - 60px);
+  overflow: hidden; padding: 8px; gap: 8px;
+}
     
     .resumen-barra {
       position: sticky; top: 0; z-index: 50;
@@ -109,9 +100,31 @@
       background: white; border: 1px solid var(--border); border-radius: 10px; max-height: 180px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     .search-item { padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 13px; }
+
+    .titulo-app {
+  background: var(--azul-oscuro);
+  color: white;
+  text-align: center;
+  font-weight: 900;
+  font-size: 14px;
+  padding: 6px;
+  letter-spacing: 1px;
+}
+
+.sucursal-header {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--azul-oscuro);
+  text-align: center;
+  flex: 1;
+}
   </style>
 </head>
 <body>
+
+<div class="titulo-app">
+  SOLICITUD DE TRANSFERENCIA
+</div>
 
 <header class="top-header">
   <div class="logo-area">
@@ -123,28 +136,18 @@
       <span class="sub-text">DULCES - DESECHABLES</span>
     </div>
   </div>
+
+  <!-- NUEVO: SUCURSAL -->
+  <div class="sucursal-header">
+    ALLENDE 1
+  </div>
+
   <div class="folio-header">
     <small>FOLIO SOLICITUD</small>
     <div id="folioText">Cargando...</div>
   </div>
 </header>
 
-<div class="mini-datos-header" onclick="toggleDatos()">
-  <span>📋 Datos (Usuario y Destino)</span>
-  <span id="arrowIcon">▼</span>
-</div>
-<div id="datosPanel" class="mini-datos-content">
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-    <div>
-      <label style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">👤 CAPTURISTA</label>
-      <input type="text" id="nombreUsuario" placeholder="Tu nombre completo" style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px;">
-    </div>
-    <div>
-      <label style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">📍 ORIGEN</label>
-      <input type="text" id="sucursalOrigen" value="ALLENDE 1" disabled style="width:100%; padding: 8px; background: #f1f5f9; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--azul-oscuro);">
-    </div>
-  </div>
-</div>
 
 <div class="app-container">
   <div class="resumen-barra">
@@ -198,13 +201,6 @@
   let carrito = [], catalogo = [], seleccionado = null;
   const resSugerencias = document.getElementById("resSugerencias");
 
-  // FUNCIÓN PARA DESPLEGAR/OCULTAR DATOS
-  window.toggleDatos = function() {
-    const panel = document.getElementById("datosPanel");
-    const arrow = document.getElementById("arrowIcon");
-    panel.classList.toggle("open");
-    arrow.innerText = panel.classList.contains("open") ? "▲" : "▼";
-  };
 
   // 1. CATÁLOGO OPTIMIZADO + CACHE OFFLINE
   async function cargarCatalogo() {
@@ -378,56 +374,51 @@
     document.getElementById("folioText").innerText = fol;
   }
 
-  // Auto-guardar y auto-cargar nombre del capturista en caché local
-  const nameInp = document.getElementById("nombreUsuario");
-  if(localStorage.getItem("pdd_capturista")) nameInp.value = localStorage.getItem("pdd_capturista");
-  nameInp.addEventListener("change", () => localStorage.setItem("pdd_capturista", nameInp.value));
 
-  // 6. VALIDACIONES FUERTES ANTES DE GUARDAR (Reinstaurar lógica Firebase)
-  document.getElementById("btnFinalizarBarra").onclick = async () => {
-      const usuario = nameInp.value.trim();
-      
-      // Validaciones de seguridad
-      if(!usuario || usuario.length < 3) { alert("Nombre de capturista inválido."); toggleDatos(); return; }
-      if (!/^[a-zA-Z\s]+$/.test(usuario)) { alert("Nombre solo debe contener letras."); toggleDatos(); return; }
-      if(carrito.length === 0) { alert("El carrito está vacío."); return; }
+document.getElementById("btnFinalizarBarra").onclick = async () => {
+  if (carrito.length === 0) {
+    alert("El carrito está vacío.");
+    return;
+  }
 
-      const totalFinal = carrito.reduce((a,b) => a + (b.cantidad * b.precio), 0);
-      if (totalFinal <= 0) { alert("Total de la solicitud inválido."); return; }
-      
-      // Confirmación final
-      if (!confirm("¿Confirmar envío de solicitud?")) return;
+  const totalFinal = carrito.reduce((a, b) => a + (b.cantidad * b.precio), 0);
+  if (totalFinal <= 0) {
+    alert("Total de la solicitud inválido.");
+    return;
+  }
 
-      const btn = document.getElementById("btnFinalizarBarra");
-      const fol = document.getElementById("folioText").innerText;
-      const suc = document.getElementById("sucursalOrigen").value;
+  if (!confirm("¿Confirmar envío de solicitud?")) return;
 
-      try {
-        btn.disabled = true;
-        // Guardar en Firebase (Integración real)
-        await setDoc(doc(db, "TIENDAS", suc, "transferencias1", fol), {
-          folio: fol,
-          items: carrito,
-          capturista: usuario,
-          total: totalFinal,
-          fecha: new Date().toISOString()
-        });
+  const btn = document.getElementById("btnFinalizarBarra");
+  const fol = document.getElementById("folioText").innerText;
+  const suc = "ALLENDE 1";
+  const usuario = "";
 
-        // 8. GENERACIÓN DE PDF MEJORADO (Con conteo de piezas)
-        generarPDF(fol, suc, carrito, usuario);
-        
-        // Limpiar estado
-        carrito = [];
-        actualizarUI();
-        nuevoFolio();
-        alert("Enviado con éxito a Firebase.");
-      } catch (e) {
-        console.error(e);
-        alert("Error de conexión al guardar en Firebase.");
-      } finally {
-        btn.disabled = false;
-      }
-  };
+  try {
+    btn.disabled = true;
+
+    await setDoc(doc(db, "TIENDAS", suc, "transferencias1", fol), {
+      folio: fol,
+      items: carrito,
+      capturista: usuario,
+      origen: suc,
+      total: totalFinal,
+      fecha: new Date().toISOString()
+    });
+
+    generarPDF(fol, suc, carrito, usuario);
+
+    carrito = [];
+    actualizarUI();
+    nuevoFolio();
+    alert("Enviado con éxito a Firebase.");
+  } catch (e) {
+    console.error(e);
+    alert("Error de conexión al guardar en Firebase.");
+  } finally {
+    btn.disabled = false;
+  }
+};
 
   // 8. PDF MEJORADO (Detalles + Piezas)
   function generarPDF(folio, sucursal, items, usuario) {
@@ -436,7 +427,7 @@
     
     doc.text("PROVEEDORA - SOLICITUD PDD", 14, 15);
     doc.setFontSize(10);
-    doc.text(`Folio: ${folio} | Sucursal: ${sucursal} | Capturista: ${usuario}`, 14, 22);
+   doc.text(`Folio: ${folio} | Sucursal: ${sucursal}`, 14, 22);
 
     doc.autoTable({
       startY: 30,
@@ -461,4 +452,3 @@
 </script>
 </body>
 </html>
-
