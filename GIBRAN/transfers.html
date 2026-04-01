@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -18,85 +18,97 @@
       --texto: #1f2937; --radius: 12px;
     }
     
-    /* Forzamos el comportamiento de App a pantalla completa y sin scroll externo */
     html, body{ 
       margin:0; width:100%; height:100%; overflow:hidden; 
       font-family: 'Segoe UI', Arial, sans-serif; background: var(--gris-fondo); color: var(--texto); 
     }
 
-    /* --- ENCABEZADO (Misma altura que PC) --- */
+    /* ENCABEZADO CON LOGO ANTERIOR RESTAURADO */
     .top-header {
-      height: 70px; background: #ffffff; display: flex; align-items: center;
-      justify-content: space-between; padding: 0 15px;
-      border-bottom: 3px solid var(--rojo); box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      height: 60px; background: #ffffff; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 10px;
+      border-bottom: 3px solid var(--rojo); box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      flex-shrink: 0; z-index: 100;
     }
-
-    /* Corrección de Logo: Si falla la imagen, usa el placeholder de respaldo */
-    .logo-area { display: flex; align-items: center; }
+    
+    /* Restaurado el diseño anterior del logo con imagen */
+    .logo-area { display: flex; align-items: center; max-width: 50%; }
+    .logo-area img { max-height: 45px; width: auto; display: block; }
+    
+    /* Placeholder del logo si la imagen no carga */
     .logo-placeholder {
-      display: none; flex-direction: column; align-items: center; justify-content: center;
-      border: 2px solid var(--rojo); border-radius: 50px; padding: 6px 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border: 2px solid var(--rojo); border-radius: 20px; padding: 2px 8px;
     }
-    .logo-placeholder .main-text { color: var(--rojo); font-size: 18px; font-weight: 900; text-transform: uppercase; font-family: 'Arial Black', sans-serif; }
-    .logo-placeholder .sub-text { color: var(--rojo); font-size: 7px; font-weight: 700; text-transform: uppercase; border-top: 1px solid var(--rojo); width: 100%; text-align: center; }
+    .logo-placeholder .main-text { color: var(--rojo); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+    .logo-placeholder .sub-text { color: var(--rojo); font-size: 5px; font-weight: 700; text-transform: uppercase; border-top: 1px solid var(--rojo); width: 100%; text-align: center; }
     
-    .logo-area img { max-height: 50px; display: block; }
-    .status-badge { color: var(--verde); padding: 5px 12px; border-radius: 20px; font-weight: 800; font-size: 12px; border: 2px solid var(--verde); }
+    .folio-header {
+      background: var(--azul-oscuro); border-radius: 30px; padding: 4px 10px; text-align: center;
+      min-width: 90px;
+    }
+    .folio-header small { font-size: 8px; color: white; display: block; opacity: 0.8; letter-spacing: 0.5px; }
+    .folio-header #folioText { font-size: 11px; font-weight: 800; color: white; }
 
-    /* --- CONTENEDORES (Layout exacto de PC adaptado) --- */
+    /* PANEL DE DATOS DESPLEGABLE (MINI) CON TEXTO ACTUALIZADO */
+    .mini-datos-header {
+      background: #e2e8f0; padding: 6px 12px; font-size: 11px; font-weight: bold; color: #475569;
+      display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
+    .mini-datos-content {
+      background: white; max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease-out; border-bottom: 1px solid var(--border);
+    }
+    .mini-datos-content.open { max-height: 150px; padding: 10px; }
+
     .app-container { 
-      display: grid; 
-      /* Forzamos el diseño de 2 columnas pero reducidas para móvil */
-      grid-template-columns: 1fr 1.8fr; 
-      height: calc(100vh - 70px); 
-      gap: 10px; 
-      padding: 10px; 
+      display: flex; flex-direction: column; height: calc(100vh - 60px - 26px); /* Ajuste por la barra mini */
+      overflow: hidden; padding: 8px; gap: 8px;
     }
     
-    .sidebar { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
-    .content { display: grid; grid-template-rows: auto 1fr; gap: 10px; overflow: hidden; }
+    .resumen-barra {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      background: white; border-radius: 16px; padding: 8px 12px;
+      border: 1px solid var(--border); flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+
+    .stat-item { text-align: center; background: #f8fafc; padding: 3px 8px; border-radius: 30px; }
+    .stat-label { font-size: 8px; font-weight: 800; color: #475569; text-transform: uppercase; }
+    .stat-value { font-size: 16px; font-weight: 900; color: var(--azul-oscuro); line-height: 1.2; }
     
-    .card { background: #fff; border-radius: var(--radius); border: 1px solid var(--border); padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); position: relative; }
-    .card-title { font-size: 12px; font-weight: 800; color: var(--azul-oscuro); text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; }
-    .card-title::before { content: ''; width: 3px; height: 14px; background: var(--rojo); margin-right: 8px; border-radius: 2px; }
+    .total-monto { background: var(--verde); border-radius: 40px; padding: 4px 12px; text-align: center; }
+    .total-monto .stat-value { color: white; font-size: 16px; }
+
+    .btn-finalizar-flotante {
+      background: var(--rojo); color: white; border: none; border-radius: 40px;
+      padding: 8px 15px; font-weight: 800; font-size: 12px; cursor: pointer;
+      box-shadow: 0 3px 6px rgba(227,27,35,0.2);
+    }
+
+    .main-work-area { flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
     
-    .folio-box { background: var(--azul-oscuro); color: white; text-align: center; padding: 12px; border-radius: 10px; }
+    .captura-card { background: white; border-radius: 20px; border: 1px solid var(--border); padding: 12px; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+    .search-row { display: grid; grid-template-columns: 1fr 75px; gap: 10px; margin-bottom: 10px; }
+    .search-container input, .cantidad-box input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border); font-size: 16px; background: #fdfdfd; }
     
-    /* Inputs más altos para touch */
-    label { display: block; font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
-    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 16px; /* Evita zoom iOS */ transition: border 0.2s; }
-    input:focus { border-color: var(--azul); outline: none; background-color: #f0f9ff; }
+    .prod-selected-box {
+      background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px;
+      padding: 8px; margin-bottom: 10px; font-size: 12px; color: var(--azul-oscuro); min-height: 40px;
+      display: flex; align-items: center; font-weight: 500;
+    }
+
+    .lista-container { background: white; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; flex: 1; }
+    .table-container { overflow-y: auto; flex: 1; padding: 0 5px; }
+    .item-row { display: grid; grid-template-columns: 1fr 40px 70px 35px; padding: 10px 5px; border-bottom: 1px solid #edf2f7; align-items: center; font-size: 13px; gap: 5px; }
     
-    /* BUSCADOR Y SUGERENCIAS MÓVIL */
-    .search-container { position: relative; width: 100%; }
+    .btn-quitar { background: none; border: none; font-size: 18px; color: var(--rojo); cursor: pointer; font-weight: bold; }
     .search-results {
-      position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 1000;
-      background: white; border: 1px solid var(--border); border-radius: 10px;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.1); max-height: 200px; overflow-y: auto; display: none;
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 1000;
+      background: white; border: 1px solid var(--border); border-radius: 10px; max-height: 180px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    .search-item { padding: 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-    .search-item:active { background: #f0f9ff; }
-    .search-item b { color: var(--azul-oscuro); }
-
-    /* Botones más grandes para dedos */
-    button { cursor: pointer; font-weight: 700; border: none; border-radius: 10px; padding: 14px; font-size: 14px; }
-    button:active { opacity: 0.8; transform: scale(0.98); }
-
-    .btn-primary { background: var(--azul-oscuro); color: white; width: 100%; }
-    .btn-danger { background: var(--rojo); color: white; font-size: 16px; padding: 18px; width: 100%; margin-top: auto; }
-    .btn-ghost { background: #e2e8f0; color: #475569; width: 100%; }
-
-    /* TABLA DE ARTÍCULOS MÓVIL (Con scroll interno) */
-    .table-container { overflow-y: auto; background: white; border: 1px solid var(--border); border-radius: 10px; }
-    .item-row { 
-      display: grid; 
-      /* Ajuste de columnas para que quepan */
-      grid-template-columns: 1fr 60px 80px 60px; 
-      padding: 10px; 
-      border-bottom: 1px solid #edf2f7; 
-      align-items: center; 
-      font-size: 12px; 
-    }
+    .search-item { padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -106,77 +118,77 @@
     <img id="mainLogo" src="logo-proveedora.png" alt="La Proveedora" 
          onerror="this.style.display='none'; document.getElementById('backupLogo').style.display='flex';">
     
-    <div id="backupLogo" class="logo-placeholder">
+    <div id="backupLogo" class="logo-placeholder" style="display:none;">
       <span class="main-text">PROVEEDORA</span>
       <span class="sub-text">DULCES - DESECHABLES</span>
     </div>
   </div>
-  <div class="status-badge">ONLINE</div>
+  <div class="folio-header">
+    <small>FOLIO SOLICITUD</small>
+    <div id="folioText">Cargando...</div>
+  </div>
 </header>
 
+<div class="mini-datos-header" onclick="toggleDatos()">
+  <span>📋 Datos (Usuario y Destino)</span>
+  <span id="arrowIcon">▼</span>
+</div>
+<div id="datosPanel" class="mini-datos-content">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+    <div>
+      <label style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">👤 CAPTURISTA</label>
+      <input type="text" id="nombreUsuario" placeholder="Tu nombre completo" style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px;">
+    </div>
+    <div>
+      <label style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">📍 ORIGEN</label>
+      <input type="text" id="sucursalOrigen" value="ALLENDE 1" disabled style="width:100%; padding: 8px; background: #f1f5f9; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--azul-oscuro);">
+    </div>
+  </div>
+</div>
+
 <div class="app-container">
-  
-  <aside class="sidebar">
-    <div class="card folio-box">
-      <small style="font-size: 9px; opacity: 0.8;">FOLIO DE SOLICITUD</small>
-      <div id="folioText" style="font-size: 16px; font-weight: 900; margin-top: 3px;">Generando...</div>
+  <div class="resumen-barra">
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <div class="stat-item"><div class="stat-label">ITEMS</div><div class="stat-value" id="countPartidas">0</div></div>
+      <div class="stat-item"><div class="stat-label">PZS</div><div class="stat-value" id="countPiezas">0</div></div>
     </div>
+    <div id="totalEfectivo" class="total-monto stat-value">$0.00</div>
+    <button id="btnFinalizarBarra" class="btn-finalizar-flotante">✔ FINALIZAR</button>
+  </div>
 
-    <div class="card">
-      <div class="card-title">Datos</div>
-      <label>Capturista</label>
-      <input type="text" id="nombreUsuario" placeholder="Tu nombre" style="border: 2px solid var(--azul); margin-bottom: 8px;">
-      <label>Origen</label>
-      <input type="text" id="sucursalOrigen" value="ALLENDE 1" disabled style="background:#f8fafc; font-weight:700;">
-    </div>
-
-    <div class="card">
-      <div class="card-title">Resumen</div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; text-align:center;">
-        <div><small style="font-size: 9px;">Items</small><div id="countPartidas" style="font-size:20px; font-weight:900; color: var(--azul);">0</div></div>
-        <div><small style="font-size: 9px;">Pzas</small><div id="countPiezas" style="font-size:20px; font-weight:900; color: var(--azul);">0</div></div>
-      </div>
-      <div style="text-align:center; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px;">
-        <small style="font-size: 10px;">TOTAL</small>
-        <div id="totalEfectivo" style="font-size:22px; font-weight:900; color: var(--verde);">$0.00</div>
-      </div>
-    </div>
-
-    <button id="btnFinalizar" class="btn-danger">FINALIZAR SOLICITUD</button>
-  </aside>
-
-  <main class="content">
-    <div class="card">
-      <div class="card-title">Captura de Productos</div>
-      <div style="display:grid; grid-template-columns: 1fr 90px; gap:10px; margin-bottom:10px;">
-        <div class="search-container">
-          <label>Buscador / Escáner</label>
-          <input id="inpBusqueda" placeholder="Código o Nombre..." autocomplete="off">
+  <div class="main-work-area">
+    <div class="captura-card">
+      <div class="search-row">
+        <div class="search-container" style="position: relative;">
+          <input id="inpBusqueda" placeholder="Buscar código o nombre..." autocomplete="off">
           <div id="resSugerencias" class="search-results"></div>
         </div>
-        <div>
-          <label>Cantidad</label>
-          <input id="inpCantidad" type="number" value="1" min="1" style="text-align:center; font-weight:900;">
+        <div class="cantidad-box">
+          <input id="inpCantidad" type="number" value="1" min="1">
         </div>
       </div>
-      <div id="prodSelected" style="padding:10px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; margin-bottom:10px; font-size:12px; color:var(--azul-oscuro); min-height: 40px; display: flex; align-items: center;">
-        Esperando producto...
-      </div>
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-        <button id="btnAgregar" class="btn-primary">AGREGAR</button>
-        <button id="btnLimpiar" class="btn-ghost">LIMPIAR</button>
+      <div id="prodSelected" class="prod-selected-box">🛒 Toque para buscar producto...</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <button id="btnAgregar" style="background: var(--azul-oscuro); color: white; border: none; padding: 12px; border-radius: 25px; font-weight: bold; font-size: 14px; cursor: pointer;">➕ AGREGAR</button>
+        <button id="btnLimpiar" style="background: #f1f5f9; border: none; padding: 12px; border-radius: 25px; color: #64748b; font-weight: 600; font-size: 14px; cursor: pointer;">🗑 LIMPIAR</button>
       </div>
     </div>
 
-    <div class="card" style="display:grid; grid-template-rows: auto 1fr; overflow:hidden;">
-      <div class="card-title">Artículos Seleccionados</div>
+    <div class="lista-container">
       <div id="listaItems" class="table-container"></div>
     </div>
-  </main>
+  </div>
 </div>
 
 <script type="module">
+  // --- IMPORTACIÓN DE CONFIGURACIÓN ---
+  // Reinstaurar el import de config.js paraFirebase
   import { firebaseConfig } from "./config.js";
+  
+  // Placeholder para que no rompa si no está config.js durante la prueba local
+  
+
+  // --- IMPORTACIÓN DE LIBRERÍAS DE FIREBASE ---
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, collection, getDocs, doc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -186,180 +198,266 @@
   let carrito = [], catalogo = [], seleccionado = null;
   const resSugerencias = document.getElementById("resSugerencias");
 
-  function nuevoFolio() {
-    const d = new Date();
-    const f = `SOL-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
-    document.getElementById("folioText").innerText = f;
-  }
+  // FUNCIÓN PARA DESPLEGAR/OCULTAR DATOS
+  window.toggleDatos = function() {
+    const panel = document.getElementById("datosPanel");
+    const arrow = document.getElementById("arrowIcon");
+    panel.classList.toggle("open");
+    arrow.innerText = panel.classList.contains("open") ? "▲" : "▼";
+  };
 
+  // 1. CATÁLOGO OPTIMIZADO + CACHE OFFLINE
   async function cargarCatalogo() {
     try {
+      // Intenta cargar desde Firebase (activo por defecto para la integración)
       const q = query(collection(db, "productos"), where("activo", "==", true));
       const snap = await getDocs(q);
-      catalogo = snap.docs.map(d => d.data());
-    } catch(e) { alert("Error al conectar con la base de datos."); }
-  }
 
-  function actualizarUI() {
-    const lista = document.getElementById("listaItems");
-    let totalDinero = 0;
-    
-    if (carrito.length === 0) {
-      lista.innerHTML = '<div style="padding:30px; text-align:center; color:#94a3b8; font-style: italic; font-size: 12px;">Carrito vacío</div>';
-    } else {
-      lista.innerHTML = carrito.map((item, i) => {
-        const subtotal = item.cantidad * item.precio;
-        totalDinero += subtotal;
-        return `
-          <div class="item-row">
-            <div><b>${item.nombre}</b><br><small style="color:#64748b;">${item.codigo}</small></div>
-            <div style="text-align:center; font-weight:900; font-size: 14px;">${item.cantidad}</div>
-            <div style="text-align:right; color: var(--azul-oscuro);">$${item.precio.toFixed(2)}</div>
-            <button class="btn-quitar" data-index="${i}" style="color:var(--rojo); background:none; border:none; padding: 0; font-weight:800; font-size: 18px; line-height: 1;">×</button>
-          </div>
-        `;
-      }).join('');
-
-      document.querySelectorAll('.btn-quitar').forEach(btn => {
-        btn.onclick = () => {
-          const idx = btn.getAttribute('data-index');
-          carrito.splice(idx, 1);
-          actualizarUI();
+      catalogo = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          ...data,
+          // Pre-procesado de búsqueda
+          _search: `${data.codigoBarra || ""} ${data.concepto || ""}`.toLowerCase()
         };
       });
+
+      // Guardar en caché local
+      localStorage.setItem("catalogo_cache", JSON.stringify(catalogo));
+      if (catalogo.length === 0) console.warn("Catálogo vacío.");
+    } catch (e) {
+      console.error("Error cargando Firebase, usando caché:", e);
+      // Fallback offline: Cargar desde caché local si Firebase falla
+      const cache = localStorage.getItem("catalogo_cache");
+      if (cache) {
+        catalogo = JSON.parse(cache);
+        alert("⚠️ Modo offline: usando catálogo guardado.");
+      } else {
+        alert("❌ Sin conexión y sin datos guardados.");
+      }
     }
-    document.getElementById("countPartidas").innerText = carrito.length;
-    document.getElementById("countPiezas").innerText = carrito.reduce((a, b) => a + Number(b.cantidad), 0);
-    document.getElementById("totalEfectivo").innerText = `$${totalDinero.toLocaleString('es-MX', {minimumFractionDigits: 2})}`;
   }
 
-  // Buscador Táctil
-  document.getElementById("inpBusqueda").oninput = (e) => {
+  // 2. BUSCADOR RÁPIDO Y OPTIMIZADO
+  document.getElementById("inpBusqueda").addEventListener("input", (e) => {
     const txt = e.target.value.toLowerCase().trim();
-    if(txt.length < 2) { resSugerencias.style.display = "none"; return; }
-    
+    if (txt.length < 2) { resSugerencias.style.display = "none"; return; }
+
+    // Usar la propiedad _search pre-procesada
     const sugerencias = catalogo
-        .filter(p => (p.codigoBarra && String(p.codigoBarra).includes(txt)) || (p.concepto && p.concepto.toLowerCase().includes(txt)))
-        .slice(0, 5);
+      .filter(p => p._search.includes(txt))
+      .slice(0, 6); // Límite de 6 resultados
 
-    if(sugerencias.length > 0) {
-        resSugerencias.innerHTML = sugerencias.map(p => `
-            <div class="search-item" onclick="seleccionarProd('${p.codigoBarra}')">
-                <b>${p.codigoBarra}</b> - ${p.concepto}
-            </div>
-        `).join('');
-        resSugerencias.style.display = "block";
+    if (sugerencias.length > 0) {
+      resSugerencias.innerHTML = sugerencias.map(p => `
+        <div class="search-item" onclick="seleccionarProducto('${p.codigoBarra}')">
+          <b>${escapeHtml(p.codigoBarra)}</b> - ${escapeHtml(p.concepto)}
+        </div>
+      `).join('');
+      resSugerencias.style.display = "block";
     } else {
-        resSugerencias.style.display = "none";
+      resSugerencias.style.display = "none";
     }
-  };
-
-  // Necesario para onclick en search-item
-  window.seleccionarProd = (code) => {
-    const prod = catalogo.find(x => String(x.codigoBarra) === String(code));
-    if(prod) {
-        seleccionado = prod;
-        document.getElementById("prodSelected").innerHTML = `<span><strong>SEL:</strong> ${prod.concepto}</span>`;
-        document.getElementById("inpBusqueda").value = "";
-        resSugerencias.style.display = "none";
-        document.getElementById("inpCantidad").focus();
-    }
-  };
-
-  document.getElementById("btnAgregar").onclick = () => {
-    if(!seleccionado) return alert("Seleccione un producto.");
-    const cant = document.getElementById("inpCantidad").value;
-    if(cant < 1) return alert("Cantidad inválida.");
-
-    carrito.unshift({ 
-        codigo: seleccionado.codigoBarra, 
-        nombre: seleccionado.concepto, 
-        cantidad: parseInt(cant), 
-        precio: seleccionado.precioPublico || 0 
-    });
-    
-    actualizarUI();
-    seleccionado = null;
-    document.getElementById("prodSelected").innerText = "Esperando producto...";
-    document.getElementById("inpCantidad").value = 1;
-  };
-
-  document.getElementById("btnFinalizar").onclick = async () => {
-    const usuario = document.getElementById("nombreUsuario").value.trim();
-    if(!usuario) return alert("Ingrese su nombre.");
-    if(carrito.length === 0) return alert("El carrito está vacío.");
-    
-    const fol = document.getElementById("folioText").innerText;
-    const suc = document.getElementById("sucursalOrigen").value;
-    const btn = document.getElementById("btnFinalizar");
-
-    try {
-      btn.disabled = true;
-      btn.innerText = "Enviando...";
-
-      await setDoc(doc(db, "TIENDAS", suc, "transferencias1", fol), { 
-        folio: fol, 
-        items: carrito, 
-        fecha: new Date().toISOString(), 
-        sucursal: suc,
-        capturista: usuario,
-        total: carrito.reduce((a, b) => a + (b.cantidad * b.precio), 0)
-      });
-
-      generarPDF(fol, suc, carrito, usuario);
-      alert("¡Enviado! Reporte generado.");
-      
-      carrito = []; 
-      actualizarUI();
-      nuevoFolio();
-    } catch(e) { 
-        alert("Error de conexión."); 
-        console.error(e);
-    } finally { 
-        btn.disabled = false; 
-        btn.innerText = "FINALIZAR SOLICITUD"; 
-    }
-  };
-
-  // PDF Compacto Móvil
-  function generarPDF(folio, sucursal, items, usuario) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    doc.setFontSize(16);
-    doc.setTextColor(227, 27, 35);
-    doc.text("LA PROVEEDORA", 14, 15);
-    
-    doc.setFontSize(9);
-    doc.setTextColor(0);
-    doc.text(`Folio: ${folio} | Capturista: ${usuario} | ${new Date().toLocaleString('es-MX')}`, 14, 22);
-
-    const body = items.map(i => [i.codigo, i.nombre, i.cantidad, `$${i.precio.toFixed(2)}`, `$${(i.cantidad * i.precio).toFixed(2)}`]);
-    doc.autoTable({
-      startY: 28,
-      head: [['Código', 'Descripción', 'Pzas', 'Precio', 'Sub']],
-      body: body,
-      headStyles: { fillColor: [0, 65, 106], fontSize: 8 },
-      bodyStyles: { fontSize: 8 },
-      theme: 'grid'
-    });
-    
-    doc.save(`${folio}.pdf`);
-  }
-
-  document.getElementById("btnLimpiar").onclick = () => {
-    document.getElementById("inpBusqueda").value = "";
-    document.getElementById("prodSelected").innerText = "Esperando producto...";
-    seleccionado = null;
-    resSugerencias.style.display = "none";
-  };
+  });
 
   // Cerrar sugerencias al tocar fuera
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.search-container')) resSugerencias.style.display = "none";
   });
 
-  nuevoFolio(); cargarCatalogo(); actualizarUI();
+  // 3. FUNCIÓN CENTRAL DE SELECCIÓN
+  window.seleccionarProducto = function(codigo) {
+    const prod = catalogo.find(x => String(x.codigoBarra) === String(codigo));
+    if (prod) {
+      seleccionado = prod;
+      // Actualizar feedback visual
+      document.getElementById("prodSelected").innerHTML = `✅ <strong>${escapeHtml(prod.concepto)}</strong> ($${prod.precioPublico?.toFixed(2)})`;
+      // Limpiar buscador y mover foco a cantidad
+      document.getElementById("inpBusqueda").value = "";
+      resSugerencias.style.display = "none";
+      document.getElementById("inpCantidad").focus();
+    }
+  };
+
+  // 5. SOPORTE PARA ESCÁNER FÍSICO (ENTER)
+  document.getElementById("inpBusqueda").addEventListener("keypress", (e) => {
+    // Si presiona Enter y ya hay un producto seleccionado, lo agrega automáticamente
+    if (e.key === "Enter" && seleccionado) {
+      document.getElementById("btnAgregar").click();
+    }
+  });
+
+  // 4. AGREGAR PRODUCTO AL CARRITO (SIN DUPLICADOS + VIBRACIÓN)
+  document.getElementById("btnAgregar").onclick = () => {
+    if (!seleccionado) return alert("Por favor, seleccione un producto primero.");
+    
+    let cant = parseInt(document.getElementById("inpCantidad").value) || 1;
+    if (cant < 1) cant = 1;
+
+    // Verificar si el producto ya está en el carrito
+    const existente = carrito.find(i => i.codigo === seleccionado.codigoBarra);
+    if (existente) {
+      // Sumar cantidad al existente
+      existente.cantidad += cant;
+    } else {
+      // Agregar nuevo con shift (al principio de la lista)
+      carrito.unshift({
+        codigo: seleccionado.codigoBarra,
+        nombre: seleccionado.concepto,
+        cantidad: cant,
+        precio: seleccionado.precioPublico || 0
+      });
+    }
+
+    // Vibración corta de confirmación (POS style)
+    if (navigator.vibrate) navigator.vibrate(50);
+    
+    actualizarUI();
+    resetCaptura();
+  };
+
+  document.getElementById("btnLimpiar").onclick = resetCaptura;
+
+  // ACTUALIZACIÓN DE LA INTERFAZ DEL CARRITO
+  function actualizarUI() {
+    const listaDiv = document.getElementById("listaItems");
+    let total = 0, pzs = 0;
+    
+    if(carrito.length === 0) {
+        listaDiv.innerHTML = '<div style="padding:40px 20px; text-align:center; color:#94a3b8; font-style:italic; font-size:13px;">🛒 El carrito está vacío</div>';
+    } else {
+        listaDiv.innerHTML = carrito.map((item, idx) => {
+          total += (item.cantidad * item.precio);
+          pzs += item.cantidad;
+          return `
+            <div class="item-row">
+              <div><b>${escapeHtml(item.nombre)}</b><br><small>${item.codigo}</small></div>
+              <div style="text-align:center; font-weight:800; color:var(--azul-oscuro); font-size:15px;">${item.cantidad}</div>
+              <div style="text-align:right; font-weight:600;">$${(item.cantidad * item.precio).toFixed(2)}</div>
+              <button class="btn-quitar" onclick="eliminar(${idx})">✕</button>
+            </div>
+          `;
+        }).join('');
+    }
+    
+    // Actualizar barra de resumen (Sticky)
+    document.getElementById("countPartidas").innerText = carrito.length;
+    document.getElementById("countPiezas").innerText = pzs;
+    document.getElementById("totalEfectivo").innerText = `$${total.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+  }
+
+  // 7. VIBRACIÓN AL ELIMINAR
+  window.eliminar = (idx) => {
+    // Vibración corta antes de eliminar
+    if (navigator.vibrate) navigator.vibrate(30);
+    carrito.splice(idx, 1);
+    actualizarUI();
+  };
+
+  // Resetear campos de captura tipo POS
+  function resetCaptura() {
+    seleccionado = null;
+    document.getElementById("prodSelected").innerHTML = "🛒 Toque para buscar producto...";
+    document.getElementById("inpCantidad").value = 1;
+    document.getElementById("inpBusqueda").value = "";
+    document.getElementById("inpBusqueda").focus(); // Devolver foco al buscador
+  }
+
+  // 9. SEGURIDAD EXTRA (escapeHtml Mejorado)
+  function escapeHtml(str) {
+    if(!str) return "";
+    return str.replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    })[m]);
+  }
+
+  // Generación de Folio Único
+  function nuevoFolio() {
+    const d = new Date();
+    const fol = `SOL-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+    document.getElementById("folioText").innerText = fol;
+  }
+
+  // Auto-guardar y auto-cargar nombre del capturista en caché local
+  const nameInp = document.getElementById("nombreUsuario");
+  if(localStorage.getItem("pdd_capturista")) nameInp.value = localStorage.getItem("pdd_capturista");
+  nameInp.addEventListener("change", () => localStorage.setItem("pdd_capturista", nameInp.value));
+
+  // 6. VALIDACIONES FUERTES ANTES DE GUARDAR (Reinstaurar lógica Firebase)
+  document.getElementById("btnFinalizarBarra").onclick = async () => {
+      const usuario = nameInp.value.trim();
+      
+      // Validaciones de seguridad
+      if(!usuario || usuario.length < 3) { alert("Nombre de capturista inválido."); toggleDatos(); return; }
+      if (!/^[a-zA-Z\s]+$/.test(usuario)) { alert("Nombre solo debe contener letras."); toggleDatos(); return; }
+      if(carrito.length === 0) { alert("El carrito está vacío."); return; }
+
+      const totalFinal = carrito.reduce((a,b) => a + (b.cantidad * b.precio), 0);
+      if (totalFinal <= 0) { alert("Total de la solicitud inválido."); return; }
+      
+      // Confirmación final
+      if (!confirm("¿Confirmar envío de solicitud?")) return;
+
+      const btn = document.getElementById("btnFinalizarBarra");
+      const fol = document.getElementById("folioText").innerText;
+      const suc = document.getElementById("sucursalOrigen").value;
+
+      try {
+        btn.disabled = true;
+        // Guardar en Firebase (Integración real)
+        await setDoc(doc(db, "TIENDAS", suc, "transferencias1", fol), {
+          folio: fol,
+          items: carrito,
+          capturista: usuario,
+          total: totalFinal,
+          fecha: new Date().toISOString()
+        });
+
+        // 8. GENERACIÓN DE PDF MEJORADO (Con conteo de piezas)
+        generarPDF(fol, suc, carrito, usuario);
+        
+        // Limpiar estado
+        carrito = [];
+        actualizarUI();
+        nuevoFolio();
+        alert("Enviado con éxito a Firebase.");
+      } catch (e) {
+        console.error(e);
+        alert("Error de conexión al guardar en Firebase.");
+      } finally {
+        btn.disabled = false;
+      }
+  };
+
+  // 8. PDF MEJORADO (Detalles + Piezas)
+  function generarPDF(folio, sucursal, items, usuario) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.text("PROVEEDORA - SOLICITUD PDD", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Folio: ${folio} | Sucursal: ${sucursal} | Capturista: ${usuario}`, 14, 22);
+
+    doc.autoTable({
+      startY: 30,
+      head: [['Código', 'Descripción', 'Cant', 'Precio', 'Subtotal']],
+      body: items.map(i => [i.codigo, i.nombre.substring(0,30), i.cantidad, `$${i.precio.toFixed(2)}`, `$${(i.cantidad*i.precio).toFixed(2)}`])
+    });
+
+    const finalY = doc.lastAutoTable.finalY + 10;
+    const totalGeneral = items.reduce((a,b) => a + (b.cantidad * b.precio), 0);
+    const totalPiezas = items.reduce((a,b) => a + b.cantidad, 0); // CONTEO DE PIEZAS FÍSICAS
+    
+    doc.text(`TOTAL PIEZAS FÍSICAS: ${totalPiezas}`, 14, finalY);
+    doc.text(`TOTAL MONTO SOLICITUD: $${totalGeneral.toFixed(2)}`, 14, finalY + 6);
+    
+    doc.save(`${folio}.pdf`);
+  }
+
+  // --- INICIALIZACIÓN ---
+  nuevoFolio();
+  cargarCatalogo();
+  actualizarUI(); // Inicializar vista vacía
 </script>
 </body>
 </html>
