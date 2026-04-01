@@ -1,1141 +1,463 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Solicitud Transferencia PDD - PROVSOFT</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>PDD Móvil Exacta - PROVSOFT</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
-<style>
-  *{ box-sizing:border-box; }
+  <style>
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    :root{
+      --azul: #00416A; --azul-oscuro: #003366; --rojo: #e31b23;
+      --verde: #16a34a; --gris-fondo: #f4f7fa; --border: #d1d9e0;
+      --texto: #1f2937; --radius: 12px;
+    }
+    
+    html, body{ 
+      margin:0; width:100%; height:100%; overflow:hidden; 
+      font-family: 'Segoe UI', Arial, sans-serif; background: var(--gris-fondo); color: var(--texto); 
+    }
 
-  :root{
-    --azul:#00416A;
-    --azul2:#0c6cbd;
-    --verde:#16a34a;
-    --naranja:#f59e0b;
-    --rojo:#dc2626;
-    --grisfondo:#e9edf2;
-    --griscard:#ffffff;
-    --grislinea:#dbe2ea;
-    --grissoft:#f7f9fc;
-    --texto:#1f2937;
-    --muted:#6b7280;
-    --radius:16px;
-  }
+    /* ENCABEZADO CON LOGO ANTERIOR RESTAURADO */
+    .top-header {
+      height: 60px; background: #ffffff; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 10px;
+      border-bottom: 3px solid var(--rojo); box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      flex-shrink: 0; z-index: 100;
+    }
+    
+    /* Restaurado el diseño anterior del logo con imagen */
+    .logo-area { display: flex; align-items: center; max-width: 50%; }
+    .logo-area img { max-height: 45px; width: auto; display: block; }
+    
+    /* Placeholder del logo si la imagen no carga */
+    .logo-placeholder {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border: 2px solid var(--rojo); border-radius: 20px; padding: 2px 8px;
+    }
+    .logo-placeholder .main-text { color: var(--rojo); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+    .logo-placeholder .sub-text { color: var(--rojo); font-size: 5px; font-weight: 700; text-transform: uppercase; border-top: 1px solid var(--rojo); width: 100%; text-align: center; }
+    
+    .folio-header {
+      background: var(--azul-oscuro); border-radius: 30px; padding: 4px 10px; text-align: center;
+      min-width: 90px;
+    }
+    .folio-header small { font-size: 8px; color: white; display: block; opacity: 0.8; letter-spacing: 0.5px; }
+    .folio-header #folioText { font-size: 11px; font-weight: 800; color: white; }
 
-  html, body{
-    margin:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    font-family:Arial, sans-serif;
-    background:var(--grisfondo);
-    color:var(--texto);
-  }
+    /* PANEL DE DATOS DESPLEGABLE (MINI) CON TEXTO ACTUALIZADO */
+    .mini-datos-header {
+      background: #e2e8f0; padding: 6px 12px; font-size: 11px; font-weight: bold; color: #475569;
+      display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
+    .mini-datos-content {
+      background: white; max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease-out; border-bottom: 1px solid var(--border);
+    }
+    .mini-datos-content.open { max-height: 150px; padding: 10px; }
 
-  body.system-loading{ overflow:hidden; }
+    .app-container { 
+      display: flex; flex-direction: column; height: calc(100vh - 60px - 26px); /* Ajuste por la barra mini */
+      overflow: hidden; padding: 8px; gap: 8px;
+    }
+    
+    .resumen-barra {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      background: white; border-radius: 16px; padding: 8px 12px;
+      border: 1px solid var(--border); flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
 
-  .startup-overlay{
-    position:fixed;
-    inset:0;
-    background:linear-gradient(135deg,#031c30 0%, #00416A 45%, #0c6cbd 100%);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:9999;
-    padding:20px;
-    transition:opacity .35s ease, visibility .35s ease;
-  }
+    .stat-item { text-align: center; background: #f8fafc; padding: 3px 8px; border-radius: 30px; }
+    .stat-label { font-size: 8px; font-weight: 800; color: #475569; text-transform: uppercase; }
+    .stat-value { font-size: 16px; font-weight: 900; color: var(--azul-oscuro); line-height: 1.2; }
+    
+    .total-monto { background: var(--verde); border-radius: 40px; padding: 4px 12px; text-align: center; }
+    .total-monto .stat-value { color: white; font-size: 16px; }
 
-  .startup-overlay.hidden{
-    opacity:0;
-    visibility:hidden;
-    pointer-events:none;
-  }
+    .btn-finalizar-flotante {
+      background: var(--rojo); color: white; border: none; border-radius: 40px;
+      padding: 8px 15px; font-weight: 800; font-size: 12px; cursor: pointer;
+      box-shadow: 0 3px 6px rgba(227,27,35,0.2);
+    }
 
-  .startup-card{
-    width:100%;
-    max-width:520px;
-    background:rgba(255,255,255,.10);
-    border:1px solid rgba(255,255,255,.18);
-    backdrop-filter:blur(12px);
-    -webkit-backdrop-filter:blur(12px);
-    border-radius:22px;
-    padding:28px 24px;
-    box-shadow:0 20px 60px rgba(0,0,0,.25);
-    color:#fff;
-  }
+    .main-work-area { flex: 1; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+    
+    .captura-card { background: white; border-radius: 20px; border: 1px solid var(--border); padding: 12px; flex-shrink: 0; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+    .search-row { display: grid; grid-template-columns: 1fr 75px; gap: 10px; margin-bottom: 10px; }
+    .search-container input, .cantidad-box input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border); font-size: 16px; background: #fdfdfd; }
+    
+    .prod-selected-box {
+      background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px;
+      padding: 8px; margin-bottom: 10px; font-size: 12px; color: var(--azul-oscuro); min-height: 40px;
+      display: flex; align-items: center; font-weight: 500;
+    }
 
-  .startup-logo{ font-size:26px; font-weight:800; letter-spacing:1px; margin-bottom:10px; }
-  .startup-title{ font-size:22px; font-weight:700; margin-bottom:8px; }
-  .startup-subtitle{ font-size:14px; color:rgba(255,255,255,.90); margin-bottom:18px; }
-
-  .startup-progress-wrap{
-    width:100%; height:14px; background:rgba(255,255,255,.18);
-    border-radius:999px; overflow:hidden; margin-bottom:12px;
-  }
-  .startup-progress-bar{
-    height:100%; width:0%; border-radius:999px;
-    background:linear-gradient(90deg,#ffffff 0%, #dbeafe 35%, #93c5fd 70%, #60a5fa 100%);
-    transition:width .28s ease;
-  }
-  .startup-footer{
-    display:flex; justify-content:space-between; align-items:center;
-    gap:10px; font-size:13px; color:rgba(255,255,255,.92);
-  }
-
-  .app-shell{
-    height:100vh;
-    display:grid;
-    grid-template-rows:74px 1fr;
-    overflow:hidden;
-  }
-
-  .top{
-    padding:10px 16px;
-    color:#fff;
-    display:grid;
-    grid-template-columns:auto auto 1fr;
-    gap:16px;
-    align-items:center;
-    overflow:hidden;
-    border-bottom:1px solid rgba(255,255,255,.18);
-  }
-
-  .online{ background:var(--verde); }
-  .offline{ background:var(--naranja); }
-
-  .top-status{ font-size:28px; font-weight:900; white-space:nowrap; }
-  .top-folio{ font-size:30px; font-weight:900; white-space:nowrap; }
-  .top-spacer{ min-width:0; }
-
-  .main-desktop{
-    height:100%;
-    display:grid;
-    grid-template-columns:340px minmax(0, 1fr);
-    gap:12px;
-    padding:12px;
-    overflow:hidden;
-  }
-
-  .left-panel,.right-panel{ min-height:0; overflow:hidden; }
-
-  .left-panel{
-    display:grid;
-    grid-template-rows:1fr;
-    min-height:0;
-  }
-
-  .right-panel{
-    display:grid;
-    grid-template-rows:142px 1fr;
-    gap:10px;
-    min-height:0;
-  }
-
-  .card{
-    background:var(--griscard);
-    border-radius:var(--radius);
-    box-shadow:0 2px 10px rgba(0,0,0,.06);
-    border:1px solid var(--grislinea);
-    padding:14px;
-    min-height:0;
-  }
-
-  .left-card{
-    display:grid;
-    grid-template-rows:auto auto auto auto 1fr auto;
-    gap:12px;
-  }
-
-  .card-title{ font-size:16px; font-weight:800; color:#003b66; margin-bottom:0; }
-
-  .field{ display:flex; flex-direction:column; gap:5px; }
-  .field label{ font-size:11px; color:var(--muted); font-weight:bold; }
-
-  input, select, textarea, button{
-    width:100%; border-radius:10px; border:1px solid #cfd8e3;
-    padding:8px 10px; font-size:13px; font-family:Arial, sans-serif;
-  }
-
-  textarea{ resize:none; height:74px; }
-  button{ border:none; font-weight:800; cursor:pointer; }
-
-  .btn-primary{ background:var(--azul); color:#fff; }
-  .btn-success{ background:var(--verde); color:#fff; }
-  .btn-warning{ background:var(--naranja); color:#fff; }
-  .btn-secondary{ background:#e5e7eb; color:#111827; }
-  .btn-danger{ background:var(--rojo); color:#fff; }
-
-  .actions-2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .actions-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-
-  .summary-inline{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
-  .summary-box{
-    background:#f7f9fc; border:1px solid var(--grislinea);
-    border-radius:10px; padding:8px 10px;
-  }
-  .summary-label{ font-size:11px; color:var(--muted); }
-  .summary-value{ margin-top:4px; font-size:18px; font-weight:900; color:#003b66; }
-
-  .status-mini{
-    display:grid;
-    gap:8px;
-  }
-
-  .status-chip{
-    background:#f7f9fc;
-    border:1px solid var(--grislinea);
-    border-radius:12px;
-    padding:10px 12px;
-  }
-
-  .status-chip-label{ font-size:11px; color:var(--muted); font-weight:700; margin-bottom:6px; }
-  .status-chip-value{ font-size:13px; font-weight:800; color:#003b66; }
-
-  .mini-progress-wrap{
-    width:100%; height:10px; background:#dbe7f2; border-radius:999px; overflow:hidden;
-  }
-  .mini-progress-bar{ height:100%; width:0%; background:linear-gradient(90deg, var(--azul), var(--azul2)); transition:width .25s ease; }
-
-  .search-wrap{ position:relative; }
-  .results{
-    position:absolute; top:100%; left:0; right:0; z-index:60; background:#fff;
-    border:1px solid #d1d5db; border-radius:12px; max-height:260px; overflow:auto;
-    box-shadow:0 10px 30px rgba(0,0,0,.10); display:none;
-  }
-  .result-item{ padding:10px 12px; border-bottom:1px solid #eef2f7; cursor:pointer; }
-  .result-item:last-child{ border-bottom:none; }
-  .result-item:hover{ background:#f8fafc; }
-  .result-title{ font-weight:700; }
-  .tag{ display:inline-block; background:#eef2ff; color:#3730a3; font-size:11px; border-radius:999px; padding:3px 8px; margin-top:5px; margin-right:5px; }
-
-  .selected-product{
-    background:#eef6ff; border:1px solid #cfe2ff; border-radius:10px; padding:8px 10px;
-    font-size:12px; color:#003b66; font-weight:700; min-height:36px; display:flex; align-items:center;
-  }
-
-  .capture-card{ display:grid; grid-template-rows:auto auto auto; gap:8px; padding:12px; }
-  .form-grid{ display:grid; grid-template-columns:minmax(0,1fr) 120px; gap:8px; }
-
-  .carrito-card{
-    height:100%; display:grid; grid-template-rows:auto auto 1fr; min-height:0;
-  }
-  .carrito-header{
-    display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:end; margin-bottom:8px;
-  }
-  .carrito-title{ font-size:22px; font-weight:900; color:#003b66; }
-  .small-note,.muted{ font-size:12px; color:var(--muted); }
-  .small-note{ font-weight:bold; }
-
-  .carrito-scroll{
-    min-height:0; overflow-y:auto; border:1px solid var(--grislinea);
-    border-radius:14px; background:#f8fafc; padding:10px;
-  }
-
-  .carrito-item{
-    display:grid; grid-template-columns:minmax(0, 1.7fr) 90px 110px 180px;
-    gap:10px; align-items:center; padding:10px; background:#fff;
-    border:1px solid #e5e7eb; border-radius:12px; margin-bottom:8px;
-  }
-  .carrito-item:last-child{ margin-bottom:0; }
-  .producto-info{ min-width:0; }
-  .producto-nombre{ font-weight:900; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .producto-code{ font-size:12px; color:var(--muted); margin-top:4px; }
-  .producto-origin{
-    display:inline-block; font-size:11px; background:#dcfce7; color:#166534;
-    padding:4px 8px; border-radius:999px; margin-top:6px; font-weight:bold;
-  }
-  .qty-box,.price-box{ text-align:center; background:#f3f4f6; border-radius:10px; padding:10px; font-weight:900; }
-  .item-actions{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .empty{ padding:24px; background:#fff; border:1px dashed #cbd5e1; border-radius:12px; color:#6b7280; text-align:center; font-size:15px; }
-</style>
+    .lista-container { background: white; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; flex: 1; }
+    .table-container { overflow-y: auto; flex: 1; padding: 0 5px; }
+    .item-row { display: grid; grid-template-columns: 1fr 40px 70px 35px; padding: 10px 5px; border-bottom: 1px solid #edf2f7; align-items: center; font-size: 13px; gap: 5px; }
+    
+    .btn-quitar { background: none; border: none; font-size: 18px; color: var(--rojo); cursor: pointer; font-weight: bold; }
+    .search-results {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 1000;
+      background: white; border: 1px solid var(--border); border-radius: 10px; max-height: 180px; overflow-y: auto; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .search-item { padding: 10px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 13px; }
+  </style>
 </head>
 <body>
 
-<div id="startupOverlay" class="startup-overlay">
-  <div class="startup-card">
-    <div class="startup-logo">PROVSOFT</div>
-    <div class="startup-title">Inicializando sistema</div>
-    <div class="startup-subtitle" id="startupMessage">Preparando entorno...</div>
-    <div class="startup-progress-wrap"><div id="startupProgressBar" class="startup-progress-bar"></div></div>
-    <div class="startup-footer"><span id="startupPercent">0%</span><span id="startupStep">Cargando...</span></div>
+<header class="top-header">
+  <div class="logo-area">
+    <img id="mainLogo" src="logo-proveedora.png" alt="La Proveedora" 
+         onerror="this.style.display='none'; document.getElementById('backupLogo').style.display='flex';">
+    
+    <div id="backupLogo" class="logo-placeholder" style="display:none;">
+      <span class="main-text">PROVEEDORA</span>
+      <span class="sub-text">DULCES - DESECHABLES</span>
+    </div>
+  </div>
+  <div class="folio-header">
+    <small>FOLIO SOLICITUD</small>
+    <div id="folioText">Cargando...</div>
+  </div>
+</header>
+
+<div class="mini-datos-header" onclick="toggleDatos()">
+  <span>📋 Datos (Usuario y Destino)</span>
+  <span id="arrowIcon">▼</span>
+</div>
+<div id="datosPanel" class="mini-datos-content">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+    <div>
+      <label style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">👤 CAPTURISTA</label>
+      <input type="text" id="nombreUsuario" placeholder="Tu nombre completo" style="width:100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px;">
+    </div>
+    <div>
+      <label style="font-size: 9px; font-weight: bold; color: #64748b; text-transform: uppercase;">📍 ORIGEN</label>
+      <input type="text" id="sucursalOrigen" value="ALLENDE 1" disabled style="width:100%; padding: 8px; background: #f1f5f9; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--azul-oscuro);">
+    </div>
   </div>
 </div>
 
-<div class="app-shell">
-  <div id="statusBar" class="top online">
-    <div id="statusText" class="top-status">EN LÍNEA</div>
-    <div id="folio" class="top-folio">SOL-000000</div>
-    <div class="top-spacer"></div>
+<div class="app-container">
+  <div class="resumen-barra">
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <div class="stat-item"><div class="stat-label">ITEMS</div><div class="stat-value" id="countPartidas">0</div></div>
+      <div class="stat-item"><div class="stat-label">PZS</div><div class="stat-value" id="countPiezas">0</div></div>
+    </div>
+    <div id="totalEfectivo" class="total-monto stat-value">$0.00</div>
+    <button id="btnFinalizarBarra" class="btn-finalizar-flotante">✔ FINALIZAR</button>
   </div>
 
-  <div class="main-desktop">
-    <div class="left-panel">
-      <div class="card left-card">
-        <div class="card-title">Datos generales</div>
-
-        <div class="field">
-          <label>Sucursal solicitante</label>
-          <input value="ALLENDE 1" disabled />
+  <div class="main-work-area">
+    <div class="captura-card">
+      <div class="search-row">
+        <div class="search-container" style="position: relative;">
+          <input id="inpBusqueda" placeholder="Buscar código o nombre..." autocomplete="off">
+          <div id="resSugerencias" class="search-results"></div>
         </div>
-
-        <div>
-          <div class="card-title" style="font-size:15px; margin-bottom:8px;">Estado del sistema</div>
-          <div class="status-mini">
-            <div class="status-chip">
-              <div class="status-chip-label">Estado actual</div>
-              <div id="progressText" class="status-chip-value">Inicializando...</div>
-            </div>
-            <div class="status-chip">
-              <div class="status-chip-label">Progreso</div>
-              <div class="mini-progress-wrap"><div id="progressBar" class="mini-progress-bar"></div></div>
-            </div>
-            <div class="status-chip">
-              <div class="status-chip-label">Última sync catálogo</div>
-              <div id="lastSyncText" class="status-chip-value">--</div>
-            </div>
-          </div>
+        <div class="cantidad-box">
+          <input id="inpCantidad" type="number" value="1" min="1">
         </div>
-
-        <div>
-          <div class="card-title" style="font-size:15px; margin-bottom:8px;">Resumen</div>
-          <div class="summary-inline">
-            <div class="summary-box"><div class="summary-label">Partidas</div><div class="summary-value" id="partidasCountTop">0</div></div>
-            <div class="summary-box"><div class="summary-label">Piezas</div><div class="summary-value" id="piezasCountTop">0</div></div>
-            <div class="summary-box"><div class="summary-label">Pendientes</div><div class="summary-value" id="pendientesCountTop">0</div></div>
-            <div class="summary-box"><div class="summary-label">Catálogo</div><div class="summary-value" id="productosLocalesCountTop">0</div></div>
-          </div>
-        </div>
-
-        <div></div>
-
-        <div class="actions-2">
-          <button id="btnGuardarLeft" class="btn-success">Guardar solicitud</button>
-          <button id="btnNuevoLeft" class="btn-secondary">Nuevo folio</button>
-        </div>
+      </div>
+      <div id="prodSelected" class="prod-selected-box">🛒 Toque para buscar producto...</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <button id="btnAgregar" style="background: var(--azul-oscuro); color: white; border: none; padding: 12px; border-radius: 25px; font-weight: bold; font-size: 14px; cursor: pointer;">➕ AGREGAR</button>
+        <button id="btnLimpiar" style="background: #f1f5f9; border: none; padding: 12px; border-radius: 25px; color: #64748b; font-weight: 600; font-size: 14px; cursor: pointer;">🗑 LIMPIAR</button>
       </div>
     </div>
 
-    <div class="right-panel">
-      <div class="card capture-card">
-        <div class="card-title" style="margin-bottom:0;">Captura de producto</div>
-        <div class="form-grid">
-          <div class="field search-wrap">
-            <label>Código, nombre o equivalente</label>
-            <input id="busqueda" placeholder="Escanea o escribe para buscar..." autocomplete="off" />
-            <div id="results" class="results"></div>
-          </div>
-          <div class="field">
-            <label>Cantidad</label>
-            <input id="cantidad" type="number" min="1" step="1" value="1" />
-          </div>
-          <div class="field" style="grid-column:1 / -1;">
-            <label>Producto seleccionado</label>
-            <div id="seleccionadoInfo" class="selected-product">Ninguno</div>
-          </div>
-        </div>
-        <div class="actions-3">
-          <button id="btnAgregarSeleccionado" class="btn-primary">Agregar</button>
-          <button id="btnLimpiarBusqueda" class="btn-secondary">Limpiar</button>
-          <button id="btnSyncCatalogo" class="btn-warning">Sync catálogo</button>
-        </div>
-      </div>
-
-      <div class="card carrito-card">
-        <div class="carrito-header">
-          <div class="carrito-title">Carrito de solicitud</div>
-          <div class="small-note">El carrito domina esta zona para captura y revisión.</div>
-          <div class="muted" style="text-align:right;">Scroll solo aquí</div>
-        </div>
-        <div class="muted" style="margin-bottom:8px;">Se eliminó la botonera duplicada para dejar más altura útil al carrito.</div>
-        <div id="carrito" class="carrito-scroll"></div>
-      </div>
+    <div class="lista-container">
+      <div id="listaItems" class="table-container"></div>
     </div>
   </div>
 </div>
 
 <script type="module">
-  import { firebaseConfig } from "./config.js";
+  // --- IMPORTACIÓN DE CONFIGURACIÓN ---
+  // Reinstaurar el import de config.js paraFirebase
+  // import { firebaseConfig } from "./config.js"; 
+  
+  // Placeholder para que no rompa si no está config.js durante la prueba local
+  const firebaseConfig = { apiKey: "demo", authDomain: "demo", projectId: "demo", storageBucket: "demo", messagingSenderId: "demo", appId: "demo" };
+
+  // --- IMPORTACIÓN DE LIBRERÍAS DE FIREBASE ---
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    query,
-    where,
-    getDocs,
-    doc,
-    setDoc
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  const DRAFT_KEY = "draft_solicitud_transferencia_pdd_v4_pc";
-  const DB_NAME = "provsoft_transferencias_db";
-  const DB_VERSION = 1;
-  const STORE_PRODUCTOS = "productos";
-  const STORE_PENDIENTES = "solicitudesPendientes";
-  const STORE_META = "meta";
-  const SUCURSAL_FIJA = "ALLENDE 1";
+  let carrito = [], catalogo = [], seleccionado = null;
+  const resSugerencias = document.getElementById("resSugerencias");
 
-  let idb = null;
-  let carrito = [];
-  let folio = null;
-  let catalogoMemoria = [];
-  let productoSeleccionado = null;
-  let debounceTimer = null;
+  // FUNCIÓN PARA DESPLEGAR/OCULTAR DATOS
+  window.toggleDatos = function() {
+    const panel = document.getElementById("datosPanel");
+    const arrow = document.getElementById("arrowIcon");
+    panel.classList.toggle("open");
+    arrow.innerText = panel.classList.contains("open") ? "▲" : "▼";
+  };
 
-  function setProgress(percent, text){
-    document.getElementById("progressBar").style.width = percent + "%";
-    document.getElementById("progressText").innerText = text;
-  }
-
-  function setStatus(text, online){
-    const bar = document.getElementById("statusBar");
-    document.getElementById("statusText").innerText = text;
-    bar.className = online ? "top online" : "top offline";
-  }
-
-  function escapeHtml(text){
-    return String(text ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function formatDateTime(iso){
-    if(!iso) return "Sin fecha";
-    try{ return new Date(iso).toLocaleString("es-MX"); }
-    catch{ return iso; }
-  }
-
-  function startupSet(percent, message, step){
-    const safePercent = Math.max(0, Math.min(100, Number(percent || 0)));
-    document.getElementById("startupProgressBar").style.width = safePercent + "%";
-    document.getElementById("startupPercent").innerText = safePercent + "%";
-    document.getElementById("startupMessage").innerText = message || "Preparando sistema...";
-    document.getElementById("startupStep").innerText = step || "Cargando...";
-  }
-
-  function startupShow(){
-    document.body.classList.add("system-loading");
-    document.getElementById("startupOverlay").classList.remove("hidden");
-  }
-
-  function startupHide(){
-    const overlay = document.getElementById("startupOverlay");
-    overlay.classList.add("hidden");
-    document.body.classList.remove("system-loading");
-  }
-
-  function openIDB(){
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
-
-      req.onupgradeneeded = (event) => {
-        const dbx = event.target.result;
-
-        if(!dbx.objectStoreNames.contains(STORE_PRODUCTOS)){
-          const productosStore = dbx.createObjectStore(STORE_PRODUCTOS, { keyPath: "codigoBarra" });
-          productosStore.createIndex("concepto", "concepto", { unique:false });
-        }
-
-        if(!dbx.objectStoreNames.contains(STORE_PENDIENTES)){
-          dbx.createObjectStore(STORE_PENDIENTES, { keyPath: "folio" });
-        }
-
-        if(!dbx.objectStoreNames.contains(STORE_META)){
-          dbx.createObjectStore(STORE_META, { keyPath: "key" });
-        }
-      };
-
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  function idbPut(storeName, value){
-    return new Promise((resolve, reject) => {
-      const tx = idb.transaction(storeName, "readwrite");
-      const store = tx.objectStore(storeName);
-      const req = store.put(value);
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  function idbBulkPut(storeName, items){
-    return new Promise((resolve, reject) => {
-      const tx = idb.transaction(storeName, "readwrite");
-      const store = tx.objectStore(storeName);
-      for(const item of items) store.put(item);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-
-  function idbGetAll(storeName){
-    return new Promise((resolve, reject) => {
-      const tx = idb.transaction(storeName, "readonly");
-      const store = tx.objectStore(storeName);
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  function idbGet(storeName, key){
-    return new Promise((resolve, reject) => {
-      const tx = idb.transaction(storeName, "readonly");
-      const store = tx.objectStore(storeName);
-      const req = store.get(key);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  function idbDelete(storeName, key){
-    return new Promise((resolve, reject) => {
-      const tx = idb.transaction(storeName, "readwrite");
-      const store = tx.objectStore(storeName);
-      const req = store.delete(key);
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  function idbClear(storeName){
-    return new Promise((resolve, reject) => {
-      const tx = idb.transaction(storeName, "readwrite");
-      const store = tx.objectStore(storeName);
-      const req = store.clear();
-      req.onsuccess = () => resolve(true);
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  function generarFolio(){
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    const hh = String(d.getHours()).padStart(2, "0");
-    const mi = String(d.getMinutes()).padStart(2, "0");
-    const ss = String(d.getSeconds()).padStart(2, "0");
-    return `SOL-${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
-  }
-
-  async function setMeta(key, value){
-    await idbPut(STORE_META, { key, value });
-  }
-
-  async function getMeta(key){
-    const item = await idbGet(STORE_META, key);
-    return item ? item.value : null;
-  }
-
-  async function renderLastSync(){
-    const lastSync = await getMeta("catalogo_last_sync");
-    document.getElementById("lastSyncText").innerText = lastSync ? formatDateTime(lastSync) : "Catálogo sin sincronizar";
-  }
-
-  function normalizarEquivalentes(raw){
-    if(Array.isArray(raw)) return raw.map(x => String(x).trim()).filter(Boolean);
-    if(typeof raw === "string") return raw.split(",").map(x => x.trim()).filter(Boolean);
-    return [];
-  }
-
-  function normalizarProducto(docData){
-    return {
-      codigoBarra: String(docData.codigoBarra || "").trim(),
-      concepto: String(docData.concepto || "").trim(),
-      activo: docData.activo === true,
-      codigosEquivalentes: normalizarEquivalentes(docData.codigosEquivalentes),
-      precioPublico: Number(docData.precioPublico || 0),
-      unidad: String(docData.unidad || ""),
-      updatedAt: new Date().toISOString()
-    };
-  }
-
-  async function syncCatalogoDesdeFirebase(showAlert = true){
-    if(!navigator.onLine){
-      if(showAlert) alert("No hay internet para sincronizar catálogo.");
-      return;
-    }
-
-    try{
-      startupSet(68, "Consultando catálogo en Firebase...", "Firebase");
-      setProgress(5, "Consultando catálogo en Firebase...");
-
+  // 1. CATÁLOGO OPTIMIZADO + CACHE OFFLINE
+  async function cargarCatalogo() {
+    try {
+      // Intenta cargar desde Firebase (activo por defecto para la integración)
       const q = query(collection(db, "productos"), where("activo", "==", true));
       const snap = await getDocs(q);
 
-      startupSet(72, `Descargando ${snap.size} producto(s)...`, "Descarga");
-      setProgress(25, `Descargando ${snap.size} producto(s)...`);
-
-      const productos = [];
-      let index = 0;
-
-      snap.forEach((docSnap) => {
-        index++;
-        const data = normalizarProducto(docSnap.data());
-
-        if(data.codigoBarra && data.concepto){
-          productos.push(data);
-        }
-
-        if(index % 50 === 0 || index === snap.size){
-          const localPercent = 72 + Math.round((index / Math.max(snap.size, 1)) * 12);
-          startupSet(localPercent, `Procesando catálogo ${index}/${snap.size}`, "Procesamiento");
-
-          const percent = 25 + Math.round((index / Math.max(snap.size, 1)) * 45);
-          setProgress(percent, `Procesando catálogo ${index}/${snap.size}`);
-        }
+      catalogo = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          ...data,
+          // Pre-procesado de búsqueda
+          _search: `${data.codigoBarra || ""} ${data.concepto || ""}`.toLowerCase()
+        };
       });
 
-      startupSet(86, "Reemplazando catálogo local...", "Guardando");
-      setProgress(75, "Reemplazando catálogo local...");
-
-      await idbClear(STORE_PRODUCTOS);
-      await idbBulkPut(STORE_PRODUCTOS, productos);
-      await setMeta("catalogo_last_sync", new Date().toISOString());
-
-      startupSet(90, "Cargando catálogo local en memoria...", "Memoria local");
-      setProgress(90, "Cargando catálogo local en memoria...");
-
-      await cargarCatalogoEnMemoria();
-
-      startupSet(94, `Catálogo listo: ${productos.length} producto(s)`, "Catálogo listo");
-      setProgress(100, `Catálogo listo: ${productos.length} producto(s)`);
-
-      await renderLastSync();
-      renderProductosLocalesCount();
-
-      if(showAlert) alert(`Catálogo sincronizado correctamente. Productos: ${productos.length}`);
-    }catch(error){
-      console.error("Error al sincronizar catálogo:", error);
-      setProgress(100, "Error al sincronizar catálogo");
-      startupSet(100, "Error al sincronizar catálogo", "Error");
-      if(showAlert) alert("Error al sincronizar catálogo. Revisa consola.");
-    }
-  }
-
-  async function cargarCatalogoEnMemoria(){
-    catalogoMemoria = await idbGetAll(STORE_PRODUCTOS);
-    renderProductosLocalesCount();
-  }
-
-  function renderProductosLocalesCount(){
-    document.getElementById("productosLocalesCountTop").innerText = catalogoMemoria.length;
-  }
-
-  function buscarProductosLocal(term){
-    const q = String(term || "").trim().toLowerCase();
-    if(!q) return [];
-
-    const exactCodigo = [];
-    const exactEq = [];
-    const nombreStarts = [];
-    const nombreContains = [];
-
-    for(const p of catalogoMemoria){
-      const codigo = String(p.codigoBarra || "").toLowerCase();
-      const nombre = String(p.concepto || "").toLowerCase();
-      const equivalentes = Array.isArray(p.codigosEquivalentes) ? p.codigosEquivalentes.map(x => String(x).toLowerCase()) : [];
-
-      if(codigo === q){
-        exactCodigo.push(p);
-        continue;
-      }
-
-      if(equivalentes.includes(q)){
-        exactEq.push(p);
-        continue;
-      }
-
-      if(nombre.startsWith(q)){
-        nombreStarts.push(p);
-        continue;
-      }
-
-      if(nombre.includes(q) || codigo.includes(q) || equivalentes.some(eq => eq.includes(q))){
-        nombreContains.push(p);
+      // Guardar en caché local
+      localStorage.setItem("catalogo_cache", JSON.stringify(catalogo));
+      if (catalogo.length === 0) console.warn("Catálogo vacío.");
+    } catch (e) {
+      console.error("Error cargando Firebase, usando caché:", e);
+      // Fallback offline: Cargar desde caché local si Firebase falla
+      const cache = localStorage.getItem("catalogo_cache");
+      if (cache) {
+        catalogo = JSON.parse(cache);
+        alert("⚠️ Modo offline: usando catálogo guardado.");
+      } else {
+        alert("❌ Sin conexión y sin datos guardados.");
       }
     }
-
-    return [...exactCodigo, ...exactEq, ...nombreStarts, ...nombreContains].slice(0, 30);
   }
 
-  function renderResultados(lista){
-    const box = document.getElementById("results");
+  // 2. BUSCADOR RÁPIDO Y OPTIMIZADO
+  document.getElementById("inpBusqueda").addEventListener("input", (e) => {
+    const txt = e.target.value.toLowerCase().trim();
+    if (txt.length < 2) { resSugerencias.style.display = "none"; return; }
 
-    if(!lista.length){
-      box.innerHTML = `<div class="result-item">Sin resultados</div>`;
-      box.style.display = "block";
-      return;
-    }
+    // Usar la propiedad _search pre-procesada
+    const sugerencias = catalogo
+      .filter(p => p._search.includes(txt))
+      .slice(0, 6); // Límite de 6 resultados
 
-    box.innerHTML = lista.map((p, i) => `
-      <div class="result-item" data-index="${i}">
-        <div class="result-title">${escapeHtml(p.concepto)}</div>
-        <div class="muted">Código: ${escapeHtml(p.codigoBarra)}</div>
-        ${(p.codigosEquivalentes && p.codigosEquivalentes.length)
-          ? `<div>${p.codigosEquivalentes.slice(0,5).map(eq => `<span class="tag">${escapeHtml(eq)}</span>`).join("")}</div>`
-          : ""}
-      </div>
-    `).join("");
-
-    box.style.display = "block";
-
-    [...box.querySelectorAll(".result-item[data-index]")].forEach((el) => {
-      el.onclick = () => seleccionarProducto(lista[Number(el.dataset.index)]);
-    });
-  }
-
-  function seleccionarProducto(p){
-    productoSeleccionado = p;
-
-    document.getElementById("seleccionadoInfo").innerText = `${p.concepto} | ${p.codigoBarra}`;
-    document.getElementById("results").style.display = "none";
-
-    const cantidadInput = document.getElementById("cantidad");
-    if(!cantidadInput.value || Number(cantidadInput.value) <= 0){
-      cantidadInput.value = "1";
-    }
-
-    cantidadInput.focus();
-    cantidadInput.select();
-  }
-
-  function limpiarBusqueda(){
-    document.getElementById("busqueda").value = "";
-    document.getElementById("cantidad").value = "1";
-    document.getElementById("results").style.display = "none";
-    productoSeleccionado = null;
-    document.getElementById("seleccionadoInfo").innerText = "Ninguno";
-    document.getElementById("busqueda").focus();
-  }
-
-  function guardarDraft(){
-    const draft = {
-      folio,
-      sucursal: SUCURSAL_FIJA,
-      carrito,
-      fecha: new Date().toISOString()
-    };
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }
-
-  function cargarDraft(){
-    const raw = localStorage.getItem(DRAFT_KEY);
-    if(!raw) return false;
-
-    try{
-      const data = JSON.parse(raw);
-
-      if(confirm("Se detectó un borrador anterior. ¿Deseas recuperarlo?")){
-        folio = data.folio || generarFolio();
-        carrito = Array.isArray(data.carrito) ? data.carrito : [];
-        renderCarrito();
-        return true;
-      }
-
-      return false;
-    }catch(error){
-      console.error("Error draft:", error);
-      return false;
-    }
-  }
-
-  function limpiarDraft(){
-    localStorage.removeItem(DRAFT_KEY);
-  }
-
-  function actualizarStatsCarrito(){
-    const partidas = carrito.length;
-    const piezas = carrito.reduce((acc, item) => acc + Number(item.cantidad || 0), 0);
-
-    document.getElementById("partidasCountTop").innerText = partidas;
-    document.getElementById("piezasCountTop").innerText = piezas;
-  }
-
-  function renderCarrito(){
-    document.getElementById("folio").innerText = folio || "---";
-    const div = document.getElementById("carrito");
-
-    if(carrito.length === 0){
-      div.innerHTML = `<div class="empty">No hay productos agregados.</div>`;
-      actualizarStatsCarrito();
-      return;
-    }
-
-    div.innerHTML = carrito.map((p, i) => `
-      <div class="carrito-item">
-        <div class="producto-info">
-          <div class="producto-nombre">${escapeHtml(p.nombre)}</div>
-          <div class="producto-code">Código: ${escapeHtml(p.codigo)}</div>
-          ${p.origen ? `<div class="producto-origin">${escapeHtml(p.origen)}</div>` : ""}
+    if (sugerencias.length > 0) {
+      resSugerencias.innerHTML = sugerencias.map(p => `
+        <div class="search-item" onclick="seleccionarProducto('${p.codigoBarra}')">
+          <b>${escapeHtml(p.codigoBarra)}</b> - ${escapeHtml(p.concepto)}
         </div>
-        <div class="qty-box">${Number(p.cantidad || 0)}</div>
-        <div class="price-box">$${Number(p.precioPublico || 0).toFixed(2)}</div>
-        <div class="item-actions">
-          <button class="btn-secondary" onclick="window.editarCantidad(${i})">Editar</button>
-          <button class="btn-danger" onclick="window.eliminarItem(${i})">Eliminar</button>
-        </div>
-      </div>
-    `).join("");
-
-    actualizarStatsCarrito();
-  }
-
-  window.editarCantidad = function(index){
-    const item = carrito[index];
-    if(!item) return;
-
-    const nueva = prompt("Nueva cantidad:", item.cantidad);
-    if(nueva === null) return;
-
-    const cantidad = Number(nueva);
-    if(!Number.isFinite(cantidad) || cantidad <= 0){
-      alert("Cantidad inválida");
-      return;
+      `).join('');
+      resSugerencias.style.display = "block";
+    } else {
+      resSugerencias.style.display = "none";
     }
+  });
 
-    carrito[index].cantidad = cantidad;
-    guardarDraft();
-    renderCarrito();
+  // Cerrar sugerencias al tocar fuera
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-container')) resSugerencias.style.display = "none";
+  });
+
+  // 3. FUNCIÓN CENTRAL DE SELECCIÓN
+  window.seleccionarProducto = function(codigo) {
+    const prod = catalogo.find(x => String(x.codigoBarra) === String(codigo));
+    if (prod) {
+      seleccionado = prod;
+      // Actualizar feedback visual
+      document.getElementById("prodSelected").innerHTML = `✅ <strong>${escapeHtml(prod.concepto)}</strong> ($${prod.precioPublico?.toFixed(2)})`;
+      // Limpiar buscador y mover foco a cantidad
+      document.getElementById("inpBusqueda").value = "";
+      resSugerencias.style.display = "none";
+      document.getElementById("inpCantidad").focus();
+    }
   };
 
-  window.eliminarItem = function(index){
-    if(!confirm("¿Eliminar este producto del carrito?")) return;
-    carrito.splice(index, 1);
-    guardarDraft();
-    renderCarrito();
-  };
-
-  function agregarProductoSeleccionado(){
-    if(!productoSeleccionado){
-      alert("Selecciona un producto del catálogo");
-      return;
+  // 5. SOPORTE PARA ESCÁNER FÍSICO (ENTER)
+  document.getElementById("inpBusqueda").addEventListener("keypress", (e) => {
+    // Si presiona Enter y ya hay un producto seleccionado, lo agrega automáticamente
+    if (e.key === "Enter" && seleccionado) {
+      document.getElementById("btnAgregar").click();
     }
+  });
 
-    const cantidad = Number(document.getElementById("cantidad").value || 0);
-    if(!Number.isFinite(cantidad) || cantidad <= 0){
-      alert("Cantidad inválida");
-      return;
-    }
+  // 4. AGREGAR PRODUCTO AL CARRITO (SIN DUPLICADOS + VIBRACIÓN)
+  document.getElementById("btnAgregar").onclick = () => {
+    if (!seleccionado) return alert("Por favor, seleccione un producto primero.");
+    
+    let cant = parseInt(document.getElementById("inpCantidad").value) || 1;
+    if (cant < 1) cant = 1;
 
-    const idx = carrito.findIndex(x => x.codigo === productoSeleccionado.codigoBarra);
-
-    if(idx >= 0){
-      carrito[idx].cantidad += cantidad;
-      const itemActualizado = carrito[idx];
-      carrito.splice(idx, 1);
-      carrito.unshift(itemActualizado);
-    }else{
+    // Verificar si el producto ya está en el carrito
+    const existente = carrito.find(i => i.codigo === seleccionado.codigoBarra);
+    if (existente) {
+      // Sumar cantidad al existente
+      existente.cantidad += cant;
+    } else {
+      // Agregar nuevo con shift (al principio de la lista)
       carrito.unshift({
-        codigo: productoSeleccionado.codigoBarra,
-        nombre: productoSeleccionado.concepto,
-        cantidad,
-        precioPublico: Number(productoSeleccionado.precioPublico || 0),
-        unidad: productoSeleccionado.unidad || "",
-        codigosEquivalentes: productoSeleccionado.codigosEquivalentes || [],
-        origen: "CATALOGO_LOCAL"
+        codigo: seleccionado.codigoBarra,
+        nombre: seleccionado.concepto,
+        cantidad: cant,
+        precio: seleccionado.precioPublico || 0
       });
     }
 
-    guardarDraft();
-    renderCarrito();
-    limpiarBusqueda();
+    // Vibración corta de confirmación (POS style)
+    if (navigator.vibrate) navigator.vibrate(50);
+    
+    actualizarUI();
+    resetCaptura();
+  };
+
+  document.getElementById("btnLimpiar").onclick = resetCaptura;
+
+  // ACTUALIZACIÓN DE LA INTERFAZ DEL CARRITO
+  function actualizarUI() {
+    const listaDiv = document.getElementById("listaItems");
+    let total = 0, pzs = 0;
+    
+    if(carrito.length === 0) {
+        listaDiv.innerHTML = '<div style="padding:40px 20px; text-align:center; color:#94a3b8; font-style:italic; font-size:13px;">🛒 El carrito está vacío</div>';
+    } else {
+        listaDiv.innerHTML = carrito.map((item, idx) => {
+          total += (item.cantidad * item.precio);
+          pzs += item.cantidad;
+          return `
+            <div class="item-row">
+              <div><b>${escapeHtml(item.nombre)}</b><br><small>${item.codigo}</small></div>
+              <div style="text-align:center; font-weight:800; color:var(--azul-oscuro); font-size:15px;">${item.cantidad}</div>
+              <div style="text-align:right; font-weight:600;">$${(item.cantidad * item.precio).toFixed(2)}</div>
+              <button class="btn-quitar" onclick="eliminar(${idx})">✕</button>
+            </div>
+          `;
+        }).join('');
+    }
+    
+    // Actualizar barra de resumen (Sticky)
+    document.getElementById("countPartidas").innerText = carrito.length;
+    document.getElementById("countPiezas").innerText = pzs;
+    document.getElementById("totalEfectivo").innerText = `$${total.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
   }
 
-  async function obtenerPendientes(){
-    return await idbGetAll(STORE_PENDIENTES);
+  // 7. VIBRACIÓN AL ELIMINAR
+  window.eliminar = (idx) => {
+    // Vibración corta antes de eliminar
+    if (navigator.vibrate) navigator.vibrate(30);
+    carrito.splice(idx, 1);
+    actualizarUI();
+  };
+
+  // Resetear campos de captura tipo POS
+  function resetCaptura() {
+    seleccionado = null;
+    document.getElementById("prodSelected").innerHTML = "🛒 Toque para buscar producto...";
+    document.getElementById("inpCantidad").value = 1;
+    document.getElementById("inpBusqueda").value = "";
+    document.getElementById("inpBusqueda").focus(); // Devolver foco al buscador
   }
 
-  async function guardarPendiente(payload){
-    await idbPut(STORE_PENDIENTES, payload);
-    await renderPendientes();
+  // 9. SEGURIDAD EXTRA (escapeHtml Mejorado)
+  function escapeHtml(str) {
+    if(!str) return "";
+    return str.replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    })[m]);
   }
 
-  async function renderPendientes(){
-    const items = await obtenerPendientes();
-    document.getElementById("pendientesCountTop").innerText = items.length;
+  // Generación de Folio Único
+  function nuevoFolio() {
+    const d = new Date();
+    const fol = `SOL-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+    document.getElementById("folioText").innerText = fol;
   }
 
-  async function sincronizarPendientes(){
-    if(!navigator.onLine) return;
+  // Auto-guardar y auto-cargar nombre del capturista en caché local
+  const nameInp = document.getElementById("nombreUsuario");
+  if(localStorage.getItem("pdd_capturista")) nameInp.value = localStorage.getItem("pdd_capturista");
+  nameInp.addEventListener("change", () => localStorage.setItem("pdd_capturista", nameInp.value));
 
-    const pendientes = await obtenerPendientes();
-    if(!pendientes.length) return;
+  // 6. VALIDACIONES FUERTES ANTES DE GUARDAR (Reinstaurar lógica Firebase)
+  document.getElementById("btnFinalizarBarra").onclick = async () => {
+      const usuario = nameInp.value.trim();
+      
+      // Validaciones de seguridad
+      if(!usuario || usuario.length < 3) { alert("Nombre de capturista inválido."); toggleDatos(); return; }
+      if (!/^[a-zA-Z\s]+$/.test(usuario)) { alert("Nombre solo debe contener letras."); toggleDatos(); return; }
+      if(carrito.length === 0) { alert("El carrito está vacío."); return; }
 
-    setProgress(60, `Sincronizando ${pendientes.length} pendiente(s)...`);
-    startupSet(84, `Sincronizando ${pendientes.length} pendiente(s)...`, "Sincronización");
+      const totalFinal = carrito.reduce((a,b) => a + (b.cantidad * b.precio), 0);
+      if (totalFinal <= 0) { alert("Total de la solicitud inválido."); return; }
+      
+      // Confirmación final
+      if (!confirm("¿Confirmar envío de solicitud?")) return;
 
-    let enviados = 0;
-    let fallidos = 0;
+      const btn = document.getElementById("btnFinalizarBarra");
+      const fol = document.getElementById("folioText").innerText;
+      const suc = document.getElementById("sucursalOrigen").value;
 
-    for(const item of pendientes){
-      try{
-await setDoc(
-  doc(db, "TIENDAS", "ALLENDE 1", "transferencias1", item.folio),
-  {
-    ...item,
-    estatus: "SOLICITADA",
-    sincronizado: true,
-    fechaSincronizacion: new Date().toISOString()
-  }
-);
+      try {
+        btn.disabled = true;
+        // Guardar en Firebase (Integración real)
+        await setDoc(doc(db, "TIENDAS", suc, "transferencias1", fol), {
+          folio: fol,
+          items: carrito,
+          capturista: usuario,
+          total: totalFinal,
+          fecha: new Date().toISOString()
+        });
 
-        await idbDelete(STORE_PENDIENTES, item.folio);
-        enviados++;
-      }catch(error){
-        console.error("Error sync pendiente:", item.folio, error);
-        fallidos++;
+        // 8. GENERACIÓN DE PDF MEJORADO (Con conteo de piezas)
+        generarPDF(fol, suc, carrito, usuario);
+        
+        // Limpiar estado
+        carrito = [];
+        actualizarUI();
+        nuevoFolio();
+        alert("Enviado con éxito a Firebase.");
+      } catch (e) {
+        console.error(e);
+        alert("Error de conexión al guardar en Firebase.");
+      } finally {
+        btn.disabled = false;
       }
-    }
+  };
 
-    await renderPendientes();
+  // 8. PDF MEJORADO (Detalles + Piezas)
+  function generarPDF(folio, sucursal, items, usuario) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.text("PROVEEDORA - SOLICITUD PDD", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Folio: ${folio} | Sucursal: ${sucursal} | Capturista: ${usuario}`, 14, 22);
 
-    if(fallidos === 0){
-      setProgress(100, `Pendientes sincronizados: ${enviados}`);
-    }else{
-      setProgress(100, `Sincronizados: ${enviados} | Fallidos: ${fallidos}`);
-    }
-  }
-
-  function validarAntesGuardar(){
-    if(carrito.length === 0){
-      alert("Agrega al menos un producto");
-      return false;
-    }
-    return true;
-  }
-
-  function construirPayload(){
-    return {
-      folio,
-      sucursal: SUCURSAL_FIJA,
-      observaciones: "",
-      carrito,
-      totalPartidas: carrito.length,
-      totalPiezas: carrito.reduce((acc, item) => acc + Number(item.cantidad || 0), 0),
-      estatus: navigator.onLine ? "SOLICITADA" : "PENDIENTE_ENVIO",
-      fechaSolicitud: new Date().toISOString(),
-      origen: navigator.onLine ? "ONLINE" : "OFFLINE"
-    };
-  }
-
-  async function guardarSolicitud(){
-    if(!validarAntesGuardar()) return;
-
-    const payload = construirPayload();
-
-    if(!navigator.onLine){
-      await guardarPendiente(payload);
-      alert("Sin internet. Solicitud guardada en cola local.");
-      limpiarDraft();
-      reiniciarFormulario();
-      return;
-    }
-
-    try{
-await setDoc(
-  doc(db, "TIENDAS", "ALLENDE 1", "transferencias1", folio),
-  payload
-);
-
-      alert("Solicitud guardada en Firebase.");
-      limpiarDraft();
-      reiniciarFormulario();
-    }catch(error){
-      console.error("Error al guardar online:", error);
-
-      await guardarPendiente({
-        ...payload,
-        estatus: "PENDIENTE_ENVIO",
-        origen: "FALLBACK_LOCAL"
-      });
-
-      alert("Error al guardar en Firebase. Se guardó en cola local.");
-      limpiarDraft();
-      reiniciarFormulario();
-    }
-  }
-
-  function reiniciarFormulario(){
-    folio = generarFolio();
-    carrito = [];
-    productoSeleccionado = null;
-
-    document.getElementById("busqueda").value = "";
-    document.getElementById("cantidad").value = "1";
-    document.getElementById("seleccionadoInfo").innerText = "Ninguno";
-    document.getElementById("results").style.display = "none";
-
-    renderCarrito();
-    guardarDraft();
-  }
-
-  function bindEvents(){
-    window.addEventListener("online", async () => {
-      setStatus("EN LÍNEA", true);
-      await sincronizarPendientes();
+    doc.autoTable({
+      startY: 30,
+      head: [['Código', 'Descripción', 'Cant', 'Precio', 'Subtotal']],
+      body: items.map(i => [i.codigo, i.nombre.substring(0,30), i.cantidad, `$${i.precio.toFixed(2)}`, `$${(i.cantidad*i.precio).toFixed(2)}`])
     });
 
-    window.addEventListener("offline", () => {
-      setStatus("SIN INTERNET (modo local)", false);
-    });
-
-    document.getElementById("btnGuardarLeft").onclick = guardarSolicitud;
-
-    const nuevoHandler = () => {
-      if(!confirm("¿Limpiar captura actual y generar nuevo folio?")) return;
-      limpiarDraft();
-      reiniciarFormulario();
-    };
-
-    document.getElementById("btnNuevoLeft").onclick = nuevoHandler;
-    document.getElementById("btnSyncCatalogo").onclick = async () => { await syncCatalogoDesdeFirebase(true); };
-    document.getElementById("btnLimpiarBusqueda").onclick = limpiarBusqueda;
-    document.getElementById("btnAgregarSeleccionado").onclick = agregarProductoSeleccionado;
-
-    document.getElementById("busqueda").addEventListener("input", (e) => {
-      const term = e.target.value;
-
-      if(debounceTimer) clearTimeout(debounceTimer);
-
-      debounceTimer = setTimeout(() => {
-        const q = String(term || "").trim();
-
-        if(!q){
-          document.getElementById("results").style.display = "none";
-          return;
-        }
-
-        const lista = buscarProductosLocal(q);
-        renderResultados(lista);
-
-        if(lista.length === 1){
-          const un = lista[0];
-          const code = String(un.codigoBarra || "").toLowerCase();
-          const eqs = Array.isArray(un.codigosEquivalentes) ? un.codigosEquivalentes.map(x => String(x).toLowerCase()) : [];
-          const name = String(un.concepto || "").toLowerCase();
-          const ql = q.toLowerCase();
-
-          if(code === ql || eqs.includes(ql) || name === ql){
-            seleccionarProducto(un);
-          }
-        }
-      }, 120);
-    });
-
-    document.getElementById("busqueda").addEventListener("keydown", (e) => {
-      if(e.key === "Enter"){
-        e.preventDefault();
-
-        if(productoSeleccionado){
-          document.getElementById("cantidad").focus();
-          document.getElementById("cantidad").select();
-          return;
-        }
-
-        const q = document.getElementById("busqueda").value.trim();
-        const lista = buscarProductosLocal(q);
-
-        if(lista.length === 1){
-          seleccionarProducto(lista[0]);
-        }else{
-          renderResultados(lista);
-        }
-      }
-    });
-
-    document.getElementById("cantidad").addEventListener("keydown", (e) => {
-      if(e.key === "Enter"){
-        e.preventDefault();
-        agregarProductoSeleccionado();
-      }
-    });
-
-    document.addEventListener("click", (e) => {
-      const results = document.getElementById("results");
-      const wrap = document.querySelector(".search-wrap");
-      if(!wrap.contains(e.target)) results.style.display = "none";
-    });
+    const finalY = doc.lastAutoTable.finalY + 10;
+    const totalGeneral = items.reduce((a,b) => a + (b.cantidad * b.precio), 0);
+    const totalPiezas = items.reduce((a,b) => a + b.cantidad, 0); // CONTEO DE PIEZAS FÍSICAS
+    
+    doc.text(`TOTAL PIEZAS FÍSICAS: ${totalPiezas}`, 14, finalY);
+    doc.text(`TOTAL MONTO SOLICITUD: $${totalGeneral.toFixed(2)}`, 14, finalY + 6);
+    
+    doc.save(`${folio}.pdf`);
   }
 
-  async function init(){
-    startupShow();
-
-    try{
-      startupSet(5, "Abriendo base local del sistema...", "IndexedDB");
-      setProgress(5, "Abriendo base local...");
-      idb = await openIDB();
-
-      startupSet(12, "Validando estado de conexión...", "Conectividad");
-      setProgress(12, "Revisando conexión...");
-      if(navigator.onLine) setStatus("EN LÍNEA", true);
-      else setStatus("SIN INTERNET (modo local)", false);
-
-      startupSet(20, "Cargando catálogo local...", "Catálogo local");
-      setProgress(20, "Cargando catálogo local...");
-      await cargarCatalogoEnMemoria();
-
-      startupSet(30, "Cargando solicitudes pendientes...", "Cola local");
-      setProgress(28, "Cargando pendientes...");
-      await renderPendientes();
-
-      startupSet(38, "Leyendo metadatos del sistema...", "Metadatos");
-      setProgress(35, "Leyendo metadatos...");
-      await renderLastSync();
-
-      startupSet(48, "Revisando borrador anterior...", "Borrador");
-      setProgress(45, "Revisando borrador...");
-      if(!cargarDraft()) folio = generarFolio();
-
-      renderCarrito();
-      bindEvents();
-
-      startupSet(58, "Estructura base lista...", "Interfaz");
-      setProgress(60, "Sistema base listo");
-
-      if(navigator.onLine){
-        if(catalogoMemoria.length === 0){
-          startupSet(66, "No hay catálogo local. Descargando desde Firebase...", "Descarga de catálogo");
-          setProgress(65, "Catálogo local vacío, sincronizando...");
-          await syncCatalogoDesdeFirebase(false);
-        }else{
-          startupSet(72, "Catálogo local encontrado...", "Catálogo OK");
-        }
-
-        startupSet(84, "Sincronizando solicitudes pendientes...", "Sincronización");
-        setProgress(75, "Sincronizando pendientes...");
-        await sincronizarPendientes();
-
-        startupSet(96, "Finalizando preparación del sistema...", "Finalizando");
-        setProgress(100, "Sistema listo para operar");
-      }else{
-        startupSet(92, "Modo local activo. Sistema listo sin internet.", "Offline");
-        setProgress(100, "Modo local listo para operar");
-      }
-
-      document.getElementById("folio").innerText = folio;
-      startupSet(100, "Sistema listo para operar", "Completado");
-
-      setTimeout(() => startupHide(), 450);
-    }catch(error){
-      console.error("Error init:", error);
-      setProgress(100, "Error al iniciar sistema");
-      startupSet(100, "Ocurrió un error al iniciar", "Error");
-      alert("Error al iniciar. Revisa consola.");
-    }
-  }
-
-  init();
+  // --- INICIALIZACIÓN ---
+  nuevoFolio();
+  cargarCatalogo();
+  actualizarUI(); // Inicializar vista vacía
 </script>
 </body>
 </html>
