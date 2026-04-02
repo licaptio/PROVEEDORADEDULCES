@@ -13,27 +13,31 @@
   font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
 }
 
+/* 🔥 BODY MÁS PRO */
 body{
   margin:0;
   min-height:100vh;
-  padding-top:80px;
-  background:linear-gradient(135deg,#0f172a,#020617);
+  padding-top:90px;
+
+  background: radial-gradient(circle at top, #1e293b, #020617 70%);
   color:white;
-  overflow-y:auto;
-}
-.center{
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:calc(100vh - 80px);
 }
 
+/* 🔥 HEADER BIEN HECHO */
 .header{
-  background:#dc2626;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  z-index:100;
+
+  background:linear-gradient(90deg,#dc2626,#b91c1c);
   padding:18px;
   text-align:center;
-  font-size:22px;
+  font-size:20px;
   font-weight:600;
+
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
 }
 
 .sub{
@@ -41,17 +45,37 @@ body{
   font-size:13px;
 }
 
-.card{
-  text-align:center;
-  background:#1e293b;
-  margin:25px auto;
-  padding:25px;
-  border-radius:20px;
-  width:90%;
-  max-width:420px;
-  box-shadow:0 20px 40px rgba(0,0,0,.5);
+/* 🔥 CENTRADO REAL */
+.center{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:calc(100vh - 90px);
+  width:100%;
 }
 
+#inicio{
+  margin:auto;
+}
+
+/* 🔥 CARD PRO */
+.card{
+  text-align:center;
+  background:rgba(30,41,59,.9);
+  backdrop-filter:blur(10px);
+
+  margin:20px auto;
+  padding:30px;
+  border-radius:24px;
+
+  width:90%;
+  max-width:420px;
+
+  box-shadow:0 25px 60px rgba(0,0,0,.6);
+  border:1px solid rgba(255,255,255,.05);
+}
+
+/* 🔥 INPUT */
 .input{
   width:100%;
   padding:14px;
@@ -62,66 +86,86 @@ body{
   color:white;
 }
 
+/* 🔥 BOTONES PRO */
 .btn{
   width:100%;
-  padding:14px;
+  padding:16px;
   border:none;
   border-radius:14px;
-  background:#dc2626;
+
+  background:linear-gradient(135deg,#ef4444,#dc2626);
   color:white;
   font-weight:600;
+
   cursor:pointer;
   margin-top:10px;
+
+  transition:.25s;
+}
+
+.btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 25px rgba(220,38,38,.5);
 }
 
 .btn.sec{
-  background:#0ea5e9;
+  background:linear-gradient(135deg,#0ea5e9,#0284c7);
+}
+
+/* 🔥 INVENTARIO FULL WIDTH */
+#inventario{
+  margin:10px auto 20px auto;
+}
+
+h3{
+  margin-bottom:15px;
+  font-size:18px;
+  color:#e2e8f0;
+}
+
+/* 🔥 LISTA MÁS LIMPIA */
+.item{
+  display:grid;
+  grid-template-columns: 100px 1fr 70px;
+  align-items:center;
+
+  padding:12px;
+  border-radius:12px;
+  margin:8px 0;
+
+  background:#1e293b;
+  transition:.2s;
 }
 
 .item{
-  display:grid;
-  grid-template-columns: 110px 1fr 70px;
-  align-items:center;
-  padding:10px;
-  border-radius:10px;
-  margin:6px 0;
+  border:1px solid rgba(255,255,255,.04);
 }
 
-/* filas alternadas */
-.item:nth-child(even){
-  background:#273449;
+.item:hover{
+  background:#334155;
 }
 
-.item:nth-child(odd){
-  background:#1e293b;
-}
-
-/* columna código */
+/* código */
 .codigo{
   font-weight:600;
   color:#38bdf8;
   font-size:13px;
 }
 
-/* columna descripción */
+/* descripción */
 .descripcion{
   font-size:14px;
+  text-align:left;
+  padding:0 10px;
 }
 
-#inventario{
-  max-height:calc(100vh - 140px);
-  overflow-y:auto;
-}
 /* input */
 .item input{
-  width:70px;
-  height:35px;
-  border-radius:8px;
-  border:none;
-  text-align:center;
-  font-weight:600;
+  background:#e5e7eb;
+  color:#111;
 }
 
+/* canvas */
 canvas{
   background:white;
   width:100%;
@@ -129,18 +173,57 @@ canvas{
   border-radius:12px;
   margin-top:10px;
 }
+body.inventario-activo .center{
+  display:none;
+}
+
+@media (min-width: 768px){
+
+  .item{
+    grid-template-columns: 140px 1fr 100px;
+    gap:10px;
+  }
+
+  .descripcion{
+    white-space: nowrap;        /* 🔥 evita saltos */
+    overflow: hidden;
+    text-overflow: ellipsis;    /* 🔥 ... si no cabe */
+  }
+
+  #inventario{
+    max-width:1100px;
+  }
+
+}
+
+@media (min-width: 768px){
+
+  canvas{
+    height:300px;     /* 🔥 más alto */
+  }
+
+  #firma1Div,
+  #firma2Div{
+    max-width:600px;  /* 🔥 más ancho */
+    padding:40px;
+  }
+
+}
+canvas{
+  margin-bottom:15px; /* 🔥 espacio con input */
+}
+
+#firma1Div .input,
+#firma2Div .input{
+  margin-bottom:15px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="header" style="
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  z-index:10;
-">
+<div class="header">
+
   TOMA DE INVENTARIO
   <div id="info" class="sub"></div>
 </div>
@@ -166,8 +249,10 @@ canvas{
 </div>
 
 <!-- INICIO -->
-<div id="inicio" class="card" style="display:none">
-  <button class="btn" onclick="iniciar()">Iniciar Inventario</button>
+<div class="center">
+  <div id="inicio" class="card" style="display:none">
+    <button class="btn" onclick="iniciar()">Iniciar Inventario</button>
+  </div>
 </div>
 
 <!-- INVENTARIO -->
@@ -179,16 +264,22 @@ canvas{
 <!-- FIRMA ELABORO -->
 <div id="firma1Div" class="card" style="display:none">
   <h3>Firma quien elaboró</h3>
-  <canvas id="firma1"></canvas>
-  <button class="btn sec" onclick="pad1.clear()">Limpiar</button>
+<canvas id="firma1"></canvas>
+
+<input id="nombreFirma1" class="input" placeholder="Nombre de quien elaboró">
+
+<button class="btn sec" onclick="limpiarFirma1()">Limpiar</button>
   <button class="btn" onclick="irFirma2()">Continuar</button>
 </div>
 
 <!-- FIRMA AUTORIZA -->
 <div id="firma2Div" class="card" style="display:none">
   <h3>Firma quien autoriza</h3>
-  <canvas id="firma2"></canvas>
-  <button class="btn sec" onclick="pad2.clear()">Limpiar</button>
+<canvas id="firma2"></canvas>
+
+<input id="nombreFirma2" class="input" placeholder="Nombre de quien autoriza">
+
+<button class="btn sec" onclick="limpiarFirma2()">Limpiar</button>
   <button class="btn" onclick="guardarFinal()">Finalizar</button>
 </div>
 
@@ -227,8 +318,8 @@ let horaInicio = null;
 let horaFin = null;
 
 /* FIRMA */
-const pad1 = new SignaturePad(document.getElementById("firma1"));
-const pad2 = new SignaturePad(document.getElementById("firma2"));
+let pad1;
+let pad2;
 
 /* LOGIN */
 window.login = async function(){
@@ -251,6 +342,7 @@ window.login = async function(){
   }
 
   loginDiv.style.display = "none";
+  loginDiv.parentElement.style.display = "none";
   inicioDiv.style.display = "block";
   // 🔥 RECUPERAR SI HAY INFO GUARDADA
   infoDiv.innerText = usuarioActual.nombre + " - " + usuarioActual.rutaId;
@@ -259,40 +351,33 @@ window.login = async function(){
 /* INICIAR */
 window.iniciar = async function(){
 
-  const temp = localStorage.getItem("inventario_temp");
+ document.querySelector("#inicio button").innerText = "Cargando... ⏳";
 
-  if(temp){
-    const data = JSON.parse(temp);
+const snap = await getDocs(
+  collection(db,"TIENDAS",usuarioActual.rutaId,"inventario1")
+);
 
-    if(confirm("Hay un inventario sin terminar ¿Deseas continuar?")){
+inventario = [];
 
-      fijos = data.fijos || [];
-      aleatorios = data.aleatorios || [];
-      tipo = data.tipo || "fijos";
-      horaInicio = data.horaInicio;
+for (const docInv of snap.docs) {
 
-      inicioDiv.style.display = "none";
-      inventarioDiv.style.display = "block";
+  const itemsSnap = await getDocs(
+    collection(db,"TIENDAS",usuarioActual.rutaId,"inventario1", docInv.id, "items")
+  );
 
-      mostrar(tipo === "fijos" ? fijos : aleatorios);
-      return;
-    }else{
-      // 🔥 LIMPIAR COMPLETAMENTE
-      localStorage.removeItem("inventario_temp");
-      fijos = [];
-      aleatorios = [];
-    }
+  itemsSnap.forEach(docItem => {
+    inventario.push(docItem.data());
+  });
+}
+
+console.log("Inventario final:", inventario);
+
+  // 🔥 VALIDACIÓN
+  if(inventario.length === 0){
+    alert("No hay inventario cargado para esta sucursal");
+    inicioDiv.style.display = "block";
+    return;
   }
-
-  // 🔥 ASEGURAR LIMPIO SIEMPRE
-  fijos = [];
-  aleatorios = [];
-
-  horaInicio = new Date().toLocaleString('sv-SE');
-  const snap = await getDocs(collection(db,"TIENDAS",usuarioActual.rutaId,"inventario"));
-
-  inventario = [];
-  snap.forEach(doc=>inventario.push(doc.data()));
 
   fijos = inventario.filter(p => (p.descripcion||"").toLowerCase().includes("cigar"));
 
@@ -300,12 +385,14 @@ window.iniciar = async function(){
     .filter(p => !(p.descripcion||"").toLowerCase().includes("cigar"))
     .sort(()=>0.5 - Math.random())
     .slice(0,10);
-    // 🔥 FORZAR TODO EN 0
-fijos = fijos.map(p => ({ ...p, cantidad: 0 }));
-aleatorios = aleatorios.map(p => ({ ...p, cantidad: 0 }));
 
-  inicioDiv.style.display = "none";
+  fijos = fijos.map(p => ({ ...p, cantidad: 0 }));
+  aleatorios = aleatorios.map(p => ({ ...p, cantidad: 0 }));
+
   inventarioDiv.style.display = "block";
+  inicioDiv.style.display = "none";
+  // 🔥 ESTA LÍNEA VA AQUÍ
+document.body.classList.add("inventario-activo");
 
   tipo = "fijos";
   mostrar(fijos);
@@ -320,7 +407,7 @@ function mostrar(lista){
     <div class="item">
       <span class="codigo">${p.codigo}</span>
       <span class="descripcion">${p.descripcion}</span>
-      <input type="number" value="${p.cantidad ? p.cantidad : 0}" min="0" 
+      <input type="number" inputmode="numeric" value="${p.cantidad ? p.cantidad : 0}" min="0" 
 id="${tipo}_${p.codigo}" 
 oninput="guardarAuto('${tipo}', '${p.codigo}', this.value)">
     </div>`;
@@ -339,9 +426,55 @@ window.siguiente = function(){
   }else{
     guardarDatos(aleatorios,"aleatorios");
     inventarioDiv.style.display="none";
-    firma1Div.style.display="block";
+firma1Div.style.display="block";
+
+requestAnimationFrame(() => {
+  initFirmas();
+});
   }
 };
+
+function initFirmas(){
+  const canvas1 = document.getElementById("firma1");
+
+  // SOLO firma 1 aquí
+  pad1 = new SignaturePad(canvas1);
+
+  setTimeout(() => {
+    resizeCanvas(canvas1, pad1);
+
+    pad1.minWidth = 1;
+    pad1.maxWidth = 2.5;
+
+  }, 100);
+}
+
+function resizeCanvas(canvas, pad) {
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+
+  canvas.width = canvas.offsetWidth * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+
+  canvas.getContext("2d").scale(ratio, ratio);
+
+  pad.clear(); // importante para evitar distorsión
+}
+
+window.limpiarFirma1 = function(){
+  if(pad1){
+    pad1.clear();
+  }
+};
+
+window.limpiarFirma2 = function(){
+  if(pad2){
+    pad2.clear();
+  }
+};
+window.addEventListener("resize", () => {
+  if(pad1) resizeCanvas(document.getElementById("firma1"), pad1);
+  if(pad2) resizeCanvas(document.getElementById("firma2"), pad2);
+});
 
 /* GUARDAR DATOS */
 function guardarDatos(lista,t){
@@ -377,12 +510,24 @@ window.guardarAuto = function(tipoInput, codigo, valor){
 };
 /* FIRMA 2 */
 window.irFirma2 = function(){
+
   if(pad1.isEmpty()){
     alert("Falta firma elaboró");
     return;
   }
+
   firma1Div.style.display="none";
   firma2Div.style.display="block";
+
+  pad2 = new SignaturePad(document.getElementById("firma2"));
+
+  setTimeout(() => {
+    resizeCanvas(document.getElementById("firma2"), pad2);
+
+    pad2.minWidth = 1;
+    pad2.maxWidth = 2.5;
+
+  }, 100);
 };
 
 /* GUARDAR FINAL */
@@ -392,8 +537,21 @@ window.guardarFinal = async function(){
     alert("Falta firma autoriza");
     return;
   }
- horaFin = new Date().toLocaleString('sv-SE');
+
+  horaFin = new Date().toLocaleString('sv-SE');
   const now = new Date();
+const nombre1 = document.getElementById("nombreFirma1").value.trim();
+const nombre2 = document.getElementById("nombreFirma2").value.trim();
+
+if(!nombre1){
+  alert("Falta nombre de quien elaboró");
+  return;
+}
+
+if(!nombre2){
+  alert("Falta nombre de quien autoriza");
+  return;
+}
 
   await addDoc(collection(db,"TIENDAS",usuarioActual.rutaId,"ciclicos"),{
     fecha: now.toISOString().split("T")[0],
@@ -405,7 +563,10 @@ window.guardarFinal = async function(){
     fijos: fijos.map(p=>({codigo:p.codigo,descripcion:p.descripcion,cantidad:p.cantidad||0})),
     aleatorios: aleatorios.map(p=>({codigo:p.codigo,descripcion:p.descripcion,cantidad:p.cantidad||0})),
     firma_elaboro: pad1.toDataURL(),
-    firma_autorizo: pad2.toDataURL()
+    firma_autorizo: pad2.toDataURL(),
+    firma_elaboro_nombre: nombre1,
+    firma_autorizo_nombre: nombre2,    
+  
   });
 
   localStorage.removeItem("inventario_temp");
