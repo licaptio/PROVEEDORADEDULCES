@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventario por Fecha - PROVSOFT</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --azul: #00416A;
+      --azul2: #0c6cbd;
+      --gris: #e5e7eb;
+      --gris2: #f8fafc;
+      --texto: #1f2937;
+      --verde: #166534;
+      --rojo: #991b1b;
+      --shadow: 0 10px 28px rgba(0,0,0,.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f6fb;
+      color: var(--texto);
+    }
+
+    .wrap {
+      max-width: 100%;
+      padding: 18px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .topbar {
+      background: linear-gradient(135deg, var(--azul), var(--azul2));
+      color: white;
+      padding: 18px 20px;
+    }
+
+    .topbar h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+    }
+
+    .topbar p {
+      margin: 0;
+      opacity: .95;
+      font-size: 14px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--gris);
+      background: #fff;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #475569;
+    }
+
+    .field input, .field button {
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      padding: 0 12px;
+      font-size: 14px;
+    }
+
+    .field button {
+      cursor: pointer;
+      border: none;
+      background: var(--azul);
+      color: white;
+      font-weight: bold;
+    }
+
+    .field button:hover { filter: brightness(1.05); }
+
+    .field button.sec {
+      background: #0f766e;
+    }
+
+    .status {
+      padding: 12px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--gris);
+      background: var(--gris2);
+    }
+
+    .status.ok { color: var(--verde); }
+    .status.error { color: var(--rojo); }
+
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--gris);
+      background: #fff;
+    }
+
+    .pill {
+      background: #eef2ff;
+      color: #1e3a8a;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 240px);
+      background: white;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: max-content;
+      min-width: 100%;
+      font-size: 13px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #e8f0fb;
+      color: #0f172a;
+    }
+
+    th, td {
+      border: 1px solid #dbe4f0;
+      padding: 8px 10px;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    th.left, td.left { text-align: left; }
+
+    .sticky1 {
+      position: sticky;
+      left: 0;
+      z-index: 4;
+      background: #fff;
+      min-width: 120px;
+      max-width: 120px;
+    }
+
+    .sticky2 {
+      position: sticky;
+      left: 120px;
+      z-index: 4;
+      background: #fff;
+      min-width: 340px;
+      max-width: 340px;
+    }
+
+    thead .sticky1, thead .sticky2,
+    tfoot .sticky1, tfoot .sticky2 {
+      background: #dbeafe;
+    }
+
+    td.num-zero {
+      color: #94a3b8;
+    }
+
+    td.total-col, th.total-col {
+      background: #f8fafc;
+      font-weight: bold;
+    }
+
+    tfoot td {
+      position: sticky;
+      bottom: 0;
+      background: #ecfdf5;
+      font-weight: bold;
+      z-index: 3;
+    }
+
+    @media (max-width: 1100px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="topbar">
+        <h1>Inventario por Fecha - ALLENDE 1</h1>
+        <p>Vista tipo Excel: código a la izquierda y fechas hacia la derecha, sumando cantidades por día.</p>
+      </div>
+
+      <div class="controls">
+        <div class="field">
+          <label>Filtro código</label>
+          <input type="text" id="filtroCodigo" placeholder="Ej. 010921" />
+        </div>
+        <div class="field">
+          <label>Filtro descripción</label>
+          <input type="text" id="filtroDescripcion" placeholder="Buscar descripción" />
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <div style="display:flex; gap:10px;">
+            <button id="btnCargar" style="flex:1;">Cargar</button>
+            <button id="btnExportar" class="sec" style="flex:1;">Exportar CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="status" class="status">Esperando consulta...</div>
+      <div id="summary" class="summary"></div>
+
+      <div class="table-wrap">
+        <table id="tablaPivot">
+          <thead></thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSy...",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const INVENTARIOS_REF = db
+      .collection("TIENDAS")
+      .doc("ALLENDE 1")
+      .collection("inventario1");
+
+    const $ = (id) => document.getElementById(id);
+    const tabla = $("tablaPivot");
+    const thead = tabla.querySelector("thead");
+    const tbody = tabla.querySelector("tbody");
+    const tfoot = tabla.querySelector("tfoot");
+
+    let ultimoResultado = [];
+    let ultimaPivot = null;
+
+    function setStatus(msg, type = "") {
+      const el = $("status");
+      el.textContent = msg;
+      el.className = "status " + type;
+    }
+
+    function fmtNum(n) {
+      return Number(n || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 });
+    }
+
+    function limpiarTabla() {
+      thead.innerHTML = "";
+      tbody.innerHTML = "";
+      tfoot.innerHTML = "";
+      $("summary").innerHTML = "";
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    async function cargarInventario() {
+      try {
+        limpiarTabla();
+        setStatus("Consultando inventarios...");
+
+        const filtroCodigo = $("filtroCodigo").value.trim().toLowerCase();
+        const filtroDescripcion = $("filtroDescripcion").value.trim().toLowerCase();
+
+        const foliosSnap = await INVENTARIOS_REF
+          .orderBy(firebase.firestore.FieldPath.documentId(), "asc")
+          .get();
+
+        if (foliosSnap.empty) {
+          setStatus("No se encontraron folios en inventario1.", "error");
+          return;
+        }
+
+        const docs = [];
+
+        for (const folioDoc of foliosSnap.docs) {
+          const itemsSnap = await folioDoc.ref.collection("items").get();
+
+          itemsSnap.forEach(itemDoc => {
+            docs.push({
+              id: itemDoc.id,
+              ...itemDoc.data()
+            });
+          });
+        }
+
+        let filtrados = docs.filter(item => {
+          const codigo = String(item.codigo || "").toLowerCase();
+          const descripcion = String(item.descripcion || "").toLowerCase();
+          const okCodigo = !filtroCodigo || codigo.includes(filtroCodigo);
+          const okDescripcion = !filtroDescripcion || descripcion.includes(filtroDescripcion);
+          return okCodigo && okDescripcion;
+        });
+
+        filtrados.sort((a, b) => {
+          const fa = String(a.fecha || "");
+          const fb = String(b.fecha || "");
+          if (fa !== fb) return fa.localeCompare(fb, "es");
+          return String(a.codigo || "").localeCompare(String(b.codigo || ""), "es");
+        });
+
+        ultimoResultado = filtrados;
+
+        if (!filtrados.length) {
+          setStatus("No se encontraron registros.", "error");
+          return;
+        }
+
+        const pivot = construirPivot(filtrados);
+        ultimaPivot = pivot;
+        pintarResumen(filtrados, pivot);
+        pintarTabla(pivot);
+
+        setStatus(
+          `Listo. ${filtrados.length} registros procesados en ${foliosSnap.size} folios.`,
+          "ok"
+        );
+      } catch (err) {
+        console.error(err);
+        setStatus("Error al consultar Firestore: " + err.message, "error");
+      }
+    }
+
+    function construirPivot(docs) {
+      const fechasSet = new Set();
+      const mapa = new Map();
+      const totalPorFecha = {};
+      let totalGeneral = 0;
+
+      for (const item of docs) {
+        const codigo = String(item.codigo || "").trim();
+        const descripcion = String(item.descripcion || "").trim();
+        const fecha = String(item.fecha || "").trim();
+        const cantidad = Number(item.cantidad || 0);
+
+        if (!codigo || !fecha) continue;
+
+        fechasSet.add(fecha);
+        totalPorFecha[fecha] = (totalPorFecha[fecha] || 0) + cantidad;
+        totalGeneral += cantidad;
+
+        if (!mapa.has(codigo)) {
+          mapa.set(codigo, {
+            codigo,
+            descripcion,
+            porFecha: {},
+            total: 0
+          });
+        }
+
+        const row = mapa.get(codigo);
+
+        if (!row.descripcion && descripcion) row.descripcion = descripcion;
+        row.porFecha[fecha] = (row.porFecha[fecha] || 0) + cantidad;
+        row.total += cantidad;
+      }
+
+      const fechas = Array.from(fechasSet).sort();
+      const rows = Array.from(mapa.values()).sort((a, b) =>
+        a.codigo.localeCompare(b.codigo, "es")
+      );
+
+      return {
+        fechas,
+        rows,
+        totalPorFecha,
+        totalGeneral,
+        totalCodigos: rows.length
+      };
+    }
+
+    function pintarResumen(docs, pivot) {
+      const html = `
+        <div class="pill">Registros: ${fmtNum(docs.length)}</div>
+        <div class="pill">Códigos únicos: ${fmtNum(pivot.totalCodigos)}</div>
+        <div class="pill">Fechas: ${fmtNum(pivot.fechas.length)}</div>
+        <div class="pill">Cantidad total: ${fmtNum(pivot.totalGeneral)}</div>
+      `;
+      $("summary").innerHTML = html;
+    }
+
+    function pintarTabla(pivot) {
+      const { fechas, rows, totalPorFecha, totalGeneral } = pivot;
+
+      const trHead = document.createElement("tr");
+      trHead.innerHTML = `
+        <th class="left sticky1">Código</th>
+        <th class="left sticky2">Descripción</th>
+        ${fechas.map(f => `<th>${f}</th>`).join("")}
+        <th class="total-col">TOTAL</th>
+      `;
+      thead.appendChild(trHead);
+
+      const frag = document.createDocumentFragment();
+
+      for (const row of rows) {
+        const tr = document.createElement("tr");
+
+        let html = `
+          <td class="left sticky1">${escapeHtml(row.codigo)}</td>
+          <td class="left sticky2">${escapeHtml(row.descripcion || "")}</td>
+        `;
+
+        for (const fecha of fechas) {
+          const val = row.porFecha[fecha] || 0;
+          html += `<td class="${val === 0 ? "num-zero" : ""}">${val === 0 ? "" : fmtNum(val)}</td>`;
+        }
+
+        html += `<td class="total-col">${fmtNum(row.total)}</td>`;
+        tr.innerHTML = html;
+        frag.appendChild(tr);
+      }
+
+      tbody.appendChild(frag);
+
+      const trFoot = document.createElement("tr");
+      trFoot.innerHTML = `
+        <td class="left sticky1"><b>TOTAL</b></td>
+        <td class="left sticky2"><b>Suma por fecha</b></td>
+        ${fechas.map(f => `<td><b>${fmtNum(totalPorFecha[f] || 0)}</b></td>`).join("")}
+        <td class="total-col"><b>${fmtNum(totalGeneral)}</b></td>
+      `;
+      tfoot.appendChild(trFoot);
+    }
+
+    function exportarCSV() {
+      if (!ultimaPivot) {
+        alert("Primero carga la información.");
+        return;
+      }
+
+      const { fechas, rows } = ultimaPivot;
+      const header = ["codigo", "descripcion", ...fechas, "total"];
+      const lines = [header.join(",")];
+
+      for (const row of rows) {
+        const vals = [
+          csvSafe(row.codigo),
+          csvSafe(row.descripcion || ""),
+          ...fechas.map(f => row.porFecha[f] || 0),
+          row.total || 0
+        ];
+        lines.push(vals.join(","));
+      }
+
+      const totalLine = [
+        csvSafe("TOTAL"),
+        csvSafe("Suma por fecha"),
+        ...fechas.map(f => ultimaPivot.totalPorFecha[f] || 0),
+        ultimaPivot.totalGeneral || 0
+      ];
+      lines.push(totalLine.join(","));
+
+      const blob = new Blob(["\uFEFF" + lines.join("\n")], {
+        type: "text/csv;charset=utf-8;"
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `inventario_pivot_allende1_${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function csvSafe(value) {
+      const s = String(value ?? "").replace(/"/g, '""');
+      return `"${s}"`;
+    }
+
+    $("btnCargar").addEventListener("click", cargarInventario);
+    $("btnExportar").addEventListener("click", exportarCSV);
+    window.addEventListener("load", cargarInventario);
+  </script>
+</body>
+</html>
