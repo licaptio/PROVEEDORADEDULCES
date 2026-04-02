@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Revision Productos</title>
+
+<link rel="icon" href="data:,">
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<style>
+*{
+  box-sizing:border-box;
+  font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  padding-top:80px;
+  background:linear-gradient(135deg,#0f172a,#020617);
+  color:white;
+  overflow-y:auto;
+}
+.center{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:calc(100vh - 80px);
+}
+
+.header{
+  background:#dc2626;
+  padding:18px;
+  text-align:center;
+  font-size:22px;
+  font-weight:600;
+}
+
+.sub{
+  color:#38bdf8;
+  font-size:13px;
+}
+
+.card{
+  text-align:center;
+  background:#1e293b;
+  margin:25px auto;
+  padding:25px;
+  border-radius:20px;
+  width:90%;
+  max-width:420px;
+  box-shadow:0 20px 40px rgba(0,0,0,.5);
+}
+
+.input{
+  width:100%;
+  padding:14px;
+  margin:10px 0;
+  border-radius:14px;
+  border:none;
+  background:#334155;
+  color:white;
+}
+
+.btn{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:14px;
+  background:#dc2626;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+  margin-top:10px;
+}
+
+.btn.sec{
+  background:#0ea5e9;
+}
+
+.item{
+  display:grid;
+  grid-template-columns: 110px 1fr 70px;
+  align-items:center;
+  padding:10px;
+  border-radius:10px;
+  margin:6px 0;
+}
+
+/* filas alternadas */
+.item:nth-child(even){
+  background:#273449;
+}
+
+.item:nth-child(odd){
+  background:#1e293b;
+}
+
+/* columna código */
+.codigo{
+  font-weight:600;
+  color:#38bdf8;
+  font-size:13px;
+}
+
+/* columna descripción */
+.descripcion{
+  font-size:14px;
+}
+
+#inventario{
+  max-height:calc(100vh - 140px);
+  overflow-y:auto;
+}
+/* input */
+.item input{
+  width:70px;
+  height:35px;
+  border-radius:8px;
+  border:none;
+  text-align:center;
+  font-weight:600;
+}
+
+canvas{
+  background:white;
+  width:100%;
+  height:200px;
+  border-radius:12px;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header" style="
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  z-index:10;
+">
+  TOMA DE INVENTARIO
+  <div id="info" class="sub"></div>
+</div>
+
+<!-- LOGIN -->
+<div class="center">
+  <div id="login" class="card">
+
+    <img src="logo.webp" style="
+      width:260px;
+      display:block;
+      margin:0 auto 10px auto;
+      object-fit:cover;
+      transform: scale(1.4);
+    ">
+
+    <input id="usuario" class="input" placeholder="Usuario">
+    <input id="password" class="input" type="password" placeholder="Contraseña">
+
+    <button class="btn" onclick="login()">Entrar</button>
+
+  </div>
+</div>
+
+<!-- INICIO -->
+<div id="inicio" class="card" style="display:none">
+  <button class="btn" onclick="iniciar()">Iniciar Inventario</button>
+</div>
+
+<!-- INVENTARIO -->
+<div id="inventario" class="card" style="display:none">
+  <div id="contenido"></div>
+  <button class="btn" onclick="siguiente()">Siguiente</button>
+</div>
+
+<!-- FIRMA ELABORO -->
+<div id="firma1Div" class="card" style="display:none">
+  <h3>Firma quien elaboró</h3>
+  <canvas id="firma1"></canvas>
+  <button class="btn sec" onclick="pad1.clear()">Limpiar</button>
+  <button class="btn" onclick="irFirma2()">Continuar</button>
+</div>
+
+<!-- FIRMA AUTORIZA -->
+<div id="firma2Div" class="card" style="display:none">
+  <h3>Firma quien autoriza</h3>
+  <canvas id="firma2"></canvas>
+  <button class="btn sec" onclick="pad2.clear()">Limpiar</button>
+  <button class="btn" onclick="guardarFinal()">Finalizar</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* 🔥 CONFIG */
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* 🔥 DOM */
+const loginDiv = document.getElementById("login");
+const inicioDiv = document.getElementById("inicio");
+const inventarioDiv = document.getElementById("inventario");
+const firma1Div = document.getElementById("firma1Div");
+const firma2Div = document.getElementById("firma2Div");
+const contenidoDiv = document.getElementById("contenido");
+const infoDiv = document.getElementById("info");
+
+let usuarioActual;
+let inventario = [];
+let fijos = [];
+let aleatorios = [];
+let tipo = "fijos";
+let horaInicio = null;
+let horaFin = null;
+
+/* FIRMA */
+const pad1 = new SignaturePad(document.getElementById("firma1"));
+const pad2 = new SignaturePad(document.getElementById("firma2"));
+
+/* LOGIN */
+window.login = async function(){
+
+  const user = document.getElementById("usuario").value;
+  const pass = document.getElementById("password").value;
+
+  const snap = await getDocs(collection(db,"usuarios_ruta"));
+
+  snap.forEach(doc=>{
+    const u = doc.data();
+    if(u.usuario===user && u.password===pass && u.rol==="encargado bodega" && u.activo){
+      usuarioActual = u;
+    }
+  });
+
+  if(!usuarioActual){
+    alert("Acceso denegado");
+    return;
+  }
+
+  loginDiv.style.display = "none";
+  inicioDiv.style.display = "block";
+  // 🔥 RECUPERAR SI HAY INFO GUARDADA
+  infoDiv.innerText = usuarioActual.nombre + " - " + usuarioActual.rutaId;
+};
+
+/* INICIAR */
+window.iniciar = async function(){
+
+  const temp = localStorage.getItem("inventario_temp");
+
+  if(temp){
+    const data = JSON.parse(temp);
+
+    if(confirm("Hay un inventario sin terminar ¿Deseas continuar?")){
+
+      fijos = data.fijos || [];
+      aleatorios = data.aleatorios || [];
+      tipo = data.tipo || "fijos";
+      horaInicio = data.horaInicio;
+
+      inicioDiv.style.display = "none";
+      inventarioDiv.style.display = "block";
+
+      mostrar(tipo === "fijos" ? fijos : aleatorios);
+      return;
+    }else{
+      // 🔥 LIMPIAR COMPLETAMENTE
+      localStorage.removeItem("inventario_temp");
+      fijos = [];
+      aleatorios = [];
+    }
+  }
+
+  // 🔥 ASEGURAR LIMPIO SIEMPRE
+  fijos = [];
+  aleatorios = [];
+
+  horaInicio = new Date().toLocaleString('sv-SE');
+  const snap = await getDocs(collection(db,"TIENDAS",usuarioActual.rutaId,"inventario"));
+
+  inventario = [];
+  snap.forEach(doc=>inventario.push(doc.data()));
+
+  fijos = inventario.filter(p => (p.descripcion||"").toLowerCase().includes("cigar"));
+
+  aleatorios = inventario
+    .filter(p => !(p.descripcion||"").toLowerCase().includes("cigar"))
+    .sort(()=>0.5 - Math.random())
+    .slice(0,10);
+    // 🔥 FORZAR TODO EN 0
+fijos = fijos.map(p => ({ ...p, cantidad: 0 }));
+aleatorios = aleatorios.map(p => ({ ...p, cantidad: 0 }));
+
+  inicioDiv.style.display = "none";
+  inventarioDiv.style.display = "block";
+
+  tipo = "fijos";
+  mostrar(fijos);
+};
+
+/* MOSTRAR */
+function mostrar(lista){
+  let html = `<h3>${tipo==="fijos"?"Artículos Fijos":"Artículos Aleatorios"}</h3>`;
+  
+  lista.forEach(p=>{
+    html += `
+    <div class="item">
+      <span class="codigo">${p.codigo}</span>
+      <span class="descripcion">${p.descripcion}</span>
+      <input type="number" value="${p.cantidad ? p.cantidad : 0}" min="0" 
+id="${tipo}_${p.codigo}" 
+oninput="guardarAuto('${tipo}', '${p.codigo}', this.value)">
+    </div>`;
+  });
+
+  contenidoDiv.innerHTML = html;
+}
+
+/* SIGUIENTE */
+window.siguiente = function(){
+
+  if(tipo==="fijos"){
+    guardarDatos(fijos,"fijos");
+    tipo="aleatorios";
+    mostrar(aleatorios);
+  }else{
+    guardarDatos(aleatorios,"aleatorios");
+    inventarioDiv.style.display="none";
+    firma1Div.style.display="block";
+  }
+};
+
+/* GUARDAR DATOS */
+function guardarDatos(lista,t){
+  lista.forEach(p=>{
+    const val = document.getElementById(`${t}_${p.codigo}`).value;
+    p.cantidad = Number(val || 0);
+  });
+
+  // 🔥 GUARDAR EN LOCALSTORAGE
+  localStorage.setItem("inventario_temp", JSON.stringify({
+    fijos,
+    aleatorios,
+    tipo,
+    horaInicio
+  }));
+}
+window.guardarAuto = function(tipoInput, codigo, valor){
+
+  const lista = tipoInput === "fijos" ? fijos : aleatorios;
+
+  const item = lista.find(p => p.codigo == codigo);
+
+  if(item){
+    item.cantidad = Number(valor || 0);
+  }
+
+  localStorage.setItem("inventario_temp", JSON.stringify({
+    fijos,
+    aleatorios,
+    tipo,
+    horaInicio
+  }));
+};
+/* FIRMA 2 */
+window.irFirma2 = function(){
+  if(pad1.isEmpty()){
+    alert("Falta firma elaboró");
+    return;
+  }
+  firma1Div.style.display="none";
+  firma2Div.style.display="block";
+};
+
+/* GUARDAR FINAL */
+window.guardarFinal = async function(){
+
+  if(pad2.isEmpty()){
+    alert("Falta firma autoriza");
+    return;
+  }
+ horaFin = new Date().toLocaleString('sv-SE');
+  const now = new Date();
+
+  await addDoc(collection(db,"TIENDAS",usuarioActual.rutaId,"ciclicos"),{
+    fecha: now.toISOString().split("T")[0],
+    hora: now.toTimeString().split(" ")[0],
+    hora_inicio: horaInicio,
+    hora_fin: horaFin,
+    usuario: usuarioActual.nombre,
+    sucursal: usuarioActual.rutaId,
+    fijos: fijos.map(p=>({codigo:p.codigo,descripcion:p.descripcion,cantidad:p.cantidad||0})),
+    aleatorios: aleatorios.map(p=>({codigo:p.codigo,descripcion:p.descripcion,cantidad:p.cantidad||0})),
+    firma_elaboro: pad1.toDataURL(),
+    firma_autorizo: pad2.toDataURL()
+  });
+
+  localStorage.removeItem("inventario_temp");
+  alert("Inventario guardado 🔥");
+  location.reload();
+};
+
+</script>
+
+</body>
+</html>
