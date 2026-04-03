@@ -22,6 +22,9 @@
       --inv-head: #dbeafe;
       --inv-cell: #f8fbff;
 
+      --trans-head: #fef3c7;
+      --trans-cell: #fffbeb;
+
       --vta-head: #fee2e2;
       --vta-cell: #fff5f5;
 
@@ -199,6 +202,9 @@
     th.inv-col { background: var(--inv-head); }
     td.inv-col { background: var(--inv-cell); }
 
+    th.trans-col { background: var(--trans-head); }
+    td.trans-col { background: var(--trans-cell); }
+
     th.vta-col { background: var(--vta-head); }
     td.vta-col { background: var(--vta-cell); }
 
@@ -302,6 +308,11 @@
       .doc("ALLENDE 1")
       .collection("ventas");
 
+    const TRANSFERENCIAS_REF = db
+      .collection("TIENDAS")
+      .doc("ALLENDE 1")
+      .collection("SURTIDOTRANS");
+
     const $ = (id) => document.getElementById(id);
     const tabla = $("tablaPivot");
     const thead = tabla.querySelector("thead");
@@ -376,10 +387,7 @@
       if (!s) return "";
 
       const soloDigitos = s.replace(/\D/g, "");
-
-      if (!soloDigitos) {
-        return s.toLowerCase();
-      }
+      if (!soloDigitos) return s.toLowerCase();
 
       return soloDigitos.replace(/^0+/, "") || "0";
     }
@@ -474,6 +482,8 @@
             0
           );
 
+          if (!codigoOriginal || !fecha || !Number.isFinite(cantidad)) return;
+
           docs.push({
             origen: "INV",
             id: itemDoc.id,
@@ -496,31 +506,23 @@
       const ventasSnap = await VENTAS_REF.get();
       const docs = [];
 
-      console.log("Docs ventas encontrados:", ventasSnap.size);
-
       ventasSnap.forEach(doc => {
         const data = doc.data() || {};
-
-        const codigoOriginal = obtenerCodigoVenta(data);
 
         const venta = {
           origen: "VTA",
           id: doc.id,
-          codigo: codigoOriginal,
-          codigoKey: normalizarCodigo(codigoOriginal),
+          codigo: obtenerCodigoVenta(data),
+          codigoKey: normalizarCodigo(obtenerCodigoVenta(data)),
           descripcion: obtenerDescripcionVenta(data),
           fecha: obtenerFechaVenta(data),
           cantidad: obtenerCantidadVenta(data)
         };
 
-        console.log("VENTA LEIDA:", venta, data);
-
         if (venta.codigoKey && venta.fecha) {
           docs.push(venta);
         }
       });
-
-      console.log("Ventas válidas procesadas:", docs.length);
 
       return {
         docs,
@@ -528,22 +530,73 @@
       };
     }
 
+    async function cargarTransferencias() {
+      const transferSnap = await TRANSFERENCIAS_REF.get();
+      const docs = [];
+
+      for (const doc of transferSnap.docs) {
+        const data = doc.data() || {};
+
+        let fecha = normalizarFecha(
+          data.fecha_guardado_server ||
+          data.fecha_guardado ||
+          data.fecha_surtido_completo
+        );
+
+        if (!fecha) {
+          const matchId = String(doc.id).match(/(\d{4})(\d{2})(\d{2})/);
+          if (matchId) {
+            fecha = `${matchId[1]}-${matchId[2]}-${matchId[3]}`;
+          }
+        }
+
+        const detalle = Array.isArray(data.detalle) ? data.detalle : [];
+
+        for (const item of detalle) {
+          const codigoOriginal = String(item.codigo || "").trim();
+          const cantidad = Number(item.cantidad_surtida ?? item.cantidad_solicitada ?? 0);
+          const descripcion = String(item.nombre || "").trim();
+
+          if (!codigoOriginal || !fecha || !Number.isFinite(cantidad) || cantidad <= 0) {
+            continue;
+          }
+
+          docs.push({
+            origen: "TRANS",
+            id: `${doc.id}_${codigoOriginal}`,
+            codigo: codigoOriginal,
+            codigoKey: normalizarCodigo(codigoOriginal),
+            descripcion,
+            fecha,
+            cantidad
+          });
+        }
+      }
+
+      return {
+        docs,
+        totalTransferDocs: transferSnap.size
+      };
+    }
+
     async function cargarTodo() {
       try {
         limpiarTabla();
-        setStatus("Consultando inventarios y ventas...");
+        setStatus("Consultando inventarios, transferencias y ventas...");
 
         const filtroCodigo = $("filtroCodigo").value.trim().toLowerCase();
         const filtroDescripcion = $("filtroDescripcion").value.trim().toLowerCase();
 
-        const [inventariosData, ventasData] = await Promise.all([
+        const [inventariosData, ventasData, transferenciasData] = await Promise.all([
           cargarInventarios(),
-          cargarVentas()
+          cargarVentas(),
+          cargarTransferencias()
         ]);
 
         let registros = [
           ...inventariosData.docs,
-          ...ventasData.docs
+          ...ventasData.docs,
+          ...transferenciasData.docs
         ];
 
         registros = registros.filter(item => {
@@ -553,7 +606,9 @@
 
           const okCodigo = !filtroCodigo ||
             codigoVisible.includes(filtroCodigo) ||
-            codigoKey.includes(filtroCodigo.replace(/\D/g, "").replace(/^0+/, "") || filtroCodigo);
+            codigoKey.includes(
+              filtroCodigo.replace(/\D/g, "").replace(/^0+/, "") || filtroCodigo
+            );
 
           const okDescripcion = !filtroDescripcion || descripcion.includes(filtroDescripcion);
 
@@ -565,7 +620,10 @@
           const fb = String(b.fecha || "");
           if (fa !== fb) return fa.localeCompare(fb, "es");
 
-          if (a.origen !== b.origen) return a.origen.localeCompare(b.origen, "es");
+          const ordenOrigen = { INV: 1, TRANS: 2, VTA: 3 };
+          if (a.origen !== b.origen) {
+            return (ordenOrigen[a.origen] || 99) - (ordenOrigen[b.origen] || 99);
+          }
 
           return String(a.codigo || "").localeCompare(String(b.codigo || ""), "es");
         });
@@ -582,7 +640,7 @@
         pintarTabla(pivot);
 
         setStatus(
-          `Listo. Inventarios: ${inventariosData.docs.length} | Ventas leídas: ${ventasData.docs.length} | Filtrados: ${registros.length}`,
+          `Listo. Inventarios: ${inventariosData.docs.length} | Transferencias: ${transferenciasData.docs.length} | Ventas: ${ventasData.docs.length} | Filtrados: ${registros.length}`,
           "ok"
         );
       } catch (err) {
@@ -591,109 +649,136 @@
       }
     }
 
-    function construirPivotSeparado(registros) {
-      const fechasSet = new Set();
-      const mapa = new Map();
+function construirPivotSeparado(registros) {
+  const mapa = new Map();
 
-      const totalInvPorFecha = {};
-      const totalVtaPorFecha = {};
+  const totalInvPorFecha = {};
+  const totalTransPorFecha = {};
+  const totalVtaPorFecha = {};
 
-      let totalInvGeneral = 0;
-      let totalVtaGeneral = 0;
+  let totalInvGeneralBase = 0;
+  let totalTransGeneral = 0;
+  let totalVtaGeneral = 0;
 
-      for (const item of registros) {
-        const codigo = String(item.codigo || "").trim();
-        const codigoKey = String(item.codigoKey || "").trim();
-        const descripcion = String(item.descripcion || "").trim();
-        const fecha = String(item.fecha || "").trim();
-        const cantidad = Number(item.cantidad || 0);
-        const origen = item.origen === "VTA" ? "VTA" : "INV";
+  // PRIMERO: recolectar qué fechas tienen movimiento (al menos un registro)
+  const fechasConMovimiento = new Set();
 
-        if (!codigoKey || !fecha) continue;
+  for (const item of registros) {
+    const codigoKey = String(item.codigoKey || "").trim();
+    const fecha = String(item.fecha || "").trim();
+    const cantidad = Number(item.cantidad || 0);
+    const origen = String(item.origen || "").trim();
 
-        fechasSet.add(fecha);
+    if (!codigoKey || !fecha) continue;
 
-        if (!mapa.has(codigoKey)) {
-          mapa.set(codigoKey, {
-            codigo,
-            codigoKey,
-            descripcion,
-            invPorFecha: {},
-            vtaPorFecha: {},
-            totalInv: 0,
-            totalVta: 0,
-            neto: 0
-          });
-        }
-
-        const row = mapa.get(codigoKey);
-
-        if (origen === "INV" && codigo) {
-          row.codigo = codigo;
-        } else if (!row.codigo && codigo) {
-          row.codigo = codigo;
-        }
-
-        if (!row.descripcion && descripcion) {
-          row.descripcion = descripcion;
-        }
-
-        if (origen === "INV") {
-          row.invPorFecha[fecha] = (row.invPorFecha[fecha] || 0) + cantidad;
-          row.totalInv += cantidad;
-          totalInvPorFecha[fecha] = (totalInvPorFecha[fecha] || 0) + cantidad;
-          totalInvGeneral += cantidad;
-        } else {
-          row.vtaPorFecha[fecha] = (row.vtaPorFecha[fecha] || 0) + cantidad;
-          row.totalVta += cantidad;
-          totalVtaPorFecha[fecha] = (totalVtaPorFecha[fecha] || 0) + cantidad;
-          totalVtaGeneral += cantidad;
-        }
-
-        row.neto = row.totalInv - row.totalVta;
-      }
-
-      const fechas = Array.from(fechasSet).sort();
-
-      const columnas = [];
-      for (const fecha of fechas) {
-        columnas.push({ fecha, tipo: "INV" });
-        columnas.push({ fecha, tipo: "VTA" });
-      }
-
-const rows = Array.from(mapa.values()).sort((a, b) => {
-  const da = String(a.descripcion || "").trim();
-  const db = String(b.descripcion || "").trim();
-
-  if (!da && !db) return 0;
-  if (!da) return 1;
-  if (!db) return -1;
-
-  return da.localeCompare(db, "es", { sensitivity: "base" });
-});
-
-      return {
-        fechas,
-        columnas,
-        rows,
-        totalInvPorFecha,
-        totalVtaPorFecha,
-        totalInvGeneral,
-        totalVtaGeneral,
-        totalNetoGeneral: totalInvGeneral - totalVtaGeneral,
-        totalCodigos: rows.length
-      };
+    // Marcar fecha como activa solo si hay cantidad > 0
+    if (cantidad > 0) {
+      fechasConMovimiento.add(fecha);
     }
+
+    if (!mapa.has(codigoKey)) {
+      mapa.set(codigoKey, {
+        codigo: String(item.codigo || "").trim(),
+        codigoKey,
+        descripcion: String(item.descripcion || "").trim(),
+        invPorFecha: {},
+        transPorFecha: {},
+        vtaPorFecha: {},
+        totalInvBase: 0,
+        totalTrans: 0,
+        totalInv: 0,
+        totalVta: 0,
+        neto: 0
+      });
+    }
+
+    const row = mapa.get(codigoKey);
+
+    // Actualizar código/descripción si es necesario
+    if (item.codigo && !row.codigo) row.codigo = item.codigo;
+    if (item.descripcion && !row.descripcion) row.descripcion = item.descripcion;
+
+    if (origen === "INV") {
+      row.invPorFecha[fecha] = (row.invPorFecha[fecha] || 0) + cantidad;
+      row.totalInvBase += cantidad;
+      totalInvPorFecha[fecha] = (totalInvPorFecha[fecha] || 0) + cantidad;
+      totalInvGeneralBase += cantidad;
+
+    } else if (origen === "TRANS") {
+      row.transPorFecha[fecha] = (row.transPorFecha[fecha] || 0) + cantidad;
+      row.totalTrans += cantidad;
+      totalTransPorFecha[fecha] = (totalTransPorFecha[fecha] || 0) + cantidad;
+      totalTransGeneral += cantidad;
+
+    } else if (origen === "VTA") {
+      row.vtaPorFecha[fecha] = (row.vtaPorFecha[fecha] || 0) + cantidad;
+      row.totalVta += cantidad;
+      totalVtaPorFecha[fecha] = (totalVtaPorFecha[fecha] || 0) + cantidad;
+      totalVtaGeneral += cantidad;
+    }
+
+    row.totalInv = row.totalInvBase + row.totalTrans;
+    row.neto = row.totalInv - row.totalVta;
+  }
+
+  // SOLO fechas con al menos un movimiento (INV, TRANS o VTA)
+  const fechas = Array.from(fechasConMovimiento).sort();
+
+  // Crear columnas solo para esas fechas
+  const columnas = [];
+  for (const fecha of fechas) {
+    // Solo agregar columna INV si existe algún movimiento de inventario en esa fecha
+    if (totalInvPorFecha[fecha] > 0) {
+      columnas.push({ fecha, tipo: "INV" });
+    }
+    // Solo agregar columna TRANS si existe algún movimiento de transferencia en esa fecha
+    if (totalTransPorFecha[fecha] > 0) {
+      columnas.push({ fecha, tipo: "TRANS" });
+    }
+    // Solo agregar columna VTA si existe algún movimiento de venta en esa fecha
+    if (totalVtaPorFecha[fecha] > 0) {
+      columnas.push({ fecha, tipo: "VTA" });
+    }
+  }
+
+  const rows = Array.from(mapa.values()).sort((a, b) => {
+    const da = String(a.descripcion || "").trim();
+    const db = String(b.descripcion || "").trim();
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return da.localeCompare(db, "es", { sensitivity: "base" });
+  });
+
+  return {
+    fechas,
+    columnas,
+    rows,
+    totalInvPorFecha,
+    totalTransPorFecha,
+    totalVtaPorFecha,
+    totalInvGeneralBase,
+    totalTransGeneral,
+    totalInvGeneral: totalInvGeneralBase + totalTransGeneral,
+    totalVtaGeneral,
+    totalNetoGeneral: (totalInvGeneralBase + totalTransGeneral) - totalVtaGeneral,
+    totalCodigos: rows.length
+  };
+}
 
     function pintarResumen(registros, pivot) {
       const totalInvRegs = registros.filter(x => x.origen === "INV").length;
+      const totalTransRegs = registros.filter(x => x.origen === "TRANS").length;
       const totalVtaRegs = registros.filter(x => x.origen === "VTA").length;
 
       $("summary").innerHTML = `
         <div class="pill">Registros inventario: ${fmtNum(totalInvRegs)}</div>
+        <div class="pill">Registros transferencias: ${fmtNum(totalTransRegs)}</div>
         <div class="pill">Registros ventas: ${fmtNum(totalVtaRegs)}</div>
         <div class="pill">Códigos únicos: ${fmtNum(pivot.totalCodigos)}</div>
         <div class="pill">Fechas: ${fmtNum(pivot.fechas.length)}</div>
+        <div class="pill">Inventario base: ${fmtNum(pivot.totalInvGeneralBase)}</div>
+        <div class="pill">Transferencias: ${fmtNum(pivot.totalTransGeneral)}</div>
         <div class="pill">Total inventario: ${fmtNum(pivot.totalInvGeneral)}</div>
         <div class="pill">Total ventas: ${fmtNum(pivot.totalVtaGeneral)}</div>
         <div class="pill">Neto: ${fmtNum(pivot.totalNetoGeneral)}</div>
@@ -705,6 +790,7 @@ const rows = Array.from(mapa.values()).sort((a, b) => {
         columnas,
         rows,
         totalInvPorFecha,
+        totalTransPorFecha,
         totalVtaPorFecha,
         totalInvGeneral,
         totalVtaGeneral,
@@ -716,7 +802,11 @@ const rows = Array.from(mapa.values()).sort((a, b) => {
         <th class="left sticky1">Código</th>
         <th class="left sticky2">Descripción</th>
         ${columnas.map(col => `
-          <th class="${col.tipo === "INV" ? "inv-col" : "vta-col"}">
+          <th class="${
+            col.tipo === "INV" ? "inv-col" :
+            col.tipo === "TRANS" ? "trans-col" :
+            "vta-col"
+          }">
             ${escapeHtml(col.fecha)} ${col.tipo}
           </th>
         `).join("")}
@@ -737,12 +827,23 @@ const rows = Array.from(mapa.values()).sort((a, b) => {
         `;
 
         for (const col of columnas) {
-          const val = col.tipo === "INV"
-            ? (row.invPorFecha[col.fecha] || 0)
-            : (row.vtaPorFecha[col.fecha] || 0);
+          let val = 0;
+
+          if (col.tipo === "INV") {
+            val = row.invPorFecha[col.fecha] || 0;
+          } else if (col.tipo === "TRANS") {
+            val = row.transPorFecha[col.fecha] || 0;
+          } else {
+            val = row.vtaPorFecha[col.fecha] || 0;
+          }
+
+          const clase =
+            col.tipo === "INV" ? "inv-col" :
+            col.tipo === "TRANS" ? "trans-col" :
+            "vta-col";
 
           html += `
-            <td class="${col.tipo === "INV" ? "inv-col" : "vta-col"} ${val === 0 ? "num-zero" : ""}">
+            <td class="${clase} ${val === 0 ? "num-zero" : ""}">
               ${val === 0 ? "" : fmtNum(val)}
             </td>
           `;
@@ -765,11 +866,22 @@ const rows = Array.from(mapa.values()).sort((a, b) => {
         <td class="left sticky1"><b>TOTAL</b></td>
         <td class="left sticky2"><b>Suma por fecha</b></td>
         ${columnas.map(col => {
-          const val = col.tipo === "INV"
-            ? (totalInvPorFecha[col.fecha] || 0)
-            : (totalVtaPorFecha[col.fecha] || 0);
+          let val = 0;
 
-          return `<td class="${col.tipo === "INV" ? "inv-col" : "vta-col"}"><b>${fmtNum(val)}</b></td>`;
+          if (col.tipo === "INV") {
+            val = totalInvPorFecha[col.fecha] || 0;
+          } else if (col.tipo === "TRANS") {
+            val = totalTransPorFecha[col.fecha] || 0;
+          } else {
+            val = totalVtaPorFecha[col.fecha] || 0;
+          }
+
+          const clase =
+            col.tipo === "INV" ? "inv-col" :
+            col.tipo === "TRANS" ? "trans-col" :
+            "vta-col";
+
+          return `<td class="${clase}"><b>${fmtNum(val)}</b></td>`;
         }).join("")}
         <td class="total-col"><b>${fmtNum(totalInvGeneral)}</b></td>
         <td class="total-col"><b>${fmtNum(totalVtaGeneral)}</b></td>
@@ -787,6 +899,9 @@ const rows = Array.from(mapa.values()).sort((a, b) => {
       const {
         columnas,
         rows,
+        totalInvPorFecha,
+        totalTransPorFecha,
+        totalVtaPorFecha,
         totalInvGeneral,
         totalVtaGeneral,
         totalNetoGeneral
@@ -807,11 +922,11 @@ const rows = Array.from(mapa.values()).sort((a, b) => {
         const vals = [
           row.codigo,
           row.descripcion || "",
-          ...columnas.map(col =>
-            col.tipo === "INV"
-              ? (row.invPorFecha[col.fecha] || 0)
-              : (row.vtaPorFecha[col.fecha] || 0)
-          ),
+          ...columnas.map(col => {
+            if (col.tipo === "INV") return row.invPorFecha[col.fecha] || 0;
+            if (col.tipo === "TRANS") return row.transPorFecha[col.fecha] || 0;
+            return row.vtaPorFecha[col.fecha] || 0;
+          }),
           row.totalInv || 0,
           row.totalVta || 0,
           row.neto || 0
@@ -823,11 +938,11 @@ const rows = Array.from(mapa.values()).sort((a, b) => {
       const totalLine = [
         "TOTAL",
         "Suma por fecha",
-        ...columnas.map(col =>
-          col.tipo === "INV"
-            ? (ultimaPivot.totalInvPorFecha[col.fecha] || 0)
-            : (ultimaPivot.totalVtaPorFecha[col.fecha] || 0)
-        ),
+        ...columnas.map(col => {
+          if (col.tipo === "INV") return totalInvPorFecha[col.fecha] || 0;
+          if (col.tipo === "TRANS") return totalTransPorFecha[col.fecha] || 0;
+          return totalVtaPorFecha[col.fecha] || 0;
+        }),
         totalInvGeneral,
         totalVtaGeneral,
         totalNetoGeneral
