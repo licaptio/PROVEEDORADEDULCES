@@ -661,9 +661,16 @@
         columnas.push({ fecha, tipo: "VTA" });
       }
 
-      const rows = Array.from(mapa.values()).sort((a, b) =>
-        String(a.codigo || "").localeCompare(String(b.codigo || ""), "es")
-      );
+const rows = Array.from(mapa.values()).sort((a, b) => {
+  const da = String(a.descripcion || "").trim();
+  const db = String(b.descripcion || "").trim();
+
+  if (!da && !db) return 0;
+  if (!da) return 1;
+  if (!db) return -1;
+
+  return da.localeCompare(db, "es", { sensitivity: "base" });
+});
 
       return {
         fechas,
