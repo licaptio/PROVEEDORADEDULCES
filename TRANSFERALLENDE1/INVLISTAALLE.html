@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Inventario por Fecha - PROVSOFT</title>
+  <title>Inventario vs Ventas por Fecha - PROVSOFT</title>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -18,6 +18,15 @@
       --verde: #166534;
       --rojo: #991b1b;
       --shadow: 0 10px 28px rgba(0,0,0,.10);
+
+      --inv-head: #dbeafe;
+      --inv-cell: #f8fbff;
+
+      --vta-head: #fee2e2;
+      --vta-cell: #fff5f5;
+
+      --neto-head: #ecfccb;
+      --neto-cell: #f7fee7;
     }
 
     * { box-sizing: border-box; }
@@ -95,7 +104,9 @@
       font-weight: bold;
     }
 
-    .field button:hover { filter: brightness(1.05); }
+    .field button:hover {
+      filter: brightness(1.05);
+    }
 
     .field button.sec {
       background: #0f766e;
@@ -146,7 +157,6 @@
       position: sticky;
       top: 0;
       z-index: 5;
-      background: #e8f0fb;
       color: #0f172a;
     }
 
@@ -157,37 +167,58 @@
       text-align: right;
     }
 
-    th.left, td.left { text-align: left; }
+    th.left, td.left {
+      text-align: left;
+    }
 
     .sticky1 {
       position: sticky;
       left: 0;
       z-index: 4;
       background: #fff;
-      min-width: 120px;
-      max-width: 120px;
+      min-width: 130px;
+      max-width: 130px;
     }
 
     .sticky2 {
       position: sticky;
-      left: 120px;
+      left: 130px;
       z-index: 4;
       background: #fff;
       min-width: 340px;
       max-width: 340px;
     }
 
-    thead .sticky1, thead .sticky2,
-    tfoot .sticky1, tfoot .sticky2 {
+    thead .sticky1,
+    thead .sticky2,
+    tfoot .sticky1,
+    tfoot .sticky2 {
       background: #dbeafe;
+    }
+
+    th.inv-col { background: var(--inv-head); }
+    td.inv-col { background: var(--inv-cell); }
+
+    th.vta-col { background: var(--vta-head); }
+    td.vta-col { background: var(--vta-cell); }
+
+    th.total-col, td.total-col {
+      background: #f8fafc;
+      font-weight: bold;
+    }
+
+    th.neto-col { background: var(--neto-head); }
+    td.neto-col {
+      background: var(--neto-cell);
+      font-weight: bold;
     }
 
     td.num-zero {
       color: #94a3b8;
     }
 
-    td.total-col, th.total-col {
-      background: #f8fafc;
+    td.negativo {
+      color: #b91c1c;
       font-weight: bold;
     }
 
@@ -210,8 +241,8 @@
   <div class="wrap">
     <div class="card">
       <div class="topbar">
-        <h1>Inventario por Fecha - ALLENDE 1</h1>
-        <p>Vista tipo Excel: código a la izquierda y fechas hacia la derecha, sumando cantidades por día.</p>
+        <h1>Inventario vs Ventas por Fecha - ALLENDE 1</h1>
+        <p>Las ventas van separadas del inventario, aunque caigan en la misma fecha.</p>
       </div>
 
       <div class="controls">
@@ -255,7 +286,10 @@
       appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
     const db = firebase.firestore();
 
     const INVENTARIOS_REF = db
@@ -263,13 +297,17 @@
       .doc("ALLENDE 1")
       .collection("inventario1");
 
+    const VENTAS_REF = db
+      .collection("TIENDAS")
+      .doc("ALLENDE 1")
+      .collection("ventas");
+
     const $ = (id) => document.getElementById(id);
     const tabla = $("tablaPivot");
     const thead = tabla.querySelector("thead");
     const tbody = tabla.querySelector("tbody");
     const tfoot = tabla.querySelector("tfoot");
 
-    let ultimoResultado = [];
     let ultimaPivot = null;
 
     function setStatus(msg, type = "") {
@@ -279,7 +317,9 @@
     }
 
     function fmtNum(n) {
-      return Number(n || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 });
+      return Number(n || 0).toLocaleString("es-MX", {
+        maximumFractionDigits: 2
+      });
     }
 
     function limpiarTabla() {
@@ -290,7 +330,7 @@
     }
 
     function escapeHtml(text) {
-      return String(text)
+      return String(text ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
@@ -298,65 +338,251 @@
         .replace(/'/g, "&#039;");
     }
 
-    async function cargarInventario() {
+    function normalizarFecha(valor) {
+      if (!valor) return "";
+
+      if (typeof valor === "string") {
+        const v = valor.trim();
+
+        const m1 = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (m1) {
+          const [, dd, mm, yyyy] = m1;
+          return `${yyyy}-${mm}-${dd}`;
+        }
+
+        const m2 = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m2) {
+          return `${m2[1]}-${m2[2]}-${m2[3]}`;
+        }
+
+        return v;
+      }
+
+      if (valor && typeof valor.toDate === "function") {
+        const d = valor.toDate();
+        return d.toISOString().slice(0, 10);
+      }
+
+      if (valor && typeof valor.seconds === "number") {
+        const d = new Date(valor.seconds * 1000);
+        return d.toISOString().slice(0, 10);
+      }
+
+      return String(valor).trim();
+    }
+
+    function normalizarCodigo(valor) {
+      const s = String(valor ?? "").trim();
+      if (!s) return "";
+
+      const soloDigitos = s.replace(/\D/g, "");
+
+      if (!soloDigitos) {
+        return s.toLowerCase();
+      }
+
+      return soloDigitos.replace(/^0+/, "") || "0";
+    }
+
+    function obtenerCampo(data, nombres = []) {
+      for (const nombre of nombres) {
+        if (data[nombre] !== undefined && data[nombre] !== null) {
+          return data[nombre];
+        }
+      }
+      return "";
+    }
+
+    function obtenerCantidadVenta(data) {
+      const valor = obtenerCampo(data, [
+        "Cantidad vendida",
+        "cantidad vendida",
+        "Cantidad",
+        "cantidad",
+        "cant",
+        "unidades",
+        "totalCantidad",
+        "total"
+      ]);
+      return Number(valor || 0);
+    }
+
+    function obtenerCodigoVenta(data) {
+      const valor = obtenerCampo(data, [
+        "Codigo",
+        "codigo",
+        "Código",
+        "CODIGO"
+      ]);
+      return String(valor || "").trim();
+    }
+
+    function obtenerDescripcionVenta(data) {
+      const valor = obtenerCampo(data, [
+        "descripcion",
+        "Descripción",
+        "Descripcion",
+        "producto",
+        "Producto"
+      ]);
+      return String(valor || "").trim();
+    }
+
+    function obtenerFechaVenta(data) {
+      const valor = obtenerCampo(data, [
+        "Fecha",
+        "fecha",
+        "FECHA"
+      ]);
+      return normalizarFecha(valor);
+    }
+
+    async function cargarInventarios() {
+      const foliosSnap = await INVENTARIOS_REF
+        .orderBy(firebase.firestore.FieldPath.documentId(), "asc")
+        .get();
+
+      const docs = [];
+
+      for (const folioDoc of foliosSnap.docs) {
+        const itemsSnap = await folioDoc.ref.collection("items").get();
+
+        itemsSnap.forEach(itemDoc => {
+          const data = itemDoc.data() || {};
+
+          const codigoOriginal = String(
+            data.codigo ??
+            data.Codigo ??
+            ""
+          ).trim();
+
+          const descripcion = String(
+            data.descripcion ??
+            data.Descripcion ??
+            ""
+          ).trim();
+
+          const fecha = normalizarFecha(
+            data.fecha ??
+            data.Fecha ??
+            ""
+          );
+
+          const cantidad = Number(
+            data.cantidad ??
+            data.Cantidad ??
+            0
+          );
+
+          docs.push({
+            origen: "INV",
+            id: itemDoc.id,
+            codigo: codigoOriginal,
+            codigoKey: normalizarCodigo(codigoOriginal),
+            descripcion,
+            fecha,
+            cantidad
+          });
+        });
+      }
+
+      return {
+        docs,
+        totalFolios: foliosSnap.size
+      };
+    }
+
+    async function cargarVentas() {
+      const ventasSnap = await VENTAS_REF.get();
+      const docs = [];
+
+      console.log("Docs ventas encontrados:", ventasSnap.size);
+
+      ventasSnap.forEach(doc => {
+        const data = doc.data() || {};
+
+        const codigoOriginal = obtenerCodigoVenta(data);
+
+        const venta = {
+          origen: "VTA",
+          id: doc.id,
+          codigo: codigoOriginal,
+          codigoKey: normalizarCodigo(codigoOriginal),
+          descripcion: obtenerDescripcionVenta(data),
+          fecha: obtenerFechaVenta(data),
+          cantidad: obtenerCantidadVenta(data)
+        };
+
+        console.log("VENTA LEIDA:", venta, data);
+
+        if (venta.codigoKey && venta.fecha) {
+          docs.push(venta);
+        }
+      });
+
+      console.log("Ventas válidas procesadas:", docs.length);
+
+      return {
+        docs,
+        totalVentasDocs: ventasSnap.size
+      };
+    }
+
+    async function cargarTodo() {
       try {
         limpiarTabla();
-        setStatus("Consultando inventarios...");
+        setStatus("Consultando inventarios y ventas...");
 
         const filtroCodigo = $("filtroCodigo").value.trim().toLowerCase();
         const filtroDescripcion = $("filtroDescripcion").value.trim().toLowerCase();
 
-        const foliosSnap = await INVENTARIOS_REF
-          .orderBy(firebase.firestore.FieldPath.documentId(), "asc")
-          .get();
+        const [inventariosData, ventasData] = await Promise.all([
+          cargarInventarios(),
+          cargarVentas()
+        ]);
 
-        if (foliosSnap.empty) {
-          setStatus("No se encontraron folios en inventario1.", "error");
-          return;
-        }
+        let registros = [
+          ...inventariosData.docs,
+          ...ventasData.docs
+        ];
 
-        const docs = [];
-
-        for (const folioDoc of foliosSnap.docs) {
-          const itemsSnap = await folioDoc.ref.collection("items").get();
-
-          itemsSnap.forEach(itemDoc => {
-            docs.push({
-              id: itemDoc.id,
-              ...itemDoc.data()
-            });
-          });
-        }
-
-        let filtrados = docs.filter(item => {
-          const codigo = String(item.codigo || "").toLowerCase();
+        registros = registros.filter(item => {
+          const codigoVisible = String(item.codigo || "").toLowerCase();
+          const codigoKey = String(item.codigoKey || "").toLowerCase();
           const descripcion = String(item.descripcion || "").toLowerCase();
-          const okCodigo = !filtroCodigo || codigo.includes(filtroCodigo);
+
+          const okCodigo = !filtroCodigo ||
+            codigoVisible.includes(filtroCodigo) ||
+            codigoKey.includes(filtroCodigo.replace(/\D/g, "").replace(/^0+/, "") || filtroCodigo);
+
           const okDescripcion = !filtroDescripcion || descripcion.includes(filtroDescripcion);
+
           return okCodigo && okDescripcion;
         });
 
-        filtrados.sort((a, b) => {
+        registros.sort((a, b) => {
           const fa = String(a.fecha || "");
           const fb = String(b.fecha || "");
           if (fa !== fb) return fa.localeCompare(fb, "es");
+
+          if (a.origen !== b.origen) return a.origen.localeCompare(b.origen, "es");
+
           return String(a.codigo || "").localeCompare(String(b.codigo || ""), "es");
         });
 
-        ultimoResultado = filtrados;
-
-        if (!filtrados.length) {
+        if (!registros.length) {
           setStatus("No se encontraron registros.", "error");
           return;
         }
 
-        const pivot = construirPivot(filtrados);
+        const pivot = construirPivotSeparado(registros);
         ultimaPivot = pivot;
-        pintarResumen(filtrados, pivot);
+
+        pintarResumen(registros, pivot);
         pintarTabla(pivot);
 
         setStatus(
-          `Listo. ${filtrados.length} registros procesados en ${foliosSnap.size} folios.`,
+          `Listo. Inventarios: ${inventariosData.docs.length} | Ventas leídas: ${ventasData.docs.length} | Filtrados: ${registros.length}`,
           "ok"
         );
       } catch (err) {
@@ -365,73 +591,131 @@
       }
     }
 
-    function construirPivot(docs) {
+    function construirPivotSeparado(registros) {
       const fechasSet = new Set();
       const mapa = new Map();
-      const totalPorFecha = {};
-      let totalGeneral = 0;
 
-      for (const item of docs) {
+      const totalInvPorFecha = {};
+      const totalVtaPorFecha = {};
+
+      let totalInvGeneral = 0;
+      let totalVtaGeneral = 0;
+
+      for (const item of registros) {
         const codigo = String(item.codigo || "").trim();
+        const codigoKey = String(item.codigoKey || "").trim();
         const descripcion = String(item.descripcion || "").trim();
         const fecha = String(item.fecha || "").trim();
         const cantidad = Number(item.cantidad || 0);
+        const origen = item.origen === "VTA" ? "VTA" : "INV";
 
-        if (!codigo || !fecha) continue;
+        if (!codigoKey || !fecha) continue;
 
         fechasSet.add(fecha);
-        totalPorFecha[fecha] = (totalPorFecha[fecha] || 0) + cantidad;
-        totalGeneral += cantidad;
 
-        if (!mapa.has(codigo)) {
-          mapa.set(codigo, {
+        if (!mapa.has(codigoKey)) {
+          mapa.set(codigoKey, {
             codigo,
+            codigoKey,
             descripcion,
-            porFecha: {},
-            total: 0
+            invPorFecha: {},
+            vtaPorFecha: {},
+            totalInv: 0,
+            totalVta: 0,
+            neto: 0
           });
         }
 
-        const row = mapa.get(codigo);
+        const row = mapa.get(codigoKey);
 
-        if (!row.descripcion && descripcion) row.descripcion = descripcion;
-        row.porFecha[fecha] = (row.porFecha[fecha] || 0) + cantidad;
-        row.total += cantidad;
+        if (origen === "INV" && codigo) {
+          row.codigo = codigo;
+        } else if (!row.codigo && codigo) {
+          row.codigo = codigo;
+        }
+
+        if (!row.descripcion && descripcion) {
+          row.descripcion = descripcion;
+        }
+
+        if (origen === "INV") {
+          row.invPorFecha[fecha] = (row.invPorFecha[fecha] || 0) + cantidad;
+          row.totalInv += cantidad;
+          totalInvPorFecha[fecha] = (totalInvPorFecha[fecha] || 0) + cantidad;
+          totalInvGeneral += cantidad;
+        } else {
+          row.vtaPorFecha[fecha] = (row.vtaPorFecha[fecha] || 0) + cantidad;
+          row.totalVta += cantidad;
+          totalVtaPorFecha[fecha] = (totalVtaPorFecha[fecha] || 0) + cantidad;
+          totalVtaGeneral += cantidad;
+        }
+
+        row.neto = row.totalInv - row.totalVta;
       }
 
       const fechas = Array.from(fechasSet).sort();
+
+      const columnas = [];
+      for (const fecha of fechas) {
+        columnas.push({ fecha, tipo: "INV" });
+        columnas.push({ fecha, tipo: "VTA" });
+      }
+
       const rows = Array.from(mapa.values()).sort((a, b) =>
-        a.codigo.localeCompare(b.codigo, "es")
+        String(a.codigo || "").localeCompare(String(b.codigo || ""), "es")
       );
 
       return {
         fechas,
+        columnas,
         rows,
-        totalPorFecha,
-        totalGeneral,
+        totalInvPorFecha,
+        totalVtaPorFecha,
+        totalInvGeneral,
+        totalVtaGeneral,
+        totalNetoGeneral: totalInvGeneral - totalVtaGeneral,
         totalCodigos: rows.length
       };
     }
 
-    function pintarResumen(docs, pivot) {
-      const html = `
-        <div class="pill">Registros: ${fmtNum(docs.length)}</div>
+    function pintarResumen(registros, pivot) {
+      const totalInvRegs = registros.filter(x => x.origen === "INV").length;
+      const totalVtaRegs = registros.filter(x => x.origen === "VTA").length;
+
+      $("summary").innerHTML = `
+        <div class="pill">Registros inventario: ${fmtNum(totalInvRegs)}</div>
+        <div class="pill">Registros ventas: ${fmtNum(totalVtaRegs)}</div>
         <div class="pill">Códigos únicos: ${fmtNum(pivot.totalCodigos)}</div>
         <div class="pill">Fechas: ${fmtNum(pivot.fechas.length)}</div>
-        <div class="pill">Cantidad total: ${fmtNum(pivot.totalGeneral)}</div>
+        <div class="pill">Total inventario: ${fmtNum(pivot.totalInvGeneral)}</div>
+        <div class="pill">Total ventas: ${fmtNum(pivot.totalVtaGeneral)}</div>
+        <div class="pill">Neto: ${fmtNum(pivot.totalNetoGeneral)}</div>
       `;
-      $("summary").innerHTML = html;
     }
 
     function pintarTabla(pivot) {
-      const { fechas, rows, totalPorFecha, totalGeneral } = pivot;
+      const {
+        columnas,
+        rows,
+        totalInvPorFecha,
+        totalVtaPorFecha,
+        totalInvGeneral,
+        totalVtaGeneral,
+        totalNetoGeneral
+      } = pivot;
 
       const trHead = document.createElement("tr");
       trHead.innerHTML = `
         <th class="left sticky1">Código</th>
         <th class="left sticky2">Descripción</th>
-        ${fechas.map(f => `<th>${f}</th>`).join("")}
-        <th class="total-col">TOTAL</th>
+        ${columnas.map(col => `
+          <th class="${col.tipo === "INV" ? "inv-col" : "vta-col"}">
+            ${escapeHtml(col.fecha)} ${col.tipo}
+          </th>
+        `).join("")}
+        <th class="total-col">TOTAL INV</th>
+        <th class="total-col">TOTAL VTA</th>
+        <th class="neto-col">NETO</th>
       `;
       thead.appendChild(trHead);
 
@@ -445,12 +729,24 @@
           <td class="left sticky2">${escapeHtml(row.descripcion || "")}</td>
         `;
 
-        for (const fecha of fechas) {
-          const val = row.porFecha[fecha] || 0;
-          html += `<td class="${val === 0 ? "num-zero" : ""}">${val === 0 ? "" : fmtNum(val)}</td>`;
+        for (const col of columnas) {
+          const val = col.tipo === "INV"
+            ? (row.invPorFecha[col.fecha] || 0)
+            : (row.vtaPorFecha[col.fecha] || 0);
+
+          html += `
+            <td class="${col.tipo === "INV" ? "inv-col" : "vta-col"} ${val === 0 ? "num-zero" : ""}">
+              ${val === 0 ? "" : fmtNum(val)}
+            </td>
+          `;
         }
 
-        html += `<td class="total-col">${fmtNum(row.total)}</td>`;
+        html += `
+          <td class="total-col">${fmtNum(row.totalInv)}</td>
+          <td class="total-col">${fmtNum(row.totalVta)}</td>
+          <td class="neto-col ${row.neto < 0 ? "negativo" : ""}">${fmtNum(row.neto)}</td>
+        `;
+
         tr.innerHTML = html;
         frag.appendChild(tr);
       }
@@ -461,8 +757,16 @@
       trFoot.innerHTML = `
         <td class="left sticky1"><b>TOTAL</b></td>
         <td class="left sticky2"><b>Suma por fecha</b></td>
-        ${fechas.map(f => `<td><b>${fmtNum(totalPorFecha[f] || 0)}</b></td>`).join("")}
-        <td class="total-col"><b>${fmtNum(totalGeneral)}</b></td>
+        ${columnas.map(col => {
+          const val = col.tipo === "INV"
+            ? (totalInvPorFecha[col.fecha] || 0)
+            : (totalVtaPorFecha[col.fecha] || 0);
+
+          return `<td class="${col.tipo === "INV" ? "inv-col" : "vta-col"}"><b>${fmtNum(val)}</b></td>`;
+        }).join("")}
+        <td class="total-col"><b>${fmtNum(totalInvGeneral)}</b></td>
+        <td class="total-col"><b>${fmtNum(totalVtaGeneral)}</b></td>
+        <td class="neto-col"><b>${fmtNum(totalNetoGeneral)}</b></td>
       `;
       tfoot.appendChild(trFoot);
     }
@@ -473,27 +777,56 @@
         return;
       }
 
-      const { fechas, rows } = ultimaPivot;
-      const header = ["codigo", "descripcion", ...fechas, "total"];
-      const lines = [header.join(",")];
+      const {
+        columnas,
+        rows,
+        totalInvGeneral,
+        totalVtaGeneral,
+        totalNetoGeneral
+      } = ultimaPivot;
+
+      const header = [
+        "codigo",
+        "descripcion",
+        ...columnas.map(c => `${c.fecha}_${c.tipo}`),
+        "total_inv",
+        "total_vta",
+        "neto"
+      ];
+
+      const lines = [header.map(csvSafe).join(",")];
 
       for (const row of rows) {
         const vals = [
-          csvSafe(row.codigo),
-          csvSafe(row.descripcion || ""),
-          ...fechas.map(f => row.porFecha[f] || 0),
-          row.total || 0
+          row.codigo,
+          row.descripcion || "",
+          ...columnas.map(col =>
+            col.tipo === "INV"
+              ? (row.invPorFecha[col.fecha] || 0)
+              : (row.vtaPorFecha[col.fecha] || 0)
+          ),
+          row.totalInv || 0,
+          row.totalVta || 0,
+          row.neto || 0
         ];
-        lines.push(vals.join(","));
+
+        lines.push(vals.map(csvSafe).join(","));
       }
 
       const totalLine = [
-        csvSafe("TOTAL"),
-        csvSafe("Suma por fecha"),
-        ...fechas.map(f => ultimaPivot.totalPorFecha[f] || 0),
-        ultimaPivot.totalGeneral || 0
+        "TOTAL",
+        "Suma por fecha",
+        ...columnas.map(col =>
+          col.tipo === "INV"
+            ? (ultimaPivot.totalInvPorFecha[col.fecha] || 0)
+            : (ultimaPivot.totalVtaPorFecha[col.fecha] || 0)
+        ),
+        totalInvGeneral,
+        totalVtaGeneral,
+        totalNetoGeneral
       ];
-      lines.push(totalLine.join(","));
+
+      lines.push(totalLine.map(csvSafe).join(","));
 
       const blob = new Blob(["\uFEFF" + lines.join("\n")], {
         type: "text/csv;charset=utf-8;"
@@ -502,7 +835,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `inventario_pivot_allende1_${Date.now()}.csv`;
+      a.download = `inventario_vs_ventas_allende1_${Date.now()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -512,9 +845,9 @@
       return `"${s}"`;
     }
 
-    $("btnCargar").addEventListener("click", cargarInventario);
+    $("btnCargar").addEventListener("click", cargarTodo);
     $("btnExportar").addEventListener("click", exportarCSV);
-    window.addEventListener("load", cargarInventario);
+    window.addEventListener("load", cargarTodo);
   </script>
 </body>
 </html>
