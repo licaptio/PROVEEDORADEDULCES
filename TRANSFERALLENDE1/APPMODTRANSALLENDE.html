@@ -308,11 +308,11 @@
       font-weight: 800;
     }
 
-.badge.red {
-  background: #fee2e2;
-  color: #991b1b;
-  font-weight: 800;
-}
+    .badge.red {
+      background: #fee2e2;
+      color: #991b1b;
+      font-weight: 800;
+    }
 
     .badge.gray {
       background: #e5e7eb;
@@ -445,6 +445,9 @@
       }
     }
   </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
   <div class="topbar">
@@ -486,10 +489,10 @@
               <input id="sucursalDestino" value="ALLENDE 1" disabled />
             </div>
 
-<div class="field">
-  <label>Almacén origen</label>
-  <input id="almacenOrigen" value="CEDIS MATRIZ" disabled />
-</div>
+            <div class="field">
+              <label>Almacén origen</label>
+              <input id="almacenOrigen" value="CEDIS MATRIZ" disabled />
+            </div>
 
             <div id="estado" class="estado-box muted">Listo.</div>
 
@@ -613,6 +616,9 @@
     const COLECCION_PRODUCTOS = 'productos';
     const COLECCION_SURTIDO = ['TIENDAS', 'ALLENDE 1', 'SURTIDOTRANS'];
 
+    // CAMBIA esto al nombre real de tu archivo logo en la misma carpeta del HTML
+    const LOGO_URL = './logo_proveedora.png';
+
     let solicitudOriginal = null;
     let detalle = [];
     let catalogo = [];
@@ -651,6 +657,15 @@
       if (!iso) return '-';
       try {
         return new Date(iso).toLocaleString('es-MX');
+      } catch {
+        return String(iso);
+      }
+    }
+
+    function fechaCortaMx(iso) {
+      if (!iso) return '-';
+      try {
+        return new Date(iso).toLocaleDateString('es-MX');
       } catch {
         return String(iso);
       }
@@ -835,6 +850,7 @@
 
     function llenarOperadores(selectId, items) {
       const select = $(selectId);
+      if (!select) return;
       select.innerHTML = '<option value="">Selecciona...</option>';
 
       items.forEach(op => {
@@ -845,23 +861,23 @@
       });
     }
 
-async function cargarOperadores() {
-  try {
-    const snap = await getDocs(query(collection(db, COLECCION_OPERADORES), where('activo', '==', true)));
-    const lista = [];
+    async function cargarOperadores() {
+      try {
+        const snap = await getDocs(query(collection(db, COLECCION_OPERADORES), where('activo', '==', true)));
+        const lista = [];
 
-    snap.forEach(docSnap => {
-      const data = docSnap.data() || {};
-      const nombre = String(data.nombre || data.usuario || docSnap.id).trim();
-      if (nombre) lista.push({ id: docSnap.id, nombre });
-    });
+        snap.forEach(docSnap => {
+          const data = docSnap.data() || {};
+          const nombre = String(data.nombre || data.usuario || docSnap.id).trim();
+          if (nombre) lista.push({ id: docSnap.id, nombre });
+        });
 
-    operadorCapturaCache = [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre));
-  } catch (error) {
-    console.error('Error cargando operadores:', error);
-    setStatus('No se pudieron cargar operadores. Ajusta la colección de usuarios.', 'error');
-  }
-}
+        operadorCapturaCache = [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre));
+      } catch (error) {
+        console.error('Error cargando operadores:', error);
+        setStatus('No se pudieron cargar operadores. Ajusta la colección de usuarios.', 'error');
+      }
+    }
 
     async function cargarCatalogo() {
       try {
@@ -945,202 +961,196 @@ async function cargarOperadores() {
       await cargarSolicitudPorClave(clave);
     }
 
-async function cargarSolicitudPorClave(clave) {
-  if (!clave) return;
+    async function cargarSolicitudPorClave(clave) {
+      if (!clave) return;
 
-  $('folioSolicitud').value = clave;
-  setStatus('Cargando solicitud...');
+      $('folioSolicitud').value = clave;
+      setStatus('Cargando solicitud...');
 
-  try {
-    let snap = await getDoc(doc(db, ...COLECCION_SOLICITUDES, clave));
+      try {
+        let snap = await getDoc(doc(db, ...COLECCION_SOLICITUDES, clave));
 
-    if (!snap.exists()) {
-      const qFol = query(
-        collection(db, ...COLECCION_SOLICITUDES),
-        where('folio', '==', clave),
-        limit(1)
-      );
-      const folSnap = await getDocs(qFol);
+        if (!snap.exists()) {
+          const qFol = query(
+            collection(db, ...COLECCION_SOLICITUDES),
+            where('folio', '==', clave),
+            limit(1)
+          );
+          const folSnap = await getDocs(qFol);
 
-      if (folSnap.empty) {
-        setStatus('No se encontró la solicitud.', 'error');
+          if (folSnap.empty) {
+            setStatus('No se encontró la solicitud.', 'error');
+            return;
+          }
+
+          snap = folSnap.docs[0];
+        }
+
+        const data = snap.data() || {};
+
+        if (data.estatus === 'SURTIDO') {
+          setStatus(`❌ La solicitud ${data.folio || snap.id} ya fue SURTIDA el ${fechaMx(data.fecha_surtido)}. No se puede modificar.`, 'error');
+          alert(`❌ Solicitud SURTIDA\n\nLa solicitud ${data.folio || snap.id} ya fue completada el ${fechaMx(data.fecha_surtido)}.\n\nNo se puede modificar ni guardar cambios.`);
+          return;
+        }
+
+        solicitudOriginal = { id: snap.id, ...data };
+        $('folioSolicitud').value = data.folio || snap.id;
+
+        let surtidoPendiente = null;
+        if (data.ultimo_surtido_parcial && data.ultimo_surtido_parcial.folio_surtido) {
+          surtidoPendiente = await cargarSurtidoPendientePorFolio(data.ultimo_surtido_parcial.folio_surtido);
+        }
+
+        if (surtidoPendiente) {
+          $('folioEntrada').value = surtidoPendiente.folio_surtido;
+
+          if (surtidoPendiente.detalle && Array.isArray(surtidoPendiente.detalle)) {
+            detalle = surtidoPendiente.detalle.map(item => ({
+              codigo: item.codigo || '',
+              nombre: item.nombre || '',
+              cantidad_solicitada: Number(item.cantidad_solicitada || 0),
+              cantidad_surtida: Number(item.cantidad_surtida || 0),
+              diferencia: Number(item.diferencia || 0),
+              agregado_en_surtido: item.agregado_en_surtido || false,
+              precioPublico: Number(item.precioPublico || 0),
+              unidad: item.unidad || '',
+              origen_solicitud: item.origen_solicitud || 'SOLICITUD',
+              codigosEquivalentes: Array.isArray(item.codigosEquivalentes) ? item.codigosEquivalentes : []
+            }));
+          }
+
+          setStatus(`Se encontró un surtido pendiente. Progreso cargado.`, 'ok');
+        } else {
+          $('folioEntrada').value = generarFolioEntrada();
+          detalle = [];
+        }
+
+        $('sucursalDestino').value = data.sucursal || data.destino || SUCURSAL;
+
+        if (!detalle.length) {
+          const itemsSolicitud = Array.isArray(data.carrito)
+            ? data.carrito
+            : Array.isArray(data.items)
+              ? data.items
+              : [];
+
+          detalle = itemsSolicitud.map(crearLineaDesdeSolicitud);
+        }
+
+        recalcularTodo();
+
+        if (!detalle.length) {
+          setStatus(`Solicitud ${data.folio || snap.id} cargada, pero sin partidas visibles.`, 'error');
+          return;
+        }
+
+        setStatus(`Solicitud ${data.folio || snap.id} cargada correctamente.`, 'ok');
+      } catch (error) {
+        console.error(error);
+        setStatus('Error al cargar solicitud: ' + error.message, 'error');
+      }
+    }
+
+    async function cargarSurtidoPendientePorFolio(folio) {
+      try {
+        const docRef = doc(db, ...COLECCION_SURTIDO, folio);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists() && docSnap.data().estatus === 'PENDIENTE') {
+          return { folio_surtido: folio, ...docSnap.data() };
+        }
+        return null;
+      } catch (error) {
+        console.error('Error cargando surtido pendiente:', error);
+        return null;
+      }
+    }
+
+    async function abrirModalSolicitudes() {
+      try {
+        setStatus('Cargando solicitudes disponibles...');
+
+        const q = query(collection(db, ...COLECCION_SOLICITUDES), limit(200));
+        const snap = await getDocs(q);
+        solicitudesDisponibles = [];
+
+        snap.forEach(docSnap => {
+          const data = docSnap.data() || {};
+
+          if (data.estatus === 'SURTIDO') return;
+
+          const items = Array.isArray(data.carrito)
+            ? data.carrito
+            : Array.isArray(data.items)
+              ? data.items
+              : [];
+
+          solicitudesDisponibles.push({
+            id: docSnap.id,
+            folio: data.folio || docSnap.id,
+            estatus: data.estatus || '',
+            fechaSolicitud: data.fechaSolicitud || data.fecha || '',
+            fecha_surtido: data.fecha_surtido || '',
+            totalPiezas: data.totalPiezas || items.reduce((acc, x) => {
+              return acc + Number(x.cantidad || x.cantidad_solicitada || 0);
+            }, 0),
+            totalPartidas: data.totalPartidas || items.length
+          });
+        });
+
+        solicitudesDisponibles.sort((a, b) => {
+          return String(b.folio || '').localeCompare(String(a.folio || ''));
+        });
+
+        renderListaSolicitudesModal(solicitudesDisponibles);
+
+        $('modalSolicitudes').style.display = 'flex';
+        $('buscarSolicitudModal').value = '';
+        $('buscarSolicitudModal').focus();
+
+        if (solicitudesDisponibles.length === 0) {
+          setStatus('No hay solicitudes pendientes disponibles.', 'ok');
+        } else {
+          setStatus(`Selecciona una solicitud pendiente (${solicitudesDisponibles.length} disponibles).`, 'ok');
+        }
+      } catch (error) {
+        console.error(error);
+        setStatus('No se pudieron cargar las solicitudes: ' + error.message, 'error');
+      }
+    }
+
+    function renderListaSolicitudesModal(lista) {
+      const cont = $('listaSolicitudesModal');
+
+      if (!lista.length) {
+        cont.innerHTML = `<div class="sol-item">No hay solicitudes PENDIENTES disponibles.</div>`;
         return;
       }
 
-      snap = folSnap.docs[0];
-    }
+      cont.innerHTML = lista.map(item => {
+        return `
+          <div class="sol-item" data-id="${escapeHtml(item.id)}" style="background: #f0fdf4; border-left: 4px solid #16a34a;">
+            <div class="sol-item-title">
+              ${escapeHtml(item.folio)}
+              <span class="badge ok" style="margin-left: 8px; font-size: 11px;">PENDIENTE</span>
+            </div>
+            <div class="sol-item-meta">
+              Partidas: ${Number(item.totalPartidas || 0)} | Piezas: ${Number(item.totalPiezas || 0)}<br>
+              Fecha solicitud: ${escapeHtml(fechaMx(item.fechaSolicitud))}
+            </div>
+          </div>
+        `;
+      }).join('');
 
-    const data = snap.data() || {};
-
-    // BLOQUEAR TOTALMENTE SI ESTÁ SURTIDA
-    if (data.estatus === 'SURTIDO') {
-      setStatus(`❌ La solicitud ${data.folio || snap.id} ya fue SURTIDA el ${fechaMx(data.fecha_surtido)}. No se puede modificar.`, 'error');
-      alert(`❌ Solicitud SURTIDA\n\nLa solicitud ${data.folio || snap.id} ya fue completada el ${fechaMx(data.fecha_surtido)}.\n\nNo se puede modificar ni guardar cambios.`);
-      return;
-    }
-
-    solicitudOriginal = { id: snap.id, ...data };
-    $('folioSolicitud').value = data.folio || snap.id;
-
-    let surtidoPendiente = null;
-    if (data.ultimo_surtido_parcial && data.ultimo_surtido_parcial.folio_surtido) {
-      surtidoPendiente = await cargarSurtidoPendientePorFolio(data.ultimo_surtido_parcial.folio_surtido);
-    }
-
-    if (surtidoPendiente) {
-      $('folioEntrada').value = surtidoPendiente.folio_surtido;
-
-      if (surtidoPendiente.detalle && Array.isArray(surtidoPendiente.detalle)) {
-        detalle = surtidoPendiente.detalle.map(item => ({
-          codigo: item.codigo || '',
-          nombre: item.nombre || '',
-          cantidad_solicitada: Number(item.cantidad_solicitada || 0),
-          cantidad_surtida: Number(item.cantidad_surtida || 0),
-          diferencia: Number(item.diferencia || 0),
-          agregado_en_surtido: item.agregado_en_surtido || false,
-          precioPublico: Number(item.precioPublico || 0),
-          unidad: item.unidad || '',
-          origen_solicitud: item.origen_solicitud || 'SOLICITUD',
-          codigosEquivalentes: Array.isArray(item.codigosEquivalentes) ? item.codigosEquivalentes : []
-        }));
-      }
-
-      setStatus(`Se encontró un surtido pendiente. Progreso cargado.`, 'ok');
-    } else {
-      $('folioEntrada').value = generarFolioEntrada();
-      detalle = [];
-    }
-
-    $('sucursalDestino').value = data.sucursal || data.destino || SUCURSAL;
-
-    if (!detalle.length) {
-      const itemsSolicitud = Array.isArray(data.carrito)
-        ? data.carrito
-        : Array.isArray(data.items)
-          ? data.items
-          : [];
-
-      detalle = itemsSolicitud.map(crearLineaDesdeSolicitud);
-    }
-
-    recalcularTodo();
-
-    if (!detalle.length) {
-      setStatus(`Solicitud ${data.folio || snap.id} cargada, pero sin partidas visibles.`, 'error');
-      return;
-    }
-
-    setStatus(`Solicitud ${data.folio || snap.id} cargada correctamente.`, 'ok');
-  } catch (error) {
-    console.error(error);
-    setStatus('Error al cargar solicitud: ' + error.message, 'error');
-  }
-}
-
-// Nueva función para cargar un surtido pendiente
-async function cargarSurtidoPendientePorFolio(folio) {
-  try {
-    const docRef = doc(db, ...COLECCION_SURTIDO, folio);
-    const docSnap = await getDoc(docRef);
-    
-    if (docSnap.exists() && docSnap.data().estatus === 'PENDIENTE') {
-      return { folio_surtido: folio, ...docSnap.data() };
-    }
-    return null;
-  } catch (error) {
-    console.error('Error cargando surtido pendiente:', error);
-    return null;
-  }
-}
-
-
-async function abrirModalSolicitudes() {
-  try {
-    setStatus('Cargando solicitudes disponibles...');
-
-    const q = query(collection(db, ...COLECCION_SOLICITUDES), limit(200));
-    const snap = await getDocs(q);
-    solicitudesDisponibles = [];
-
-    snap.forEach(docSnap => {
-      const data = docSnap.data() || {};
-      
-      // SALTAR LAS QUE YA ESTÁN SURTIDAS - NO MOSTRARLAS
-      if (data.estatus === 'SURTIDO') return;
-      
-      const items = Array.isArray(data.carrito)
-        ? data.carrito
-        : Array.isArray(data.items)
-          ? data.items
-          : [];
-
-      solicitudesDisponibles.push({
-        id: docSnap.id,
-        folio: data.folio || docSnap.id,
-        estatus: data.estatus || '',
-        fechaSolicitud: data.fechaSolicitud || data.fecha || '',
-        fecha_surtido: data.fecha_surtido || '',
-        totalPiezas: data.totalPiezas || items.reduce((acc, x) => {
-          return acc + Number(x.cantidad || x.cantidad_solicitada || 0);
-        }, 0),
-        totalPartidas: data.totalPartidas || items.length
+      cont.querySelectorAll('.sol-item[data-id]').forEach(el => {
+        el.addEventListener('click', async () => {
+          const docId = el.dataset.id;
+          $('modalSolicitudes').style.display = 'none';
+          await cargarSolicitudPorClave(docId);
+        });
       });
-    });
-
-    // Ya no es necesario ordenar porque todas son PENDIENTES
-    solicitudesDisponibles.sort((a, b) => {
-      return String(b.folio || '').localeCompare(String(a.folio || ''));
-    });
-
-    renderListaSolicitudesModal(solicitudesDisponibles);
-
-    $('modalSolicitudes').style.display = 'flex';
-    $('buscarSolicitudModal').value = '';
-    $('buscarSolicitudModal').focus();
-
-    if (solicitudesDisponibles.length === 0) {
-      setStatus('No hay solicitudes pendientes disponibles.', 'ok');
-    } else {
-      setStatus(`Selecciona una solicitud pendiente (${solicitudesDisponibles.length} disponibles).`, 'ok');
     }
-  } catch (error) {
-    console.error(error);
-    setStatus('No se pudieron cargar las solicitudes: ' + error.message, 'error');
-  }
-}
-
-function renderListaSolicitudesModal(lista) {
-  const cont = $('listaSolicitudesModal');
-
-  if (!lista.length) {
-    cont.innerHTML = `<div class="sol-item">No hay solicitudes PENDIENTES disponibles.</div>`;
-    return;
-  }
-
-  cont.innerHTML = lista.map(item => {
-    return `
-      <div class="sol-item" data-id="${escapeHtml(item.id)}" style="background: #f0fdf4; border-left: 4px solid #16a34a;">
-        <div class="sol-item-title">
-          ${escapeHtml(item.folio)}
-          <span class="badge ok" style="margin-left: 8px; font-size: 11px;">PENDIENTE</span>
-        </div>
-        <div class="sol-item-meta">
-          Partidas: ${Number(item.totalPartidas || 0)} | Piezas: ${Number(item.totalPiezas || 0)}<br>
-          Fecha solicitud: ${escapeHtml(fechaMx(item.fechaSolicitud))}
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  cont.querySelectorAll('.sol-item[data-id]').forEach(el => {
-    el.addEventListener('click', async () => {
-      const docId = el.dataset.id;
-      $('modalSolicitudes').style.display = 'none';
-      await cargarSolicitudPorClave(docId);
-    });
-  });
-}
-
 
     function agregarProductoExtra() {
       if (!productoSeleccionado) {
@@ -1181,349 +1191,554 @@ function renderListaSolicitudesModal(lista) {
       recalcularTodo();
     }
 
-function validarGuardar() {
-  if (!solicitudOriginal) {
-    alert('Primero carga una solicitud.');
-    return false;
-  }
-  
-  // BLOQUEAR GUARDADO SI LA SOLICITUD YA ESTÁ SURTIDA
-  if (solicitudOriginal.estatus === 'SURTIDO') {
-    alert('Esta solicitud ya fue SURTIDA anteriormente. No se pueden guardar cambios.');
-    return false;
-  }
-
-  if (!$('folioEntrada').value.trim()) {
-    alert('No hay folio de surtido.');
-    return false;
-  }
-
-
-
-  if (!detalle.length) {
-    alert('No hay partidas para guardar.');
-    return false;
-  }
-
-  return true;
-}
-
-function construirPayloadSurtido(responsables = null) {
-  const totalPartidas = detalle.length;
-  const totalPartidasSolicitadas = detalle.filter(x => Number(x.cantidad_solicitada || 0) > 0).length;
-  const totalPartidasConDiferencia = detalle.filter(x => Number(x.diferencia || 0) !== 0).length;
-  const totalNoSurtidas = detalle.filter(x => Number(x.cantidad_solicitada || 0) > 0 && Number(x.cantidad_surtida || 0) === 0).length;
-
-  const totalPiezasSolicitadas = detalle.reduce((acc, x) => acc + Number(x.cantidad_solicitada || 0), 0);
-  const totalPiezasSurtidas = detalle.reduce((acc, x) => acc + Number(x.cantidad_surtida || 0), 0);
-
-  const importeSolicitado = detalle.reduce((acc, x) => {
-    return acc + (Number(x.cantidad_solicitada || 0) * Number(x.precioPublico || 0));
-  }, 0);
-
-  const importeSurtido = detalle.reduce((acc, x) => {
-    return acc + (Number(x.cantidad_surtida || 0) * Number(x.precioPublico || 0));
-  }, 0);
-
-  const payload = {
-    folio_surtido: $('folioEntrada').value.trim(),
-    folio_solicitud: solicitudOriginal?.folio || solicitudOriginal?.id || '',
-    solicitud_id: solicitudOriginal?.id || '',
-    sucursal_destino: $('sucursalDestino').value.trim() || SUCURSAL,
-    almacen_origen: $('almacenOrigen').value.trim() || 'MATRIZ',
-operador_captura: responsables?.quienCaptura || '',
-    fecha_guardado: nowISO(),
-    fecha_guardado_server: serverTimestamp(),
-    estatus: 'SURTIDO',
-    total_partidas: totalPartidas,
-    total_partidas_solicitadas: totalPartidasSolicitadas,
-    total_partidas_con_diferencia: totalPartidasConDiferencia,
-    total_no_surtidas: totalNoSurtidas,
-    total_piezas_solicitadas: totalPiezasSolicitadas,
-    total_piezas_surtidas: totalPiezasSurtidas,
-    total_diferencia_piezas: totalPiezasSurtidas - totalPiezasSolicitadas,
-    importe_solicitado: Number(importeSolicitado.toFixed(2)),
-    importe_surtido: Number(importeSurtido.toFixed(2)),
-    detalle: detalle.map((x, i) => ({
-      renglon: i + 1,
-      codigo: x.codigo || '',
-      nombre: x.nombre || '',
-      cantidad_solicitada: Number(x.cantidad_solicitada || 0),
-      cantidad_surtida: Number(x.cantidad_surtida || 0),
-      diferencia: Number(x.diferencia || 0),
-      agregado_en_surtido: x.agregado_en_surtido === true,
-      precioPublico: Number(x.precioPublico || 0),
-      importe_solicitado: Number((Number(x.cantidad_solicitada || 0) * Number(x.precioPublico || 0)).toFixed(2)),
-      importe_surtido: Number((Number(x.cantidad_surtida || 0) * Number(x.precioPublico || 0)).toFixed(2)),
-      unidad: x.unidad || '',
-      origen_solicitud: x.origen_solicitud || '',
-      codigosEquivalentes: Array.isArray(x.codigosEquivalentes) ? x.codigosEquivalentes : []
-    }))
-  };
-
-  // AGREGAR LOS CAMPOS DE RESPONSABLES SOLO SI VIENEN
-  if (responsables && responsables.quienCaptura) {
-    payload.quien_captura = responsables.quienCaptura;
-    payload.quien_surte = responsables.quienSurte;
-    payload.quien_lleva = responsables.quienLleva;
-    payload.fecha_surtido_completo = nowISO();
-  }
-
-  return payload;
-}
-
-async function guardarSurtido() {
-  if (!validarGuardar()) return;
-
-  const respuesta = await mostrarDialogoOpcion();
-  if (respuesta === null) return;
-  const accion = respuesta.accion;
-
-  const btn = $('btnGuardarSurtido');
-  const textoOriginal = btn.textContent;
-
-  try {
-    btn.disabled = true;
-    btn.textContent = 'Guardando...';
-    setStatus('Guardando surtido...');
-
-    const payload = construirPayloadSurtido(respuesta);
-    
-    // CORREGIDO: eliminar la declaración duplicada de 'ref'
-    const ref = doc(db, ...COLECCION_SURTIDO, payload.folio_surtido);
-    
-    if (accion === 'PENDIENTE') {
-      payload.estatus = 'PENDIENTE';
-    }
-    
-    await setDoc(ref, payload);
-
-    if (solicitudOriginal && solicitudOriginal.id) {
-      const solicitudRef = doc(db, ...COLECCION_SOLICITUDES, solicitudOriginal.id);
-
-      if (accion === 'SURTIR') {
-        await setDoc(solicitudRef, {
-          estatus: 'SURTIDO',
-          fecha_surtido: nowISO(),
-          folio_surtido: payload.folio_surtido,
-          ultimo_surtido_parcial: null
-        }, { merge: true });
-
-        // cerrar también el estado local para bloquear cualquier edición posterior
-        solicitudOriginal.estatus = 'SURTIDO';
-
-        setStatus(`✓ Surtido COMPLETADO y solicitud marcada como SURTIDO: ${payload.folio_surtido}`, 'ok');
-
-        alert(`Surtido completado correctamente.\n\nFolio: ${payload.folio_surtido}`);
-
-        limpiarPantalla();
-        return;
+    function validarGuardar() {
+      if (!solicitudOriginal) {
+        alert('Primero carga una solicitud.');
+        return false;
       }
 
-      if (accion === 'PENDIENTE') {
-        await setDoc(solicitudRef, {
-          estatus: 'PENDIENTE',
-          ultimo_surtido_parcial: {
-            folio_surtido: payload.folio_surtido,
-            fecha: nowISO(),
-            operador: respuesta?.quienCaptura || '',
-            total_partidas: payload.total_partidas,
-            total_piezas_surtidas: payload.total_piezas_surtidas,
-            importe_surtido: payload.importe_surtido
+      if (solicitudOriginal.estatus === 'SURTIDO') {
+        alert('Esta solicitud ya fue SURTIDA anteriormente. No se pueden guardar cambios.');
+        return false;
+      }
+
+      if (!$('folioEntrada').value.trim()) {
+        alert('No hay folio de surtido.');
+        return false;
+      }
+
+      if (!detalle.length) {
+        alert('No hay partidas para guardar.');
+        return false;
+      }
+
+      return true;
+    }
+
+    function construirPayloadSurtido(responsables = null) {
+      const totalPartidas = detalle.length;
+      const totalPartidasSolicitadas = detalle.filter(x => Number(x.cantidad_solicitada || 0) > 0).length;
+      const totalPartidasConDiferencia = detalle.filter(x => Number(x.diferencia || 0) !== 0).length;
+      const totalNoSurtidas = detalle.filter(x => Number(x.cantidad_solicitada || 0) > 0 && Number(x.cantidad_surtida || 0) === 0).length;
+
+      const totalPiezasSolicitadas = detalle.reduce((acc, x) => acc + Number(x.cantidad_solicitada || 0), 0);
+      const totalPiezasSurtidas = detalle.reduce((acc, x) => acc + Number(x.cantidad_surtida || 0), 0);
+
+      const importeSolicitado = detalle.reduce((acc, x) => {
+        return acc + (Number(x.cantidad_solicitada || 0) * Number(x.precioPublico || 0));
+      }, 0);
+
+      const importeSurtido = detalle.reduce((acc, x) => {
+        return acc + (Number(x.cantidad_surtida || 0) * Number(x.precioPublico || 0));
+      }, 0);
+
+      const payload = {
+        folio_surtido: $('folioEntrada').value.trim(),
+        folio_solicitud: solicitudOriginal?.folio || solicitudOriginal?.id || '',
+        solicitud_id: solicitudOriginal?.id || '',
+        sucursal_destino: $('sucursalDestino').value.trim() || SUCURSAL,
+        almacen_origen: $('almacenOrigen').value.trim() || 'MATRIZ',
+        operador_captura: responsables?.quienCaptura || '',
+        fecha_guardado: nowISO(),
+        fecha_guardado_server: serverTimestamp(),
+        estatus: 'SURTIDO',
+        total_partidas: totalPartidas,
+        total_partidas_solicitadas: totalPartidasSolicitadas,
+        total_partidas_con_diferencia: totalPartidasConDiferencia,
+        total_no_surtidas: totalNoSurtidas,
+        total_piezas_solicitadas: totalPiezasSolicitadas,
+        total_piezas_surtidas: totalPiezasSurtidas,
+        total_diferencia_piezas: totalPiezasSurtidas - totalPiezasSolicitadas,
+        importe_solicitado: Number(importeSolicitado.toFixed(2)),
+        importe_surtido: Number(importeSurtido.toFixed(2)),
+        detalle: detalle.map((x, i) => ({
+          renglon: i + 1,
+          codigo: x.codigo || '',
+          nombre: x.nombre || '',
+          cantidad_solicitada: Number(x.cantidad_solicitada || 0),
+          cantidad_surtida: Number(x.cantidad_surtida || 0),
+          diferencia: Number(x.diferencia || 0),
+          agregado_en_surtido: x.agregado_en_surtido === true,
+          precioPublico: Number(x.precioPublico || 0),
+          importe_solicitado: Number((Number(x.cantidad_solicitada || 0) * Number(x.precioPublico || 0)).toFixed(2)),
+          importe_surtido: Number((Number(x.cantidad_surtida || 0) * Number(x.precioPublico || 0)).toFixed(2)),
+          unidad: x.unidad || '',
+          origen_solicitud: x.origen_solicitud || '',
+          codigosEquivalentes: Array.isArray(x.codigosEquivalentes) ? x.codigosEquivalentes : []
+        }))
+      };
+
+      if (responsables && responsables.quienCaptura) {
+        payload.quien_captura = responsables.quienCaptura;
+        payload.quien_surte = responsables.quienSurte;
+        payload.quien_lleva = responsables.quienLleva;
+        payload.fecha_surtido_completo = nowISO();
+      }
+
+      return payload;
+    }
+
+    function cargarImagenComoDataURL(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    function cortarTexto(doc, text, maxWidth) {
+      return doc.splitTextToSize(String(text || ''), maxWidth);
+    }
+
+    async function generarPDFOficial(payload) {
+      const { jsPDF } = window.jspdf;
+      const docPdf = new jsPDF('p', 'mm', 'letter');
+
+      const pageWidth = docPdf.internal.pageSize.getWidth();
+      const pageHeight = docPdf.internal.pageSize.getHeight();
+      const margin = 10;
+      let y = 10;
+
+      let logoData = null;
+      try {
+        logoData = await cargarImagenComoDataURL(LOGO_URL);
+      } catch (e) {
+        console.warn('No se pudo cargar el logo para el PDF:', e);
+      }
+
+      const drawHeader = () => {
+        docPdf.setFillColor(0, 65, 106);
+        docPdf.rect(0, 0, pageWidth, 22, 'F');
+
+        if (logoData) {
+          try {
+            docPdf.addImage(logoData, 'PNG', 10, 4, 48, 14);
+          } catch (e) {
+            console.warn('No se pudo insertar logo en PDF:', e);
           }
-        }, { merge: true });
-
-        setStatus(`⚠ Surtido guardado como PENDIENTE. Puede continuar después con el folio: ${payload.folio_surtido}`, 'ok');
-
-        const continuar = confirm(
-          'Surtido guardado como PENDIENTE.\n\n¿Desea CONTINUAR EDITANDO este mismo surtido?\n\nAceptar = seguir editando\nCancelar = limpiar pantalla'
-        );
-
-        if (continuar) {
-          $('folioEntrada').value = payload.folio_surtido;
-          setStatus(`Continuando con surtido PENDIENTE: ${payload.folio_surtido}. Puede seguir modificando.`, 'ok');
-        } else {
-          limpiarPantalla();
         }
 
-        return;
+        docPdf.setTextColor(255, 255, 255);
+        docPdf.setFont('helvetica', 'bold');
+        docPdf.setFontSize(16);
+        docPdf.text('DOCUMENTO OFICIAL DE SURTIDO DE TRANSFERENCIA', pageWidth - 10, 11, { align: 'right' });
+
+        docPdf.setFontSize(9);
+        docPdf.setFont('helvetica', 'normal');
+        docPdf.text('PROVSOFT', pageWidth - 10, 17, { align: 'right' });
+
+        docPdf.setTextColor(0, 0, 0);
+      };
+
+      const drawFooter = () => {
+        const footerY = pageHeight - 8;
+        docPdf.setFontSize(8);
+        docPdf.setTextColor(90, 90, 90);
+        docPdf.text(`Generado: ${fechaMx(nowISO())}`, 10, footerY);
+        docPdf.text(`Página ${docPdf.internal.getNumberOfPages()}`, pageWidth - 10, footerY, { align: 'right' });
+        docPdf.setTextColor(0, 0, 0);
+      };
+
+      drawHeader();
+      y = 28;
+
+      docPdf.setDrawColor(210, 220, 230);
+      docPdf.setDrawColor(210, 220, 230);
+      docPdf.setFillColor(247, 249, 252);
+      docPdf.roundedRect(margin, y, pageWidth - 20, 28, 3, 3, 'FD');
+
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(12);
+      docPdf.text('DATOS GENERALES', margin + 3, y + 6);
+
+      docPdf.setFont('helvetica', 'normal');
+      docPdf.setFontSize(9);
+
+      docPdf.text(`Folio surtido: ${payload.folio_surtido || ''}`, margin + 3, y + 12);
+      docPdf.text(`Folio solicitud: ${payload.folio_solicitud || ''}`, margin + 70, y + 12);
+      docPdf.text(`Estatus: ${payload.estatus || ''}`, margin + 150, y + 12);
+
+      docPdf.text(`Sucursal destino: ${payload.sucursal_destino || ''}`, margin + 3, y + 18);
+      docPdf.text(`Almacén origen: ${payload.almacen_origen || ''}`, margin + 95, y + 18);
+
+      docPdf.text(`Fecha: ${fechaMx(payload.fecha_surtido_completo || payload.fecha_guardado || nowISO())}`, margin + 3, y + 24);
+
+      y += 34;
+      y += 6;
+
+    
+      const bodyRows = (payload.detalle || []).map((item, idx) => [
+        idx + 1,
+        item.codigo || '',
+        item.nombre || '',
+        Number(item.cantidad_solicitada || 0),
+        Number(item.cantidad_surtida || 0),
+        Number(item.diferencia || 0),
+        item.agregado_en_surtido ? 'SI' : 'NO',
+        money(item.precioPublico || 0),
+        money(item.importe_solicitado || 0),
+        money(item.importe_surtido || 0)
+      ]);
+
+      docPdf.autoTable({
+        startY: y,
+        head: [[
+          '#',
+          'Código',
+          'Producto',
+          'Solicitado',
+          'Surtido',
+          'Dif.',
+          'Extra',
+          'Precio',
+          'Imp. Sol.',
+          'Imp. Surt.'
+        ]],
+        body: bodyRows,
+        theme: 'grid',
+        styles: {
+          fontSize: 7.5,
+          cellPadding: 1.8,
+          valign: 'middle',
+          overflow: 'linebreak'
+        },
+        headStyles: {
+          fillColor: [12, 108, 189],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 8, halign: 'center' },
+          1: { cellWidth: 23 },
+          2: { cellWidth: 54 },
+          3: { cellWidth: 17, halign: 'center' },
+          4: { cellWidth: 17, halign: 'center' },
+          5: { cellWidth: 14, halign: 'center' },
+          6: { cellWidth: 14, halign: 'center' },
+          7: { cellWidth: 18, halign: 'right' },
+          8: { cellWidth: 20, halign: 'right' },
+          9: { cellWidth: 20, halign: 'right' }
+        },
+        margin: { left: margin, right: margin, bottom: 48 },
+        didDrawPage: () => {
+          drawHeader();
+          drawFooter();
+        }
+      });
+
+      let finalY = docPdf.lastAutoTable.finalY + 10;
+
+      if (finalY > pageHeight - 55) {
+        docPdf.addPage();
+        drawHeader();
+        finalY = 32;
       }
 
-      setStatus('Acción no reconocida al guardar.', 'error');
-      return;
-    } else {
-      setStatus(`Surtido guardado correctamente: ${payload.folio_surtido}`, 'ok');
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(11);
+      docPdf.text('FIRMAS', margin, finalY);
+
+      const firmaY = finalY + 18;
+      const boxW = 58;
+      const gap = 8;
+      const x1 = margin;
+      const x2 = x1 + boxW + gap;
+      const x3 = x2 + boxW + gap;
+
+      const drawFirmaBox = (x, yBox, titulo, nombre = '') => {
+        docPdf.setDrawColor(160, 160, 160);
+        docPdf.roundedRect(x, yBox, boxW, 28, 2, 2);
+        docPdf.line(x + 4, yBox + 18, x + boxW - 4, yBox + 18);
+        docPdf.setFont('helvetica', 'bold');
+        docPdf.setFontSize(9);
+        docPdf.text(titulo, x + boxW / 2, yBox + 23, { align: 'center' });
+        docPdf.setFont('helvetica', 'normal');
+        docPdf.setFontSize(8);
+        const lineas = cortarTexto(docPdf, nombre || '', boxW - 8);
+        docPdf.text(lineas, x + boxW / 2, yBox + 26.5, { align: 'center', maxWidth: boxW - 8 });
+      };
+
+      drawFirmaBox(x1, firmaY, 'CAPTURISTA', payload.quien_captura || '');
+      drawFirmaBox(x2, firmaY, 'CHOFER', payload.quien_lleva || '');
+      drawFirmaBox(x3, firmaY, 'RECIBE SUCURSAL DESTINO', '');
+
+      const observY = firmaY + 36;
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(10);
+      docPdf.text('OBSERVACIONES', margin, observY);
+
+      docPdf.setFont('helvetica', 'normal');
+      docPdf.setFontSize(8.5);
+      docPdf.roundedRect(margin, observY + 3, pageWidth - 20, 20, 2, 2);
+      docPdf.text('______________________________________________________________________________________________', margin + 3, observY + 11);
+      docPdf.text('______________________________________________________________________________________________', margin + 3, observY + 17);
+
+      const nombreArchivo = `${payload.folio_surtido || 'SURTIDO'}_${String(payload.sucursal_destino || 'DESTINO').replaceAll(' ', '_')}.pdf`;
+      docPdf.save(nombreArchivo);
     }
 
-  } catch (error) {
-    console.error(error);
-    setStatus('Error al guardar surtido: ' + error.message, 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = textoOriginal;
-  }
-}
+    async function guardarSurtido() {
+      if (!validarGuardar()) return;
 
-const RESPONSABLES = {
-  captura: [
-    'DORA ALICIA CARDENAS TORRES',
-    'ERIK SAUL RAMIREZ LUNA',
-    'LEONARDO DANIEL CUELLAR MARTINEZ'
-  ],
-  chofer: [
-    'JOSE IGNACIO OLVERA BOCANEGRA',
-    'DAVID WENCESLAO MORALES MARTINEZ',
-    'EDUARDO CUELLAR VAZQUEZ'
-  ],
-  surtido: [
-    'JUAN MANUEL ROJAS SANCHEZ',
-    'JUAN MANUEL TAMEZ SERRATO'
-  ]
-};
+      const respuesta = await mostrarDialogoOpcion();
+      if (respuesta === null) return;
+      const accion = respuesta.accion;
 
-function mostrarDialogoOpcion() {
-  return new Promise((resolve) => {
-    const opcionesCaptura = RESPONSABLES.captura.map(nombre =>
-      `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`
-    ).join('');
+      const btn = $('btnGuardarSurtido');
+      const textoOriginal = btn.textContent;
 
-    const opcionesSurtido = RESPONSABLES.surtido.map(nombre =>
-      `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`
-    ).join('');
+      try {
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+        setStatus('Guardando surtido...');
 
-    const opcionesChofer = RESPONSABLES.chofer.map(nombre =>
-      `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`
-    ).join('');
+        const payload = construirPayloadSurtido(respuesta);
+        const ref = doc(db, ...COLECCION_SURTIDO, payload.folio_surtido);
 
-    const modal = document.createElement('div');
-    modal.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-    `;
+        if (accion === 'PENDIENTE') {
+          payload.estatus = 'PENDIENTE';
+        }
 
-    const dialog = document.createElement('div');
-    dialog.style.cssText = `
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      max-width: 450px;
-      width: 90%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    `;
+        await setDoc(ref, payload);
 
-    dialog.innerHTML = `
-      <h3 style="margin: 0 0 16px 0; color: #00416A; text-align: center;">Finalizar surtido</h3>
-      <p style="margin: 0 0 20px 0; color: #4b5563; text-align: center;">¿Cómo desea marcar esta solicitud?</p>
+        if (solicitudOriginal && solicitudOriginal.id) {
+          const solicitudRef = doc(db, ...COLECCION_SOLICITUDES, solicitudOriginal.id);
 
-      <div id="formResponsables" style="display: none; margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #dbe2ea;">
-        <div style="margin-bottom: 12px;">
-          <label style="display: block; font-size: 12px; font-weight: bold; color: #00416A; margin-bottom: 4px;">👤 QUIÉN CAPTURA</label>
-          <select id="selectQuienCaptura" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cfd8e3;">
-            <option value="">Selecciona...</option>
-            ${opcionesCaptura}
-          </select>
-        </div>
+          if (accion === 'SURTIR') {
+            await setDoc(solicitudRef, {
+              estatus: 'SURTIDO',
+              fecha_surtido: nowISO(),
+              folio_surtido: payload.folio_surtido,
+              ultimo_surtido_parcial: null
+            }, { merge: true });
 
-        <div style="margin-bottom: 12px;">
-          <label style="display: block; font-size: 12px; font-weight: bold; color: #00416A; margin-bottom: 4px;">🚚 QUIÉN SURTE</label>
-          <select id="selectQuienSurte" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cfd8e3;">
-            <option value="">Selecciona...</option>
-            ${opcionesSurtido}
-          </select>
-        </div>
+            solicitudOriginal.estatus = 'SURTIDO';
 
-        <div style="margin-bottom: 0;">
-          <label style="display: block; font-size: 12px; font-weight: bold; color: #00416A; margin-bottom: 4px;">📦 QUIÉN LLEVA (CHOFER)</label>
-          <select id="selectQuienLleva" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cfd8e3;">
-            <option value="">Selecciona...</option>
-            ${opcionesChofer}
-          </select>
-        </div>
-      </div>
+            await generarPDFOficial(payload);
 
-      <div style="display: flex; gap: 12px;">
-        <button id="btnSurtirCompleto" style="flex: 1; background: #16a34a; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">
-          ✓ SURTIDO
-        </button>
-        <button id="btnQuedaPendiente" style="flex: 1; background: #f59e0b; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">
-          ⏳ PENDIENTE
-        </button>
-      </div>
+            setStatus(`✓ Surtido COMPLETADO, solicitud marcada como SURTIDO y PDF generado: ${payload.folio_surtido}`, 'ok');
+            alert(`Surtido completado correctamente.\n\nFolio: ${payload.folio_surtido}\n\nSe generó el PDF oficial.`);
 
-      <button id="btnCancelarOpcion" style="margin-top: 16px; background: #e5e7eb; color: #374151; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%;">
-        Cancelar
-      </button>
-    `;
+            limpiarPantalla();
+            return;
+          }
 
-    modal.appendChild(dialog);
-    document.body.appendChild(modal);
+          if (accion === 'PENDIENTE') {
+            await setDoc(solicitudRef, {
+              estatus: 'PENDIENTE',
+              ultimo_surtido_parcial: {
+                folio_surtido: payload.folio_surtido,
+                fecha: nowISO(),
+                operador: respuesta?.quienCaptura || '',
+                total_partidas: payload.total_partidas,
+                total_piezas_surtidas: payload.total_piezas_surtidas,
+                importe_surtido: payload.importe_surtido
+              }
+            }, { merge: true });
 
-    const btnSurtir = dialog.querySelector('#btnSurtirCompleto');
-    const btnPendiente = dialog.querySelector('#btnQuedaPendiente');
-    const btnCancelar = dialog.querySelector('#btnCancelarOpcion');
-    const formResponsables = dialog.querySelector('#formResponsables');
-    let mostrarFormulario = false;
+            setStatus(`⚠ Surtido guardado como PENDIENTE. Puede continuar después con el folio: ${payload.folio_surtido}`, 'ok');
 
-    btnSurtir.onclick = () => {
-      if (!mostrarFormulario) {
-        mostrarFormulario = true;
-        formResponsables.style.display = 'block';
-        btnSurtir.style.background = '#0d7a3a';
-        return;
+            const continuar = confirm(
+              'Surtido guardado como PENDIENTE.\n\n¿Desea CONTINUAR EDITANDO este mismo surtido?\n\nAceptar = seguir editando\nCancelar = limpiar pantalla'
+            );
+
+            if (continuar) {
+              $('folioEntrada').value = payload.folio_surtido;
+              setStatus(`Continuando con surtido PENDIENTE: ${payload.folio_surtido}. Puede seguir modificando.`, 'ok');
+            } else {
+              limpiarPantalla();
+            }
+
+            return;
+          }
+
+          setStatus('Acción no reconocida al guardar.', 'error');
+          return;
+        } else {
+          if (accion === 'SURTIR') {
+            await generarPDFOficial(payload);
+          }
+          setStatus(`Surtido guardado correctamente: ${payload.folio_surtido}`, 'ok');
+        }
+
+      } catch (error) {
+        console.error(error);
+        setStatus('Error al guardar surtido: ' + error.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = textoOriginal;
       }
+    }
 
-      const quienCaptura = dialog.querySelector('#selectQuienCaptura').value;
-      const quienSurte = dialog.querySelector('#selectQuienSurte').value;
-      const quienLleva = dialog.querySelector('#selectQuienLleva').value;
-
-      if (!quienCaptura || !quienSurte || !quienLleva) {
-        alert('Para marcar como SURTIDO, debe seleccionar quién captura, quién surte y quién lleva.');
-        return;
-      }
-
-      modal.remove();
-      resolve({ accion: 'SURTIR', quienCaptura, quienSurte, quienLleva });
+    const RESPONSABLES = {
+      captura: [
+        'DORA ALICIA CARDENAS TORRES',
+        'ERIK SAUL RAMIREZ LUNA',
+        'LEONARDO DANIEL CUELLAR MARTINEZ'
+      ],
+      chofer: [
+        'JOSE IGNACIO OLVERA BOCANEGRA',
+        'DAVID WENCESLAO MORALES MARTINEZ',
+        'EDUARDO CUELLAR VAZQUEZ'
+      ],
+      surtido: [
+        'JUAN MANUEL ROJAS SANCHEZ',
+        'JUAN MANUEL TAMEZ SERRATO'
+      ]
     };
 
-    btnPendiente.onclick = () => {
-      modal.remove();
-      resolve({ accion: 'PENDIENTE', quienCaptura: null, quienSurte: null, quienLleva: null });
-    };
+    function mostrarDialogoOpcion() {
+      return new Promise((resolve) => {
+        const opcionesCaptura = RESPONSABLES.captura.map(nombre =>
+          `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`
+        ).join('');
 
-    btnCancelar.onclick = () => {
-      modal.remove();
-      resolve(null);
-    };
-  });
-}
+        const opcionesSurtido = RESPONSABLES.surtido.map(nombre =>
+          `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`
+        ).join('');
 
-function limpiarPantalla() {
-  solicitudOriginal = null;
-  detalle = [];
-  productoSeleccionado = null;
-  solicitudesDisponibles = [];
+        const opcionesChofer = RESPONSABLES.chofer.map(nombre =>
+          `<option value="${escapeHtml(nombre)}">${escapeHtml(nombre)}</option>`
+        ).join('');
 
-  $('folioSolicitud').value = '';
-  $('folioEntrada').value = generarFolioEntrada();
-  $('sucursalDestino').value = SUCURSAL;
-$('almacenOrigen').value = 'CEDIS MATRIZ';
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+        `;
 
-  $('busquedaProducto').value = '';
-  $('cantidadAgregar').value = '1';
-  $('results').style.display = 'none';
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+          background: white;
+          border-radius: 16px;
+          padding: 24px;
+          max-width: 450px;
+          width: 90%;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        `;
 
-  renderDetalle();
-  renderResumen();
-  setStatus('Nueva operación lista. Seleccione una solicitud pendiente.', 'ok');
-}
+        dialog.innerHTML = `
+          <h3 style="margin: 0 0 16px 0; color: #00416A; text-align: center;">Finalizar surtido</h3>
+          <p style="margin: 0 0 20px 0; color: #4b5563; text-align: center;">¿Cómo desea marcar esta solicitud?</p>
+
+          <div id="formResponsables" style="display: none; margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #dbe2ea;">
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; font-size: 12px; font-weight: bold; color: #00416A; margin-bottom: 4px;">👤 QUIÉN CAPTURA</label>
+              <select id="selectQuienCaptura" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cfd8e3;">
+                <option value="">Selecciona...</option>
+                ${opcionesCaptura}
+              </select>
+            </div>
+
+            <div style="margin-bottom: 12px;">
+              <label style="display: block; font-size: 12px; font-weight: bold; color: #00416A; margin-bottom: 4px;">📦 QUIÉN SURTE</label>
+              <select id="selectQuienSurte" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cfd8e3;">
+                <option value="">Selecciona...</option>
+                ${opcionesSurtido}
+              </select>
+            </div>
+
+            <div style="margin-bottom: 0;">
+              <label style="display: block; font-size: 12px; font-weight: bold; color: #00416A; margin-bottom: 4px;">🚚 QUIÉN LLEVA (CHOFER)</label>
+              <select id="selectQuienLleva" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #cfd8e3;">
+                <option value="">Selecciona...</option>
+                ${opcionesChofer}
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px;">
+            <button id="btnSurtirCompleto" style="flex: 1; background: #16a34a; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+              ✓ SURTIDO
+            </button>
+            <button id="btnQuedaPendiente" style="flex: 1; background: #f59e0b; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">
+              ⏳ PENDIENTE
+            </button>
+          </div>
+
+          <button id="btnCancelarOpcion" style="margin-top: 16px; background: #e5e7eb; color: #374151; border: none; padding: 10px; border-radius: 8px; cursor: pointer; width: 100%;">
+            Cancelar
+          </button>
+        `;
+
+        modal.appendChild(dialog);
+        document.body.appendChild(modal);
+
+        const btnSurtir = dialog.querySelector('#btnSurtirCompleto');
+        const btnPendiente = dialog.querySelector('#btnQuedaPendiente');
+        const btnCancelar = dialog.querySelector('#btnCancelarOpcion');
+        const formResponsables = dialog.querySelector('#formResponsables');
+        let mostrarFormulario = false;
+
+        btnSurtir.onclick = () => {
+          if (!mostrarFormulario) {
+            mostrarFormulario = true;
+            formResponsables.style.display = 'block';
+            btnSurtir.style.background = '#0d7a3a';
+            return;
+          }
+
+          const quienCaptura = dialog.querySelector('#selectQuienCaptura').value;
+          const quienSurte = dialog.querySelector('#selectQuienSurte').value;
+          const quienLleva = dialog.querySelector('#selectQuienLleva').value;
+
+          if (!quienCaptura || !quienSurte || !quienLleva) {
+            alert('Para marcar como SURTIDO, debe seleccionar quién captura, quién surte y quién lleva.');
+            return;
+          }
+
+          modal.remove();
+          resolve({ accion: 'SURTIR', quienCaptura, quienSurte, quienLleva });
+        };
+
+        btnPendiente.onclick = () => {
+          modal.remove();
+          resolve({ accion: 'PENDIENTE', quienCaptura: null, quienSurte: null, quienLleva: null });
+        };
+
+        btnCancelar.onclick = () => {
+          modal.remove();
+          resolve(null);
+        };
+      });
+    }
+
+    function limpiarPantalla() {
+      solicitudOriginal = null;
+      detalle = [];
+      productoSeleccionado = null;
+      solicitudesDisponibles = [];
+
+      $('folioSolicitud').value = '';
+      $('folioEntrada').value = generarFolioEntrada();
+      $('sucursalDestino').value = SUCURSAL;
+      $('almacenOrigen').value = 'CEDIS MATRIZ';
+
+      $('busquedaProducto').value = '';
+      $('cantidadAgregar').value = '1';
+      $('results').style.display = 'none';
+
+      renderDetalle();
+      renderResumen();
+      setStatus('Nueva operación lista. Seleccione una solicitud pendiente.', 'ok');
+    }
 
     function bindEvents() {
       $('btnCargarSolicitud').addEventListener('click', cargarSolicitud);
@@ -1595,19 +1810,18 @@ $('almacenOrigen').value = 'CEDIS MATRIZ';
           box.style.display = 'none';
         }
       });
-
     }
 
-async function init() {
-  setStatus('Inicializando sistema...');
-  $('folioEntrada').value = generarFolioEntrada();
-  $('almacenOrigen').value = 'CEDIS MATRIZ';
-  renderDetalle();
-  renderResumen();
-  bindEvents();
-  await Promise.all([cargarOperadores(), cargarCatalogo()]);
-  setStatus('Sistema listo.', 'ok');
-}
+    async function init() {
+      setStatus('Inicializando sistema...');
+      $('folioEntrada').value = generarFolioEntrada();
+      $('almacenOrigen').value = 'CEDIS MATRIZ';
+      renderDetalle();
+      renderResumen();
+      bindEvents();
+      await Promise.all([cargarOperadores(), cargarCatalogo()]);
+      setStatus('Sistema listo.', 'ok');
+    }
 
     init();
   </script>
