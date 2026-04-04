@@ -367,10 +367,6 @@
     border-radius:12px;
   }
 
-  /* =========================
-     PRECIOS PC MAMALONES
-     ========================= */
-
   .precios-col{
     min-height:0;
   }
@@ -581,10 +577,6 @@
     font-weight:900;
   }
 
-  /* =========================
-     PRODUCTO DESTACADO
-     ========================= */
-
   .concepto-section{
     background:linear-gradient(135deg,#fef3c7 0%, #fde68a 100%);
     border-radius:20px;
@@ -615,10 +607,6 @@
     margin-top:8px;
     font-family:monospace;
   }
-
-  /* =========================
-     INFO SECUNDARIA
-     ========================= */
 
   .info-grid{
     display:grid;
@@ -654,10 +642,6 @@
     color:#1e293b;
     word-break:break-word;
   }
-
-  /* =========================
-     OVERLAY DE CARGA
-     ========================= */
 
   .overlay-carga{
     position:fixed;
@@ -710,9 +694,101 @@
     color:#4b5563;
   }
 
-  /* =========================
-     RESPONSIVE
-     ========================= */
+  .scanner-modal{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.75);
+    z-index:3000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+
+  .scanner-modal.hidden{
+    display:none;
+  }
+
+  .scanner-box{
+    width:min(100%, 520px);
+    background:#fff;
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 20px 50px rgba(0,0,0,.28);
+  }
+
+  .scanner-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 16px;
+    background:linear-gradient(135deg,#00416A,#0c6cbd);
+    color:#fff;
+  }
+
+  .scanner-head h3{
+    margin:0;
+    font-size:18px;
+  }
+
+  .scanner-close{
+    border:none;
+    background:transparent;
+    color:#fff;
+    font-size:24px;
+    cursor:pointer;
+  }
+
+  .scanner-body{
+    position:relative;
+    background:#000;
+    aspect-ratio:3/4;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+
+  #scannerVideo{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+
+  .scanner-line{
+    position:absolute;
+    left:10%;
+    right:10%;
+    top:50%;
+    height:2px;
+    background:#22c55e;
+    box-shadow:0 0 12px rgba(34,197,94,.8);
+  }
+
+  .scanner-msg{
+    position:absolute;
+    left:12px;
+    right:12px;
+    bottom:12px;
+    background:rgba(0,0,0,.55);
+    color:#fff;
+    padding:10px 12px;
+    border-radius:10px;
+    font-size:13px;
+    text-align:center;
+  }
+
+  .scanner-actions{
+    display:flex;
+    gap:10px;
+    padding:14px;
+    flex-wrap:wrap;
+  }
+
+  .scanner-actions .btn-sec{
+    flex:1;
+  }
 
   @media (max-width: 1100px){
     html,
@@ -746,28 +822,118 @@
     }
   }
 
-  @media (max-width: 760px){
-    body{
-      padding:10px;
+  @media (max-width: 1024px){
+    .main{
+      gap:14px;
+      padding:10px 14px 14px;
     }
 
+    .precio-panel-amount{
+      font-size:42px;
+    }
+
+    .precio-panel-head{
+      padding:14px 18px 12px;
+    }
+
+    .precio-panel-body{
+      padding:16px 18px 18px;
+    }
+
+    .precio-panel-icon{
+      width:44px;
+      height:44px;
+      font-size:20px;
+    }
+  }
+
+  @media (max-width: 768px){
     html,
     body{
       overflow:auto;
     }
 
+    body{
+      padding:8px;
+    }
+
     .app{
       height:auto;
+      min-height:100vh;
     }
 
-    .top-info{
+    .card{
+      height:auto;
+      border-radius:16px;
+    }
+
+    .head{
+      padding:12px 14px;
+    }
+
+    .head h1{
+      font-size:18px;
+    }
+
+    .head p{
+      font-size:11px;
+    }
+
+    .panel{
+      padding:10px 12px;
+    }
+
+    .panel-grid{
       grid-template-columns:1fr;
+      gap:10px;
     }
 
-    .grid{
+    .acciones{
+      justify-content:stretch;
+    }
+
+    .btn-sec{
+      flex:1;
+      text-align:center;
+      padding:10px 12px;
+      font-size:13px;
+      min-height:44px;
+    }
+
+    button,
+    .btn-sec,
+    .sugerencia-item,
+    .info-item{
+      cursor:pointer;
+      min-height:44px;
+    }
+
+    .sugerencia-item{
+      padding:12px;
+    }
+
+    input{
+      padding:10px 12px;
+      font-size:16px;
+    }
+
+    .main{
       grid-template-columns:1fr;
+      gap:16px;
+      padding:10px 12px 16px;
+      overflow:visible;
     }
 
+    .col{
+      gap:14px;
+    }
+
+    .precios-stack{
+      gap:14px;
+    }
+
+    .top-info,
+    .grid,
     .info-grid{
       grid-template-columns:1fr;
     }
@@ -780,377 +946,229 @@
       overflow:auto;
     }
 
-    .precio-panel-head,
-    .precio-panel-body{
-      padding-left:16px;
-      padding-right:16px;
+    .precio-panel{
+      border-radius:20px;
     }
 
-    .precio-panel-amount{
-      font-size:36px;
+    .precio-panel::before{
+      width:4px;
+    }
+
+    .precio-panel-head{
+      padding:12px 14px 10px;
+    }
+
+    .precio-panel-kicker{
+      font-size:10px;
+      letter-spacing:.12em;
+    }
+
+    .precio-panel-mini{
+      font-size:11px;
+      margin-top:3px;
     }
 
     .precio-panel-icon{
-      width:46px;
-      height:46px;
-      font-size:21px;
+      width:38px;
+      height:38px;
+      font-size:18px;
+      border-radius:12px;
+    }
+
+    .precio-panel-body{
+      padding:14px 14px 16px;
+    }
+
+    .precio-panel-amount{
+      font-size:32px;
+      margin-bottom:6px;
+    }
+
+    .precio-panel-note{
+      font-size:11px;
+    }
+
+    .precio-especial-wrap{
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+    }
+
+    .tabla-precios-pro{
+      min-width:380px;
+    }
+
+    .tabla-precios-pro thead th{
+      font-size:10px;
+      padding:0 8px 4px;
+    }
+
+    .tabla-precios-pro tbody td{
+      padding:12px 8px;
+      font-size:13px;
+    }
+
+    .tag-cantidad{
+      padding:5px 10px;
+      font-size:11px;
     }
 
     .concepto-section{
-      padding:14px 16px;
-    }
-    /* ==============================================
-     MEJORAS PARA MÓVIL Y TABLET
-     ============================================== */
-
-  /* Tablets (768px - 1024px) */
-  @media (max-width: 1024px) {
-    .main {
-      gap: 14px;
-      padding: 10px 14px 14px;
+      padding:12px 14px;
+      border-left-width:4px;
     }
 
-    .precio-panel-amount {
-      font-size: 42px;
+    .concepto-label{
+      font-size:9px;
+      letter-spacing:1.5px;
     }
 
-    .precio-panel-head {
-      padding: 14px 18px 12px;
+    .concepto-texto{
+      font-size:14px;
     }
 
-    .precio-panel-body {
-      padding: 16px 18px 18px;
+    .codigo-texto{
+      font-size:10px;
     }
 
-    .precio-panel-icon {
-      width: 44px;
-      height: 44px;
-      font-size: 20px;
-    }
-  }
-
-  /* Móviles grandes (600px - 768px) */
-  @media (max-width: 768px) {
-    body {
-      padding: 8px;
+    .box{
+      padding:14px;
+      border-radius:18px;
     }
 
-    .app {
-      height: auto;
-      min-height: 100vh;
+    .section-title{
+      font-size:14px;
+      margin-bottom:12px;
     }
 
-    .card {
-      height: auto;
-      border-radius: 16px;
+    .info-grid{
+      gap:8px;
     }
 
-    .head {
-      padding: 12px 14px;
+    .info-item{
+      padding:10px;
     }
 
-    .head h1 {
-      font-size: 18px;
+    .info-item-label{
+      font-size:8px;
+      letter-spacing:.8px;
     }
 
-    .head p {
-      font-size: 11px;
+    .info-item-value{
+      font-size:12px;
     }
 
-    .panel {
-      padding: 10px 12px;
+    .precio-especial-empty{
+      min-height:100px;
+      font-size:13px;
+      padding:16px;
     }
 
-    .panel-grid {
-      grid-template-columns: 1fr;
-      gap: 10px;
+    .status{
+      font-size:11px;
+      padding:8px 10px;
     }
 
-    .acciones {
-      justify-content: stretch;
+    .sugerencia-title{
+      font-size:13px;
     }
 
-    .btn-sec {
-      flex: 1;
-      text-align: center;
-      padding: 10px 12px;
-      font-size: 13px;
-    }
-
-    input {
-      padding: 10px 12px;
-      font-size: 14px;
-    }
-
-    .main {
-      grid-template-columns: 1fr;
-      gap: 16px;
-      padding: 10px 12px 16px;
-      overflow: visible;
-    }
-
-    .col {
-      gap: 14px;
-    }
-
-    .precios-stack {
-      gap: 14px;
-    }
-
-    .precio-panel {
-      border-radius: 20px;
-    }
-
-    .precio-panel::before {
-      width: 4px;
-    }
-
-    .precio-panel-head {
-      padding: 12px 14px 10px;
-    }
-
-    .precio-panel-kicker {
-      font-size: 10px;
-      letter-spacing: 0.12em;
-    }
-
-    .precio-panel-mini {
-      font-size: 11px;
-      margin-top: 3px;
-    }
-
-    .precio-panel-icon {
-      width: 38px;
-      height: 38px;
-      font-size: 18px;
-      border-radius: 12px;
-    }
-
-    .precio-panel-body {
-      padding: 14px 14px 16px;
-    }
-
-    .precio-panel-amount {
-      font-size: 32px;
-      margin-bottom: 6px;
-    }
-
-    .precio-panel-note {
-      font-size: 11px;
-    }
-
-    /* Tabla responsive - scroll horizontal */
-    .precio-especial-wrap {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .tabla-precios-pro {
-      min-width: 380px;
-    }
-
-    .tabla-precios-pro thead th {
-      font-size: 10px;
-      padding: 0 8px 4px;
-    }
-
-    .tabla-precios-pro tbody td {
-      padding: 12px 8px;
-      font-size: 13px;
-    }
-
-    .tag-cantidad {
-      padding: 5px 10px;
-      font-size: 11px;
-    }
-
-    /* Concepto section */
-    .concepto-section {
-      padding: 12px 14px;
-      border-left-width: 4px;
-    }
-
-    .concepto-label {
-      font-size: 9px;
-      letter-spacing: 1.5px;
-    }
-
-    .concepto-texto {
-      font-size: 14px;
-    }
-
-    .codigo-texto {
-      font-size: 10px;
-    }
-
-    /* Box y grid */
-    .box {
-      padding: 14px;
-      border-radius: 18px;
-    }
-
-    .section-title {
-      font-size: 14px;
-      margin-bottom: 12px;
-    }
-
-    .info-grid {
-      gap: 8px;
-    }
-
-    .info-item {
-      padding: 10px;
-    }
-
-    .info-item-label {
-      font-size: 8px;
-      letter-spacing: 0.8px;
-    }
-
-    .info-item-value {
-      font-size: 12px;
-    }
-
-    .precio-especial-empty {
-      min-height: 100px;
-      font-size: 13px;
-      padding: 16px;
+    .sugerencia-meta{
+      font-size:10px;
     }
   }
 
-  /* Móviles pequeños (menos de 480px) */
-  @media (max-width: 480px) {
-    body {
-      padding: 6px;
+  @media (max-width: 480px){
+    body{
+      padding:6px;
     }
 
-    .head h1 {
-      font-size: 16px;
+    .head h1{
+      font-size:16px;
     }
 
-    .btn-sec {
-      font-size: 12px;
-      padding: 8px 10px;
+    .btn-sec{
+      font-size:12px;
+      padding:8px 10px;
     }
 
-    .precio-panel-amount {
-      font-size: 28px;
+    .precio-panel-amount{
+      font-size:28px;
     }
 
-    .precio-panel-head {
-      padding: 10px 12px 8px;
+    .precio-panel-head{
+      padding:10px 12px 8px;
     }
 
-    .precio-panel-body {
-      padding: 12px 12px 14px;
+    .precio-panel-body{
+      padding:12px 12px 14px;
     }
 
-    .precio-panel-icon {
-      width: 34px;
-      height: 34px;
-      font-size: 16px;
+    .precio-panel-icon{
+      width:34px;
+      height:34px;
+      font-size:16px;
     }
 
-    .concepto-texto {
-      font-size: 13px;
+    .concepto-texto{
+      font-size:13px;
     }
 
-    .info-grid {
-      grid-template-columns: 1fr;
+    .info-grid{
+      grid-template-columns:1fr;
     }
 
-    .tabla-precios-pro {
-      min-width: 340px;
-    }
-
-    .status {
-      font-size: 11px;
-      padding: 8px 10px;
-    }
-
-    .sugerencia-title {
-      font-size: 13px;
-    }
-
-    .sugerencia-meta {
-      font-size: 10px;
+    .tabla-precios-pro{
+      min-width:340px;
     }
   }
 
-  /* Orientación landscape en móvil */
-  @media (max-width: 900px) and (orientation: landscape) {
-    html, body {
-      overflow: auto;
+  @media (max-width: 900px) and (orientation: landscape){
+    html,
+    body{
+      overflow:auto;
     }
 
-    .app {
-      height: auto;
+    .app{
+      height:auto;
     }
 
-    .main {
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+    .main{
+      grid-template-columns:1fr 1fr;
+      gap:12px;
     }
 
-    .precio-panel-amount {
-      font-size: 28px;
+    .precio-panel-amount{
+      font-size:28px;
     }
 
-    .precio-panel-body {
-      padding: 10px 12px;
+    .precio-panel-body{
+      padding:10px 12px;
     }
 
-    .precio-especial-wrap {
-      max-height: 200px;
-      overflow-y: auto;
-    }
-  }
-
-  /* Ajustes para pantalla táctil */
-  @media (hover: none) and (pointer: coarse) {
-    .btn-sec {
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .btn-sec:active {
-      transform: scale(0.97);
-      background: #dbeafe;
-    }
-
-    .sugerencia-item:active {
-      background: #f0f7ff;
-    }
-
-    .info-item:active {
-      transform: scale(0.98);
+    .precio-especial-wrap{
+      max-height:200px;
+      overflow-y:auto;
     }
   }
-   /* Mejoras táctiles para móvil */
-  @media (max-width: 768px) {
-    button, 
-    .btn-sec,
-    .sugerencia-item,
-    .info-item {
-      cursor: pointer;
-      min-height: 44px; /* Tamaño mínimo táctil recomendado */
+
+  @media (hover: none) and (pointer: coarse){
+    .btn-sec{
+      -webkit-tap-highlight-color:transparent;
     }
 
-    .btn-sec {
-      min-height: 44px;
+    .btn-sec:active{
+      transform:scale(0.97);
+      background:#dbeafe;
     }
 
-    .sugerencia-item {
-      padding: 12px;
+    .sugerencia-item:active{
+      background:#f0f7ff;
     }
 
-    input {
-      font-size: 16px; /* Evita zoom automático en iOS */
+    .info-item:active{
+      transform:scale(0.98);
     }
-  } 
-
-}
-
-
+  }
 </style>
 </head>
 <body>
@@ -1184,10 +1202,11 @@
             <div class="sugerencias" id="sugerenciasBox"></div>
           </div>
 
-          <div class="acciones">
-            <button class="btn-sec" id="btnSincronizar">Sincronizar catálogo</button>
-            <button class="btn-sec" id="btnBorrarLocal">Borrar catálogo local</button>
-          </div>
+<div class="acciones">
+  <button class="btn-sec" id="btnEscanear">Escanear código</button>
+  <button class="btn-sec" id="btnSincronizar">Sincronizar catálogo</button>
+  <button class="btn-sec" id="btnBorrarLocal">Borrar catálogo local</button>
+</div>
         </div>
 
         <div id="status" class="status"></div>
@@ -1244,6 +1263,26 @@
     </div>
   </div>
 
+<div id="scannerModal" class="scanner-modal hidden">
+  <div class="scanner-box">
+    <div class="scanner-head">
+      <h3>Escanear código</h3>
+      <button type="button" class="scanner-close" id="btnCerrarScanner">✕</button>
+    </div>
+
+    <div class="scanner-body">
+      <video id="scannerVideo" playsinline autoplay muted></video>
+      <div class="scanner-line"></div>
+      <div class="scanner-msg" id="scannerMsg">Apunta la cámara al código de barras</div>
+    </div>
+
+    <div class="scanner-actions">
+      <button type="button" class="btn-sec" id="btnCambiarCamara">Cambiar cámara</button>
+      <button type="button" class="btn-sec" id="btnDetenerScanner">Cerrar</button>
+    </div>
+  </div>
+</div>
+
   <script type="module">
     import { firebaseConfig } from "./config.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -1279,7 +1318,18 @@
 
     const btnSincronizar = document.getElementById("btnSincronizar");
     const btnBorrarLocal = document.getElementById("btnBorrarLocal");
-    
+    const btnEscanear = document.getElementById("btnEscanear");
+const scannerModal = document.getElementById("scannerModal");
+const scannerVideo = document.getElementById("scannerVideo");
+const scannerMsg = document.getElementById("scannerMsg");
+const btnCerrarScanner = document.getElementById("btnCerrarScanner");
+const btnDetenerScanner = document.getElementById("btnDetenerScanner");
+const btnCambiarCamara = document.getElementById("btnCambiarCamara");
+
+let scannerStream = null;
+let scannerInterval = null;
+let currentFacingMode = "environment";
+let barcodeDetector = null;
     let catalogoProductos = [];
     let sugerenciasActuales = [];
     let indiceActivo = -1;
@@ -1766,7 +1816,102 @@ function renderSugerencias(lista) {
         mostrarStatus("No se pudo borrar catálogo local: " + error.message, "error");
       }
     }
+async function iniciarScanner() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      mostrarStatus("Este navegador no permite abrir la cámara.", "error");
+      return;
+    }
 
+    if (!("BarcodeDetector" in window)) {
+      mostrarStatus("Este celular/navegador no soporta escaneo nativo. Usa Chrome actualizado en Android.", "error");
+      return;
+    }
+
+    const formatosSoportados = await BarcodeDetector.getSupportedFormats();
+    const formatosDeseados = ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e"];
+    const formatosFinales = formatosDeseados.filter(f => formatosSoportados.includes(f));
+
+    if (!formatosFinales.length) {
+      mostrarStatus("El navegador no soporta formatos de código compatibles.", "error");
+      return;
+    }
+
+    barcodeDetector = new BarcodeDetector({ formats: formatosFinales });
+
+    scannerModal.classList.remove("hidden");
+    scannerMsg.textContent = "Abriendo cámara...";
+
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: currentFacingMode }
+      },
+      audio: false
+    });
+
+    scannerVideo.srcObject = scannerStream;
+    await scannerVideo.play();
+
+    scannerMsg.textContent = "Apunta la cámara al código de barras";
+
+    if (scannerInterval) clearInterval(scannerInterval);
+
+    scannerInterval = setInterval(async () => {
+      try {
+        if (!barcodeDetector || scannerVideo.readyState < 2) return;
+
+        const barcodes = await barcodeDetector.detect(scannerVideo);
+
+        if (barcodes && barcodes.length) {
+          const codigo = (barcodes[0].rawValue || "").trim();
+          if (!codigo) return;
+
+          detenerScanner();
+
+          busquedaInput.value = codigo;
+
+          const resultados = buscarLocal(codigo);
+          renderSugerencias(resultados);
+
+          if (resultados.length) {
+            seleccionarProducto(resultados[0]);
+            mostrarStatus(`Código escaneado: ${codigo}`, "ok");
+          } else {
+            mostrarStatus(`Código escaneado: ${codigo}, pero no existe en el catálogo local.`, "error");
+          }
+        }
+      } catch (err) {
+        console.error("Error detectando código:", err);
+      }
+    }, 400);
+
+  } catch (error) {
+    console.error(error);
+    detenerScanner();
+    mostrarStatus("No se pudo abrir la cámara: " + error.message, "error");
+  }
+}
+
+function detenerScanner() {
+  if (scannerInterval) {
+    clearInterval(scannerInterval);
+    scannerInterval = null;
+  }
+
+  if (scannerStream) {
+    scannerStream.getTracks().forEach(track => track.stop());
+    scannerStream = null;
+  }
+
+  scannerVideo.srcObject = null;
+  scannerModal.classList.add("hidden");
+}
+
+async function cambiarCamara() {
+  currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+  detenerScanner();
+  await iniciarScanner();
+}
     busquedaInput.addEventListener("input", manejarInput);
 
     busquedaInput.addEventListener("keydown", (e) => {
@@ -1804,6 +1949,10 @@ document.addEventListener("click", (e) => {
 
     btnSincronizar.addEventListener("click", sincronizarCatalogoManual);
     btnBorrarLocal.addEventListener("click", borrarCatalogoLocal);
+    btnEscanear.addEventListener("click", iniciarScanner);
+btnCerrarScanner.addEventListener("click", detenerScanner);
+btnDetenerScanner.addEventListener("click", detenerScanner);
+btnCambiarCamara.addEventListener("click", cambiarCamara);
 
     iniciarCatalogo();
   </script>
