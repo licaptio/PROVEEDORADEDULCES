@@ -5,429 +5,802 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Consulta de Productos - PROVSOFT</title>
 
-  <style>
-    :root{
-      --azul:#00416A;
-      --azul2:#0c6cbd;
-      --gris:#e5e7eb;
-      --gris2:#f8fafc;
-      --texto:#1f2937;
-      --verde:#166534;
-      --rojo:#991b1b;
-      --shadow:0 10px 28px rgba(0,0,0,.10);
-      --radius:18px;
-    }
+<style>
+  :root{
+    --azul:#00416A;
+    --azul2:#0c6cbd;
+    --gris:#e5e7eb;
+    --gris2:#f8fafc;
+    --texto:#1f2937;
+    --verde:#166534;
+    --rojo:#991b1b;
+    --shadow:0 10px 28px rgba(0,0,0,.10);
+    --radius:18px;
+  }
 
-    *{ box-sizing:border-box; }
+  *{
+    box-sizing:border-box;
+  }
 
+  html,
+  body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    font-family:Arial, Helvetica, sans-serif;
+    background:linear-gradient(135deg,#eef4f9,#f8fbff);
+    color:var(--texto);
+    overflow:hidden;
+  }
+
+  body{
+    padding:14px;
+  }
+
+  .app{
+    width:100%;
+    height:calc(100vh - 28px);
+    max-width:1500px;
+    margin:auto;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .card{
+    background:#fff;
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    height:100%;
+  }
+
+  .head{
+    background:linear-gradient(135deg,var(--azul),var(--azul2));
+    color:#fff;
+    padding:14px 18px;
+    flex:0 0 auto;
+  }
+
+  .head h1{
+    margin:0;
+    font-size:24px;
+    line-height:1.1;
+  }
+
+  .head p{
+    margin:6px 0 0;
+    opacity:.95;
+    font-size:13px;
+  }
+
+  .panel{
+    padding:12px 16px;
+    border-bottom:1px solid var(--gris);
+    background:#fcfdff;
+    position:relative;
+    flex:0 0 auto;
+  }
+
+  .panel-grid{
+    display:grid;
+    grid-template-columns:1.4fr auto;
+    gap:12px;
+    align-items:start;
+  }
+
+  .buscador-wrap{
+    position:relative;
+  }
+
+  input{
+    width:100%;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid #d1d5db;
+    font-size:15px;
+  }
+
+  input:focus{
+    outline:none;
+    border-color:var(--azul2);
+    box-shadow:0 0 0 3px rgba(12,108,189,.12);
+  }
+
+  .acciones{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+
+  .btn-sec{
+    width:auto;
+    padding:10px 14px;
+    border:none;
+    border-radius:12px;
+    background:#eef6ff;
+    color:#00416A;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+    transition:.18s ease;
+  }
+
+  .btn-sec:hover{
+    background:#dbeafe;
+    transform:translateY(-1px);
+  }
+
+  .status{
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:12px;
+    font-size:13px;
+    display:none;
+  }
+
+  .status.ok{
+    display:block;
+    background:#ecfdf3;
+    color:var(--verde);
+    border:1px solid #bbf7d0;
+  }
+
+  .status.error{
+    display:block;
+    background:#fef2f2;
+    color:var(--rojo);
+    border:1px solid #fecaca;
+  }
+
+  .status.info{
+    display:block;
+    background:#eff6ff;
+    color:#1d4ed8;
+    border:1px solid #bfdbfe;
+  }
+
+  .sugerencias{
+    position:absolute;
+    top:calc(100% + 8px);
+    left:0;
+    right:0;
+    background:#fff;
+    border:1px solid #dbe2ea;
+    border-radius:14px;
+    box-shadow:0 18px 40px rgba(0,0,0,.14);
+    display:none;
+    z-index:50;
+    max-height:320px;
+    overflow:auto;
+  }
+
+  .sugerencias.show{
+    display:block;
+  }
+
+  .sugerencia-item{
+    padding:10px 12px;
+    border-bottom:1px solid #eef2f7;
+    cursor:pointer;
+    transition:.15s;
+  }
+
+  .sugerencia-item:last-child{
+    border-bottom:none;
+  }
+
+  .sugerencia-item:hover,
+  .sugerencia-item.active{
+    background:#f0f7ff;
+  }
+
+  .sugerencia-title{
+    font-size:15px;
+    font-weight:800;
+    color:#111827;
+    margin-bottom:3px;
+  }
+
+  .sugerencia-meta{
+    font-size:12px;
+    color:#4b5563;
+    line-height:1.35;
+  }
+
+  .main{
+    flex:1 1 auto;
+    min-height:0;
+    padding:12px 16px 16px;
+    display:grid;
+    grid-template-columns:0.92fr 1.08fr;
+    gap:20px;
+    overflow:hidden;
+  }
+
+  .col{
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .box{
+    background:#fff;
+    border:1px solid #eef2ff;
+    border-radius:20px;
+    padding:18px;
+    min-height:0;
+  }
+
+  .top-info{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+
+  .mini-card{
+    background:var(--gris2);
+    border:1px solid var(--gris);
+    border-radius:16px;
+    padding:14px;
+    min-height:110px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+
+  .label{
+    font-size:11px;
+    color:#6b7280;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    margin-bottom:6px;
+  }
+
+  .value{
+    font-size:22px;
+    font-weight:800;
+    line-height:1.15;
+    word-break:break-word;
+  }
+
+  .subvalue{
+    margin-top:6px;
+    font-size:13px;
+    color:#4b5563;
+    line-height:1.35;
+  }
+
+  .badge{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:9px 12px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:700;
+    width:max-content;
+  }
+
+  .badge.true{
+    background:#ecfdf3;
+    color:var(--verde);
+    border:1px solid #bbf7d0;
+  }
+
+  .badge.false{
+    background:#fef2f2;
+    color:var(--rojo);
+    border:1px solid #fecaca;
+  }
+
+  .section-title{
+    margin:0 0 10px;
+    font-size:16px;
+    font-weight:800;
+    color:var(--azul);
+    line-height:1.2;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:10px;
+  }
+
+  .field{
+    background:#fff;
+    border:1px solid var(--gris);
+    border-radius:14px;
+    padding:12px;
+    min-height:82px;
+  }
+
+  .field .name{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:#6b7280;
+    margin-bottom:6px;
+    font-weight:700;
+  }
+
+  .field .data{
+    font-size:16px;
+    font-weight:700;
+    word-break:break-word;
+    line-height:1.25;
+  }
+
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:6px;
+  }
+
+  .chip{
+    background:#eef6ff;
+    color:#00416A;
+    border:1px solid #bfdbfe;
+    padding:7px 11px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:700;
+  }
+
+  .empty{
+    color:#6b7280;
+    font-style:italic;
+    font-size:14px;
+  }
+
+  .tabla-wrap{
+    height:100%;
+    min-height:0;
+    overflow:auto;
+    border-radius:12px;
+  }
+
+  /* =========================
+     PRECIOS PC MAMALONES
+     ========================= */
+
+  .precios-col{
+    min-height:0;
+  }
+
+  .precios-stack{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    height:100%;
+  }
+
+  .precio-panel{
+    position:relative;
+    border-radius:24px;
+    overflow:hidden;
+    border:1px solid #dbe7f3;
+    box-shadow:
+      0 16px 40px rgba(15,23,42,.08),
+      0 3px 10px rgba(15,23,42,.04);
+    background:#fff;
+  }
+
+  .precio-panel::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    bottom:0;
+    width:6px;
+    background:linear-gradient(180deg,#00416A,#0c6cbd);
+  }
+
+  .precio-panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    padding:18px 22px 14px;
+    border-bottom:1px solid rgba(148,163,184,.20);
+  }
+
+  .precio-panel-kicker{
+    font-size:12px;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    color:#00416A;
+  }
+
+  .precio-panel-mini{
+    margin-top:5px;
+    font-size:13px;
+    color:#64748b;
+    font-weight:600;
+  }
+
+  .precio-panel-icon{
+    width:52px;
+    height:52px;
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    background:linear-gradient(135deg,#eef6ff,#dbeafe);
+    border:1px solid #bfdbfe;
+    flex:0 0 auto;
+  }
+
+  .precio-panel-body{
+    padding:20px 22px 22px;
+  }
+
+  .precio-publico{
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+      linear-gradient(135deg,#00416A 0%, #0c6cbd 100%);
+    border:none;
+  }
+
+  .precio-publico::before{
+    background:linear-gradient(180deg,#f8fafc,#dbeafe);
+    opacity:.75;
+  }
+
+  .precio-publico .precio-panel-head{
+    border-bottom:1px solid rgba(255,255,255,.14);
+  }
+
+  .precio-publico .precio-panel-kicker{
+    color:#dbeafe;
+  }
+
+  .precio-publico .precio-panel-icon{
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.18);
+  }
+
+  .precio-panel-amount{
+    font-size:54px;
+    font-weight:900;
+    line-height:1;
+    letter-spacing:-.03em;
+    margin-bottom:10px;
+  }
+
+  .precio-publico .precio-panel-amount{
+    color:#fff;
+    text-shadow:0 3px 18px rgba(0,0,0,.18);
+  }
+
+  .precio-panel-note{
+    font-size:14px;
+    font-weight:600;
+    color:#cfe6ff;
+  }
+
+  .precio-especial{
+    background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
+  }
+
+  .precio-especial .precio-panel-body{
+    padding-top:14px;
+  }
+
+  .precio-especial-wrap{
+    min-height:180px;
+  }
+
+  .precio-especial-empty{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:150px;
+    border:1px dashed #cbd5e1;
+    border-radius:18px;
+    background:#f8fafc;
+    color:#64748b;
+    font-size:15px;
+    font-weight:700;
+    text-align:center;
+    padding:20px;
+  }
+
+  .tabla-precios-pro{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0 10px;
+  }
+
+  .tabla-precios-pro thead th{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.10em;
+    color:#64748b;
+    text-align:left;
+    padding:0 12px 4px;
+    font-weight:900;
+  }
+
+  .tabla-precios-pro tbody tr{
+    background:#fff;
+    box-shadow:
+      0 8px 18px rgba(15,23,42,.05),
+      0 1px 3px rgba(15,23,42,.04);
+  }
+
+  .tabla-precios-pro tbody td{
+    padding:16px 12px;
+    font-size:15px;
+    font-weight:800;
+    color:#0f172a;
+    border-top:1px solid #eef2f7;
+    border-bottom:1px solid #eef2f7;
+  }
+
+  .tabla-precios-pro tbody td:first-child{
+    border-left:1px solid #eef2f7;
+    border-radius:16px 0 0 16px;
+  }
+
+  .tabla-precios-pro tbody td:last-child{
+    border-right:1px solid #eef2f7;
+    border-radius:0 16px 16px 0;
+  }
+
+  .tag-cantidad{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:7px 12px;
+    border-radius:999px;
+    background:linear-gradient(135deg,#e0f2fe,#dbeafe);
+    border:1px solid #bfdbfe;
+    color:#00416A;
+    font-size:12px;
+    font-weight:900;
+    letter-spacing:.02em;
+  }
+
+  .precio-unit{
+    color:#0f172a;
+    font-weight:900;
+  }
+
+  .precio-total{
+    color:#00416A;
+    font-weight:900;
+  }
+
+  /* =========================
+     PRODUCTO DESTACADO
+     ========================= */
+
+  .concepto-section{
+    background:linear-gradient(135deg,#fef3c7 0%, #fde68a 100%);
+    border-radius:20px;
+    padding:16px 20px;
+    border-left:5px solid #f59e0b;
+    box-shadow:0 8px 24px rgba(245,158,11,.12);
+  }
+
+  .concepto-label{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:2px;
+    color:#92400e;
+    margin-bottom:6px;
+    font-weight:800;
+  }
+
+  .concepto-texto{
+    font-size:16px;
+    font-weight:800;
+    color:#78350f;
+    line-height:1.3;
+  }
+
+  .codigo-texto{
+    font-size:11px;
+    color:#92400e;
+    margin-top:8px;
+    font-family:monospace;
+  }
+
+  /* =========================
+     INFO SECUNDARIA
+     ========================= */
+
+  .info-grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:10px;
+  }
+
+  .info-item{
+    background:#f8fafc;
+    border-radius:14px;
+    padding:12px;
+    border:1px solid #eef2ff;
+    transition:all .2s;
+  }
+
+  .info-item:hover{
+    border-color:#cbd5e1;
+    transform:translateY(-1px);
+  }
+
+  .info-item-label{
+    font-size:9px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:#64748b;
+    margin-bottom:6px;
+    font-weight:700;
+  }
+
+  .info-item-value{
+    font-size:13px;
+    font-weight:700;
+    color:#1e293b;
+    word-break:break-word;
+  }
+
+  /* =========================
+     OVERLAY DE CARGA
+     ========================= */
+
+  .overlay-carga{
+    position:fixed;
+    inset:0;
+    background:rgba(255,255,255,.86);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:2000;
+    backdrop-filter:blur(3px);
+  }
+
+  .overlay-carga.hidden{
+    display:none;
+  }
+
+  .caja-carga{
+    width:min(520px, calc(100% - 40px));
+    background:#fff;
+    border:1px solid #dbe2ea;
+    border-radius:22px;
+    box-shadow:0 18px 48px rgba(0,0,0,.18);
+    padding:24px;
+    text-align:center;
+  }
+
+  .caja-carga h2{
+    margin:0 0 10px;
+    color:#00416A;
+  }
+
+  .barra{
+    height:14px;
+    background:#e5e7eb;
+    border-radius:999px;
+    overflow:hidden;
+    margin-top:18px;
+  }
+
+  .barra-fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(135deg,#00416A,#0c6cbd);
+    transition:width .2s ease;
+  }
+
+  .carga-texto{
+    margin-top:12px;
+    font-size:14px;
+    color:#4b5563;
+  }
+
+  /* =========================
+     RESPONSIVE
+     ========================= */
+
+  @media (max-width: 1100px){
+    html,
     body{
-      margin:0;
-      font-family:Arial, Helvetica, sans-serif;
-      background:linear-gradient(135deg,#eef4f9,#f8fbff);
-      color:var(--texto);
-      padding:24px;
+      overflow:auto;
     }
 
-    .wrap{
-      max-width:1100px;
-      margin:auto;
+    .app{
+      height:auto;
     }
 
     .card{
-      background:#fff;
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      overflow:hidden;
+      height:auto;
     }
 
-    .head{
-      background:linear-gradient(135deg,var(--azul),var(--azul2));
-      color:#fff;
-      padding:22px 24px;
+    .main{
+      grid-template-columns:1fr;
+      overflow:visible;
     }
 
-    .head h1{
-      margin:0;
-      font-size:28px;
-    }
-
-    .head p{
-      margin:8px 0 0;
-      opacity:.95;
-      font-size:14px;
-    }
-
-    .panel{
-      padding:20px;
-      border-bottom:1px solid var(--gris);
-      background:#fcfdff;
-      position:relative;
-    }
-
-    .buscador-wrap{
-      position:relative;
-    }
-
-    input{
-      width:100%;
-      padding:14px 16px;
-      border-radius:12px;
-      border:1px solid #d1d5db;
-      font-size:16px;
-    }
-
-    input:focus{
-      outline:none;
-      border-color:var(--azul2);
-      box-shadow:0 0 0 3px rgba(12,108,189,.12);
+    .panel-grid{
+      grid-template-columns:1fr;
     }
 
     .acciones{
-      margin-top:12px;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
+      justify-content:flex-start;
     }
 
-    .btn-sec{
-      width:auto;
-      padding:10px 14px;
-      border:none;
-      border-radius:12px;
-      background:#eef6ff;
-      color:#00416A;
-      font-weight:700;
-      cursor:pointer;
+    .precio-panel-amount{
+      font-size:46px;
+    }
+  }
+
+  @media (max-width: 760px){
+    body{
+      padding:10px;
     }
 
-    .status{
-      margin-top:14px;
-      padding:12px 14px;
-      border-radius:12px;
-      font-size:14px;
-      display:none;
-    }
-
-    .status.ok{
-      display:block;
-      background:#ecfdf3;
-      color:var(--verde);
-      border:1px solid #bbf7d0;
-    }
-
-    .status.error{
-      display:block;
-      background:#fef2f2;
-      color:var(--rojo);
-      border:1px solid #fecaca;
-    }
-
-    .status.info{
-      display:block;
-      background:#eff6ff;
-      color:#1d4ed8;
-      border:1px solid #bfdbfe;
-    }
-
-    .sugerencias{
-      position:absolute;
-      top:calc(100% + 8px);
-      left:0;
-      right:0;
-      background:#fff;
-      border:1px solid #dbe2ea;
-      border-radius:14px;
-      box-shadow:0 18px 40px rgba(0,0,0,.14);
-      display:none;
-      z-index:50;
-      max-height:380px;
+    html,
+    body{
       overflow:auto;
     }
 
-    .sugerencias.show{
-      display:block;
-    }
-
-    .sugerencia-item{
-      padding:12px 14px;
-      border-bottom:1px solid #eef2f7;
-      cursor:pointer;
-      transition:.15s;
-    }
-
-    .sugerencia-item:last-child{
-      border-bottom:none;
-    }
-
-    .sugerencia-item:hover,
-    .sugerencia-item.active{
-      background:#f0f7ff;
-    }
-
-    .sugerencia-title{
-      font-size:16px;
-      font-weight:800;
-      color:#111827;
-      margin-bottom:4px;
-    }
-
-    .sugerencia-meta{
-      font-size:13px;
-      color:#4b5563;
-      line-height:1.45;
-    }
-
-    .content{
-      padding:20px;
+    .app{
+      height:auto;
     }
 
     .top-info{
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:16px;
-      margin-bottom:18px;
-    }
-
-    .mini-card{
-      background:var(--gris2);
-      border:1px solid var(--gris);
-      border-radius:16px;
-      padding:18px;
-    }
-
-    .label{
-      font-size:12px;
-      color:#6b7280;
-      text-transform:uppercase;
-      letter-spacing:.06em;
-      margin-bottom:6px;
-    }
-
-    .value{
-      font-size:24px;
-      font-weight:800;
-      line-height:1.2;
-      word-break:break-word;
-    }
-
-    .subvalue{
-      margin-top:6px;
-      font-size:14px;
-      color:#4b5563;
-    }
-
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:10px 14px;
-      border-radius:999px;
-      font-size:14px;
-      font-weight:700;
-    }
-
-    .badge.true{
-      background:#ecfdf3;
-      color:var(--verde);
-      border:1px solid #bbf7d0;
-    }
-
-    .badge.false{
-      background:#fef2f2;
-      color:var(--rojo);
-      border:1px solid #fecaca;
-    }
-
-    .section-title{
-      margin:4px 0 14px;
-      font-size:18px;
-      font-weight:800;
-      color:var(--azul);
+      grid-template-columns:1fr;
     }
 
     .grid{
-      display:grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap:14px;
+      grid-template-columns:1fr;
     }
 
-    .field{
-      background:#fff;
-      border:1px solid var(--gris);
-      border-radius:14px;
-      padding:14px;
+    .info-grid{
+      grid-template-columns:1fr;
     }
 
-    .field .name{
-      font-size:12px;
-      text-transform:uppercase;
-      letter-spacing:.05em;
-      color:#6b7280;
-      margin-bottom:8px;
-      font-weight:700;
+    .value{
+      font-size:19px;
     }
 
-    .field .data{
-      font-size:18px;
-      font-weight:700;
-      word-break:break-word;
-    }
-
-    .array-box{
-      margin-top:18px;
-      background:#fff;
-      border:1px solid var(--gris);
-      border-radius:16px;
-      padding:16px;
-    }
-
-    .chips{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top:10px;
-    }
-
-    .chip{
-      background:#eef6ff;
-      color:#00416A;
-      border:1px solid #bfdbfe;
-      padding:8px 12px;
-      border-radius:999px;
-      font-size:14px;
-      font-weight:700;
-    }
-
-    .empty{
-      color:#6b7280;
-      font-style:italic;
-    }
-
-    .raw-box{
-      margin-top:18px;
-      background:#0f172a;
-      color:#e5e7eb;
-      border-radius:16px;
-      padding:16px;
+    .tabla-wrap{
       overflow:auto;
     }
 
-    pre{
-      margin:0;
-      white-space:pre-wrap;
-      word-break:break-word;
-      font-size:13px;
-      line-height:1.5;
+    .precio-panel-head,
+    .precio-panel-body{
+      padding-left:16px;
+      padding-right:16px;
     }
 
-    .overlay-carga{
-      position:fixed;
-      inset:0;
-      background:rgba(255,255,255,.86);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:2000;
-      backdrop-filter:blur(3px);
+    .precio-panel-amount{
+      font-size:36px;
     }
 
-    .overlay-carga.hidden{
-      display:none;
+    .precio-panel-icon{
+      width:46px;
+      height:46px;
+      font-size:21px;
     }
 
-    .caja-carga{
-      width:min(520px, calc(100% - 40px));
-      background:#fff;
-      border:1px solid #dbe2ea;
-      border-radius:22px;
-      box-shadow:0 18px 48px rgba(0,0,0,.18);
-      padding:24px;
-      text-align:center;
+    .concepto-section{
+      padding:14px 16px;
     }
-
-    .caja-carga h2{
-      margin:0 0 10px;
-      color:#00416A;
-    }
-
-    .barra{
-      height:14px;
-      background:#e5e7eb;
-      border-radius:999px;
-      overflow:hidden;
-      margin-top:18px;
-    }
-
-    .barra-fill{
-      height:100%;
-      width:0%;
-      background:linear-gradient(135deg,#00416A,#0c6cbd);
-      transition:width .2s ease;
-    }
-
-    .carga-texto{
-      margin-top:12px;
-      font-size:14px;
-      color:#4b5563;
-    }
-
-    .tabla-precios{
-      width:100%;
-      border-collapse:collapse;
-      margin-top:10px;
-      overflow:hidden;
-      border-radius:12px;
-      border:1px solid #e5e7eb;
-    }
-
-    .tabla-precios thead{
-      background:linear-gradient(135deg,#00416A,#0c6cbd);
-      color:#fff;
-    }
-
-    .tabla-precios th{
-      text-align:left;
-      padding:12px;
-      font-size:13px;
-      letter-spacing:.04em;
-    }
-
-    .tabla-precios td{
-      padding:12px;
-      border-top:1px solid #eef2f7;
-      font-size:15px;
-      font-weight:600;
-    }
-
-    .tabla-precios tbody tr:hover{
-      background:#f8fafc;
-    }
-
-    .badge-vol{
-      background:#eef6ff;
-      color:#00416A;
-      padding:6px 10px;
-      border-radius:999px;
-      font-size:13px;
-      font-weight:700;
-      display:inline-block;
-    }
-
-    @media (max-width: 760px){
-      .top-info{
-        grid-template-columns:1fr;
-      }
-
-      .value{
-        font-size:20px;
-      }
-
-      .tabla-precios{
-        display:block;
-        overflow-x:auto;
-      }
-    }
-  </style>
+  }
+</style>
 </head>
 <body>
   <div class="overlay-carga" id="overlayCarga">
@@ -441,7 +814,7 @@
     </div>
   </div>
 
-  <div class="wrap">
+  <div class="app">
     <div class="card">
       <div class="head">
         <h1>Consulta de Productos - PROVSOFT</h1>
@@ -449,56 +822,73 @@
       </div>
 
       <div class="panel">
-        <div class="buscador-wrap">
-          <input
-            type="text"
-            id="busquedaInput"
-            placeholder="Escribe código de barras o palabra..."
-            autocomplete="off"
-          />
-          <div class="sugerencias" id="sugerenciasBox"></div>
-        </div>
+        <div class="panel-grid">
+          <div class="buscador-wrap">
+            <input
+              type="text"
+              id="busquedaInput"
+              placeholder="Escribe código de barras o palabra..."
+              autocomplete="off"
+            />
+            <div class="sugerencias" id="sugerenciasBox"></div>
+          </div>
 
-        <div class="acciones">
-          <button class="btn-sec" id="btnSincronizar">Sincronizar catálogo</button>
-          <button class="btn-sec" id="btnBorrarLocal">Borrar catálogo local</button>
+          <div class="acciones">
+            <button class="btn-sec" id="btnSincronizar">Sincronizar catálogo</button>
+            <button class="btn-sec" id="btnBorrarLocal">Borrar catálogo local</button>
+          </div>
         </div>
 
         <div id="status" class="status"></div>
       </div>
 
-      <div class="content">
-        <div class="top-info">
-          <div class="mini-card">
-            <div class="label">Concepto</div>
-            <div class="value" id="concepto">Sin consultar</div>
-            <div class="subvalue" id="codigoMostrado">Código: --</div>
+<div class="main">
+  <!-- COLUMNA IZQUIERDA: PRECIOS -->
+  <div class="col precios-col">
+    <div class="precios-stack">
+      <section class="precio-panel precio-publico">
+        <div class="precio-panel-head">
+          <div class="precio-panel-kicker">Precio público</div>
+          <div class="precio-panel-icon">💰</div>
+        </div>
+        <div class="precio-panel-body">
+          <div class="precio-panel-amount" id="precioPublicoValor">$---</div>
+          <div class="precio-panel-note">Precio de lista / mostrador</div>
+        </div>
+      </section>
+
+      <section class="precio-panel precio-especial">
+        <div class="precio-panel-head">
+          <div>
+            <div class="precio-panel-kicker">Precio especial</div>
+            <div class="precio-panel-mini">Escalas por volumen</div>
           </div>
-
-          <div class="mini-card">
-            <div class="label">Estado</div>
-            <div id="activoBadge" class="badge false">No disponible</div>
-            <div class="subvalue" id="actualizadoTexto">Actualizado: --</div>
+          <div class="precio-panel-icon">📦</div>
+        </div>
+        <div class="precio-panel-body">
+          <div class="precio-especial-wrap" id="preciosVolumenBox">
+            <div class="precio-especial-empty">Sin precios especiales definidos</div>
           </div>
         </div>
+      </section>
+    </div>
+  </div>
 
-        <div class="section-title">Datos principales</div>
-        <div class="grid" id="camposGrid"></div>
+  <!-- COLUMNA DERECHA: INFORMACIÓN -->
+  <div class="col">
+    <div class="concepto-section">
+      <div class="concepto-label">PRODUCTO</div>
+      <div class="concepto-texto" id="conceptoValor">Sin consultar</div>
+      <div class="codigo-texto" id="codigoTexto">Código: --</div>
+    </div>
 
-        <div class="array-box">
-          <div class="section-title" style="margin-top:0;">Precios por volumen</div>
-          <div id="preciosVolumenBox" class="empty">Sin consultar</div>
-        </div>
-
-        <div class="array-box">
-          <div class="section-title" style="margin-top:0;">Códigos equivalentes</div>
-          <div id="equivalentesBox" class="empty">Sin consultar</div>
-        </div>
-
-        <div class="raw-box">
-          <div class="section-title" style="color:#93c5fd; margin-top:0;">JSON crudo</div>
-          <pre id="jsonRaw">{}</pre>
-        </div>
+    <div class="box">
+      <div class="section-title">📋 Ficha técnica</div>
+      <div class="info-grid" id="infoGrid"></div>
+    </div>
+  </div>
+</div>
+      </div>
       </div>
     </div>
   </div>
@@ -526,22 +916,19 @@
     const sugerenciasBox = document.getElementById("sugerenciasBox");
     const statusBox = document.getElementById("status");
 
-    const conceptoEl = document.getElementById("concepto");
-    const codigoMostradoEl = document.getElementById("codigoMostrado");
-    const activoBadgeEl = document.getElementById("activoBadge");
-    const actualizadoTextoEl = document.getElementById("actualizadoTexto");
-    const camposGridEl = document.getElementById("camposGrid");
+    // NUEVAS VARIABLES (reemplazar las antiguas)
+    const conceptoValor = document.getElementById("conceptoValor");
+    const codigoTexto = document.getElementById("codigoTexto");
+    const precioPublicoValor = document.getElementById("precioPublicoValor");
+    const infoGrid = document.getElementById("infoGrid");
     const preciosVolumenBoxEl = document.getElementById("preciosVolumenBox");
-    const equivalentesBoxEl = document.getElementById("equivalentesBox");
-    const jsonRawEl = document.getElementById("jsonRaw");
-
     const overlayCarga = document.getElementById("overlayCarga");
     const barraFill = document.getElementById("barraFill");
     const cargaTexto = document.getElementById("cargaTexto");
 
     const btnSincronizar = document.getElementById("btnSincronizar");
     const btnBorrarLocal = document.getElementById("btnBorrarLocal");
-
+    
     let catalogoProductos = [];
     let sugerenciasActuales = [];
     let indiceActivo = -1;
@@ -551,17 +938,15 @@
       statusBox.textContent = msg;
     }
 
-    function limpiarVista() {
-      conceptoEl.textContent = "Sin datos";
-      codigoMostradoEl.textContent = "Código: --";
-      activoBadgeEl.className = "badge false";
-      activoBadgeEl.textContent = "No disponible";
-      actualizadoTextoEl.textContent = "Actualizado: --";
-      camposGridEl.innerHTML = "";
-      preciosVolumenBoxEl.innerHTML = '<div class="empty">Sin datos</div>';
-      equivalentesBoxEl.innerHTML = '<div class="empty">Sin datos</div>';
-      jsonRawEl.textContent = "{}";
-    }
+function limpiarVista() {
+  conceptoValor.textContent = "Sin datos";
+  codigoTexto.textContent = "Código: --";
+  precioPublicoValor.textContent = "$---";
+  infoGrid.innerHTML = "";
+  preciosVolumenBoxEl.innerHTML = `
+    <div class="precio-especial-empty">Sin consultar</div>
+  `;
+}
 
     function formatearFecha(valor) {
       try {
@@ -582,8 +967,8 @@
         if (isNaN(fecha.getTime())) return "--";
 
         return new Intl.DateTimeFormat("es-MX", {
-          dateStyle: "long",
-          timeStyle: "medium"
+          dateStyle: "medium",
+          timeStyle: "short"
         }).format(fecha);
       } catch {
         return "--";
@@ -599,11 +984,11 @@
     }
 
     function valorLegible(v) {
-      if (v === null || v === undefined) return "--";
+      if (v === null || v === undefined || v === "") return "--";
       if (v instanceof Timestamp) return formatearFecha(v);
       if (typeof v === "boolean") return v ? "Sí" : "No";
       if (Array.isArray(v)) return v.length ? v.join(", ") : "[]";
-      if (typeof v === "object") return JSON.stringify(v, null, 2);
+      if (typeof v === "object") return JSON.stringify(v);
       return String(v);
     }
 
@@ -617,115 +1002,100 @@
       return div;
     }
 
-    function renderPreciosVolumen(data) {
-      const lista = Array.isArray(data.preciosPorCantidad)
-        ? [...data.preciosPorCantidad]
-        : [];
+function renderPreciosVolumen(data) {
+  let lista = [];
 
-      if (!lista.length) {
-        preciosVolumenBoxEl.innerHTML = `
-          <div class="empty">No hay precios por volumen definidos.</div>
-        `;
-        return;
-      }
+  if (Array.isArray(data.preciosPorCantidad)) {
+    lista = [...data.preciosPorCantidad];
+  } else if (Array.isArray(data.preciosVolumen)) {
+    lista = [...data.preciosVolumen];
+  } else {
+    lista = [];
+  }
 
-      const filas = lista
-        .sort((a, b) => Number(a.cantidadMinima || 0) - Number(b.cantidadMinima || 0))
-        .map(item => `
-          <tr>
-            <td><span class="badge-vol">${Number(item.cantidadMinima || 0)}+</span></td>
-            <td>$${Number(item.precioUnitario || 0).toFixed(2)}</td>
-            <td>$${Number(item.precioTotal || 0).toFixed(2)}</td>
-          </tr>
-        `)
-        .join("");
+  lista = lista.filter(item => item && typeof item === "object");
 
-      preciosVolumenBoxEl.innerHTML = `
-        <table class="tabla-precios">
-          <thead>
-            <tr>
-              <th>Cantidad mínima</th>
-              <th>Precio unitario</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filas}
-          </tbody>
-        </table>
+  if (!lista.length) {
+    preciosVolumenBoxEl.innerHTML = `
+      <div class="precio-especial-empty">
+        Sin precios especiales definidos
+      </div>
+    `;
+    return;
+  }
+
+  const filas = lista
+    .sort((a, b) => Number(a.cantidadMinima || a.cantidad || 0) - Number(b.cantidadMinima || b.cantidad || 0))
+    .map(item => {
+      const cantidad = Number(item.cantidadMinima || item.cantidad || 0);
+      const unitario = Number(item.precioUnitario || item.precio || 0);
+      const total = Number(item.precioTotal || (cantidad * unitario) || 0);
+
+      return `
+        <tr>
+          <td><span class="tag-cantidad">${cantidad}+ unidades</span></td>
+          <td class="precio-unit">$${unitario.toFixed(2)}</td>
+          <td class="precio-total">$${total.toFixed(2)}</td>
+        </tr>
       `;
-    }
+    })
+    .join("");
 
-    function renderProducto(producto) {
-      const data = producto.data;
+  preciosVolumenBoxEl.innerHTML = `
+    <table class="tabla-precios-pro">
+      <thead>
+        <tr>
+          <th>Cantidad</th>
+          <th>Precio unitario</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filas}
+      </tbody>
+    </table>
+  `;
+}
 
-      conceptoEl.textContent = data.concepto || "Sin concepto";
-      codigoMostradoEl.textContent = `Código: ${data.codigoBarra || producto.id || "--"}`;
+function renderProducto(producto) {
+  const data = producto.data || {};
 
-      const activo = !!data.activo;
-      activoBadgeEl.className = `badge ${activo ? "true" : "false"}`;
-      activoBadgeEl.textContent = activo ? "ACTIVO" : "INACTIVO";
+  console.log("PRODUCTO CARGADO:", data);
 
-      actualizadoTextoEl.textContent =
-        `Actualizado: ${formatearFecha(data.updatedAt || data.actualizadoEn)}`;
+  const precioPublicoRaw =
+    data.precioPublico ??
+    data.precio ??
+    data.precio_mostrador ??
+    0;
 
-      camposGridEl.innerHTML = "";
+  const precioPublico = Number(precioPublicoRaw) || 0;
+  precioPublicoValor.textContent = `$${precioPublico.toFixed(2)}`;
 
-      const campos = [
-        ["codigoBarra", data.codigoBarra],
-        ["claveSat", data.claveSat],
-        ["unidadMedidaSat", data.unidadMedidaSat],
-        ["departamento", data.departamento],
-        ["marca", data.marca],
-        ["precioPublico", data.precioPublico]
-      ];
+  conceptoValor.textContent = data.concepto || "Sin concepto";
+  codigoTexto.textContent = `Código: ${data.codigoBarra || producto.id || "--"}`;
 
-      campos.forEach(([nombre, valor]) => {
-        camposGridEl.appendChild(crearCampo(nombre, valor));
-      });
+  infoGrid.innerHTML = "";
 
-      renderPreciosVolumen(data);
+  const camposSecundarios = [
+    ["Código de barras", data.codigoBarra],
+    ["Clave SAT", data.claveSat],
+    ["Unidad SAT", data.unidadMedidaSat],
+    ["Departamento", data.departamento],
+    ["Marca", data.marca]
+  ];
 
-      const equivalentes = Array.isArray(data.codigosEquivalentes)
-        ? data.codigosEquivalentes
-        : [];
+  camposSecundarios.forEach(([label, valor]) => {
+    const div = document.createElement("div");
+    div.className = "info-item";
+    div.innerHTML = `
+      <div class="info-item-label">${label}</div>
+      <div class="info-item-value">${valorLegible(valor)}</div>
+    `;
+    infoGrid.appendChild(div);
+  });
 
-      if (!equivalentes.length) {
-        equivalentesBoxEl.innerHTML = '<div class="empty">Este producto no tiene códigos equivalentes.</div>';
-      } else {
-        equivalentesBoxEl.innerHTML = "";
-        const chips = document.createElement("div");
-        chips.className = "chips";
-
-        equivalentes.forEach(codigo => {
-          const chip = document.createElement("div");
-          chip.className = "chip";
-          chip.textContent = codigo;
-          chips.appendChild(chip);
-        });
-
-        equivalentesBoxEl.appendChild(chips);
-      }
-
-      const jsonBonito = JSON.stringify(
-        data,
-        (key, value) => {
-          if (value instanceof Timestamp) return formatearFecha(value);
-          if (value?.seconds !== undefined && value?.nanoseconds !== undefined) return formatearFecha(value);
-          return value;
-        },
-        2
-      );
-
-      jsonRawEl.textContent = jsonBonito;
-    }
-
-    function ocultarSugerencias() {
-      sugerenciasBox.classList.remove("show");
-      sugerenciasBox.innerHTML = "";
-      sugerenciasActuales = [];
-      indiceActivo = -1;
-    }
+  renderPreciosVolumen(data);
+}
 
     function seleccionarProducto(producto) {
       busquedaInput.value = producto.data.codigoBarra || producto.data.concepto || "";
