@@ -1448,49 +1448,65 @@ function renderProducto(producto) {
   renderPreciosVolumen(data);
 }
 
-    function seleccionarProducto(producto) {
-      busquedaInput.value = producto.data.codigoBarra || producto.data.concepto || "";
-      renderProducto(producto);
-      ocultarSugerencias();
-      mostrarStatus(`Producto cargado: ${producto.data.concepto || producto.id}`, "ok");
-    }
+function ocultarSugerencias() {
+  sugerenciasBox.classList.remove("show");
+  sugerenciasBox.innerHTML = "";
+  sugerenciasActuales = [];
+  indiceActivo = -1;
+}
 
-    function renderSugerencias(lista) {
-      sugerenciasBox.innerHTML = "";
-      sugerenciasActuales = lista;
-      indiceActivo = -1;
+function seleccionarProducto(producto) {
+  // Actualizar input
+  const textoMostrar = producto.data.codigoBarra || producto.data.concepto || "";
+  busquedaInput.value = textoMostrar;
+  
+  // Renderizar información
+  renderProducto(producto);
+  
+  // Cerrar modal de sugerencias
+  ocultarSugerencias();
+  
+  // Mostrar confirmación
+  mostrarStatus(`Producto cargado: ${producto.data.concepto || producto.id}`, "ok");
+}
 
-      if (!lista.length) {
-        ocultarSugerencias();
-        return;
-      }
+function renderSugerencias(lista) {
+  sugerenciasBox.innerHTML = "";
+  sugerenciasActuales = lista;
+  indiceActivo = -1;
 
-      lista.forEach((producto, i) => {
-        const div = document.createElement("div");
-        div.className = "sugerencia-item";
-        div.dataset.index = i;
+  if (!lista.length) {
+    ocultarSugerencias();
+    return;
+  }
 
-        div.innerHTML = `
-          <div class="sugerencia-title">${producto.data.concepto || "Sin concepto"}</div>
-          <div class="sugerencia-meta">
-            <strong>Código:</strong> ${producto.data.codigoBarra || producto.id}
-            &nbsp; | &nbsp;
-            <strong>Marca:</strong> ${producto.data.marca || "--"}
-            &nbsp; | &nbsp;
-            <strong>Precio:</strong> ${producto.data.precioPublico ?? "--"}
-          </div>
-        `;
+  lista.forEach((producto, i) => {
+    const div = document.createElement("div");
+    div.className = "sugerencia-item";
+    div.dataset.index = i;
 
-        div.addEventListener("mousedown", (e) => {
-          e.preventDefault();
-          seleccionarProducto(producto);
-        });
+    div.innerHTML = `
+      <div class="sugerencia-title">${producto.data.concepto || "Sin concepto"}</div>
+      <div class="sugerencia-meta">
+        <strong>Código:</strong> ${producto.data.codigoBarra || producto.id}
+        &nbsp; | &nbsp;
+        <strong>Marca:</strong> ${producto.data.marca || "--"}
+        &nbsp; | &nbsp;
+        <strong>Precio:</strong> ${producto.data.precioPublico ?? "--"}
+      </div>
+    `;
 
-        sugerenciasBox.appendChild(div);
-      });
+    div.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      seleccionarProducto(producto);
+    });
 
-      sugerenciasBox.classList.add("show");
-    }
+    sugerenciasBox.appendChild(div);
+  });
+
+  sugerenciasBox.classList.add("show");
+}
 
     function actualizarItemActivo() {
       const items = sugerenciasBox.querySelectorAll(".sugerencia-item");
@@ -1537,7 +1553,7 @@ function renderProducto(producto) {
 
       return resultados;
     }
-
+    
     function manejarInput() {
       const texto = busquedaInput.value.trim();
 
@@ -1651,6 +1667,7 @@ function renderProducto(producto) {
         };
       });
     }
+
 
     async function descargarCatalogoDesdeFirebase() {
       cargaTexto.textContent = "Consultando productos...";
@@ -1779,11 +1796,11 @@ function renderProducto(producto) {
       if (busquedaInput.value.trim()) manejarInput();
     });
 
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest(".buscador-wrap")) {
-        ocultarSugerencias();
-      }
-    });
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".buscador-wrap")) {
+    ocultarSugerencias();
+  }
+});
 
     btnSincronizar.addEventListener("click", sincronizarCatalogoManual);
     btnBorrarLocal.addEventListener("click", borrarCatalogoLocal);
