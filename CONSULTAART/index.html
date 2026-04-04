@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consulta de Productos - PROVSOFT</title>
+
+  <style>
+    :root{
+      --azul:#00416A;
+      --azul2:#0c6cbd;
+      --gris:#e5e7eb;
+      --gris2:#f8fafc;
+      --texto:#1f2937;
+      --verde:#166534;
+      --rojo:#991b1b;
+      --shadow:0 10px 28px rgba(0,0,0,.10);
+      --radius:18px;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      background:linear-gradient(135deg,#eef4f9,#f8fbff);
+      color:var(--texto);
+      padding:24px;
+    }
+
+    .wrap{
+      max-width:1100px;
+      margin:auto;
+    }
+
+    .card{
+      background:#fff;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .head{
+      background:linear-gradient(135deg,var(--azul),var(--azul2));
+      color:#fff;
+      padding:22px 24px;
+    }
+
+    .head h1{
+      margin:0;
+      font-size:28px;
+    }
+
+    .head p{
+      margin:8px 0 0;
+      opacity:.95;
+      font-size:14px;
+    }
+
+    .panel{
+      padding:20px;
+      border-bottom:1px solid var(--gris);
+      background:#fcfdff;
+      position:relative;
+    }
+
+    .buscador-wrap{
+      position:relative;
+    }
+
+    input{
+      width:100%;
+      padding:14px 16px;
+      border-radius:12px;
+      border:1px solid #d1d5db;
+      font-size:16px;
+    }
+
+    input:focus{
+      outline:none;
+      border-color:var(--azul2);
+      box-shadow:0 0 0 3px rgba(12,108,189,.12);
+    }
+
+    .acciones{
+      margin-top:12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .btn-sec{
+      width:auto;
+      padding:10px 14px;
+      border:none;
+      border-radius:12px;
+      background:#eef6ff;
+      color:#00416A;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .status{
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:12px;
+      font-size:14px;
+      display:none;
+    }
+
+    .status.ok{
+      display:block;
+      background:#ecfdf3;
+      color:var(--verde);
+      border:1px solid #bbf7d0;
+    }
+
+    .status.error{
+      display:block;
+      background:#fef2f2;
+      color:var(--rojo);
+      border:1px solid #fecaca;
+    }
+
+    .status.info{
+      display:block;
+      background:#eff6ff;
+      color:#1d4ed8;
+      border:1px solid #bfdbfe;
+    }
+
+    .sugerencias{
+      position:absolute;
+      top:calc(100% + 8px);
+      left:0;
+      right:0;
+      background:#fff;
+      border:1px solid #dbe2ea;
+      border-radius:14px;
+      box-shadow:0 18px 40px rgba(0,0,0,.14);
+      display:none;
+      z-index:50;
+      max-height:380px;
+      overflow:auto;
+    }
+
+    .sugerencias.show{
+      display:block;
+    }
+
+    .sugerencia-item{
+      padding:12px 14px;
+      border-bottom:1px solid #eef2f7;
+      cursor:pointer;
+      transition:.15s;
+    }
+
+    .sugerencia-item:last-child{
+      border-bottom:none;
+    }
+
+    .sugerencia-item:hover,
+    .sugerencia-item.active{
+      background:#f0f7ff;
+    }
+
+    .sugerencia-title{
+      font-size:16px;
+      font-weight:800;
+      color:#111827;
+      margin-bottom:4px;
+    }
+
+    .sugerencia-meta{
+      font-size:13px;
+      color:#4b5563;
+      line-height:1.45;
+    }
+
+    .content{
+      padding:20px;
+    }
+
+    .top-info{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:16px;
+      margin-bottom:18px;
+    }
+
+    .mini-card{
+      background:var(--gris2);
+      border:1px solid var(--gris);
+      border-radius:16px;
+      padding:18px;
+    }
+
+    .label{
+      font-size:12px;
+      color:#6b7280;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      margin-bottom:6px;
+    }
+
+    .value{
+      font-size:24px;
+      font-weight:800;
+      line-height:1.2;
+      word-break:break-word;
+    }
+
+    .subvalue{
+      margin-top:6px;
+      font-size:14px;
+      color:#4b5563;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .badge.true{
+      background:#ecfdf3;
+      color:var(--verde);
+      border:1px solid #bbf7d0;
+    }
+
+    .badge.false{
+      background:#fef2f2;
+      color:var(--rojo);
+      border:1px solid #fecaca;
+    }
+
+    .section-title{
+      margin:4px 0 14px;
+      font-size:18px;
+      font-weight:800;
+      color:var(--azul);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap:14px;
+    }
+
+    .field{
+      background:#fff;
+      border:1px solid var(--gris);
+      border-radius:14px;
+      padding:14px;
+    }
+
+    .field .name{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.05em;
+      color:#6b7280;
+      margin-bottom:8px;
+      font-weight:700;
+    }
+
+    .field .data{
+      font-size:18px;
+      font-weight:700;
+      word-break:break-word;
+    }
+
+    .array-box{
+      margin-top:18px;
+      background:#fff;
+      border:1px solid var(--gris);
+      border-radius:16px;
+      padding:16px;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .chip{
+      background:#eef6ff;
+      color:#00416A;
+      border:1px solid #bfdbfe;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .empty{
+      color:#6b7280;
+      font-style:italic;
+    }
+
+    .raw-box{
+      margin-top:18px;
+      background:#0f172a;
+      color:#e5e7eb;
+      border-radius:16px;
+      padding:16px;
+      overflow:auto;
+    }
+
+    pre{
+      margin:0;
+      white-space:pre-wrap;
+      word-break:break-word;
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .overlay-carga{
+      position:fixed;
+      inset:0;
+      background:rgba(255,255,255,.86);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:2000;
+      backdrop-filter:blur(3px);
+    }
+
+    .overlay-carga.hidden{
+      display:none;
+    }
+
+    .caja-carga{
+      width:min(520px, calc(100% - 40px));
+      background:#fff;
+      border:1px solid #dbe2ea;
+      border-radius:22px;
+      box-shadow:0 18px 48px rgba(0,0,0,.18);
+      padding:24px;
+      text-align:center;
+    }
+
+    .caja-carga h2{
+      margin:0 0 10px;
+      color:#00416A;
+    }
+
+    .barra{
+      height:14px;
+      background:#e5e7eb;
+      border-radius:999px;
+      overflow:hidden;
+      margin-top:18px;
+    }
+
+    .barra-fill{
+      height:100%;
+      width:0%;
+      background:linear-gradient(135deg,#00416A,#0c6cbd);
+      transition:width .2s ease;
+    }
+
+    .carga-texto{
+      margin-top:12px;
+      font-size:14px;
+      color:#4b5563;
+    }
+
+    .tabla-precios{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:10px;
+      overflow:hidden;
+      border-radius:12px;
+      border:1px solid #e5e7eb;
+    }
+
+    .tabla-precios thead{
+      background:linear-gradient(135deg,#00416A,#0c6cbd);
+      color:#fff;
+    }
+
+    .tabla-precios th{
+      text-align:left;
+      padding:12px;
+      font-size:13px;
+      letter-spacing:.04em;
+    }
+
+    .tabla-precios td{
+      padding:12px;
+      border-top:1px solid #eef2f7;
+      font-size:15px;
+      font-weight:600;
+    }
+
+    .tabla-precios tbody tr:hover{
+      background:#f8fafc;
+    }
+
+    .badge-vol{
+      background:#eef6ff;
+      color:#00416A;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:700;
+      display:inline-block;
+    }
+
+    @media (max-width: 760px){
+      .top-info{
+        grid-template-columns:1fr;
+      }
+
+      .value{
+        font-size:20px;
+      }
+
+      .tabla-precios{
+        display:block;
+        overflow-x:auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay-carga" id="overlayCarga">
+    <div class="caja-carga">
+      <h2>Cargando catálogo</h2>
+      <div>Preparando catálogo local...</div>
+      <div class="barra">
+        <div class="barra-fill" id="barraFill"></div>
+      </div>
+      <div class="carga-texto" id="cargaTexto">Iniciando...</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="head">
+        <h1>Consulta de Productos - PROVSOFT</h1>
+        <p>Búsqueda local por código o palabra. Firebase solo se usa si no existe catálogo local o si sincronizas manualmente.</p>
+      </div>
+
+      <div class="panel">
+        <div class="buscador-wrap">
+          <input
+            type="text"
+            id="busquedaInput"
+            placeholder="Escribe código de barras o palabra..."
+            autocomplete="off"
+          />
+          <div class="sugerencias" id="sugerenciasBox"></div>
+        </div>
+
+        <div class="acciones">
+          <button class="btn-sec" id="btnSincronizar">Sincronizar catálogo</button>
+          <button class="btn-sec" id="btnBorrarLocal">Borrar catálogo local</button>
+        </div>
+
+        <div id="status" class="status"></div>
+      </div>
+
+      <div class="content">
+        <div class="top-info">
+          <div class="mini-card">
+            <div class="label">Concepto</div>
+            <div class="value" id="concepto">Sin consultar</div>
+            <div class="subvalue" id="codigoMostrado">Código: --</div>
+          </div>
+
+          <div class="mini-card">
+            <div class="label">Estado</div>
+            <div id="activoBadge" class="badge false">No disponible</div>
+            <div class="subvalue" id="actualizadoTexto">Actualizado: --</div>
+          </div>
+        </div>
+
+        <div class="section-title">Datos principales</div>
+        <div class="grid" id="camposGrid"></div>
+
+        <div class="array-box">
+          <div class="section-title" style="margin-top:0;">Precios por volumen</div>
+          <div id="preciosVolumenBox" class="empty">Sin consultar</div>
+        </div>
+
+        <div class="array-box">
+          <div class="section-title" style="margin-top:0;">Códigos equivalentes</div>
+          <div id="equivalentesBox" class="empty">Sin consultar</div>
+        </div>
+
+        <div class="raw-box">
+          <div class="section-title" style="color:#93c5fd; margin-top:0;">JSON crudo</div>
+          <pre id="jsonRaw">{}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { firebaseConfig } from "./config.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      Timestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const COLECCION = "productos";
+
+    const DB_NAME = "provsoft_local_db";
+    const STORE_NAME = "catalogo_productos";
+    const META_STORE = "meta_store";
+    const CATALOGO_KEY = "productos";
+
+    const busquedaInput = document.getElementById("busquedaInput");
+    const sugerenciasBox = document.getElementById("sugerenciasBox");
+    const statusBox = document.getElementById("status");
+
+    const conceptoEl = document.getElementById("concepto");
+    const codigoMostradoEl = document.getElementById("codigoMostrado");
+    const activoBadgeEl = document.getElementById("activoBadge");
+    const actualizadoTextoEl = document.getElementById("actualizadoTexto");
+    const camposGridEl = document.getElementById("camposGrid");
+    const preciosVolumenBoxEl = document.getElementById("preciosVolumenBox");
+    const equivalentesBoxEl = document.getElementById("equivalentesBox");
+    const jsonRawEl = document.getElementById("jsonRaw");
+
+    const overlayCarga = document.getElementById("overlayCarga");
+    const barraFill = document.getElementById("barraFill");
+    const cargaTexto = document.getElementById("cargaTexto");
+
+    const btnSincronizar = document.getElementById("btnSincronizar");
+    const btnBorrarLocal = document.getElementById("btnBorrarLocal");
+
+    let catalogoProductos = [];
+    let sugerenciasActuales = [];
+    let indiceActivo = -1;
+
+    function mostrarStatus(msg, tipo = "ok") {
+      statusBox.className = `status ${tipo}`;
+      statusBox.textContent = msg;
+    }
+
+    function limpiarVista() {
+      conceptoEl.textContent = "Sin datos";
+      codigoMostradoEl.textContent = "Código: --";
+      activoBadgeEl.className = "badge false";
+      activoBadgeEl.textContent = "No disponible";
+      actualizadoTextoEl.textContent = "Actualizado: --";
+      camposGridEl.innerHTML = "";
+      preciosVolumenBoxEl.innerHTML = '<div class="empty">Sin datos</div>';
+      equivalentesBoxEl.innerHTML = '<div class="empty">Sin datos</div>';
+      jsonRawEl.textContent = "{}";
+    }
+
+    function formatearFecha(valor) {
+      try {
+        if (!valor) return "--";
+
+        let fecha = null;
+
+        if (valor instanceof Timestamp) {
+          fecha = valor.toDate();
+        } else if (valor?.seconds !== undefined) {
+          fecha = new Date(valor.seconds * 1000);
+        } else if (valor instanceof Date) {
+          fecha = valor;
+        } else {
+          fecha = new Date(valor);
+        }
+
+        if (isNaN(fecha.getTime())) return "--";
+
+        return new Intl.DateTimeFormat("es-MX", {
+          dateStyle: "long",
+          timeStyle: "medium"
+        }).format(fecha);
+      } catch {
+        return "--";
+      }
+    }
+
+    function normalizarTexto(txt) {
+      return String(txt || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .trim();
+    }
+
+    function valorLegible(v) {
+      if (v === null || v === undefined) return "--";
+      if (v instanceof Timestamp) return formatearFecha(v);
+      if (typeof v === "boolean") return v ? "Sí" : "No";
+      if (Array.isArray(v)) return v.length ? v.join(", ") : "[]";
+      if (typeof v === "object") return JSON.stringify(v, null, 2);
+      return String(v);
+    }
+
+    function crearCampo(nombre, valor) {
+      const div = document.createElement("div");
+      div.className = "field";
+      div.innerHTML = `
+        <div class="name">${nombre}</div>
+        <div class="data">${valorLegible(valor)}</div>
+      `;
+      return div;
+    }
+
+    function renderPreciosVolumen(data) {
+      const lista = Array.isArray(data.preciosPorCantidad)
+        ? [...data.preciosPorCantidad]
+        : [];
+
+      if (!lista.length) {
+        preciosVolumenBoxEl.innerHTML = `
+          <div class="empty">No hay precios por volumen definidos.</div>
+        `;
+        return;
+      }
+
+      const filas = lista
+        .sort((a, b) => Number(a.cantidadMinima || 0) - Number(b.cantidadMinima || 0))
+        .map(item => `
+          <tr>
+            <td><span class="badge-vol">${Number(item.cantidadMinima || 0)}+</span></td>
+            <td>$${Number(item.precioUnitario || 0).toFixed(2)}</td>
+            <td>$${Number(item.precioTotal || 0).toFixed(2)}</td>
+          </tr>
+        `)
+        .join("");
+
+      preciosVolumenBoxEl.innerHTML = `
+        <table class="tabla-precios">
+          <thead>
+            <tr>
+              <th>Cantidad mínima</th>
+              <th>Precio unitario</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filas}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderProducto(producto) {
+      const data = producto.data;
+
+      conceptoEl.textContent = data.concepto || "Sin concepto";
+      codigoMostradoEl.textContent = `Código: ${data.codigoBarra || producto.id || "--"}`;
+
+      const activo = !!data.activo;
+      activoBadgeEl.className = `badge ${activo ? "true" : "false"}`;
+      activoBadgeEl.textContent = activo ? "ACTIVO" : "INACTIVO";
+
+      actualizadoTextoEl.textContent =
+        `Actualizado: ${formatearFecha(data.updatedAt || data.actualizadoEn)}`;
+
+      camposGridEl.innerHTML = "";
+
+      const campos = [
+        ["codigoBarra", data.codigoBarra],
+        ["claveSat", data.claveSat],
+        ["unidadMedidaSat", data.unidadMedidaSat],
+        ["departamento", data.departamento],
+        ["marca", data.marca],
+        ["precioPublico", data.precioPublico]
+      ];
+
+      campos.forEach(([nombre, valor]) => {
+        camposGridEl.appendChild(crearCampo(nombre, valor));
+      });
+
+      renderPreciosVolumen(data);
+
+      const equivalentes = Array.isArray(data.codigosEquivalentes)
+        ? data.codigosEquivalentes
+        : [];
+
+      if (!equivalentes.length) {
+        equivalentesBoxEl.innerHTML = '<div class="empty">Este producto no tiene códigos equivalentes.</div>';
+      } else {
+        equivalentesBoxEl.innerHTML = "";
+        const chips = document.createElement("div");
+        chips.className = "chips";
+
+        equivalentes.forEach(codigo => {
+          const chip = document.createElement("div");
+          chip.className = "chip";
+          chip.textContent = codigo;
+          chips.appendChild(chip);
+        });
+
+        equivalentesBoxEl.appendChild(chips);
+      }
+
+      const jsonBonito = JSON.stringify(
+        data,
+        (key, value) => {
+          if (value instanceof Timestamp) return formatearFecha(value);
+          if (value?.seconds !== undefined && value?.nanoseconds !== undefined) return formatearFecha(value);
+          return value;
+        },
+        2
+      );
+
+      jsonRawEl.textContent = jsonBonito;
+    }
+
+    function ocultarSugerencias() {
+      sugerenciasBox.classList.remove("show");
+      sugerenciasBox.innerHTML = "";
+      sugerenciasActuales = [];
+      indiceActivo = -1;
+    }
+
+    function seleccionarProducto(producto) {
+      busquedaInput.value = producto.data.codigoBarra || producto.data.concepto || "";
+      renderProducto(producto);
+      ocultarSugerencias();
+      mostrarStatus(`Producto cargado: ${producto.data.concepto || producto.id}`, "ok");
+    }
+
+    function renderSugerencias(lista) {
+      sugerenciasBox.innerHTML = "";
+      sugerenciasActuales = lista;
+      indiceActivo = -1;
+
+      if (!lista.length) {
+        ocultarSugerencias();
+        return;
+      }
+
+      lista.forEach((producto, i) => {
+        const div = document.createElement("div");
+        div.className = "sugerencia-item";
+        div.dataset.index = i;
+
+        div.innerHTML = `
+          <div class="sugerencia-title">${producto.data.concepto || "Sin concepto"}</div>
+          <div class="sugerencia-meta">
+            <strong>Código:</strong> ${producto.data.codigoBarra || producto.id}
+            &nbsp; | &nbsp;
+            <strong>Marca:</strong> ${producto.data.marca || "--"}
+            &nbsp; | &nbsp;
+            <strong>Precio:</strong> ${producto.data.precioPublico ?? "--"}
+          </div>
+        `;
+
+        div.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          seleccionarProducto(producto);
+        });
+
+        sugerenciasBox.appendChild(div);
+      });
+
+      sugerenciasBox.classList.add("show");
+    }
+
+    function actualizarItemActivo() {
+      const items = sugerenciasBox.querySelectorAll(".sugerencia-item");
+      items.forEach((item, idx) => {
+        item.classList.toggle("active", idx === indiceActivo);
+      });
+
+      if (indiceActivo >= 0 && items[indiceActivo]) {
+        items[indiceActivo].scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    function buscarLocal(texto) {
+      const t = normalizarTexto(texto);
+      if (!t) return [];
+
+      const esNumerico = /^[0-9]+$/.test(t);
+
+      const resultados = catalogoProductos
+        .map(p => {
+          const codigo = p.busquedaCodigo;
+          const concepto = p.busquedaConcepto;
+          const equivalentes = p.busquedaEquivalentes;
+
+          let score = 9999;
+
+          if (codigo === t) score = 1;
+          else if (equivalentes.includes(t)) score = 2;
+          else if (codigo.startsWith(t)) score = 3;
+          else if (concepto.startsWith(t)) score = 4;
+          else if (concepto.includes(t)) score = 5;
+          else if (!esNumerico && equivalentes.some(eq => eq.includes(t))) score = 6;
+          else if (codigo.includes(t)) score = 7;
+          else score = 9999;
+
+          return { ...p, score };
+        })
+        .filter(x => x.score < 9999)
+        .sort((a, b) => {
+          if (a.score !== b.score) return a.score - b.score;
+          return String(a.data.concepto || "").localeCompare(String(b.data.concepto || ""), "es");
+        })
+        .slice(0, 12);
+
+      return resultados;
+    }
+
+    function manejarInput() {
+      const texto = busquedaInput.value.trim();
+
+      if (!texto) {
+        ocultarSugerencias();
+        return;
+      }
+
+      const resultados = buscarLocal(texto);
+      renderSugerencias(resultados);
+    }
+
+    function abrirDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: "key" });
+          }
+
+          if (!db.objectStoreNames.contains(META_STORE)) {
+            db.createObjectStore(META_STORE, { keyPath: "key" });
+          }
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function guardarCatalogoIndexedDB(lista) {
+      const dbLocal = await abrirDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = dbLocal.transaction([STORE_NAME, META_STORE], "readwrite");
+        const store = tx.objectStore(STORE_NAME);
+        const meta = tx.objectStore(META_STORE);
+
+        store.put({
+          key: CATALOGO_KEY,
+          items: lista
+        });
+
+        meta.put({
+          key: "ultima_sync",
+          fecha: new Date().toISOString(),
+          total: lista.length
+        });
+
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function leerCatalogoIndexedDB() {
+      const dbLocal = await abrirDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = dbLocal.transaction(STORE_NAME, "readonly");
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.get(CATALOGO_KEY);
+
+        request.onsuccess = () => {
+          resolve(request.result ? request.result.items : null);
+        };
+
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function leerMetaIndexedDB() {
+      const dbLocal = await abrirDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = dbLocal.transaction(META_STORE, "readonly");
+        const store = tx.objectStore(META_STORE);
+        const request = store.get("ultima_sync");
+
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function borrarCatalogoIndexedDB() {
+      const dbLocal = await abrirDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = dbLocal.transaction([STORE_NAME, META_STORE], "readwrite");
+        tx.objectStore(STORE_NAME).delete(CATALOGO_KEY);
+        tx.objectStore(META_STORE).delete("ultima_sync");
+
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    function prepararCatalogo(lista) {
+      catalogoProductos = lista.map(item => {
+        const data = item.data || {};
+        const equivalentes = Array.isArray(data.codigosEquivalentes) ? data.codigosEquivalentes : [];
+
+        return {
+          id: item.id,
+          data,
+          busquedaCodigo: normalizarTexto(data.codigoBarra || item.id),
+          busquedaConcepto: normalizarTexto(data.concepto),
+          busquedaEquivalentes: equivalentes.map(x => normalizarTexto(x))
+        };
+      });
+    }
+
+    async function descargarCatalogoDesdeFirebase() {
+      cargaTexto.textContent = "Consultando productos...";
+      barraFill.style.width = "15%";
+
+      const snap = await getDocs(collection(db, COLECCION));
+      const total = snap.size || 1;
+      let procesados = 0;
+
+      const lista = [];
+
+      snap.forEach(docSnap => {
+        procesados++;
+        lista.push({
+          id: docSnap.id,
+          data: docSnap.data()
+        });
+
+        const porcentaje = 15 + Math.round((procesados / total) * 85);
+        barraFill.style.width = `${porcentaje}%`;
+        cargaTexto.textContent = `Bajando catálogo... ${procesados} / ${total}`;
+      });
+
+      return lista;
+    }
+
+    async function iniciarCatalogo() {
+      try {
+        limpiarVista();
+        mostrarStatus("Revisando catálogo local...", "info");
+
+        const local = await leerCatalogoIndexedDB();
+
+        if (local && local.length) {
+          prepararCatalogo(local);
+          const meta = await leerMetaIndexedDB();
+
+          overlayCarga.classList.add("hidden");
+          mostrarStatus(
+            `Catálogo local listo (${catalogoProductos.length} productos)` +
+            (meta?.fecha ? ` | última sync: ${new Date(meta.fecha).toLocaleString("es-MX")}` : ""),
+            "ok"
+          );
+          return;
+        }
+
+        mostrarStatus("No existe catálogo local. Descargando desde Firebase...", "info");
+        overlayCarga.classList.remove("hidden");
+
+        const lista = await descargarCatalogoDesdeFirebase();
+        prepararCatalogo(lista);
+        await guardarCatalogoIndexedDB(lista);
+
+        barraFill.style.width = "100%";
+        cargaTexto.textContent = `Catálogo descargado: ${catalogoProductos.length} productos`;
+        overlayCarga.classList.add("hidden");
+        mostrarStatus(`Catálogo listo (${catalogoProductos.length} productos).`, "ok");
+      } catch (error) {
+        console.error(error);
+        overlayCarga.classList.add("hidden");
+        mostrarStatus("Error cargando catálogo: " + error.message, "error");
+      }
+    }
+
+    async function sincronizarCatalogoManual() {
+      try {
+        overlayCarga.classList.remove("hidden");
+        barraFill.style.width = "10%";
+        cargaTexto.textContent = "Sincronizando catálogo...";
+        mostrarStatus("Sincronizando catálogo con Firebase...", "info");
+
+        const lista = await descargarCatalogoDesdeFirebase();
+        prepararCatalogo(lista);
+        await guardarCatalogoIndexedDB(lista);
+
+        barraFill.style.width = "100%";
+        cargaTexto.textContent = `Catálogo actualizado: ${catalogoProductos.length} productos`;
+        overlayCarga.classList.add("hidden");
+        mostrarStatus(`Catálogo sincronizado (${catalogoProductos.length} productos).`, "ok");
+      } catch (error) {
+        console.error(error);
+        overlayCarga.classList.add("hidden");
+        mostrarStatus("Error al sincronizar catálogo: " + error.message, "error");
+      }
+    }
+
+    async function borrarCatalogoLocal() {
+      try {
+        await borrarCatalogoIndexedDB();
+        catalogoProductos = [];
+        limpiarVista();
+        ocultarSugerencias();
+        mostrarStatus("Catálogo local borrado. Al recargar se volverá a descargar.", "ok");
+      } catch (error) {
+        console.error(error);
+        mostrarStatus("No se pudo borrar catálogo local: " + error.message, "error");
+      }
+    }
+
+    busquedaInput.addEventListener("input", manejarInput);
+
+    busquedaInput.addEventListener("keydown", (e) => {
+      if (!sugerenciasActuales.length) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        indiceActivo = Math.min(indiceActivo + 1, sugerenciasActuales.length - 1);
+        actualizarItemActivo();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        indiceActivo = Math.max(indiceActivo - 1, 0);
+        actualizarItemActivo();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (indiceActivo >= 0 && sugerenciasActuales[indiceActivo]) {
+          seleccionarProducto(sugerenciasActuales[indiceActivo]);
+        } else if (sugerenciasActuales[0]) {
+          seleccionarProducto(sugerenciasActuales[0]);
+        }
+      } else if (e.key === "Escape") {
+        ocultarSugerencias();
+      }
+    });
+
+    busquedaInput.addEventListener("focus", () => {
+      if (busquedaInput.value.trim()) manejarInput();
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".buscador-wrap")) {
+        ocultarSugerencias();
+      }
+    });
+
+    btnSincronizar.addEventListener("click", sincronizarCatalogoManual);
+    btnBorrarLocal.addEventListener("click", borrarCatalogoLocal);
+
+    iniciarCatalogo();
+  </script>
+</body>
+</html>
