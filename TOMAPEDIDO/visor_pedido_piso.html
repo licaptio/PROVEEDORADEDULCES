@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -7,6 +7,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qz-tray/qz-tray.js"></script>
 
   <style>
     * { box-sizing: border-box; }
@@ -52,8 +53,16 @@
       cursor:pointer;
     }
 
+    .btn:hover{
+      filter:brightness(1.05);
+    }
+
     .btn.sec{
       background:#64748b;
+    }
+
+    .btn.ok{
+      background:#166534;
     }
 
     .card{
@@ -158,8 +167,20 @@
       padding:14px;
     }
 
+    .estado-impresora{
+      margin-top:12px;
+      padding:10px 12px;
+      border-radius:10px;
+      background:#eef6ff;
+      border:1px solid #dbeafe;
+      color:#1e3a8a;
+      font-size:13px;
+      font-weight:700;
+    }
+
     @media print {
-      .top{
+      .top,
+      .estado-impresora{
         display:none;
       }
       body{
@@ -179,8 +200,9 @@
       <div>
         <button class="btn sec" onclick="volver()">← Regresar a lista</button>
       </div>
-      <div>
-        <button class="btn" onclick="window.print()">🖨 Imprimir</button>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn" onclick="probarConexionQZ()">Probar Epson</button>
+        <button class="btn ok" onclick="imprimirTicketEpson()">🖨 Imprimir Epson</button>
       </div>
     </div>
 
@@ -251,6 +273,10 @@
         <strong>Observaciones:</strong>
         <div id="observaciones" style="margin-top:8px;">-</div>
       </div>
+
+      <div class="estado-impresora" id="estadoImpresora">
+        Impresora: sin verificar
+      </div>
     </div>
   </div>
 
@@ -266,6 +292,16 @@
 
     const params = new URLSearchParams(window.location.search);
     const folio = params.get("folio");
+
+    let pedidoActual = null;
+    let productosActuales = [];
+    let subtotalActual = 0;
+
+    // CAMBIA ESTE NOMBRE POR EL NOMBRE EXACTO DE TU IMPRESORA EN WINDOWS
+    const NOMBRE_IMPRESORA = "EPSON TM-T20III";
+
+    // 32 o 48 columnas, según tu Epson/configuración
+    const ANCHO_TICKET = 48;
 
     function money(n) {
       return "$" + Number(n || 0).toLocaleString("es-MX", {
@@ -285,7 +321,252 @@
     }
 
     function volver() {
-      window.location.href = "lista_pedidos_piso.html";
+      window.location.href = "LISTADO.html";
+    }
+
+    function setEstadoImpresora(txt) {
+      document.getElementById("estadoImpresora").textContent = "Impresora: " + txt;
+    }
+
+    function quitarAcentos(texto) {
+      return String(texto || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function limpiarTextoTicket(texto) {
+      return quitarAcentos(String(texto || ""))
+        .replace(/[^\x20-\x7E\n]/g, "")
+        .replace(/\t/g, " ");
+    }
+
+    function linea(char = "-") {
+      return char.repeat(ANCHO_TICKET);
+    }
+
+    function centrar(texto = "") {
+      texto = limpiarTextoTicket(texto);
+      if (texto.length >= ANCHO_TICKET) return texto.slice(0, ANCHO_TICKET);
+      const espacios = Math.floor((ANCHO_TICKET - texto.length) / 2);
+      return " ".repeat(Math.max(0, espacios)) + texto;
+    }
+
+    function derecha(texto = "") {
+      texto = limpiarTextoTicket(texto);
+      if (texto.length >= ANCHO_TICKET) return texto.slice(0, ANCHO_TICKET);
+      return " ".repeat(ANCHO_TICKET - texto.length) + texto;
+    }
+
+    function dosColumnas(izq = "", der = "") {
+      izq = limpiarTextoTicket(izq);
+      der = limpiarTextoTicket(der);
+      const espacio = ANCHO_TICKET - izq.length - der.length;
+      if (espacio >= 1) return izq + " ".repeat(espacio) + der;
+
+      const maxIzq = Math.max(1, ANCHO_TICKET - der.length - 1);
+      return izq.slice(0, maxIzq) + " " + der;
+    }
+
+    function cortarTexto(texto = "", ancho = ANCHO_TICKET) {
+      texto = limpiarTextoTicket(texto);
+      const palabras = texto.split(/\s+/).filter(Boolean);
+      const lineas = [];
+      let actual = "";
+
+      for (const palabra of palabras) {
+        if (!actual) {
+          actual = palabra;
+        } else if ((actual + " " + palabra).length <= ancho) {
+          actual += " " + palabra;
+        } else {
+          lineas.push(actual);
+          if (palabra.length > ancho) {
+            let resto = palabra;
+            while (resto.length > ancho) {
+              lineas.push(resto.slice(0, ancho));
+              resto = resto.slice(ancho);
+            }
+            actual = resto;
+          } else {
+            actual = palabra;
+          }
+        }
+      }
+
+      if (actual) lineas.push(actual);
+      return lineas.length ? lineas : [""];
+    }
+
+    function formatearRenglonProducto(cantidad, descripcion, importe) {
+      const colCant = 6;
+      const colImp = 10;
+      const colDesc = ANCHO_TICKET - colCant - colImp - 2;
+
+      const cantTxt = String(cantidad);
+      const impTxt = Number(importe || 0).toFixed(2);
+
+      const descLineas = cortarTexto(descripcion, colDesc);
+      let out = "";
+
+      descLineas.forEach((lineaDesc, i) => {
+        const c1 = i === 0 ? cantTxt.padStart(colCant, " ") : " ".repeat(colCant);
+        const c2 = lineaDesc.padEnd(colDesc, " ");
+        const c3 = i === 0 ? impTxt.padStart(colImp, " ") : " ".repeat(colImp);
+        out += `${c1} ${c2} ${c3}\n`;
+      });
+
+      return out;
+    }
+
+    function generarTicketTexto(data) {
+      const productos = Array.isArray(data.productos) ? data.productos : [];
+      const fecha = data.fecha || "";
+      const observaciones = data.observaciones || "-";
+
+      let out = "";
+
+      // Inicializar impresora
+      out += "\x1B\x40";
+
+      out += centrar("PROVSOFT") + "\n";
+      out += centrar("PEDIDO PISO") + "\n";
+      out += linea("=") + "\n";
+
+      out += dosColumnas("FOLIO:", data.folio || "") + "\n";
+      out += dosColumnas("FECHA:", fecha) + "\n";
+      out += dosColumnas("ESTATUS:", data.estatus || "") + "\n";
+      out += linea("-") + "\n";
+
+      const clienteLineas = cortarTexto("CLIENTE: " + (data.cliente || ""), ANCHO_TICKET);
+      clienteLineas.forEach(l => out += l + "\n");
+
+      if (data.solicitante) {
+        const solLineas = cortarTexto("SOLICITANTE: " + data.solicitante, ANCHO_TICKET);
+        solLineas.forEach(l => out += l + "\n");
+      }
+
+      if (data.tipo) {
+        const tipoLineas = cortarTexto("TIPO: " + data.tipo, ANCHO_TICKET);
+        tipoLineas.forEach(l => out += l + "\n");
+      }
+
+      out += linea("-") + "\n";
+      out += " CANT DESCRIPCION                          IMPORTE\n";
+      out += linea("-") + "\n";
+
+      productos.forEach((p) => {
+        const cantidad = Number(p.cantidad || 0);
+        const precio = Number(p.precioPublico || 0);
+        const importe = cantidad * precio;
+        const descripcion = `${p.codigoBarra || ""} ${p.concepto || ""}`.trim();
+
+        out += formatearRenglonProducto(cantidad, descripcion, importe);
+      });
+
+      out += linea("-") + "\n";
+      out += dosColumnas("PARTIDAS:", String(data.totalPartidas || productos.length)) + "\n";
+      out += dosColumnas("PIEZAS:", String(data.totalPiezas || 0)) + "\n";
+      out += dosColumnas("SUBTOTAL:", Number(data.subtotal || 0).toFixed(2)) + "\n";
+      out += linea("-") + "\n";
+
+      out += "OBSERVACIONES:\n";
+      cortarTexto(observaciones, ANCHO_TICKET).forEach(l => out += l + "\n");
+
+      out += "\n";
+      out += centrar("FIN DEL PEDIDO") + "\n";
+      out += "\n\n\n";
+
+      // Corte parcial ESC/POS
+      out += "\x1D\x56\x00";
+
+      return out;
+    }
+
+    async function conectarQZ() {
+      if (qz.websocket.isActive()) return true;
+      await qz.websocket.connect();
+      return true;
+    }
+
+    async function desconectarQZ() {
+      try {
+        if (qz.websocket.isActive()) {
+          await qz.websocket.disconnect();
+        }
+      } catch (e) {
+        console.warn("No se pudo cerrar QZ:", e);
+      }
+    }
+
+    async function probarConexionQZ() {
+      try {
+        setEstadoImpresora("conectando...");
+        await conectarQZ();
+
+        const impresoras = await qz.printers.find();
+        console.log("Impresoras detectadas:", impresoras);
+
+        setEstadoImpresora(`QZ conectado. Objetivo: ${NOMBRE_IMPRESORA}`);
+        alert("QZ Tray conectado correctamente.\nRevisa consola para ver impresoras detectadas.");
+      } catch (e) {
+        console.error(e);
+        setEstadoImpresora("error de conexion");
+        alert("No se pudo conectar con QZ Tray.\n\nVerifica:\n1) QZ Tray instalado\n2) QZ Tray abierto\n3) Permisos del navegador");
+      }
+    }
+
+    async function imprimirTicketEpson() {
+      if (!pedidoActual) {
+        alert("El pedido aun no termina de cargar");
+        return;
+      }
+
+      try {
+        setEstadoImpresora("preparando impresion...");
+        await conectarQZ();
+
+        const config = qz.configs.create(NOMBRE_IMPRESORA, {
+          encoding: 'Cp1252',
+          altPrinting: false
+        });
+
+        const ticketTexto = generarTicketTexto({
+          folio: pedidoActual.folio || folio,
+          cliente: pedidoActual.cliente || "",
+          fecha: formatearFecha(pedidoActual.creadoEn || pedidoActual.creadoEnLocal),
+          estatus: pedidoActual.estatus || "",
+          solicitante: pedidoActual.solicitante || "",
+          tipo: pedidoActual.tipo || "",
+          totalAsignado: Number(pedidoActual.totalAsignado || 0),
+          totalPartidas: Number(pedidoActual.totalPartidas || productosActuales.length),
+          totalPiezas: Number(pedidoActual.totalPiezas || 0),
+          subtotal: subtotalActual,
+          observaciones: pedidoActual.observaciones || "-",
+          productos: productosActuales
+        });
+
+        const data = [
+          {
+            type: 'raw',
+            format: 'plain',
+            data: ticketTexto
+          }
+        ];
+
+        await qz.print(config, data);
+        setEstadoImpresora("impresion enviada a " + NOMBRE_IMPRESORA);
+      } catch (e) {
+        console.error(e);
+        setEstadoImpresora("fallo al imprimir");
+        alert(
+          "Error al imprimir en Epson.\n\n" +
+          "Verifica:\n" +
+          "- Nombre exacto de impresora\n" +
+          "- QZ Tray abierto\n" +
+          "- Impresora encendida\n" +
+          "- Permiso concedido a QZ Tray"
+        );
+      }
     }
 
     async function cargarPedido() {
@@ -303,6 +584,7 @@
         }
 
         const data = doc.data();
+        pedidoActual = data;
 
         document.getElementById("folio").textContent = data.folio || folio;
         document.getElementById("cliente").textContent = data.cliente || "";
@@ -314,10 +596,16 @@
         document.getElementById("observaciones").textContent = data.observaciones || "-";
 
         const productos = Array.isArray(data.productos) ? data.productos : [];
+        productosActuales = productos;
+
         const tbody = document.getElementById("tablaProductos");
 
         if (!productos.length) {
           tbody.innerHTML = `<tr><td colspan="8">Sin productos</td></tr>`;
+          document.getElementById("totalPartidas").textContent = 0;
+          document.getElementById("totalPiezas").textContent = 0;
+          document.getElementById("subtotal").textContent = money(0);
+          subtotalActual = 0;
           return;
         }
 
@@ -343,15 +631,22 @@
           `;
         }).join("");
 
+        subtotalActual = subtotal;
+
         document.getElementById("totalPartidas").textContent = Number(data.totalPartidas || productos.length);
         document.getElementById("totalPiezas").textContent = Number(data.totalPiezas || 0);
         document.getElementById("subtotal").textContent = money(subtotal);
 
+        setEstadoImpresora("lista para Epson");
       } catch (error) {
         console.error(error);
         alert("Error al cargar el pedido");
       }
     }
+
+    window.addEventListener("beforeunload", async () => {
+      await desconectarQZ();
+    });
 
     cargarPedido();
   </script>
