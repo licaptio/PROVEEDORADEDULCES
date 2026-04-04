@@ -1,0 +1,877 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solicitud de Inventario Cíclico - PROVSOFT</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --azul: #00416A;
+      --azul2: #0c6cbd;
+      --verde: #166534;
+      --verde2: #22c55e;
+      --rojo: #991b1b;
+      --gris: #e5e7eb;
+      --gris2: #f8fafc;
+      --texto: #1f2937;
+      --card: #ffffff;
+      --shadow: 0 14px 34px rgba(0,0,0,.12);
+      --amarillo: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #eef5fb, #f8fafc);
+      color: var(--texto);
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .topbar {
+      background: linear-gradient(135deg, var(--azul), var(--azul2));
+      color: white;
+      padding: 22px;
+    }
+
+    .topbar h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .topbar p {
+      margin: 0;
+      opacity: .95;
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 14px;
+      padding: 18px;
+      border-bottom: 1px solid var(--gris);
+      background: white;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #475569;
+    }
+
+    .field input, .field select {
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      padding: 0 12px;
+      font-size: 14px;
+      background: white;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 18px;
+      border-bottom: 1px solid var(--gris);
+      background: var(--gris2);
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--azul);
+      color: white;
+    }
+
+    .btn-green {
+      background: linear-gradient(135deg, var(--verde), var(--verde2));
+      color: white;
+    }
+
+    .btn-sec {
+      background: #0f766e;
+      color: white;
+    }
+
+    .btn-gray {
+      background: #475569;
+      color: white;
+    }
+
+    .status {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--gris);
+      font-size: 14px;
+      background: #f8fafc;
+    }
+
+    .status.ok { color: var(--verde); }
+    .status.error { color: var(--rojo); }
+    .status.warn { color: #92400e; }
+
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 16px 18px;
+      background: white;
+      border-bottom: 1px solid var(--gris);
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: bold;
+      background: #eef2ff;
+      color: #1e3a8a;
+    }
+
+    .tables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 18px;
+    }
+
+    .subcard {
+      border: 1px solid var(--gris);
+      border-radius: 18px;
+      overflow: hidden;
+      background: white;
+    }
+
+    .subcard h3 {
+      margin: 0;
+      padding: 14px 16px;
+      font-size: 16px;
+      background: #eff6ff;
+      border-bottom: 1px solid var(--gris);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 520px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 9px 10px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f8fafc;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    td.num, th.num {
+      text-align: right;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .tag-fijo { background: #dbeafe; color: #1d4ed8; }
+    .tag-alta { background: #dcfce7; color: #166534; }
+    .tag-baja { background: #fef3c7; color: #92400e; }
+
+    .footer-box {
+      padding: 18px;
+      border-top: 1px solid var(--gris);
+      background: #fcfcfd;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .footer-box .field {
+      min-width: 260px;
+      flex: 1;
+    }
+
+    .muted {
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    .empty {
+      padding: 18px;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+      .tables { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: 1fr; }
+      .topbar h1 { font-size: 23px; }
+      .wrap { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="topbar">
+        <h1>Solicitud de Inventario Cíclico - ALLENDE 1</h1>
+        <p>Genera la solicitud con productos fijos + 5 de alta demanda + 5 de baja demanda y la guarda en <b>/TIENDAS/ALLENDE 1/ciclicos_solicitudes</b>.</p>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label>Sucursal</label>
+          <input id="sucursal" value="ALLENDE 1" readonly>
+        </div>
+        <div class="field">
+          <label>Fecha de solicitud</label>
+          <input id="fechaSolicitud" type="date">
+        </div>
+        <div class="field">
+          <label>Días a analizar ventas</label>
+          <input id="diasAnalisis" type="number" min="1" value="30">
+        </div>
+        <div class="field">
+          <label>Generado por</label>
+          <input id="generadoPor" placeholder="Ej. Gerardo">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" id="btnAnalizar">Analizar y armar solicitud</button>
+        <button class="btn-sec" id="btnRecargar">Recalcular</button>
+        <button class="btn-gray" id="btnLimpiar">Limpiar vista</button>
+        <button class="btn-green" id="btnGuardar">Guardar solicitud</button>
+      </div>
+
+      <div id="status" class="status">Esperando análisis...</div>
+      <div id="summary" class="summary"></div>
+
+      <div class="tables">
+        <div class="subcard">
+          <h3>Productos seleccionados para la solicitud</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Código</th>
+                  <th>Descripción</th>
+                  <th>Tipo</th>
+                  <th class="num">Inventario</th>
+                  <th class="num">Ventas periodo</th>
+                </tr>
+              </thead>
+              <tbody id="tbodySeleccion"></tbody>
+            </table>
+          </div>
+          <div id="emptySeleccion" class="empty">Todavía no hay solicitud armada.</div>
+        </div>
+
+        <div class="subcard">
+          <h3>Resumen del cálculo de demanda</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Descripción</th>
+                  <th class="num">Inventario</th>
+                  <th class="num">Ventas periodo</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyDemanda"></tbody>
+            </table>
+          </div>
+          <div id="emptyDemanda" class="empty">Aquí verás los productos evaluados para escoger alta y baja demanda.</div>
+        </div>
+      </div>
+
+      <div class="footer-box">
+        <div class="field">
+          <label>Folio generado</label>
+          <input id="folio" readonly placeholder="Se genera al guardar">
+        </div>
+        <div class="field">
+          <label>Observaciones</label>
+          <input id="observaciones" placeholder="Opcional">
+          <div class="muted">La solicitud se guarda como PENDIENTE. La app de respuesta después la podrá contestar.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const db = firebase.firestore();
+
+    const SUCURSAL = "ALLENDE 1";
+    const INVENTARIOS_REF = db.collection("TIENDAS").doc(SUCURSAL).collection("inventario1");
+    const VENTAS_REF = db.collection("TIENDAS").doc(SUCURSAL).collection("ventas");
+    const TRANSFERENCIAS_REF = db.collection("TIENDAS").doc(SUCURSAL).collection("SURTIDOTRANS");
+    const SOLICITUDES_REF = db.collection("TIENDAS").doc(SUCURSAL).collection("ciclicos_solicitudes");
+
+    const PRODUCTOS_FIJOS = [
+      { codigo: "75068776", descripcion: "CIGARROS BENSON DORADO", tipo: "FIJO" },
+      { codigo: "75035259", descripcion: "CIGARROS MARLBORO BLANCO 100", tipo: "FIJO" },
+      { codigo: "75068738", descripcion: "CIGARROS MARLBORO BLANCO DURO", tipo: "FIJO" },
+      { codigo: "75068745", descripcion: "CIGARROS MARLBORO BLANCO SUAVE", tipo: "FIJO" },
+      { codigo: "75021597", descripcion: "CIGARROS MARLBORO ROJO 100", tipo: "FIJO" },
+      { codigo: "75001322", descripcion: "CIGARROS MARLBORO ROJO DURO", tipo: "FIJO" },
+      { codigo: "75001315", descripcion: "CIGARROS MARLBORO ROJO SUAVE", tipo: "FIJO" },
+      { codigo: "75052836", descripcion: "CIGARROS PALL MALL TOKYO", tipo: "FIJO" },
+      { codigo: "210017", descripcion: "BIG CIFRUT 300 ML C/12", tipo: "FIJO" },
+      { codigo: "7503027753070", descripcion: "BIG CIFRUT 625 ML", tipo: "FIJO" },
+      { codigo: "60028", descripcion: "BIG COLA 3 LTS C/6", tipo: "FIJO" },
+      { codigo: "7506241203888", descripcion: "BIG COLA 3 LTS PZA", tipo: "FIJO" },
+      { codigo: "3062", descripcion: "AGUA GYM 24/500 ML", tipo: "FIJO" },
+      { codigo: "3217", descripcion: "AGUA GYM-STAR 12/ 1L", tipo: "FIJO" },
+      { codigo: "7016", descripcion: "MARIEL CHAROLA TERMICA 855 10 / 50", tipo: "FIJO" },
+      { codigo: "3319", descripcion: "AZUCAR MORENA C/25 KG. BULTO", tipo: "FIJO" },
+      { codigo: "7501020540666", descripcion: "LECHE NUTRI LECHE 1 LTO (23703)", tipo: "FIJO" },
+      { codigo: "7221", descripcion: "MARIEL CHAROLA TERMICA 066 10 PAQ/", tipo: "FIJO" }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const tbodySeleccion = $("tbodySeleccion");
+    const tbodyDemanda = $("tbodyDemanda");
+    const emptySeleccion = $("emptySeleccion");
+    const emptyDemanda = $("emptyDemanda");
+
+    let seleccionActual = [];
+    let demandaEvaluada = [];
+    let resumenCalculo = null;
+
+    function setStatus(msg, type = "") {
+      const el = $("status");
+      el.textContent = msg;
+      el.className = "status " + type;
+    }
+
+    function fmtNum(n) {
+      return Number(n || 0).toLocaleString("es-MX", { maximumFractionDigits: 2 });
+    }
+
+    function normalizarCodigo(valor) {
+      const s = String(valor ?? "").trim();
+      if (!s) return "";
+      const soloDigitos = s.replace(/\D/g, "");
+      if (!soloDigitos) return s.toLowerCase();
+      return soloDigitos.replace(/^0+/, "") || "0";
+    }
+
+    function normalizarFecha(valor) {
+      if (!valor) return "";
+
+      if (typeof valor === "string") {
+        const v = valor.trim();
+        const m1 = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
+
+        const m2 = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
+
+        return v;
+      }
+
+      if (valor && typeof valor.toDate === "function") {
+        return valor.toDate().toISOString().slice(0, 10);
+      }
+
+      if (valor && typeof valor.seconds === "number") {
+        return new Date(valor.seconds * 1000).toISOString().slice(0, 10);
+      }
+
+      return String(valor).trim();
+    }
+
+    function obtenerCampo(data, nombres = []) {
+      for (const nombre of nombres) {
+        if (data[nombre] !== undefined && data[nombre] !== null) return data[nombre];
+      }
+      return "";
+    }
+
+    function obtenerCodigoVenta(data) {
+      return String(obtenerCampo(data, ["Codigo", "codigo", "Código", "CODIGO"]) || "").trim();
+    }
+
+    function obtenerDescripcionVenta(data) {
+      return String(obtenerCampo(data, ["descripcion", "Descripción", "Descripcion", "producto", "Producto"]) || "").trim();
+    }
+
+    function obtenerCantidadVenta(data) {
+      return Number(obtenerCampo(data, ["Cantidad vendida", "cantidad vendida", "Cantidad", "cantidad", "cant", "unidades", "totalCantidad", "total"]) || 0);
+    }
+
+    function obtenerFechaVenta(data) {
+      return normalizarFecha(obtenerCampo(data, ["Fecha", "fecha", "FECHA"]));
+    }
+
+    function obtenerFechaHaceNDias(dias) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - Number(dias || 0));
+      return d.toISOString().slice(0, 10);
+    }
+
+    async function cargarInventarios() {
+      const foliosSnap = await INVENTARIOS_REF.orderBy(firebase.firestore.FieldPath.documentId(), "asc").get();
+      const docs = [];
+
+      for (const folioDoc of foliosSnap.docs) {
+        const itemsSnap = await folioDoc.ref.collection("items").get();
+
+        itemsSnap.forEach(itemDoc => {
+          const data = itemDoc.data() || {};
+          const codigoOriginal = String(data.codigo ?? data.Codigo ?? "").trim();
+          const descripcion = String(data.descripcion ?? data.Descripcion ?? "").trim();
+          const cantidad = Number(data.cantidad ?? data.Cantidad ?? 0);
+
+          if (!codigoOriginal || !Number.isFinite(cantidad)) return;
+
+          docs.push({
+            codigo: codigoOriginal,
+            codigoKey: normalizarCodigo(codigoOriginal),
+            descripcion,
+            cantidad
+          });
+        });
+      }
+
+      return docs;
+    }
+
+    async function cargarTransferencias() {
+      const transferSnap = await TRANSFERENCIAS_REF.get();
+      const docs = [];
+
+      for (const doc of transferSnap.docs) {
+        const data = doc.data() || {};
+        const detalle = Array.isArray(data.detalle) ? data.detalle : [];
+
+        detalle.forEach(item => {
+          const codigoOriginal = String(item.codigo || "").trim();
+          const cantidad = Number(item.cantidad_surtida ?? item.cantidad_solicitada ?? 0);
+          const descripcion = String(item.nombre || "").trim();
+
+          if (!codigoOriginal || !Number.isFinite(cantidad) || cantidad <= 0) return;
+
+          docs.push({
+            codigo: codigoOriginal,
+            codigoKey: normalizarCodigo(codigoOriginal),
+            descripcion,
+            cantidad
+          });
+        });
+      }
+
+      return docs;
+    }
+
+    async function cargarVentas(diasAnalisis) {
+      const fechaMin = obtenerFechaHaceNDias(diasAnalisis);
+      const ventasSnap = await VENTAS_REF.get();
+      const docs = [];
+
+      ventasSnap.forEach(doc => {
+        const data = doc.data() || {};
+        const fecha = obtenerFechaVenta(data);
+        if (!fecha || fecha < fechaMin) return;
+
+        const codigoOriginal = obtenerCodigoVenta(data);
+        const cantidad = obtenerCantidadVenta(data);
+        const descripcion = obtenerDescripcionVenta(data);
+
+        if (!codigoOriginal || !Number.isFinite(cantidad) || cantidad <= 0) return;
+
+        docs.push({
+          codigo: codigoOriginal,
+          codigoKey: normalizarCodigo(codigoOriginal),
+          descripcion,
+          cantidad,
+          fecha
+        });
+      });
+
+      return docs;
+    }
+
+    function construirInventarioCalculado(inventarios, transferencias, ventas) {
+      const mapa = new Map();
+
+      function asegurar(codigo, descripcion = "") {
+        const key = normalizarCodigo(codigo);
+        if (!key) return null;
+        if (!mapa.has(key)) {
+          mapa.set(key, {
+            codigo: String(codigo || "").trim(),
+            codigoKey: key,
+            descripcion: String(descripcion || "").trim(),
+            inventarioBase: 0,
+            transferencias: 0,
+            ventas: 0,
+            inventarioCalculado: 0
+          });
+        }
+        const row = mapa.get(key);
+        if (!row.codigo && codigo) row.codigo = String(codigo).trim();
+        if (!row.descripcion && descripcion) row.descripcion = String(descripcion).trim();
+        return row;
+      }
+
+      inventarios.forEach(item => {
+        const row = asegurar(item.codigo, item.descripcion);
+        if (!row) return;
+        row.inventarioBase += Number(item.cantidad || 0);
+        row.inventarioCalculado = row.inventarioBase + row.transferencias - row.ventas;
+      });
+
+      transferencias.forEach(item => {
+        const row = asegurar(item.codigo, item.descripcion);
+        if (!row) return;
+        row.transferencias += Number(item.cantidad || 0);
+        row.inventarioCalculado = row.inventarioBase + row.transferencias - row.ventas;
+      });
+
+      ventas.forEach(item => {
+        const row = asegurar(item.codigo, item.descripcion);
+        if (!row) return;
+        row.ventas += Number(item.cantidad || 0);
+        row.inventarioCalculado = row.inventarioBase + row.transferencias - row.ventas;
+      });
+
+      return Array.from(mapa.values());
+    }
+
+    function construirSolicitud(productosCalculados) {
+      const fijosKeys = new Set(PRODUCTOS_FIJOS.map(x => normalizarCodigo(x.codigo)));
+      const mapaCalculados = new Map(productosCalculados.map(x => [x.codigoKey, x]));
+
+      const fijos = PRODUCTOS_FIJOS.map((prod) => {
+        const calc = mapaCalculados.get(normalizarCodigo(prod.codigo));
+        return {
+          codigo: prod.codigo,
+          descripcion: calc?.descripcion || prod.descripcion,
+          tipo: "FIJO",
+          inventarioCalculado: Number(calc?.inventarioCalculado || 0),
+          ventasPeriodo: Number(calc?.ventas || 0)
+        };
+      });
+
+      const candidatos = productosCalculados
+        .filter(x => !fijosKeys.has(x.codigoKey))
+        .filter(x => Number(x.inventarioCalculado || 0) > 0 || Number(x.ventas || 0) > 0)
+        .sort((a, b) => {
+          const ventasDiff = Number(b.ventas || 0) - Number(a.ventas || 0);
+          if (ventasDiff !== 0) return ventasDiff;
+          return String(a.descripcion || "").localeCompare(String(b.descripcion || ""), "es", { sensitivity: "base" });
+        });
+
+      const alta = candidatos.slice(0, 5).map(x => ({
+        codigo: x.codigo,
+        descripcion: x.descripcion,
+        tipo: "ALTA",
+        inventarioCalculado: Number(x.inventarioCalculado || 0),
+        ventasPeriodo: Number(x.ventas || 0)
+      }));
+
+      const usadosAlta = new Set(alta.map(x => normalizarCodigo(x.codigo)));
+
+      const baja = candidatos
+        .filter(x => !usadosAlta.has(x.codigoKey))
+        .filter(x => Number(x.inventarioCalculado || 0) > 0 || Number(x.ventas || 0) > 0)
+        .sort((a, b) => {
+          const ventasDiff = Number(a.ventas || 0) - Number(b.ventas || 0);
+          if (ventasDiff !== 0) return ventasDiff;
+          return String(a.descripcion || "").localeCompare(String(b.descripcion || ""), "es", { sensitivity: "base" });
+        })
+        .slice(0, 5)
+        .map(x => ({
+          codigo: x.codigo,
+          descripcion: x.descripcion,
+          tipo: "BAJA",
+          inventarioCalculado: Number(x.inventarioCalculado || 0),
+          ventasPeriodo: Number(x.ventas || 0)
+        }));
+
+      return {
+        fijos,
+        alta,
+        baja,
+        seleccion: [...fijos, ...alta, ...baja]
+      };
+    }
+
+    function pintarSeleccion(lista) {
+      tbodySeleccion.innerHTML = "";
+      emptySeleccion.style.display = lista.length ? "none" : "block";
+      if (!lista.length) return;
+
+      lista.forEach((item, idx) => {
+        const tr = document.createElement("tr");
+        const claseTag = item.tipo === "FIJO" ? "tag-fijo" : item.tipo === "ALTA" ? "tag-alta" : "tag-baja";
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${escapeHtml(item.codigo)}</td>
+          <td>${escapeHtml(item.descripcion || "")}</td>
+          <td><span class="tag ${claseTag}">${item.tipo}</span></td>
+          <td class="num">${fmtNum(item.inventarioCalculado)}</td>
+          <td class="num">${fmtNum(item.ventasPeriodo)}</td>
+        `;
+        tbodySeleccion.appendChild(tr);
+      });
+    }
+
+    function pintarDemanda(lista) {
+      tbodyDemanda.innerHTML = "";
+      emptyDemanda.style.display = lista.length ? "none" : "block";
+      if (!lista.length) return;
+
+      lista.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(item.codigo)}</td>
+          <td>${escapeHtml(item.descripcion || "")}</td>
+          <td class="num">${fmtNum(item.inventarioCalculado)}</td>
+          <td class="num">${fmtNum(item.ventas || 0)}</td>
+        `;
+        tbodyDemanda.appendChild(tr);
+      });
+    }
+
+    function pintarResumen(resumen) {
+      $("summary").innerHTML = `
+        <div class="pill">Fijos: ${fmtNum(resumen.totalFijos)}</div>
+        <div class="pill">Alta demanda: ${fmtNum(resumen.totalAlta)}</div>
+        <div class="pill">Baja demanda: ${fmtNum(resumen.totalBaja)}</div>
+        <div class="pill">Total solicitud: ${fmtNum(resumen.totalSeleccion)}</div>
+        <div class="pill">Inventarios leídos: ${fmtNum(resumen.totalInventarios)}</div>
+        <div class="pill">Transferencias leídas: ${fmtNum(resumen.totalTransferencias)}</div>
+        <div class="pill">Ventas periodo: ${fmtNum(resumen.totalVentas)}</div>
+        <div class="pill">Productos calculados: ${fmtNum(resumen.totalCalculados)}</div>
+      `;
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    async function analizar() {
+      try {
+        const diasAnalisis = Number($("diasAnalisis").value || 30);
+        if (diasAnalisis <= 0) {
+          alert("Los días de análisis deben ser mayores a cero.");
+          return;
+        }
+
+        setStatus("Analizando inventarios, transferencias y ventas...", "warn");
+        $("folio").value = "";
+
+        const [inventarios, transferencias, ventas] = await Promise.all([
+          cargarInventarios(),
+          cargarTransferencias(),
+          cargarVentas(diasAnalisis)
+        ]);
+
+        const productosCalculados = construirInventarioCalculado(inventarios, transferencias, ventas);
+        const armado = construirSolicitud(productosCalculados);
+
+        seleccionActual = armado.seleccion;
+        demandaEvaluada = productosCalculados
+          .filter(x => !PRODUCTOS_FIJOS.some(f => normalizarCodigo(f.codigo) === x.codigoKey))
+          .filter(x => Number(x.inventarioCalculado || 0) > 0 || Number(x.ventas || 0) > 0)
+          .sort((a, b) => Number(b.ventas || 0) - Number(a.ventas || 0))
+          .slice(0, 100);
+
+        resumenCalculo = {
+          totalFijos: armado.fijos.length,
+          totalAlta: armado.alta.length,
+          totalBaja: armado.baja.length,
+          totalSeleccion: armado.seleccion.length,
+          totalInventarios: inventarios.length,
+          totalTransferencias: transferencias.length,
+          totalVentas: ventas.length,
+          totalCalculados: productosCalculados.length
+        };
+
+        pintarSeleccion(seleccionActual);
+        pintarDemanda(demandaEvaluada);
+        pintarResumen(resumenCalculo);
+
+        setStatus(`Solicitud armada correctamente. Fijos: ${armado.fijos.length}, alta: ${armado.alta.length}, baja: ${armado.baja.length}.`, "ok");
+      } catch (err) {
+        console.error(err);
+        setStatus("Error al analizar: " + err.message, "error");
+      }
+    }
+
+    async function generarFolio() {
+      const fecha = $("fechaSolicitud").value;
+      const fechaParte = (fecha || new Date().toISOString().slice(0, 10)).replace(/-/g, "");
+
+      const inicio = `${fecha || new Date().toISOString().slice(0, 10)}T00:00:00`;
+      const fin = `${fecha || new Date().toISOString().slice(0, 10)}T23:59:59`;
+
+      const snap = await SOLICITUDES_REF
+        .where("fecha", ">=", inicio.slice(0, 10))
+        .where("fecha", "<=", fin.slice(0, 10))
+        .get();
+
+      const consecutivo = String((snap.size || 0) + 1).padStart(3, "0");
+      return `CIC-${fechaParte}-${consecutivo}`;
+    }
+
+    async function guardarSolicitud() {
+      try {
+        if (!seleccionActual.length) {
+          alert("Primero analiza y arma la solicitud.");
+          return;
+        }
+
+        const fechaSolicitud = $("fechaSolicitud").value;
+        if (!fechaSolicitud) {
+          alert("Falta la fecha de solicitud.");
+          return;
+        }
+
+        const generadoPor = $("generadoPor").value.trim();
+        if (!generadoPor) {
+          alert("Falta quién genera la solicitud.");
+          return;
+        }
+
+        setStatus("Guardando solicitud...", "warn");
+
+        const folio = await generarFolio();
+        $("folio").value = folio;
+
+        const payload = {
+          folio,
+          fecha: fechaSolicitud,
+          sucursal: SUCURSAL,
+          estatus: "PENDIENTE",
+          generado_por: generadoPor,
+          observaciones: $("observaciones").value.trim(),
+          dias_analisis: Number($("diasAnalisis").value || 30),
+          creado_en: firebase.firestore.FieldValue.serverTimestamp(),
+          productos: seleccionActual.map((item, idx) => ({
+            orden: idx + 1,
+            codigo: item.codigo,
+            descripcion: item.descripcion,
+            tipo: item.tipo,
+            inventario_calculado: Number(item.inventarioCalculado || 0),
+            ventas_periodo: Number(item.ventasPeriodo || 0)
+          }))
+        };
+
+        await SOLICITUDES_REF.doc(folio).set(payload);
+        setStatus(`Solicitud guardada correctamente con folio ${folio}.`, "ok");
+      } catch (err) {
+        console.error(err);
+        setStatus("Error al guardar la solicitud: " + err.message, "error");
+      }
+    }
+
+    function limpiarVista() {
+      seleccionActual = [];
+      demandaEvaluada = [];
+      resumenCalculo = null;
+      tbodySeleccion.innerHTML = "";
+      tbodyDemanda.innerHTML = "";
+      emptySeleccion.style.display = "block";
+      emptyDemanda.style.display = "block";
+      $("summary").innerHTML = "";
+      $("folio").value = "";
+      setStatus("Vista limpiada.");
+    }
+
+    function ponerFechaHoy() {
+      $("fechaSolicitud").value = new Date().toISOString().slice(0, 10);
+    }
+
+    $("btnAnalizar").addEventListener("click", analizar);
+    $("btnRecargar").addEventListener("click", analizar);
+    $("btnGuardar").addEventListener("click", guardarSolicitud);
+    $("btnLimpiar").addEventListener("click", limpiarVista);
+
+    window.addEventListener("load", () => {
+      ponerFechaHoy();
+      setStatus("Lista la app de solicitud. Pulsa 'Analizar y armar solicitud'.");
+    });
+  </script>
+</body>
+</html>
