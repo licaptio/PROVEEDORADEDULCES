@@ -5,1171 +5,904 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
   <title>Consulta de Productos - PROVSOFT</title>
 
-<style>
-  :root{
-    --azul:#00416A;
-    --azul2:#0c6cbd;
-    --gris:#e5e7eb;
-    --gris2:#f8fafc;
-    --texto:#1f2937;
-    --verde:#166534;
-    --rojo:#991b1b;
-    --shadow:0 10px 28px rgba(0,0,0,.10);
-    --radius:18px;
-  }
+  <style>
+    :root{
+      --azul:#00416A;
+      --azul2:#0c6cbd;
+      --gris:#e5e7eb;
+      --gris2:#f8fafc;
+      --texto:#1f2937;
+      --verde:#166534;
+      --rojo:#991b1b;
+      --shadow:0 10px 28px rgba(0,0,0,.10);
+      --radius:18px;
+    }
+
+    *{
+      box-sizing:border-box;
+    }
+
+    html, body{
+      margin:0;
+      padding:0;
+      width:100%;
+      min-height:100%;
+      font-family:Arial, Helvetica, sans-serif;
+      background:linear-gradient(135deg,#eef4f9,#f8fbff);
+      color:var(--texto);
+    }
 
-  *{
-    box-sizing:border-box;
-  }
-
-  html,
-  body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    font-family:Arial, Helvetica, sans-serif;
-    background:linear-gradient(135deg,#eef4f9,#f8fbff);
-    color:var(--texto);
-    overflow:hidden;
-  }
-
-  body{
-    padding:14px;
-  }
-
-  .app{
-    width:100%;
-    height:calc(100vh - 28px);
-    max-width:1500px;
-    margin:auto;
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-  }
-
-  .card{
-    background:#fff;
-    border-radius:var(--radius);
-    box-shadow:var(--shadow);
-    overflow:hidden;
-    display:flex;
-    flex-direction:column;
-    height:100%;
-  }
-
-  .head{
-    background:linear-gradient(135deg,var(--azul),var(--azul2));
-    color:#fff;
-    padding:14px 18px;
-    flex:0 0 auto;
-  }
-
-  .head h1{
-    margin:0;
-    font-size:24px;
-    line-height:1.1;
-  }
-
-  .head p{
-    margin:6px 0 0;
-    opacity:.95;
-    font-size:13px;
-  }
-
-  .panel{
-    padding:12px 16px;
-    border-bottom:1px solid var(--gris);
-    background:#fcfdff;
-    position:relative;
-    flex:0 0 auto;
-  }
-
-  .panel-grid{
-    display:grid;
-    grid-template-columns:1.4fr auto;
-    gap:12px;
-    align-items:start;
-  }
-
-  .buscador-wrap{
-    position:relative;
-  }
-
-  input{
-    width:100%;
-    padding:12px 14px;
-    border-radius:12px;
-    border:1px solid #d1d5db;
-    font-size:15px;
-  }
-
-  input:focus{
-    outline:none;
-    border-color:var(--azul2);
-    box-shadow:0 0 0 3px rgba(12,108,189,.12);
-  }
-
-  .acciones{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    justify-content:flex-end;
-  }
-
-  .btn-sec{
-    width:auto;
-    padding:10px 14px;
-    border:none;
-    border-radius:12px;
-    background:#eef6ff;
-    color:#00416A;
-    font-weight:700;
-    cursor:pointer;
-    white-space:nowrap;
-    transition:.18s ease;
-  }
-
-  .btn-sec:hover{
-    background:#dbeafe;
-    transform:translateY(-1px);
-  }
-
-  .status{
-    margin-top:10px;
-    padding:10px 12px;
-    border-radius:12px;
-    font-size:13px;
-    display:none;
-  }
-
-  .status.ok{
-    display:block;
-    background:#ecfdf3;
-    color:var(--verde);
-    border:1px solid #bbf7d0;
-  }
-
-  .status.error{
-    display:block;
-    background:#fef2f2;
-    color:var(--rojo);
-    border:1px solid #fecaca;
-  }
-
-  .status.info{
-    display:block;
-    background:#eff6ff;
-    color:#1d4ed8;
-    border:1px solid #bfdbfe;
-  }
-
-  .sugerencias{
-    position:absolute;
-    top:calc(100% + 8px);
-    left:0;
-    right:0;
-    background:#fff;
-    border:1px solid #dbe2ea;
-    border-radius:14px;
-    box-shadow:0 18px 40px rgba(0,0,0,.14);
-    display:none;
-    z-index:50;
-    max-height:320px;
-    overflow:auto;
-  }
-
-  .sugerencias.show{
-    display:block;
-  }
-
-  .sugerencia-item{
-    padding:10px 12px;
-    border-bottom:1px solid #eef2f7;
-    cursor:pointer;
-    transition:.15s;
-  }
-
-  .sugerencia-item:last-child{
-    border-bottom:none;
-  }
-
-  .sugerencia-item:hover,
-  .sugerencia-item.active{
-    background:#f0f7ff;
-  }
-
-  .sugerencia-title{
-    font-size:15px;
-    font-weight:800;
-    color:#111827;
-    margin-bottom:3px;
-  }
-
-  .sugerencia-meta{
-    font-size:12px;
-    color:#4b5563;
-    line-height:1.35;
-  }
-
-  .main{
-    flex:1 1 auto;
-    min-height:0;
-    padding:12px 16px 16px;
-    display:grid;
-    grid-template-columns:0.92fr 1.08fr;
-    gap:20px;
-    overflow:hidden;
-  }
-
-  .col{
-    min-height:0;
-    display:flex;
-    flex-direction:column;
-    gap:16px;
-  }
-
-  .box{
-    background:#fff;
-    border:1px solid #eef2ff;
-    border-radius:20px;
-    padding:18px;
-    min-height:0;
-  }
-
-  .top-info{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-  }
-
-  .mini-card{
-    background:var(--gris2);
-    border:1px solid var(--gris);
-    border-radius:16px;
-    padding:14px;
-    min-height:110px;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-  }
-
-  .label{
-    font-size:11px;
-    color:#6b7280;
-    text-transform:uppercase;
-    letter-spacing:.06em;
-    margin-bottom:6px;
-  }
-
-  .value{
-    font-size:22px;
-    font-weight:800;
-    line-height:1.15;
-    word-break:break-word;
-  }
-
-  .subvalue{
-    margin-top:6px;
-    font-size:13px;
-    color:#4b5563;
-    line-height:1.35;
-  }
-
-  .badge{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:9px 12px;
-    border-radius:999px;
-    font-size:13px;
-    font-weight:700;
-    width:max-content;
-  }
-
-  .badge.true{
-    background:#ecfdf3;
-    color:var(--verde);
-    border:1px solid #bbf7d0;
-  }
-
-  .badge.false{
-    background:#fef2f2;
-    color:var(--rojo);
-    border:1px solid #fecaca;
-  }
-
-  .section-title{
-    margin:0 0 10px;
-    font-size:16px;
-    font-weight:800;
-    color:var(--azul);
-    line-height:1.2;
-  }
-
-  .grid{
-    display:grid;
-    grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:10px;
-  }
-
-  .field{
-    background:#fff;
-    border:1px solid var(--gris);
-    border-radius:14px;
-    padding:12px;
-    min-height:82px;
-  }
-
-  .field .name{
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:.05em;
-    color:#6b7280;
-    margin-bottom:6px;
-    font-weight:700;
-  }
-
-  .field .data{
-    font-size:16px;
-    font-weight:700;
-    word-break:break-word;
-    line-height:1.25;
-  }
-
-  .chips{
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top:6px;
-  }
-
-  .chip{
-    background:#eef6ff;
-    color:#00416A;
-    border:1px solid #bfdbfe;
-    padding:7px 11px;
-    border-radius:999px;
-    font-size:13px;
-    font-weight:700;
-  }
-
-  .empty{
-    color:#6b7280;
-    font-style:italic;
-    font-size:14px;
-  }
-
-  .tabla-wrap{
-    height:100%;
-    min-height:0;
-    overflow:auto;
-    border-radius:12px;
-  }
-
-  .precios-col{
-    min-height:0;
-  }
-
-  .precios-stack{
-    display:flex;
-    flex-direction:column;
-    gap:18px;
-    height:100%;
-  }
-
-  .precio-panel{
-    position:relative;
-    border-radius:24px;
-    overflow:hidden;
-    border:1px solid #dbe7f3;
-    box-shadow:
-      0 16px 40px rgba(15,23,42,.08),
-      0 3px 10px rgba(15,23,42,.04);
-    background:#fff;
-  }
-
-  .precio-panel::before{
-    content:"";
-    position:absolute;
-    top:0;
-    left:0;
-    bottom:0;
-    width:6px;
-    background:linear-gradient(180deg,#00416A,#0c6cbd);
-  }
-
-  .precio-panel-head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:14px;
-    padding:18px 22px 14px;
-    border-bottom:1px solid rgba(148,163,184,.20);
-  }
-
-  .precio-panel-kicker{
-    font-size:12px;
-    font-weight:900;
-    text-transform:uppercase;
-    letter-spacing:.14em;
-    color:#00416A;
-  }
-
-  .precio-panel-mini{
-    margin-top:5px;
-    font-size:13px;
-    color:#64748b;
-    font-weight:600;
-  }
-
-  .precio-panel-icon{
-    width:52px;
-    height:52px;
-    border-radius:16px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:24px;
-    background:linear-gradient(135deg,#eef6ff,#dbeafe);
-    border:1px solid #bfdbfe;
-    flex:0 0 auto;
-  }
-
-  .precio-panel-body{
-    padding:20px 22px 22px;
-  }
-
-  .precio-publico{
-    background:
-      linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
-      linear-gradient(135deg,#00416A 0%, #0c6cbd 100%);
-    border:none;
-  }
-
-  .precio-publico::before{
-    background:linear-gradient(180deg,#f8fafc,#dbeafe);
-    opacity:.75;
-  }
-
-  .precio-publico .precio-panel-head{
-    border-bottom:1px solid rgba(255,255,255,.14);
-  }
-
-  .precio-publico .precio-panel-kicker{
-    color:#dbeafe;
-  }
-
-  .precio-publico .precio-panel-icon{
-    background:rgba(255,255,255,.14);
-    border:1px solid rgba(255,255,255,.18);
-  }
-
-  .precio-panel-amount{
-    font-size:54px;
-    font-weight:900;
-    line-height:1;
-    letter-spacing:-.03em;
-    margin-bottom:10px;
-  }
-
-  .precio-publico .precio-panel-amount{
-    color:#fff;
-    text-shadow:0 3px 18px rgba(0,0,0,.18);
-  }
-
-  .precio-panel-note{
-    font-size:14px;
-    font-weight:600;
-    color:#cfe6ff;
-  }
-
-  .precio-especial{
-    background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
-  }
-
-  .precio-especial .precio-panel-body{
-    padding-top:14px;
-  }
-
-  .precio-especial-wrap{
-    min-height:180px;
-  }
-
-  .precio-especial-empty{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    min-height:150px;
-    border:1px dashed #cbd5e1;
-    border-radius:18px;
-    background:#f8fafc;
-    color:#64748b;
-    font-size:15px;
-    font-weight:700;
-    text-align:center;
-    padding:20px;
-  }
-
-  .tabla-precios-pro{
-    width:100%;
-    border-collapse:separate;
-    border-spacing:0 10px;
-  }
-
-  .tabla-precios-pro thead th{
-    font-size:11px;
-    text-transform:uppercase;
-    letter-spacing:.10em;
-    color:#64748b;
-    text-align:left;
-    padding:0 12px 4px;
-    font-weight:900;
-  }
-
-  .tabla-precios-pro tbody tr{
-    background:#fff;
-    box-shadow:
-      0 8px 18px rgba(15,23,42,.05),
-      0 1px 3px rgba(15,23,42,.04);
-  }
-
-  .tabla-precios-pro tbody td{
-    padding:16px 12px;
-    font-size:15px;
-    font-weight:800;
-    color:#0f172a;
-    border-top:1px solid #eef2f7;
-    border-bottom:1px solid #eef2f7;
-  }
-
-  .tabla-precios-pro tbody td:first-child{
-    border-left:1px solid #eef2f7;
-    border-radius:16px 0 0 16px;
-  }
-
-  .tabla-precios-pro tbody td:last-child{
-    border-right:1px solid #eef2f7;
-    border-radius:0 16px 16px 0;
-  }
-
-  .tag-cantidad{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:7px 12px;
-    border-radius:999px;
-    background:linear-gradient(135deg,#e0f2fe,#dbeafe);
-    border:1px solid #bfdbfe;
-    color:#00416A;
-    font-size:12px;
-    font-weight:900;
-    letter-spacing:.02em;
-  }
-
-  .precio-unit{
-    color:#0f172a;
-    font-weight:900;
-  }
-
-  .precio-total{
-    color:#00416A;
-    font-weight:900;
-  }
-
-  .concepto-section{
-    background:linear-gradient(135deg,#fef3c7 0%, #fde68a 100%);
-    border-radius:20px;
-    padding:16px 20px;
-    border-left:5px solid #f59e0b;
-    box-shadow:0 8px 24px rgba(245,158,11,.12);
-  }
-
-  .concepto-label{
-    font-size:10px;
-    text-transform:uppercase;
-    letter-spacing:2px;
-    color:#92400e;
-    margin-bottom:6px;
-    font-weight:800;
-  }
-
-  .concepto-texto{
-    font-size:16px;
-    font-weight:800;
-    color:#78350f;
-    line-height:1.3;
-  }
-
-  .codigo-texto{
-    font-size:11px;
-    color:#92400e;
-    margin-top:8px;
-    font-family:monospace;
-  }
-
-  .info-grid{
-    display:grid;
-    grid-template-columns:repeat(2, 1fr);
-    gap:10px;
-  }
-
-  .info-item{
-    background:#f8fafc;
-    border-radius:14px;
-    padding:12px;
-    border:1px solid #eef2ff;
-    transition:all .2s;
-  }
-
-  .info-item:hover{
-    border-color:#cbd5e1;
-    transform:translateY(-1px);
-  }
-
-  .info-item-label{
-    font-size:9px;
-    text-transform:uppercase;
-    letter-spacing:1px;
-    color:#64748b;
-    margin-bottom:6px;
-    font-weight:700;
-  }
-
-  .info-item-value{
-    font-size:13px;
-    font-weight:700;
-    color:#1e293b;
-    word-break:break-word;
-  }
-
-  .overlay-carga{
-    position:fixed;
-    inset:0;
-    background:rgba(255,255,255,.86);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:2000;
-    backdrop-filter:blur(3px);
-  }
-
-  .overlay-carga.hidden{
-    display:none;
-  }
-
-  .caja-carga{
-    width:min(520px, calc(100% - 40px));
-    background:#fff;
-    border:1px solid #dbe2ea;
-    border-radius:22px;
-    box-shadow:0 18px 48px rgba(0,0,0,.18);
-    padding:24px;
-    text-align:center;
-  }
-
-  .caja-carga h2{
-    margin:0 0 10px;
-    color:#00416A;
-  }
-
-  .barra{
-    height:14px;
-    background:#e5e7eb;
-    border-radius:999px;
-    overflow:hidden;
-    margin-top:18px;
-  }
-
-  .barra-fill{
-    height:100%;
-    width:0%;
-    background:linear-gradient(135deg,#00416A,#0c6cbd);
-    transition:width .2s ease;
-  }
-
-  .carga-texto{
-    margin-top:12px;
-    font-size:14px;
-    color:#4b5563;
-  }
-
-  .scanner-modal{
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,.75);
-    z-index:3000;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:16px;
-  }
-
-  .scanner-modal.hidden{
-    display:none;
-  }
-
-  .scanner-box{
-    width:min(100%, 520px);
-    background:#fff;
-    border-radius:20px;
-    overflow:hidden;
-    box-shadow:0 20px 50px rgba(0,0,0,.28);
-  }
-
-  .scanner-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:14px 16px;
-    background:linear-gradient(135deg,#00416A,#0c6cbd);
-    color:#fff;
-  }
-
-  .scanner-head h3{
-    margin:0;
-    font-size:18px;
-  }
-
-  .scanner-close{
-    border:none;
-    background:transparent;
-    color:#fff;
-    font-size:24px;
-    cursor:pointer;
-  }
-
-  .scanner-body{
-    position:relative;
-    background:#000;
-    aspect-ratio:3/4;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    overflow:hidden;
-  }
-
-  #scannerVideo{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:block;
-  }
-
-  .scanner-line{
-    position:absolute;
-    left:10%;
-    right:10%;
-    top:50%;
-    height:2px;
-    background:#22c55e;
-    box-shadow:0 0 12px rgba(34,197,94,.8);
-  }
-
-  .scanner-msg{
-    position:absolute;
-    left:12px;
-    right:12px;
-    bottom:12px;
-    background:rgba(0,0,0,.55);
-    color:#fff;
-    padding:10px 12px;
-    border-radius:10px;
-    font-size:13px;
-    text-align:center;
-  }
-
-  .scanner-actions{
-    display:flex;
-    gap:10px;
-    padding:14px;
-    flex-wrap:wrap;
-  }
-
-  .scanner-actions .btn-sec{
-    flex:1;
-  }
-
-  @media (max-width: 1100px){
-    html,
     body{
-      overflow:auto;
+      padding:14px;
     }
 
     .app{
-      height:auto;
+      width:100%;
+      max-width:1500px;
+      margin:auto;
     }
 
     .card{
-      height:auto;
-    }
-
-    .main{
-      grid-template-columns:1fr;
-      overflow:visible;
-    }
-
-    .panel-grid{
-      grid-template-columns:1fr;
-    }
-
-    .acciones{
-      justify-content:flex-start;
-    }
-
-    .precio-panel-amount{
-      font-size:46px;
-    }
-  }
-
-  @media (max-width: 1024px){
-    .main{
-      gap:14px;
-      padding:10px 14px 14px;
-    }
-
-    .precio-panel-amount{
-      font-size:42px;
-    }
-
-    .precio-panel-head{
-      padding:14px 18px 12px;
-    }
-
-    .precio-panel-body{
-      padding:16px 18px 18px;
-    }
-
-    .precio-panel-icon{
-      width:44px;
-      height:44px;
-      font-size:20px;
-    }
-  }
-
-  @media (max-width: 768px){
-    html,
-    body{
-      overflow:auto;
-    }
-
-    body{
-      padding:8px;
-    }
-
-    .app{
-      height:auto;
-      min-height:100vh;
-    }
-
-    .card{
-      height:auto;
-      border-radius:16px;
+      background:#fff;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
     }
 
     .head{
-      padding:12px 14px;
+      background:linear-gradient(135deg,var(--azul),var(--azul2));
+      color:#fff;
+      padding:16px 18px;
     }
 
     .head h1{
-      font-size:18px;
+      margin:0;
+      font-size:24px;
+      line-height:1.1;
     }
 
     .head p{
-      font-size:11px;
+      margin:6px 0 0;
+      opacity:.95;
+      font-size:13px;
     }
 
     .panel{
-      padding:10px 12px;
+      padding:12px 16px;
+      border-bottom:1px solid var(--gris);
+      background:#fcfdff;
+      position:relative;
     }
 
     .panel-grid{
-      grid-template-columns:1fr;
-      gap:10px;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto;
+      gap:12px;
+      align-items:center;
     }
 
-    .acciones{
-      justify-content:stretch;
-    }
-
-    .btn-sec{
-      flex:1;
-      text-align:center;
-      padding:10px 12px;
-      font-size:13px;
-      min-height:44px;
-    }
-
-    button,
-    .btn-sec,
-    .sugerencia-item,
-    .info-item{
-      cursor:pointer;
-      min-height:44px;
-    }
-
-    .sugerencia-item{
-      padding:12px;
+    .buscador-wrap{
+      position:relative;
     }
 
     input{
+      width:100%;
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid #d1d5db;
+      font-size:15px;
+    }
+
+    input:focus{
+      outline:none;
+      border-color:var(--azul2);
+      box-shadow:0 0 0 3px rgba(12,108,189,.12);
+    }
+
+    .acciones{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .btn-sec{
+      width:auto;
+      padding:10px 14px;
+      border:none;
+      border-radius:12px;
+      background:#eef6ff;
+      color:#00416A;
+      font-weight:700;
+      cursor:pointer;
+      white-space:nowrap;
+      transition:.18s ease;
+    }
+
+    .btn-sec:hover{
+      background:#dbeafe;
+      transform:translateY(-1px);
+    }
+
+    .status{
+      margin-top:10px;
       padding:10px 12px;
-      font-size:16px;
+      border-radius:12px;
+      font-size:13px;
+      display:none;
     }
 
-    .main{
-      grid-template-columns:1fr;
-      gap:16px;
-      padding:10px 12px 16px;
-      overflow:visible;
+    .status.ok{
+      display:block;
+      background:#ecfdf3;
+      color:var(--verde);
+      border:1px solid #bbf7d0;
     }
 
-    .col{
-      gap:14px;
+    .status.error{
+      display:block;
+      background:#fef2f2;
+      color:var(--rojo);
+      border:1px solid #fecaca;
     }
 
-    .precios-stack{
-      gap:14px;
+    .status.info{
+      display:block;
+      background:#eff6ff;
+      color:#1d4ed8;
+      border:1px solid #bfdbfe;
     }
 
-    .top-info,
-    .grid,
-    .info-grid{
-      grid-template-columns:1fr;
-    }
-
-    .value{
-      font-size:19px;
-    }
-
-    .tabla-wrap{
+    .sugerencias{
+      position:absolute;
+      top:calc(100% + 8px);
+      left:0;
+      right:0;
+      background:#fff;
+      border:1px solid #dbe2ea;
+      border-radius:14px;
+      box-shadow:0 18px 40px rgba(0,0,0,.14);
+      display:none;
+      z-index:50;
+      max-height:320px;
       overflow:auto;
     }
 
-    .precio-panel{
+    .sugerencias.show{
+      display:block;
+    }
+
+    .sugerencia-item{
+      padding:10px 12px;
+      border-bottom:1px solid #eef2f7;
+      cursor:pointer;
+      transition:.15s;
+    }
+
+    .sugerencia-item:last-child{
+      border-bottom:none;
+    }
+
+    .sugerencia-item:hover,
+    .sugerencia-item.active{
+      background:#f0f7ff;
+    }
+
+    .sugerencia-title{
+      font-size:15px;
+      font-weight:800;
+      color:#111827;
+      margin-bottom:3px;
+    }
+
+    .sugerencia-meta{
+      font-size:12px;
+      color:#4b5563;
+      line-height:1.35;
+    }
+
+    .main{
+      padding:16px;
+      display:grid;
+      grid-template-columns:minmax(320px, .92fr) minmax(360px, 1.08fr);
+      grid-template-areas:
+        "producto precio"
+        "ficha especial";
+      gap:18px;
+      align-items:start;
+    }
+
+    .concepto-main{ grid-area: producto; }
+    .precio-publico-wrap{ grid-area: precio; }
+    .ficha-col{ grid-area: ficha; }
+    .precio-especial-wrap-col{ grid-area: especial; }
+
+    .box{
+      background:#fff;
+      border:1px solid #eef2ff;
       border-radius:20px;
+      padding:18px;
+      min-height:0;
+    }
+
+    .concepto-section{
+      background:linear-gradient(135deg,#fef3c7 0%, #fde68a 100%);
+      border-radius:20px;
+      padding:16px 18px;
+      border-left:5px solid #f59e0b;
+      box-shadow:0 8px 24px rgba(245,158,11,.12);
+      min-height:124px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+
+    .concepto-label{
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:2px;
+      color:#92400e;
+      margin-bottom:6px;
+      font-weight:800;
+    }
+
+    .concepto-texto{
+      font-size:16px;
+      font-weight:800;
+      color:#78350f;
+      line-height:1.3;
+      word-break:break-word;
+    }
+
+    .codigo-texto{
+      font-size:11px;
+      color:#92400e;
+      margin-top:8px;
+      font-family:monospace;
+    }
+
+    .precio-panel{
+      position:relative;
+      border-radius:24px;
+      overflow:hidden;
+      border:1px solid #dbe7f3;
+      box-shadow:
+        0 16px 40px rgba(15,23,42,.08),
+        0 3px 10px rgba(15,23,42,.04);
+      background:#fff;
     }
 
     .precio-panel::before{
-      width:4px;
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      bottom:0;
+      width:6px;
+      background:linear-gradient(180deg,#00416A,#0c6cbd);
     }
 
     .precio-panel-head{
-      padding:12px 14px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding:18px 22px 14px;
+      border-bottom:1px solid rgba(148,163,184,.20);
     }
 
     .precio-panel-kicker{
-      font-size:10px;
-      letter-spacing:.12em;
+      font-size:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.14em;
+      color:#00416A;
     }
 
     .precio-panel-mini{
-      font-size:11px;
-      margin-top:3px;
+      margin-top:5px;
+      font-size:13px;
+      color:#64748b;
+      font-weight:600;
     }
 
     .precio-panel-icon{
-      width:38px;
-      height:38px;
-      font-size:18px;
-      border-radius:12px;
+      width:52px;
+      height:52px;
+      border-radius:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      background:linear-gradient(135deg,#eef6ff,#dbeafe);
+      border:1px solid #bfdbfe;
+      flex:0 0 auto;
     }
 
     .precio-panel-body{
-      padding:14px 14px 16px;
+      padding:20px 22px 22px;
+    }
+
+    .precio-publico{
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+        linear-gradient(135deg,#00416A 0%, #0c6cbd 100%);
+      border:none;
+      min-height:124px;
+    }
+
+    .precio-publico::before{
+      background:linear-gradient(180deg,#f8fafc,#dbeafe);
+      opacity:.75;
+    }
+
+    .precio-publico .precio-panel-head{
+      border-bottom:1px solid rgba(255,255,255,.14);
+    }
+
+    .precio-publico .precio-panel-kicker{
+      color:#dbeafe;
+    }
+
+    .precio-publico .precio-panel-icon{
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.18);
     }
 
     .precio-panel-amount{
-      font-size:32px;
-      margin-bottom:6px;
+      font-size:54px;
+      font-weight:900;
+      line-height:1;
+      letter-spacing:-.03em;
+      margin-bottom:10px;
+      color:#fff;
+      text-shadow:0 3px 18px rgba(0,0,0,.18);
+      word-break:break-word;
     }
 
     .precio-panel-note{
-      font-size:11px;
+      font-size:14px;
+      font-weight:600;
+      color:#cfe6ff;
     }
 
-    .precio-especial-wrap{
+    .precio-especial{
+      background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
+    }
+
+    .precio-especial .precio-panel-body{
+      padding-top:14px;
+    }
+
+    .precio-especial-scroller{
       overflow-x:auto;
       -webkit-overflow-scrolling:touch;
     }
 
+    .precio-especial-empty{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:120px;
+      border:1px dashed #cbd5e1;
+      border-radius:18px;
+      background:#f8fafc;
+      color:#64748b;
+      font-size:15px;
+      font-weight:700;
+      text-align:center;
+      padding:20px;
+    }
+
     .tabla-precios-pro{
-      min-width:380px;
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0 10px;
     }
 
     .tabla-precios-pro thead th{
-      font-size:10px;
-      padding:0 8px 4px;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.10em;
+      color:#64748b;
+      text-align:left;
+      padding:0 12px 4px;
+      font-weight:900;
+    }
+
+    .tabla-precios-pro tbody tr{
+      background:#fff;
+      box-shadow:
+        0 8px 18px rgba(15,23,42,.05),
+        0 1px 3px rgba(15,23,42,.04);
     }
 
     .tabla-precios-pro tbody td{
-      padding:12px 8px;
-      font-size:13px;
+      padding:16px 12px;
+      font-size:15px;
+      font-weight:800;
+      color:#0f172a;
+      border-top:1px solid #eef2f7;
+      border-bottom:1px solid #eef2f7;
+    }
+
+    .tabla-precios-pro tbody td:first-child{
+      border-left:1px solid #eef2f7;
+      border-radius:16px 0 0 16px;
+    }
+
+    .tabla-precios-pro tbody td:last-child{
+      border-right:1px solid #eef2f7;
+      border-radius:0 16px 16px 0;
     }
 
     .tag-cantidad{
-      padding:5px 10px;
-      font-size:11px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:7px 12px;
+      border-radius:999px;
+      background:linear-gradient(135deg,#e0f2fe,#dbeafe);
+      border:1px solid #bfdbfe;
+      color:#00416A;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.02em;
     }
 
-    .concepto-section{
-      padding:12px 14px;
-      border-left-width:4px;
+    .precio-unit{
+      color:#0f172a;
+      font-weight:900;
     }
 
-    .concepto-label{
-      font-size:9px;
-      letter-spacing:1.5px;
-    }
-
-    .concepto-texto{
-      font-size:14px;
-    }
-
-    .codigo-texto{
-      font-size:10px;
-    }
-
-    .box{
-      padding:14px;
-      border-radius:18px;
+    .precio-total{
+      color:#00416A;
+      font-weight:900;
     }
 
     .section-title{
-      font-size:14px;
-      margin-bottom:12px;
+      margin:0 0 12px;
+      font-size:16px;
+      font-weight:800;
+      color:var(--azul);
+      line-height:1.2;
     }
 
     .info-grid{
-      gap:8px;
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
     }
 
     .info-item{
-      padding:10px;
+      background:#f8fafc;
+      border-radius:14px;
+      padding:12px;
+      border:1px solid #eef2ff;
+      transition:all .2s;
+      min-height:82px;
+    }
+
+    .info-item:hover{
+      border-color:#cbd5e1;
+      transform:translateY(-1px);
     }
 
     .info-item-label{
-      font-size:8px;
-      letter-spacing:.8px;
+      font-size:9px;
+      text-transform:uppercase;
+      letter-spacing:1px;
+      color:#64748b;
+      margin-bottom:6px;
+      font-weight:700;
     }
 
     .info-item-value{
-      font-size:12px;
+      font-size:13px;
+      font-weight:700;
+      color:#1e293b;
+      word-break:break-word;
+      line-height:1.35;
     }
 
-    .precio-especial-empty{
-      min-height:100px;
-      font-size:13px;
+    .overlay-carga{
+      position:fixed;
+      inset:0;
+      background:rgba(255,255,255,.86);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:2000;
+      backdrop-filter:blur(3px);
+    }
+
+    .overlay-carga.hidden{
+      display:none;
+    }
+
+    .caja-carga{
+      width:min(520px, calc(100% - 40px));
+      background:#fff;
+      border:1px solid #dbe2ea;
+      border-radius:22px;
+      box-shadow:0 18px 48px rgba(0,0,0,.18);
+      padding:24px;
+      text-align:center;
+    }
+
+    .caja-carga h2{
+      margin:0 0 10px;
+      color:#00416A;
+    }
+
+    .barra{
+      height:14px;
+      background:#e5e7eb;
+      border-radius:999px;
+      overflow:hidden;
+      margin-top:18px;
+    }
+
+    .barra-fill{
+      height:100%;
+      width:0%;
+      background:linear-gradient(135deg,#00416A,#0c6cbd);
+      transition:width .2s ease;
+    }
+
+    .carga-texto{
+      margin-top:12px;
+      font-size:14px;
+      color:#4b5563;
+    }
+
+    .scanner-modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.75);
+      z-index:3000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       padding:16px;
     }
 
-    .status{
-      font-size:11px;
-      padding:8px 10px;
+    .scanner-modal.hidden{
+      display:none;
     }
 
-    .sugerencia-title{
-      font-size:13px;
+    .scanner-box{
+      width:min(100%, 520px);
+      background:#fff;
+      border-radius:20px;
+      overflow:hidden;
+      box-shadow:0 20px 50px rgba(0,0,0,.28);
     }
 
-    .sugerencia-meta{
-      font-size:10px;
-    }
-  }
-
-  @media (max-width: 480px){
-    body{
-      padding:6px;
-    }
-
-    .head h1{
-      font-size:16px;
+    .scanner-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:14px 16px;
+      background:linear-gradient(135deg,#00416A,#0c6cbd);
+      color:#fff;
     }
 
-    .btn-sec{
-      font-size:12px;
-      padding:8px 10px;
+    .scanner-head h3{
+      margin:0;
+      font-size:18px;
     }
 
-    .precio-panel-amount{
-      font-size:28px;
+    .scanner-close{
+      border:none;
+      background:transparent;
+      color:#fff;
+      font-size:24px;
+      cursor:pointer;
     }
 
-    .precio-panel-head{
-      padding:10px 12px 8px;
+    .scanner-body{
+      position:relative;
+      background:#000;
+      aspect-ratio:3/4;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
     }
 
-    .precio-panel-body{
-      padding:12px 12px 14px;
+    #scannerVideo{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
     }
 
-    .precio-panel-icon{
-      width:34px;
-      height:34px;
-      font-size:16px;
+    .scanner-line{
+      position:absolute;
+      left:10%;
+      right:10%;
+      top:50%;
+      height:2px;
+      background:#22c55e;
+      box-shadow:0 0 12px rgba(34,197,94,.8);
     }
 
-    .concepto-texto{
-      font-size:13px;
-    }
-
-    .info-grid{
-      grid-template-columns:1fr;
-    }
-
-    .tabla-precios-pro{
-      min-width:340px;
-    }
-  }
-
-  @media (max-width: 900px) and (orientation: landscape){
-    html,
-    body{
-      overflow:auto;
-    }
-
-    .app{
-      height:auto;
-    }
-
-    .main{
-      grid-template-columns:1fr 1fr;
-      gap:12px;
-    }
-
-    .precio-panel-amount{
-      font-size:28px;
-    }
-
-    .precio-panel-body{
+    .scanner-msg{
+      position:absolute;
+      left:12px;
+      right:12px;
+      bottom:12px;
+      background:rgba(0,0,0,.55);
+      color:#fff;
       padding:10px 12px;
+      border-radius:10px;
+      font-size:13px;
+      text-align:center;
     }
 
-    .precio-especial-wrap{
-      max-height:200px;
-      overflow-y:auto;
-    }
-  }
-
-  @media (hover: none) and (pointer: coarse){
-    .btn-sec{
-      -webkit-tap-highlight-color:transparent;
+    .scanner-actions{
+      display:flex;
+      gap:10px;
+      padding:14px;
+      flex-wrap:wrap;
     }
 
-    .btn-sec:active{
-      transform:scale(0.97);
-      background:#dbeafe;
+    .scanner-actions .btn-sec{
+      flex:1;
     }
 
-    .sugerencia-item:active{
-      background:#f0f7ff;
+    @media (max-width: 1100px){
+      body{
+        padding:10px;
+      }
+
+      .main{
+        grid-template-columns:1fr;
+        grid-template-areas:
+          "producto"
+          "precio"
+          "especial"
+          "ficha";
+      }
     }
 
-    .info-item:active{
-      transform:scale(0.98);
+    @media (max-width: 768px){
+      body{
+        padding:8px;
+      }
+
+      .head{
+        padding:12px 14px;
+      }
+
+      .head h1{
+        font-size:18px;
+      }
+
+      .head p{
+        font-size:11px;
+      }
+
+      .panel{
+        padding:10px 12px;
+      }
+
+      .panel-grid{
+        grid-template-columns:1fr;
+        gap:10px;
+      }
+
+      .acciones{
+        justify-content:stretch;
+      }
+
+      .btn-sec{
+        flex:1;
+        text-align:center;
+        padding:10px 12px;
+        font-size:13px;
+        min-height:44px;
+      }
+
+      input{
+        padding:10px 12px;
+        font-size:16px;
+      }
+
+      .main{
+        padding:12px;
+        gap:14px;
+      }
+
+      .concepto-section{
+        min-height:auto;
+        padding:12px 14px;
+        border-left-width:4px;
+      }
+
+      .concepto-label{
+        font-size:9px;
+        letter-spacing:1.5px;
+      }
+
+      .concepto-texto{
+        font-size:14px;
+      }
+
+      .codigo-texto{
+        font-size:10px;
+      }
+
+      .precio-panel{
+        border-radius:20px;
+      }
+
+      .precio-panel::before{
+        width:4px;
+      }
+
+      .precio-panel-head{
+        padding:12px 14px 10px;
+      }
+
+      .precio-panel-kicker{
+        font-size:10px;
+        letter-spacing:.12em;
+      }
+
+      .precio-panel-mini{
+        font-size:11px;
+        margin-top:3px;
+      }
+
+      .precio-panel-icon{
+        width:38px;
+        height:38px;
+        font-size:18px;
+        border-radius:12px;
+      }
+
+      .precio-panel-body{
+        padding:14px 14px 16px;
+      }
+
+      .precio-panel-amount{
+        font-size:34px;
+        margin-bottom:6px;
+      }
+
+      .precio-panel-note{
+        font-size:11px;
+      }
+
+      .tabla-precios-pro{
+        min-width:380px;
+      }
+
+      .tabla-precios-pro thead th{
+        font-size:10px;
+        padding:0 8px 4px;
+      }
+
+      .tabla-precios-pro tbody td{
+        padding:12px 8px;
+        font-size:13px;
+      }
+
+      .tag-cantidad{
+        padding:5px 10px;
+        font-size:11px;
+      }
+
+      .box{
+        padding:14px;
+        border-radius:18px;
+      }
+
+      .section-title{
+        font-size:14px;
+        margin-bottom:12px;
+      }
+
+      .info-grid{
+        grid-template-columns:1fr;
+        gap:8px;
+      }
+
+      .info-item{
+        padding:10px;
+      }
+
+      .info-item-label{
+        font-size:8px;
+        letter-spacing:.8px;
+      }
+
+      .info-item-value{
+        font-size:12px;
+      }
+
+      .precio-especial-empty{
+        min-height:100px;
+        font-size:13px;
+        padding:16px;
+      }
+
+      .status{
+        font-size:11px;
+        padding:8px 10px;
+      }
+
+      .sugerencia-title{
+        font-size:13px;
+      }
+
+      .sugerencia-meta{
+        font-size:10px;
+      }
     }
-  }
-</style>
+
+    @media (max-width: 480px){
+      body{
+        padding:6px;
+      }
+
+      .head h1{
+        font-size:16px;
+      }
+
+      .btn-sec{
+        font-size:12px;
+        padding:8px 10px;
+      }
+
+      .precio-panel-amount{
+        font-size:28px;
+      }
+
+      .precio-panel-head{
+        padding:10px 12px 8px;
+      }
+
+      .precio-panel-body{
+        padding:12px 12px 14px;
+      }
+
+      .precio-panel-icon{
+        width:34px;
+        height:34px;
+        font-size:16px;
+      }
+
+      .concepto-texto{
+        font-size:13px;
+      }
+
+      .tabla-precios-pro{
+        min-width:340px;
+      }
+    }
+
+    @media (hover: none) and (pointer: coarse){
+      .btn-sec{
+        -webkit-tap-highlight-color:transparent;
+      }
+
+      .btn-sec:active{
+        transform:scale(0.97);
+        background:#dbeafe;
+      }
+
+      .sugerencia-item:active{
+        background:#f0f7ff;
+      }
+
+      .info-item:active{
+        transform:scale(0.98);
+      }
+    }
+  </style>
 </head>
 <body>
   <div class="overlay-carga" id="overlayCarga">
@@ -1187,7 +920,7 @@
     <div class="card">
       <div class="head">
         <h1>Consulta de Productos - PROVSOFT</h1>
-        <p>Búsqueda local por código o palabra. Firebase solo se usa si no existe catálogo local o si sincronizas manualmente.</p>
+        <p>Búsqueda local por código o palabra. Firebase se usa solo para la carga inicial y la actualización automática cada 24 horas.</p>
       </div>
 
       <div class="panel">
@@ -1202,86 +935,78 @@
             <div class="sugerencias" id="sugerenciasBox"></div>
           </div>
 
-<div class="acciones">
-  <button class="btn-sec" id="btnEscanear">Escanear código</button>
-  <button class="btn-sec" id="btnSincronizar">Sincronizar catálogo</button>
-  <button class="btn-sec" id="btnBorrarLocal">Borrar catálogo local</button>
-</div>
+          <div class="acciones">
+            <button class="btn-sec" id="btnEscanear">Escanear código</button>
+          </div>
         </div>
 
         <div id="status" class="status"></div>
       </div>
 
-<div class="main">
-  <!-- COLUMNA IZQUIERDA: PRECIOS -->
-  <div class="col precios-col">
-    <div class="precios-stack">
-      <section class="precio-panel precio-publico">
-        <div class="precio-panel-head">
-          <div class="precio-panel-kicker">Precio público</div>
-          <div class="precio-panel-icon">💰</div>
+      <div class="main">
+        <div class="concepto-section concepto-main">
+          <div class="concepto-label">PRODUCTO</div>
+          <div class="concepto-texto" id="conceptoValor">Sin consultar</div>
+          <div class="codigo-texto" id="codigoTexto">Código: --</div>
         </div>
-        <div class="precio-panel-body">
-          <div class="precio-panel-amount" id="precioPublicoValor">$---</div>
-          <div class="precio-panel-note">Precio de lista / mostrador</div>
-        </div>
-      </section>
 
-      <section class="precio-panel precio-especial">
-        <div class="precio-panel-head">
-          <div>
-            <div class="precio-panel-kicker">Precio especial</div>
-            <div class="precio-panel-mini">Escalas por volumen</div>
-          </div>
-          <div class="precio-panel-icon">📦</div>
+        <div class="precio-publico-wrap">
+          <section class="precio-panel precio-publico">
+            <div class="precio-panel-head">
+              <div class="precio-panel-kicker">Precio público</div>
+              <div class="precio-panel-icon">💰</div>
+            </div>
+            <div class="precio-panel-body">
+              <div class="precio-panel-amount" id="precioPublicoValor">$---</div>
+              <div class="precio-panel-note">Precio de lista / mostrador</div>
+            </div>
+          </section>
         </div>
-        <div class="precio-panel-body">
-          <div class="precio-especial-wrap" id="preciosVolumenBox">
-            <div class="precio-especial-empty">Sin precios especiales definidos</div>
-          </div>
+
+        <div class="precio-especial-wrap-col">
+          <section class="precio-panel precio-especial">
+            <div class="precio-panel-head">
+              <div>
+                <div class="precio-panel-kicker">Precio especial</div>
+                <div class="precio-panel-mini">Escalas por volumen</div>
+              </div>
+              <div class="precio-panel-icon">📦</div>
+            </div>
+            <div class="precio-panel-body">
+              <div class="precio-especial-scroller" id="preciosVolumenBox">
+                <div class="precio-especial-empty">Sin precios especiales definidos</div>
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
-    </div>
-  </div>
 
-  <!-- COLUMNA DERECHA: INFORMACIÓN -->
-  <div class="col">
-    <div class="concepto-section">
-      <div class="concepto-label">PRODUCTO</div>
-      <div class="concepto-texto" id="conceptoValor">Sin consultar</div>
-      <div class="codigo-texto" id="codigoTexto">Código: --</div>
-    </div>
-
-    <div class="box">
-      <div class="section-title">📋 Ficha técnica</div>
-      <div class="info-grid" id="infoGrid"></div>
-    </div>
-  </div>
-</div>
-      </div>
+        <div class="box ficha-col">
+          <div class="section-title">📋 Ficha técnica</div>
+          <div class="info-grid" id="infoGrid"></div>
+        </div>
       </div>
     </div>
   </div>
 
-<div id="scannerModal" class="scanner-modal hidden">
-  <div class="scanner-box">
-    <div class="scanner-head">
-      <h3>Escanear código</h3>
-      <button type="button" class="scanner-close" id="btnCerrarScanner">✕</button>
-    </div>
+  <div id="scannerModal" class="scanner-modal hidden">
+    <div class="scanner-box">
+      <div class="scanner-head">
+        <h3>Escanear código</h3>
+        <button type="button" class="scanner-close" id="btnCerrarScanner">✕</button>
+      </div>
 
-    <div class="scanner-body">
-      <video id="scannerVideo" playsinline autoplay muted></video>
-      <div class="scanner-line"></div>
-      <div class="scanner-msg" id="scannerMsg">Apunta la cámara al código de barras</div>
-    </div>
+      <div class="scanner-body">
+        <video id="scannerVideo" playsinline autoplay muted></video>
+        <div class="scanner-line"></div>
+        <div class="scanner-msg" id="scannerMsg">Apunta la cámara al código de barras</div>
+      </div>
 
-    <div class="scanner-actions">
-      <button type="button" class="btn-sec" id="btnCambiarCamara">Cambiar cámara</button>
-      <button type="button" class="btn-sec" id="btnDetenerScanner">Cerrar</button>
+      <div class="scanner-actions">
+        <button type="button" class="btn-sec" id="btnCambiarCamara">Cambiar cámara</button>
+        <button type="button" class="btn-sec" id="btnDetenerScanner">Cerrar</button>
+      </div>
     </div>
   </div>
-</div>
 
   <script type="module">
     import { firebaseConfig } from "./config.js";
@@ -1301,12 +1026,12 @@
     const STORE_NAME = "catalogo_productos";
     const META_STORE = "meta_store";
     const CATALOGO_KEY = "productos";
+    const AUTO_SYNC_HOURS = 24;
 
     const busquedaInput = document.getElementById("busquedaInput");
     const sugerenciasBox = document.getElementById("sugerenciasBox");
     const statusBox = document.getElementById("status");
 
-    // NUEVAS VARIABLES (reemplazar las antiguas)
     const conceptoValor = document.getElementById("conceptoValor");
     const codigoTexto = document.getElementById("codigoTexto");
     const precioPublicoValor = document.getElementById("precioPublicoValor");
@@ -1316,20 +1041,19 @@
     const barraFill = document.getElementById("barraFill");
     const cargaTexto = document.getElementById("cargaTexto");
 
-    const btnSincronizar = document.getElementById("btnSincronizar");
-    const btnBorrarLocal = document.getElementById("btnBorrarLocal");
     const btnEscanear = document.getElementById("btnEscanear");
-const scannerModal = document.getElementById("scannerModal");
-const scannerVideo = document.getElementById("scannerVideo");
-const scannerMsg = document.getElementById("scannerMsg");
-const btnCerrarScanner = document.getElementById("btnCerrarScanner");
-const btnDetenerScanner = document.getElementById("btnDetenerScanner");
-const btnCambiarCamara = document.getElementById("btnCambiarCamara");
+    const scannerModal = document.getElementById("scannerModal");
+    const scannerVideo = document.getElementById("scannerVideo");
+    const scannerMsg = document.getElementById("scannerMsg");
+    const btnCerrarScanner = document.getElementById("btnCerrarScanner");
+    const btnDetenerScanner = document.getElementById("btnDetenerScanner");
+    const btnCambiarCamara = document.getElementById("btnCambiarCamara");
 
-let scannerStream = null;
-let scannerInterval = null;
-let currentFacingMode = "environment";
-let barcodeDetector = null;
+    let scannerStream = null;
+    let scannerInterval = null;
+    let currentFacingMode = "environment";
+    let barcodeDetector = null;
+
     let catalogoProductos = [];
     let sugerenciasActuales = [];
     let indiceActivo = -1;
@@ -1339,15 +1063,13 @@ let barcodeDetector = null;
       statusBox.textContent = msg;
     }
 
-function limpiarVista() {
-  conceptoValor.textContent = "Sin datos";
-  codigoTexto.textContent = "Código: --";
-  precioPublicoValor.textContent = "$---";
-  infoGrid.innerHTML = "";
-  preciosVolumenBoxEl.innerHTML = `
-    <div class="precio-especial-empty">Sin consultar</div>
-  `;
-}
+    function limpiarVista() {
+      conceptoValor.textContent = "Sin datos";
+      codigoTexto.textContent = "Código: --";
+      precioPublicoValor.textContent = "$---";
+      infoGrid.innerHTML = "";
+      preciosVolumenBoxEl.innerHTML = `<div class="precio-especial-empty">Sin consultar</div>`;
+    }
 
     function formatearFecha(valor) {
       try {
@@ -1388,181 +1110,186 @@ function limpiarVista() {
       if (v === null || v === undefined || v === "") return "--";
       if (v instanceof Timestamp) return formatearFecha(v);
       if (typeof v === "boolean") return v ? "Sí" : "No";
-      if (Array.isArray(v)) return v.length ? v.join(", ") : "[]";
+      if (Array.isArray(v)) return v.length ? v.join(", ") : "--";
       if (typeof v === "object") return JSON.stringify(v);
       return String(v);
     }
 
-    function crearCampo(nombre, valor) {
-      const div = document.createElement("div");
-      div.className = "field";
-      div.innerHTML = `
-        <div class="name">${nombre}</div>
-        <div class="data">${valorLegible(valor)}</div>
-      `;
-      return div;
+    function toNumberSeguro(v) {
+      if (v === null || v === undefined || v === "") return 0;
+      if (typeof v === "number") return isFinite(v) ? v : 0;
+
+      const limpio = String(v).replace(/[^0-9.-]/g, "");
+      const num = Number(limpio);
+      return isNaN(num) ? 0 : num;
     }
 
-function renderPreciosVolumen(data) {
-  let lista = [];
+    function tomarPrimerValor(obj, keys = []) {
+      for (const key of keys) {
+        const value = obj?.[key];
+        if (value !== undefined && value !== null && value !== "") {
+          return value;
+        }
+      }
+      return null;
+    }
 
-  if (Array.isArray(data.preciosPorCantidad)) {
-    lista = [...data.preciosPorCantidad];
-  } else if (Array.isArray(data.preciosVolumen)) {
-    lista = [...data.preciosVolumen];
-  } else {
-    lista = [];
-  }
+    function renderPreciosVolumen(data) {
+      let lista =
+        tomarPrimerValor(data, ["preciosPorCantidad", "preciosVolumen", "precioEspecial", "precios_especiales"]) || [];
 
-  lista = lista.filter(item => item && typeof item === "object");
+      if (!Array.isArray(lista)) {
+        lista = [];
+      }
 
-  if (!lista.length) {
-    preciosVolumenBoxEl.innerHTML = `
-      <div class="precio-especial-empty">
-        Sin precios especiales definidos
-      </div>
-    `;
-    return;
-  }
+      lista = lista.filter(item => item && typeof item === "object");
 
-  const filas = lista
-    .sort((a, b) => Number(a.cantidadMinima || a.cantidad || 0) - Number(b.cantidadMinima || b.cantidad || 0))
-    .map(item => {
-      const cantidad = Number(item.cantidadMinima || item.cantidad || 0);
-      const unitario = Number(item.precioUnitario || item.precio || 0);
-      const total = Number(item.precioTotal || (cantidad * unitario) || 0);
+      if (!lista.length) {
+        preciosVolumenBoxEl.innerHTML = `
+          <div class="precio-especial-empty">
+            Sin precios especiales definidos
+          </div>
+        `;
+        return;
+      }
 
-      return `
-        <tr>
-          <td><span class="tag-cantidad">${cantidad}+ unidades</span></td>
-          <td class="precio-unit">$${unitario.toFixed(2)}</td>
-          <td class="precio-total">$${total.toFixed(2)}</td>
-        </tr>
+      const filas = lista
+        .sort((a, b) => {
+          const ca = toNumberSeguro(a.cantidadMinima ?? a.cantidad ?? a.desde ?? 0);
+          const cb = toNumberSeguro(b.cantidadMinima ?? b.cantidad ?? b.desde ?? 0);
+          return ca - cb;
+        })
+        .map(item => {
+          const cantidad = toNumberSeguro(item.cantidadMinima ?? item.cantidad ?? item.desde ?? 0);
+          const unitario = toNumberSeguro(item.precioUnitario ?? item.precio ?? item.unitario ?? 0);
+          const total = toNumberSeguro(item.precioTotal ?? item.total ?? (cantidad * unitario));
+
+          return `
+            <tr>
+              <td><span class="tag-cantidad">${cantidad}+ unidades</span></td>
+              <td class="precio-unit">$${unitario.toFixed(2)}</td>
+              <td class="precio-total">$${total.toFixed(2)}</td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      preciosVolumenBoxEl.innerHTML = `
+        <table class="tabla-precios-pro">
+          <thead>
+            <tr>
+              <th>Cantidad</th>
+              <th>Precio unitario</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filas}
+          </tbody>
+        </table>
       `;
-    })
-    .join("");
+    }
 
-  preciosVolumenBoxEl.innerHTML = `
-    <table class="tabla-precios-pro">
-      <thead>
-        <tr>
-          <th>Cantidad</th>
-          <th>Precio unitario</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${filas}
-      </tbody>
-    </table>
-  `;
-}
+    function renderProducto(producto) {
+      const data = producto?.data || {};
+      console.log("PRODUCTO CARGADO:", data);
 
-function renderProducto(producto) {
-  const data = producto.data || {};
+      const codigo = tomarPrimerValor(data, ["codigoBarra", "codigo", "barcode"]) || producto.id || "--";
+      const concepto = tomarPrimerValor(data, ["concepto", "descripcion", "nombre", "producto"]) || "Sin concepto";
 
-  console.log("PRODUCTO CARGADO:", data);
+      const precioPublicoRaw = tomarPrimerValor(data, [
+        "precioPublico",
+        "precio",
+        "precio_mostrador",
+        "precioLista",
+        "precio_publico"
+      ]);
 
-  const precioPublicoRaw =
-    data.precioPublico ??
-    data.precio ??
-    data.precio_mostrador ??
-    0;
+      const precioPublico = toNumberSeguro(precioPublicoRaw);
 
-  const precioPublico = Number(precioPublicoRaw) || 0;
-  precioPublicoValor.textContent = `$${precioPublico.toFixed(2)}`;
+      conceptoValor.textContent = concepto;
+      codigoTexto.textContent = `Código: ${codigo}`;
+      precioPublicoValor.textContent = precioPublico > 0 ? `$${precioPublico.toFixed(2)}` : "$0.00";
 
-  conceptoValor.textContent = data.concepto || "Sin concepto";
-  codigoTexto.textContent = `Código: ${data.codigoBarra || producto.id || "--"}`;
+      const camposSecundarios = [
+        ["Código de barras", codigo],
+        ["Clave SAT", tomarPrimerValor(data, ["claveSat", "claveSAT", "sat", "clave_sat"])],
+        ["Unidad SAT", tomarPrimerValor(data, ["unidadMedidaSat", "unidadSAT", "unidadSat", "unidad_medida_sat"])],
+        ["Departamento", tomarPrimerValor(data, ["departamento", "depto", "categoria"])],
+        ["Marca", tomarPrimerValor(data, ["marca", "brand"])]
+      ];
 
-  infoGrid.innerHTML = "";
+      infoGrid.innerHTML = camposSecundarios.map(([label, valor]) => `
+        <div class="info-item">
+          <div class="info-item-label">${label}</div>
+          <div class="info-item-value">${valorLegible(valor)}</div>
+        </div>
+      `).join("");
 
-  const camposSecundarios = [
-    ["Código de barras", data.codigoBarra],
-    ["Clave SAT", data.claveSat],
-    ["Unidad SAT", data.unidadMedidaSat],
-    ["Departamento", data.departamento],
-    ["Marca", data.marca]
-  ];
+      renderPreciosVolumen(data);
+    }
 
-  camposSecundarios.forEach(([label, valor]) => {
-    const div = document.createElement("div");
-    div.className = "info-item";
-    div.innerHTML = `
-      <div class="info-item-label">${label}</div>
-      <div class="info-item-value">${valorLegible(valor)}</div>
-    `;
-    infoGrid.appendChild(div);
-  });
+    function ocultarSugerencias() {
+      sugerenciasBox.classList.remove("show");
+      sugerenciasBox.innerHTML = "";
+      sugerenciasActuales = [];
+      indiceActivo = -1;
+    }
 
-  renderPreciosVolumen(data);
-}
+    function seleccionarProducto(producto) {
+      const data = producto.data || {};
+      busquedaInput.value = data.codigoBarra || data.codigo || data.concepto || data.descripcion || producto.id || "";
+      renderProducto(producto);
+      ocultarSugerencias();
+      mostrarStatus(`Producto cargado: ${data.concepto || data.descripcion || producto.id}`, "ok");
+    }
 
-function ocultarSugerencias() {
-  sugerenciasBox.classList.remove("show");
-  sugerenciasBox.innerHTML = "";
-  sugerenciasActuales = [];
-  indiceActivo = -1;
-}
+    function renderSugerencias(lista) {
+      sugerenciasBox.innerHTML = "";
+      sugerenciasActuales = lista;
+      indiceActivo = -1;
 
-function seleccionarProducto(producto) {
-  // Actualizar input
-  const textoMostrar = producto.data.codigoBarra || producto.data.concepto || "";
-  busquedaInput.value = textoMostrar;
-  
-  // Renderizar información
-  renderProducto(producto);
-  
-  // Cerrar modal de sugerencias
-  ocultarSugerencias();
-  
-  // Mostrar confirmación
-  mostrarStatus(`Producto cargado: ${producto.data.concepto || producto.id}`, "ok");
-}
+      if (!lista.length) {
+        ocultarSugerencias();
+        return;
+      }
 
-function renderSugerencias(lista) {
-  sugerenciasBox.innerHTML = "";
-  sugerenciasActuales = lista;
-  indiceActivo = -1;
+      lista.forEach((producto, i) => {
+        const data = producto.data || {};
+        const codigo = data.codigoBarra || data.codigo || producto.id || "--";
+        const concepto = data.concepto || data.descripcion || data.nombre || "Sin concepto";
+        const marca = data.marca || "--";
+        const precio = tomarPrimerValor(data, ["precioPublico", "precio", "precio_mostrador", "precioLista"]);
 
-  if (!lista.length) {
-    ocultarSugerencias();
-    return;
-  }
+        const div = document.createElement("div");
+        div.className = "sugerencia-item";
+        div.dataset.index = i;
+        div.innerHTML = `
+          <div class="sugerencia-title">${concepto}</div>
+          <div class="sugerencia-meta">
+            <strong>Código:</strong> ${codigo}
+            &nbsp; | &nbsp;
+            <strong>Marca:</strong> ${marca}
+            &nbsp; | &nbsp;
+            <strong>Precio:</strong> ${precio !== null && precio !== undefined ? precio : "--"}
+          </div>
+        `;
 
-  lista.forEach((producto, i) => {
-    const div = document.createElement("div");
-    div.className = "sugerencia-item";
-    div.dataset.index = i;
+        div.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          seleccionarProducto(producto);
+        });
 
-    div.innerHTML = `
-      <div class="sugerencia-title">${producto.data.concepto || "Sin concepto"}</div>
-      <div class="sugerencia-meta">
-        <strong>Código:</strong> ${producto.data.codigoBarra || producto.id}
-        &nbsp; | &nbsp;
-        <strong>Marca:</strong> ${producto.data.marca || "--"}
-        &nbsp; | &nbsp;
-        <strong>Precio:</strong> ${producto.data.precioPublico ?? "--"}
-      </div>
-    `;
+        sugerenciasBox.appendChild(div);
+      });
 
-    div.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      seleccionarProducto(producto);
-    });
-
-    sugerenciasBox.appendChild(div);
-  });
-
-  sugerenciasBox.classList.add("show");
-}
+      sugerenciasBox.classList.add("show");
+    }
 
     function actualizarItemActivo() {
       const items = sugerenciasBox.querySelectorAll(".sugerencia-item");
-      items.forEach((item, idx) => {
-        item.classList.toggle("active", idx === indiceActivo);
-      });
+      items.forEach((item, idx) => item.classList.toggle("active", idx === indiceActivo));
 
       if (indiceActivo >= 0 && items[indiceActivo]) {
         items[indiceActivo].scrollIntoView({ block: "nearest" });
@@ -1575,7 +1302,7 @@ function renderSugerencias(lista) {
 
       const esNumerico = /^[0-9]+$/.test(t);
 
-      const resultados = catalogoProductos
+      return catalogoProductos
         .map(p => {
           const codigo = p.busquedaCodigo;
           const concepto = p.busquedaConcepto;
@@ -1590,23 +1317,22 @@ function renderSugerencias(lista) {
           else if (concepto.includes(t)) score = 5;
           else if (!esNumerico && equivalentes.some(eq => eq.includes(t))) score = 6;
           else if (codigo.includes(t)) score = 7;
-          else score = 9999;
 
           return { ...p, score };
         })
         .filter(x => x.score < 9999)
         .sort((a, b) => {
           if (a.score !== b.score) return a.score - b.score;
-          return String(a.data.concepto || "").localeCompare(String(b.data.concepto || ""), "es");
+          return String(a.data.concepto || a.data.descripcion || "").localeCompare(
+            String(b.data.concepto || b.data.descripcion || ""),
+            "es"
+          );
         })
         .slice(0, 12);
-
-      return resultados;
     }
-    
+
     function manejarInput() {
       const texto = busquedaInput.value.trim();
-
       if (!texto) {
         ocultarSugerencias();
         return;
@@ -1642,15 +1368,13 @@ function renderSugerencias(lista) {
 
       return new Promise((resolve, reject) => {
         const tx = dbLocal.transaction([STORE_NAME, META_STORE], "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        const meta = tx.objectStore(META_STORE);
 
-        store.put({
+        tx.objectStore(STORE_NAME).put({
           key: CATALOGO_KEY,
           items: lista
         });
 
-        meta.put({
+        tx.objectStore(META_STORE).put({
           key: "ultima_sync",
           fecha: new Date().toISOString(),
           total: lista.length
@@ -1666,13 +1390,9 @@ function renderSugerencias(lista) {
 
       return new Promise((resolve, reject) => {
         const tx = dbLocal.transaction(STORE_NAME, "readonly");
-        const store = tx.objectStore(STORE_NAME);
-        const request = store.get(CATALOGO_KEY);
+        const request = tx.objectStore(STORE_NAME).get(CATALOGO_KEY);
 
-        request.onsuccess = () => {
-          resolve(request.result ? request.result.items : null);
-        };
-
+        request.onsuccess = () => resolve(request.result ? request.result.items : null);
         request.onerror = () => reject(request.error);
       });
     }
@@ -1682,42 +1402,28 @@ function renderSugerencias(lista) {
 
       return new Promise((resolve, reject) => {
         const tx = dbLocal.transaction(META_STORE, "readonly");
-        const store = tx.objectStore(META_STORE);
-        const request = store.get("ultima_sync");
+        const request = tx.objectStore(META_STORE).get("ultima_sync");
 
         request.onsuccess = () => resolve(request.result || null);
         request.onerror = () => reject(request.error);
       });
     }
 
-    async function borrarCatalogoIndexedDB() {
-      const dbLocal = await abrirDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction([STORE_NAME, META_STORE], "readwrite");
-        tx.objectStore(STORE_NAME).delete(CATALOGO_KEY);
-        tx.objectStore(META_STORE).delete("ultima_sync");
-
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => reject(tx.error);
-      });
-    }
-
     function prepararCatalogo(lista) {
-      catalogoProductos = lista.map(item => {
+      catalogoProductos = (Array.isArray(lista) ? lista : []).map(item => {
         const data = item.data || {};
-        const equivalentes = Array.isArray(data.codigosEquivalentes) ? data.codigosEquivalentes : [];
+        const equivalentesRaw = tomarPrimerValor(data, ["codigosEquivalentes", "equivalentes", "codigos_alt"]);
+        const equivalentes = Array.isArray(equivalentesRaw) ? equivalentesRaw : [];
 
         return {
           id: item.id,
           data,
-          busquedaCodigo: normalizarTexto(data.codigoBarra || item.id),
-          busquedaConcepto: normalizarTexto(data.concepto),
-          busquedaEquivalentes: equivalentes.map(x => normalizarTexto(x))
+          busquedaCodigo: normalizarTexto(data.codigoBarra || data.codigo || item.id),
+          busquedaConcepto: normalizarTexto(data.concepto || data.descripcion || data.nombre),
+          busquedaEquivalentes: equivalentes.map(x => normalizarTexto(x)),
         };
       });
     }
-
 
     async function descargarCatalogoDesdeFirebase() {
       cargaTexto.textContent = "Consultando productos...";
@@ -1726,7 +1432,6 @@ function renderSugerencias(lista) {
       const snap = await getDocs(collection(db, COLECCION));
       const total = snap.size || 1;
       let procesados = 0;
-
       const lista = [];
 
       snap.forEach(docSnap => {
@@ -1744,28 +1449,58 @@ function renderSugerencias(lista) {
       return lista;
     }
 
+    function necesitaAutoSync(meta) {
+      if (!meta?.fecha) return true;
+
+      const ultima = new Date(meta.fecha).getTime();
+      if (isNaN(ultima)) return true;
+
+      const ahora = Date.now();
+      const diffHoras = (ahora - ultima) / (1000 * 60 * 60);
+      return diffHoras >= AUTO_SYNC_HOURS;
+    }
+
+    async function sincronizarCatalogoSilencioso() {
+      try {
+        mostrarStatus("Actualizando catálogo en segundo plano...", "info");
+        const lista = await descargarCatalogoDesdeFirebase();
+        prepararCatalogo(lista);
+        await guardarCatalogoIndexedDB(lista);
+        mostrarStatus(`Catálogo actualizado automáticamente (${catalogoProductos.length} productos).`, "ok");
+      } catch (error) {
+        console.error("Error en sync silenciosa:", error);
+        mostrarStatus("Se mantuvo el catálogo local actual. No se pudo actualizar en segundo plano.", "info");
+      }
+    }
+
     async function iniciarCatalogo() {
       try {
         limpiarVista();
         mostrarStatus("Revisando catálogo local...", "info");
 
         const local = await leerCatalogoIndexedDB();
+        const meta = await leerMetaIndexedDB();
 
         if (local && local.length) {
           prepararCatalogo(local);
-          const meta = await leerMetaIndexedDB();
-
           overlayCarga.classList.add("hidden");
+
           mostrarStatus(
             `Catálogo local listo (${catalogoProductos.length} productos)` +
             (meta?.fecha ? ` | última sync: ${new Date(meta.fecha).toLocaleString("es-MX")}` : ""),
             "ok"
           );
+
+          if (necesitaAutoSync(meta)) {
+            sincronizarCatalogoSilencioso();
+          }
           return;
         }
 
         mostrarStatus("No existe catálogo local. Descargando desde Firebase...", "info");
         overlayCarga.classList.remove("hidden");
+        barraFill.style.width = "10%";
+        cargaTexto.textContent = "Descargando catálogo inicial...";
 
         const lista = await descargarCatalogoDesdeFirebase();
         prepararCatalogo(lista);
@@ -1782,136 +1517,98 @@ function renderSugerencias(lista) {
       }
     }
 
-    async function sincronizarCatalogoManual() {
+    async function iniciarScanner() {
       try {
-        overlayCarga.classList.remove("hidden");
-        barraFill.style.width = "10%";
-        cargaTexto.textContent = "Sincronizando catálogo...";
-        mostrarStatus("Sincronizando catálogo con Firebase...", "info");
-
-        const lista = await descargarCatalogoDesdeFirebase();
-        prepararCatalogo(lista);
-        await guardarCatalogoIndexedDB(lista);
-
-        barraFill.style.width = "100%";
-        cargaTexto.textContent = `Catálogo actualizado: ${catalogoProductos.length} productos`;
-        overlayCarga.classList.add("hidden");
-        mostrarStatus(`Catálogo sincronizado (${catalogoProductos.length} productos).`, "ok");
-      } catch (error) {
-        console.error(error);
-        overlayCarga.classList.add("hidden");
-        mostrarStatus("Error al sincronizar catálogo: " + error.message, "error");
-      }
-    }
-
-    async function borrarCatalogoLocal() {
-      try {
-        await borrarCatalogoIndexedDB();
-        catalogoProductos = [];
-        limpiarVista();
-        ocultarSugerencias();
-        mostrarStatus("Catálogo local borrado. Al recargar se volverá a descargar.", "ok");
-      } catch (error) {
-        console.error(error);
-        mostrarStatus("No se pudo borrar catálogo local: " + error.message, "error");
-      }
-    }
-async function iniciarScanner() {
-  try {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      mostrarStatus("Este navegador no permite abrir la cámara.", "error");
-      return;
-    }
-
-    if (!("BarcodeDetector" in window)) {
-      mostrarStatus("Este celular/navegador no soporta escaneo nativo. Usa Chrome actualizado en Android.", "error");
-      return;
-    }
-
-    const formatosSoportados = await BarcodeDetector.getSupportedFormats();
-    const formatosDeseados = ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e"];
-    const formatosFinales = formatosDeseados.filter(f => formatosSoportados.includes(f));
-
-    if (!formatosFinales.length) {
-      mostrarStatus("El navegador no soporta formatos de código compatibles.", "error");
-      return;
-    }
-
-    barcodeDetector = new BarcodeDetector({ formats: formatosFinales });
-
-    scannerModal.classList.remove("hidden");
-    scannerMsg.textContent = "Abriendo cámara...";
-
-    scannerStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: currentFacingMode }
-      },
-      audio: false
-    });
-
-    scannerVideo.srcObject = scannerStream;
-    await scannerVideo.play();
-
-    scannerMsg.textContent = "Apunta la cámara al código de barras";
-
-    if (scannerInterval) clearInterval(scannerInterval);
-
-    scannerInterval = setInterval(async () => {
-      try {
-        if (!barcodeDetector || scannerVideo.readyState < 2) return;
-
-        const barcodes = await barcodeDetector.detect(scannerVideo);
-
-        if (barcodes && barcodes.length) {
-          const codigo = (barcodes[0].rawValue || "").trim();
-          if (!codigo) return;
-
-          detenerScanner();
-
-          busquedaInput.value = codigo;
-
-          const resultados = buscarLocal(codigo);
-          renderSugerencias(resultados);
-
-          if (resultados.length) {
-            seleccionarProducto(resultados[0]);
-            mostrarStatus(`Código escaneado: ${codigo}`, "ok");
-          } else {
-            mostrarStatus(`Código escaneado: ${codigo}, pero no existe en el catálogo local.`, "error");
-          }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          mostrarStatus("Este navegador no permite abrir la cámara.", "error");
+          return;
         }
-      } catch (err) {
-        console.error("Error detectando código:", err);
+
+        if (!("BarcodeDetector" in window)) {
+          mostrarStatus("Este celular/navegador no soporta escaneo nativo. Usa Chrome actualizado en Android.", "error");
+          return;
+        }
+
+        const formatosSoportados = await BarcodeDetector.getSupportedFormats();
+        const formatosDeseados = ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e"];
+        const formatosFinales = formatosDeseados.filter(f => formatosSoportados.includes(f));
+
+        if (!formatosFinales.length) {
+          mostrarStatus("El navegador no soporta formatos de código compatibles.", "error");
+          return;
+        }
+
+        barcodeDetector = new BarcodeDetector({ formats: formatosFinales });
+
+        scannerModal.classList.remove("hidden");
+        scannerMsg.textContent = "Abriendo cámara...";
+
+        scannerStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: currentFacingMode } },
+          audio: false
+        });
+
+        scannerVideo.srcObject = scannerStream;
+        await scannerVideo.play();
+
+        scannerMsg.textContent = "Apunta la cámara al código de barras";
+
+        if (scannerInterval) clearInterval(scannerInterval);
+
+        scannerInterval = setInterval(async () => {
+          try {
+            if (!barcodeDetector || scannerVideo.readyState < 2) return;
+
+            const barcodes = await barcodeDetector.detect(scannerVideo);
+
+            if (barcodes && barcodes.length) {
+              const codigo = (barcodes[0].rawValue || "").trim();
+              if (!codigo) return;
+
+              detenerScanner();
+              busquedaInput.value = codigo;
+
+              const resultados = buscarLocal(codigo);
+              if (resultados.length) {
+                seleccionarProducto(resultados[0]);
+                mostrarStatus(`Código escaneado: ${codigo}`, "ok");
+              } else {
+                renderSugerencias([]);
+                mostrarStatus(`Código escaneado: ${codigo}, pero no existe en el catálogo local.`, "error");
+              }
+            }
+          } catch (err) {
+            console.error("Error detectando código:", err);
+          }
+        }, 400);
+      } catch (error) {
+        console.error(error);
+        detenerScanner();
+        mostrarStatus("No se pudo abrir la cámara: " + error.message, "error");
       }
-    }, 400);
+    }
 
-  } catch (error) {
-    console.error(error);
-    detenerScanner();
-    mostrarStatus("No se pudo abrir la cámara: " + error.message, "error");
-  }
-}
+    function detenerScanner() {
+      if (scannerInterval) {
+        clearInterval(scannerInterval);
+        scannerInterval = null;
+      }
 
-function detenerScanner() {
-  if (scannerInterval) {
-    clearInterval(scannerInterval);
-    scannerInterval = null;
-  }
+      if (scannerStream) {
+        scannerStream.getTracks().forEach(track => track.stop());
+        scannerStream = null;
+      }
 
-  if (scannerStream) {
-    scannerStream.getTracks().forEach(track => track.stop());
-    scannerStream = null;
-  }
+      scannerVideo.srcObject = null;
+      scannerModal.classList.add("hidden");
+    }
 
-  scannerVideo.srcObject = null;
-  scannerModal.classList.add("hidden");
-}
+    async function cambiarCamara() {
+      currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+      detenerScanner();
+      await iniciarScanner();
+    }
 
-async function cambiarCamara() {
-  currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
-  detenerScanner();
-  await iniciarScanner();
-}
     busquedaInput.addEventListener("input", manejarInput);
 
     busquedaInput.addEventListener("keydown", (e) => {
@@ -1941,18 +1638,16 @@ async function cambiarCamara() {
       if (busquedaInput.value.trim()) manejarInput();
     });
 
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".buscador-wrap")) {
-    ocultarSugerencias();
-  }
-});
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".buscador-wrap")) {
+        ocultarSugerencias();
+      }
+    });
 
-    btnSincronizar.addEventListener("click", sincronizarCatalogoManual);
-    btnBorrarLocal.addEventListener("click", borrarCatalogoLocal);
     btnEscanear.addEventListener("click", iniciarScanner);
-btnCerrarScanner.addEventListener("click", detenerScanner);
-btnDetenerScanner.addEventListener("click", detenerScanner);
-btnCambiarCamara.addEventListener("click", cambiarCamara);
+    btnCerrarScanner.addEventListener("click", detenerScanner);
+    btnDetenerScanner.addEventListener("click", detenerScanner);
+    btnCambiarCamara.addEventListener("click", cambiarCamara);
 
     iniciarCatalogo();
   </script>
