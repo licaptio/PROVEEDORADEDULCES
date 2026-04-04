@@ -1,0 +1,359 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visor Pedido Piso - PROVSOFT</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    :root{
+      --azul:#00416A;
+      --azul2:#0c6cbd;
+      --gris:#e5e7eb;
+      --gris2:#f8fafc;
+      --texto:#1f2937;
+      --shadow:0 10px 28px rgba(0,0,0,.10);
+    }
+
+    body{
+      font-family: Arial, sans-serif;
+      background:#f4f7fb;
+      margin:0;
+      padding:20px;
+      color:var(--texto);
+    }
+
+    .wrap{
+      max-width:1100px;
+      margin:auto;
+    }
+
+    .top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:16px;
+    }
+
+    .btn{
+      border:none;
+      background:var(--azul2);
+      color:#fff;
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .btn.sec{
+      background:#64748b;
+    }
+
+    .card{
+      background:#fff;
+      border-radius:16px;
+      box-shadow:var(--shadow);
+      padding:20px;
+      overflow:hidden;
+    }
+
+    h1{
+      margin:0 0 10px 0;
+      color:var(--azul);
+      font-size:28px;
+    }
+
+    .info-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .info{
+      background:#f8fbff;
+      border:1px solid #e6eef8;
+      border-radius:12px;
+      padding:12px;
+    }
+
+    .info .lab{
+      font-size:12px;
+      text-transform:uppercase;
+      color:#64748b;
+      margin-bottom:6px;
+      font-weight:700;
+    }
+
+    .info .val{
+      font-size:15px;
+      font-weight:700;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:10px;
+    }
+
+    th{
+      background:var(--azul);
+      color:#fff;
+      padding:12px;
+      text-align:left;
+      font-size:13px;
+    }
+
+    td{
+      padding:10px 12px;
+      border-bottom:1px solid #e5e7eb;
+      font-size:14px;
+      vertical-align:top;
+    }
+
+    .right{
+      text-align:right;
+    }
+
+    .totales{
+      margin-top:18px;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+      gap:12px;
+    }
+
+    .mini{
+      background:#f8fbff;
+      border:1px solid #e6eef8;
+      border-radius:12px;
+      padding:14px;
+    }
+
+    .mini .lab{
+      font-size:12px;
+      text-transform:uppercase;
+      color:#64748b;
+      margin-bottom:6px;
+      font-weight:700;
+    }
+
+    .mini .val{
+      font-size:24px;
+      font-weight:800;
+      color:var(--azul);
+    }
+
+    .obs{
+      margin-top:18px;
+      background:#fffbea;
+      border:1px solid #fef3c7;
+      border-radius:12px;
+      padding:14px;
+    }
+
+    @media print {
+      .top{
+        display:none;
+      }
+      body{
+        background:#fff;
+        padding:0;
+      }
+      .card{
+        box-shadow:none;
+        border-radius:0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <button class="btn sec" onclick="volver()">← Regresar a lista</button>
+      </div>
+      <div>
+        <button class="btn" onclick="window.print()">🖨 Imprimir</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h1 id="folio">Cargando...</h1>
+
+      <div class="info-grid">
+        <div class="info">
+          <div class="lab">Cliente</div>
+          <div class="val" id="cliente"></div>
+        </div>
+        <div class="info">
+          <div class="lab">Fecha</div>
+          <div class="val" id="fecha"></div>
+        </div>
+        <div class="info">
+          <div class="lab">Estatus</div>
+          <div class="val" id="estatus"></div>
+        </div>
+        <div class="info">
+          <div class="lab">Solicitante</div>
+          <div class="val" id="solicitante"></div>
+        </div>
+        <div class="info">
+          <div class="lab">Tipo</div>
+          <div class="val" id="tipo"></div>
+        </div>
+        <div class="info">
+          <div class="lab">Total asignado</div>
+          <div class="val" id="totalAsignado"></div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Código</th>
+            <th>Concepto</th>
+            <th>Marca</th>
+            <th>Departamento</th>
+            <th class="right">Cant.</th>
+            <th class="right">Precio</th>
+            <th class="right">Importe</th>
+          </tr>
+        </thead>
+        <tbody id="tablaProductos">
+          <tr><td colspan="8">Cargando productos...</td></tr>
+        </tbody>
+      </table>
+
+      <div class="totales">
+        <div class="mini">
+          <div class="lab">Partidas</div>
+          <div class="val" id="totalPartidas">0</div>
+        </div>
+        <div class="mini">
+          <div class="lab">Piezas</div>
+          <div class="val" id="totalPiezas">0</div>
+        </div>
+        <div class="mini">
+          <div class="lab">Subtotal</div>
+          <div class="val" id="subtotal">$0.00</div>
+        </div>
+      </div>
+
+      <div class="obs">
+        <strong>Observaciones:</strong>
+        <div id="observaciones" style="margin-top:8px;">-</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_AUTH_DOMAIN",
+      projectId: "inventariopv-643f1"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const params = new URLSearchParams(window.location.search);
+    const folio = params.get("folio");
+
+    function money(n) {
+      return "$" + Number(n || 0).toLocaleString("es-MX", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function formatearFecha(valor) {
+      try {
+        if (!valor) return "";
+        if (valor.toDate) return valor.toDate().toLocaleString("es-MX");
+        return new Date(valor).toLocaleString("es-MX");
+      } catch {
+        return "";
+      }
+    }
+
+    function volver() {
+      window.location.href = "lista_pedidos_piso.html";
+    }
+
+    async function cargarPedido() {
+      if (!folio) {
+        alert("No se recibió el folio");
+        return;
+      }
+
+      try {
+        const doc = await db.collection("PEDIDOPISO").doc(folio).get();
+
+        if (!doc.exists) {
+          alert("Pedido no encontrado");
+          return;
+        }
+
+        const data = doc.data();
+
+        document.getElementById("folio").textContent = data.folio || folio;
+        document.getElementById("cliente").textContent = data.cliente || "";
+        document.getElementById("fecha").textContent = formatearFecha(data.creadoEn || data.creadoEnLocal);
+        document.getElementById("estatus").textContent = data.estatus || "";
+        document.getElementById("solicitante").textContent = data.solicitante || "";
+        document.getElementById("tipo").textContent = data.tipo || "";
+        document.getElementById("totalAsignado").textContent = Number(data.totalAsignado || 0);
+        document.getElementById("observaciones").textContent = data.observaciones || "-";
+
+        const productos = Array.isArray(data.productos) ? data.productos : [];
+        const tbody = document.getElementById("tablaProductos");
+
+        if (!productos.length) {
+          tbody.innerHTML = `<tr><td colspan="8">Sin productos</td></tr>`;
+          return;
+        }
+
+        let subtotal = 0;
+
+        tbody.innerHTML = productos.map((p, i) => {
+          const cantidad = Number(p.cantidad || 0);
+          const precio = Number(p.precioPublico || 0);
+          const importe = cantidad * precio;
+          subtotal += importe;
+
+          return `
+            <tr>
+              <td>${i + 1}</td>
+              <td>${p.codigoBarra || ""}</td>
+              <td>${p.concepto || ""}</td>
+              <td>${p.marca || ""}</td>
+              <td>${p.departamento || ""}</td>
+              <td class="right">${cantidad}</td>
+              <td class="right">${money(precio)}</td>
+              <td class="right">${money(importe)}</td>
+            </tr>
+          `;
+        }).join("");
+
+        document.getElementById("totalPartidas").textContent = Number(data.totalPartidas || productos.length);
+        document.getElementById("totalPiezas").textContent = Number(data.totalPiezas || 0);
+        document.getElementById("subtotal").textContent = money(subtotal);
+
+      } catch (error) {
+        console.error(error);
+        alert("Error al cargar el pedido");
+      }
+    }
+
+    cargarPedido();
+  </script>
+</body>
+</html>

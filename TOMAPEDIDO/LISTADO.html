@@ -1,0 +1,400 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lista de Pedidos Piso - PROVSOFT</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    :root{
+      --azul:#00416A;
+      --azul2:#0c6cbd;
+      --gris:#e5e7eb;
+      --gris2:#f8fafc;
+      --texto:#1f2937;
+      --verde:#166534;
+      --rojo:#991b1b;
+      --amarillo:#92400e;
+      --shadow:0 10px 28px rgba(0,0,0,.10);
+    }
+
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:linear-gradient(135deg,#eef5fb,#f8fbff);
+      color:var(--texto);
+      padding:20px;
+    }
+
+    .wrap{
+      max-width:1200px;
+      margin:auto;
+    }
+
+    .topbar{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:20px;
+    }
+
+    .titulo{
+      font-size:28px;
+      font-weight:800;
+      color:var(--azul);
+      margin:0;
+    }
+
+    .sub{
+      color:#6b7280;
+      margin-top:4px;
+      font-size:14px;
+    }
+
+    .acciones{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .input, .select{
+      border:1px solid #d1d5db;
+      border-radius:10px;
+      padding:10px 12px;
+      font-size:14px;
+      background:#fff;
+      min-width:220px;
+    }
+
+    .btn{
+      border:none;
+      background:var(--azul2);
+      color:#fff;
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:var(--shadow);
+    }
+
+    .card{
+      background:#fff;
+      border-radius:16px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .tabla-wrap{
+      overflow:auto;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:1000px;
+    }
+
+    thead{
+      background:var(--azul);
+      color:white;
+    }
+
+    th, td{
+      padding:14px 12px;
+      border-bottom:1px solid #edf2f7;
+      text-align:left;
+      font-size:14px;
+      vertical-align:middle;
+    }
+
+    tbody tr{
+      transition:.15s ease;
+      cursor:pointer;
+    }
+
+    tbody tr:hover{
+      background:#f8fbff;
+    }
+
+    .folio{
+      font-weight:800;
+      color:var(--azul);
+    }
+
+    .cliente{
+      font-weight:700;
+    }
+
+    .badge{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .pendiente{
+      background:#fef3c7;
+      color:var(--amarillo);
+    }
+
+    .surtido{
+      background:#dcfce7;
+      color:var(--verde);
+    }
+
+    .cancelado{
+      background:#fee2e2;
+      color:var(--rojo);
+    }
+
+    .meta{
+      color:#6b7280;
+      font-size:12px;
+    }
+
+    .center{
+      text-align:center;
+      padding:30px;
+      color:#6b7280;
+    }
+
+    .totales{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:14px;
+      margin-bottom:18px;
+    }
+
+    .mini{
+      background:#fff;
+      border-radius:14px;
+      box-shadow:var(--shadow);
+      padding:16px;
+    }
+
+    .mini .lab{
+      font-size:12px;
+      color:#6b7280;
+      margin-bottom:6px;
+      text-transform:uppercase;
+      letter-spacing:.4px;
+    }
+
+    .mini .val{
+      font-size:28px;
+      font-weight:800;
+      color:var(--azul);
+    }
+
+    @media (max-width: 768px){
+      .titulo{ font-size:22px; }
+      .input, .select{ min-width:unset; width:100%; }
+      .acciones{ width:100%; }
+      .acciones > *{ flex:1 1 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div>
+        <h1 class="titulo">Pedidos Piso - PROVSOFT</h1>
+        <div class="sub">Listado general ordenado del más reciente al más antiguo</div>
+      </div>
+
+      <div class="acciones">
+        <input id="busqueda" class="input" type="text" placeholder="Buscar por folio o cliente">
+        <select id="filtroEstatus" class="select">
+          <option value="">Todos los estatus</option>
+          <option value="PENDIENTE">PENDIENTE</option>
+          <option value="SURTIDO">SURTIDO</option>
+          <option value="CANCELADO">CANCELADO</option>
+        </select>
+        <button class="btn" onclick="cargarPedidos()">Recargar</button>
+      </div>
+    </div>
+
+    <div class="totales">
+      <div class="mini">
+        <div class="lab">Total pedidos</div>
+        <div class="val" id="totalPedidos">0</div>
+      </div>
+      <div class="mini">
+        <div class="lab">Pendientes</div>
+        <div class="val" id="totalPendientes">0</div>
+      </div>
+      <div class="mini">
+        <div class="lab">Piezas acumuladas</div>
+        <div class="val" id="totalPiezas">0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="tabla-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Folio</th>
+              <th>Cliente</th>
+              <th>Fecha</th>
+              <th>Estatus</th>
+              <th>Solicitante</th>
+              <th>Partidas</th>
+              <th>Piezas</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyPedidos">
+            <tr><td colspan="8" class="center">Cargando pedidos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_AUTH_DOMAIN",
+      projectId: "inventariopv-643f1"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let pedidosBase = [];
+
+    function formatearFecha(valor) {
+      try {
+        if (!valor) return "";
+        if (valor.toDate) {
+          return valor.toDate().toLocaleString("es-MX");
+        }
+        return new Date(valor).toLocaleString("es-MX");
+      } catch {
+        return "";
+      }
+    }
+
+    function claseEstatus(estatus = "") {
+      const e = estatus.toUpperCase();
+      if (e === "PENDIENTE") return "pendiente";
+      if (e === "SURTIDO") return "surtido";
+      if (e === "CANCELADO") return "cancelado";
+      return "pendiente";
+    }
+
+    function escaparHtml(txt = "") {
+      return String(txt)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function pintarTabla(lista) {
+      const tbody = document.getElementById("tbodyPedidos");
+
+      if (!lista.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="center">No se encontraron pedidos</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = lista.map(p => {
+        const estatus = p.estatus || "";
+        const observaciones = p.observaciones || "";
+        const fecha = formatearFecha(p.creadoEn || p.creadoEnLocal);
+        return `
+          <tr onclick="abrirPedido('${escaparHtml(p.id)}')">
+            <td>
+              <div class="folio">${escaparHtml(p.folio || p.id)}</div>
+              <div class="meta">${escaparHtml(p.tipo || "PEDIDO_PISO")}</div>
+            </td>
+            <td>
+              <div class="cliente">${escaparHtml(p.cliente || "")}</div>
+            </td>
+            <td>${escaparHtml(fecha)}</td>
+            <td><span class="badge ${claseEstatus(estatus)}">${escaparHtml(estatus)}</span></td>
+            <td>${escaparHtml(p.solicitante || "")}</td>
+            <td>${Number(p.totalPartidas || (p.productos?.length || 0))}</td>
+            <td>${Number(p.totalPiezas || 0)}</td>
+            <td>${escaparHtml(observaciones || "-")}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function actualizarTotales(lista) {
+      const totalPedidos = lista.length;
+      const totalPendientes = lista.filter(x => (x.estatus || "").toUpperCase() === "PENDIENTE").length;
+      const totalPiezas = lista.reduce((acc, x) => acc + Number(x.totalPiezas || 0), 0);
+
+      document.getElementById("totalPedidos").textContent = totalPedidos;
+      document.getElementById("totalPendientes").textContent = totalPendientes;
+      document.getElementById("totalPiezas").textContent = totalPiezas;
+    }
+
+    function aplicarFiltros() {
+      const q = document.getElementById("busqueda").value.trim().toLowerCase();
+      const estatus = document.getElementById("filtroEstatus").value.trim().toUpperCase();
+
+      let lista = [...pedidosBase];
+
+      if (q) {
+        lista = lista.filter(p =>
+          String(p.folio || p.id || "").toLowerCase().includes(q) ||
+          String(p.cliente || "").toLowerCase().includes(q)
+        );
+      }
+
+      if (estatus) {
+        lista = lista.filter(p => String(p.estatus || "").toUpperCase() === estatus);
+      }
+
+      pintarTabla(lista);
+      actualizarTotales(lista);
+    }
+
+    function abrirPedido(folio) {
+      window.location.href = `visor_pedido_piso.html?folio=${encodeURIComponent(folio)}`;
+    }
+
+    async function cargarPedidos() {
+      const tbody = document.getElementById("tbodyPedidos");
+      tbody.innerHTML = `<tr><td colspan="8" class="center">Cargando pedidos...</td></tr>`;
+
+      try {
+        const snap = await db
+          .collection("PEDIDOPISO")
+          .orderBy("creadoEn", "desc")
+          .get();
+
+        pedidosBase = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        aplicarFiltros();
+
+      } catch (error) {
+        console.error(error);
+        tbody.innerHTML = `<tr><td colspan="8" class="center">Error al cargar pedidos. Revisa índice o permisos.</td></tr>`;
+      }
+    }
+
+    document.getElementById("busqueda").addEventListener("input", aplicarFiltros);
+    document.getElementById("filtroEstatus").addEventListener("change", aplicarFiltros);
+
+    cargarPedidos();
+  </script>
+</body>
+</html>

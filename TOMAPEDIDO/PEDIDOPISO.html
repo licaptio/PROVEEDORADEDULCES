@@ -1,0 +1,1665 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pedido Piso - PROVSOFT</title>
+
+  <style>
+    :root{
+      --azul:#00416A;
+      --azul2:#0c6cbd;
+      --fondo:#eef4f9;
+      --card:#ffffff;
+      --gris:#e5e7eb;
+      --texto:#1f2937;
+      --muted:#6b7280;
+      --verde:#166534;
+      --rojo:#991b1b;
+      --amarillo:#a16207;
+      --shadow:0 10px 28px rgba(0,0,0,.10);
+      --radius:18px;
+    }
+
+    *{
+      box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    html, body{
+      margin:0;
+      padding:0;
+      width:100%;
+      min-height:100%;
+      font-family:Arial, Helvetica, sans-serif;
+      background:linear-gradient(135deg,#eef4f9,#f8fbff);
+      color:var(--texto);
+    }
+
+    body{
+      padding:12px;
+    }
+
+    .layout{
+      width:100%;
+      max-width:1200px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:14px;
+    }
+
+    .main{
+      min-width:0;
+    }
+
+    .sidebar{
+      display:none;
+    }
+
+    .app{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+
+    .header{
+      background:linear-gradient(135deg,var(--azul),var(--azul2));
+      color:#fff;
+      padding:16px;
+      border-radius:22px;
+      box-shadow:var(--shadow);
+    }
+
+    .header h1{
+      margin:0;
+      font-size:1.18rem;
+      line-height:1.2;
+    }
+
+    .header p{
+      margin:6px 0 0;
+      font-size:.9rem;
+      opacity:.95;
+    }
+
+    .status{
+      font-size:.88rem;
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:700;
+    }
+
+    .status.ok{
+      background:#ecfdf5;
+      color:var(--verde);
+      border:1px solid #bbf7d0;
+    }
+
+    .status.warn{
+      background:#fffbeb;
+      color:var(--amarillo);
+      border:1px solid #fde68a;
+    }
+
+    .status.error{
+      background:#fef2f2;
+      color:var(--rojo);
+      border:1px solid #fecaca;
+    }
+
+    .status.info{
+      background:#eff6ff;
+      color:var(--azul);
+      border:1px solid #bfdbfe;
+    }
+
+    .catalog-meta{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .meta-box{
+      background:#f8fafc;
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      padding:10px;
+    }
+
+    .meta-box .t{
+      font-size:.78rem;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+
+    .meta-box .v{
+      font-weight:800;
+      font-size:.98rem;
+    }
+
+    .mini-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .btn{
+      border:none;
+      border-radius:14px;
+      padding:13px 14px;
+      font-size:.96rem;
+      font-weight:800;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+
+    .btn:active{
+      transform:scale(.98);
+    }
+
+    .btn-primary{
+      background:linear-gradient(135deg,var(--azul),var(--azul2));
+      color:#fff;
+    }
+
+    .btn-secondary{
+      background:#f3f4f6;
+      color:var(--texto);
+      border:1px solid #d1d5db;
+    }
+
+    .btn-success{
+      background:var(--verde);
+      color:#fff;
+    }
+
+    .btn-danger{
+      background:var(--rojo);
+      color:#fff;
+    }
+
+    .btn-block{
+      width:100%;
+    }
+
+    .steps{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:8px;
+    }
+
+    .step-chip{
+      text-align:center;
+      padding:10px 6px;
+      border-radius:12px;
+      font-size:.76rem;
+      font-weight:800;
+      background:#f3f4f6;
+      color:#64748b;
+      border:1px solid #e5e7eb;
+    }
+
+    .step-chip.active{
+      background:#eff6ff;
+      color:var(--azul);
+      border-color:#bfdbfe;
+    }
+
+    .step-chip.done{
+      background:#ecfdf5;
+      color:var(--verde);
+      border-color:#bbf7d0;
+    }
+
+    .screen{
+      display:none;
+    }
+
+    .screen.active{
+      display:block;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      margin-bottom:12px;
+    }
+
+    .field label{
+      font-size:.9rem;
+      font-weight:800;
+    }
+
+    .field input,
+    .field textarea{
+      width:100%;
+      border:1px solid var(--gris);
+      border-radius:14px;
+      padding:13px 12px;
+      font-size:16px;
+      outline:none;
+      background:#fff;
+    }
+
+    .field textarea{
+      resize:vertical;
+      min-height:90px;
+    }
+
+    .field input:focus,
+    .field textarea:focus{
+      border-color:var(--azul2);
+      box-shadow:0 0 0 3px rgba(12,108,189,.12);
+    }
+
+    .hint{
+      font-size:.82rem;
+      color:var(--muted);
+    }
+
+    .hero-actions{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+      margin-top:14px;
+    }
+
+    .search-bar{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      align-items:end;
+    }
+
+    .summary-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .item{
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      padding:12px;
+      background:#fff;
+    }
+
+    .item-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:8px;
+      margin-bottom:8px;
+    }
+
+    .item-title{
+      font-weight:800;
+      font-size:.95rem;
+      line-height:1.2;
+    }
+
+    .item-code{
+      font-size:.82rem;
+      color:var(--muted);
+      margin-top:3px;
+      word-break:break-all;
+    }
+
+    .badge{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:.72rem;
+      font-weight:800;
+      background:#eff6ff;
+      color:var(--azul);
+      white-space:nowrap;
+    }
+
+    .item-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:8px;
+    }
+
+    .item-grid .field{
+      margin-bottom:0;
+    }
+
+    .empty{
+      text-align:center;
+      padding:18px 10px;
+      border:1px dashed #cbd5e1;
+      border-radius:14px;
+      color:var(--muted);
+      background:#f8fafc;
+    }
+
+    .footer-actions{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .mobile-cart-bar{
+      position:sticky;
+      bottom:10px;
+      z-index:100;
+    }
+
+    .mobile-cart-btn{
+      width:100%;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      background:linear-gradient(135deg,var(--azul),var(--azul2));
+      color:#fff;
+      border:none;
+      border-radius:16px;
+      padding:14px 16px;
+      box-shadow:var(--shadow);
+      font-size:.95rem;
+      font-weight:800;
+      cursor:pointer;
+    }
+
+    .sidebar .card{
+      position:sticky;
+      top:12px;
+    }
+
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,.45);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+      z-index:9999;
+    }
+
+    .modal.show{
+      display:flex;
+    }
+
+    .modal-card{
+      width:100%;
+      max-width:560px;
+      max-height:88vh;
+      overflow:auto;
+      background:#fff;
+      border-radius:18px;
+      box-shadow:0 20px 40px rgba(0,0,0,.22);
+      padding:14px;
+    }
+
+    .modal-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .modal-title{
+      font-size:1rem;
+      font-weight:800;
+    }
+
+    .icon-btn{
+      border:none;
+      background:#f3f4f6;
+      border-radius:10px;
+      padding:8px 10px;
+      cursor:pointer;
+      font-weight:700;
+    }
+
+    .result-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .result-item{
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      padding:12px;
+      background:#fff;
+      cursor:pointer;
+    }
+
+    .result-item:active{
+      transform:scale(.99);
+    }
+
+    .selected-box{
+      border:1px solid #e5e7eb;
+      border-radius:14px;
+      background:#f8fafc;
+      padding:12px;
+      margin-bottom:12px;
+    }
+
+    @media (min-width:980px){
+      .layout{
+        grid-template-columns:minmax(0, 1fr) 360px;
+      }
+
+      .sidebar{
+        display:block;
+      }
+
+      .mobile-cart-bar{
+        display:none;
+      }
+
+      .steps{
+        grid-template-columns:repeat(6, 1fr);
+      }
+    }
+
+    @media (max-width:520px){
+      body{
+        padding:10px;
+      }
+
+      .catalog-meta,
+      .summary-grid,
+      .item-grid,
+      .mini-actions,
+      .footer-actions,
+      .search-bar{
+        grid-template-columns:1fr;
+      }
+
+      .steps{
+        grid-template-columns:repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="main">
+      <div class="app">
+        <div class="header">
+          <h1>Pedido Piso - PROVSOFT</h1>
+          <p>Flujo móvil por pasos para captura rápida</p>
+        </div>
+
+        <div class="card">
+          <div id="estadoCatalogo" class="status info">Catálogo no sincronizado aún.</div>
+
+          <div class="catalog-meta">
+            <div class="meta-box">
+              <div class="t">Productos locales</div>
+              <div class="v" id="totalLocales">0</div>
+            </div>
+            <div class="meta-box">
+              <div class="t">Última sync</div>
+              <div class="v" id="ultimaSync">Sin datos</div>
+            </div>
+          </div>
+
+          <div class="mini-actions">
+            <button class="btn btn-primary" id="btnSincronizar">Sincronizar catálogo</button>
+            <button class="btn btn-secondary" id="btnRecargarLocal">Recargar local</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="steps" id="stepsBar">
+            <div class="step-chip active" data-step="1">1. Nuevo</div>
+            <div class="step-chip" data-step="2">2. Cliente</div>
+            <div class="step-chip" data-step="3">3. Captura</div>
+            <div class="step-chip" data-step="4">4. Finalizar</div>
+            <div class="step-chip" data-step="5">5. Asignar</div>
+            <div class="step-chip" data-step="6">6. Guardar</div>
+          </div>
+        </div>
+
+        <div class="card screen active" id="screen1">
+          <h3 style="margin-top:0;">Nuevo pedido</h3>
+          <div class="hint">Inicia un pedido nuevo y sigue el flujo.</div>
+
+          <div class="hero-actions">
+            <button class="btn btn-primary btn-block" id="btnNuevoPedido">Iniciar pedido</button>
+            <button class="btn btn-secondary btn-block" id="btnContinuarTemporal">Continuar pedido guardado</button>
+          </div>
+        </div>
+
+        <div class="card screen" id="screen2">
+          <h3 style="margin-top:0;">Datos generales</h3>
+
+          <div class="field">
+            <label for="cliente">Nombre de cliente</label>
+            <input type="text" id="cliente" placeholder="Ej. Mariel / Mostrador / Cliente manual">
+          </div>
+
+          <div class="field">
+            <label for="captura">Nombre de captura</label>
+            <input type="text" id="captura" placeholder="Ej. Gerardo / Piso / Mostrador">
+          </div>
+
+          <div class="field">
+            <label for="observaciones">Observaciones</label>
+            <textarea id="observaciones" placeholder="Notas del pedido..."></textarea>
+          </div>
+
+          <div class="footer-actions">
+            <button class="btn btn-secondary" data-go="1">Atrás</button>
+            <button class="btn btn-primary" id="btnPasoCaptura">Continuar a captura</button>
+          </div>
+        </div>
+
+        <div class="card screen" id="screen3">
+          <h3 style="margin-top:0;">Captura</h3>
+
+          <div class="search-bar">
+            <div class="field" style="margin-bottom:0;">
+              <label for="busqueda">Buscar o escanear producto</label>
+              <input type="text" id="busqueda" placeholder="Ej. mariel 855 c/500">
+            </div>
+            <button class="btn btn-primary" id="btnBuscar">Buscar</button>
+          </div>
+
+          <div class="hint" style="margin-top:8px;">
+            Busca por palabras en cualquier orden: mariel 855, 855 mariel, mariel 855 c/500
+          </div>
+
+          <div class="summary-grid" style="margin-top:14px;">
+            <div class="meta-box">
+              <div class="t">Partidas</div>
+              <div class="v" id="totalPartidas">0</div>
+            </div>
+            <div class="meta-box">
+              <div class="t">Piezas</div>
+              <div class="v" id="totalPiezas">0</div>
+            </div>
+          </div>
+
+          <div class="footer-actions">
+            <button class="btn btn-secondary" data-go="2">Atrás</button>
+            <button class="btn btn-primary" id="btnPasoFinalizar">Finalizar captura</button>
+          </div>
+        </div>
+
+        <div class="card screen" id="screen4">
+          <h3 style="margin-top:0;">Finalizar</h3>
+
+          <div class="summary-grid">
+            <div class="meta-box">
+              <div class="t">Cliente</div>
+              <div class="v" id="resumenCliente">-</div>
+            </div>
+            <div class="meta-box">
+              <div class="t">Captura</div>
+              <div class="v" id="resumenCaptura">-</div>
+            </div>
+            <div class="meta-box">
+              <div class="t">Partidas</div>
+              <div class="v" id="resumenPartidas">0</div>
+            </div>
+            <div class="meta-box">
+              <div class="t">Piezas</div>
+              <div class="v" id="resumenPiezas">0</div>
+            </div>
+          </div>
+
+          <div class="footer-actions">
+            <button class="btn btn-secondary" data-go="3">Regresar a captura</button>
+            <button class="btn btn-primary" id="btnPasoAsignar">Continuar a asignar</button>
+          </div>
+        </div>
+
+        <div class="card screen" id="screen5">
+          <h3 style="margin-top:0;">Asignar</h3>
+          <div class="hint">Aquí puedes ajustar el campo asignado antes de guardar.</div>
+
+          <div id="pedidoListMobile" class="list" style="margin-top:12px;"></div>
+
+          <div class="footer-actions">
+            <button class="btn btn-secondary" data-go="4">Atrás</button>
+            <button class="btn btn-primary" id="btnPasoGuardar">Ir a guardar</button>
+          </div>
+        </div>
+
+        <div class="card screen" id="screen6">
+          <h3 style="margin-top:0;">Guardar pedido</h3>
+
+          <div class="summary-grid">
+            <div class="meta-box">
+              <div class="t">Cliente</div>
+              <div class="v" id="guardarCliente">-</div>
+            </div>
+            <div class="meta-box">
+              <div class="t">Captura</div>
+              <div class="v" id="guardarCaptura">-</div>
+            </div>
+            <div class="meta-box">
+              <div class="t">Partidas</div>
+              <div class="v" id="guardarPartidas">0</div>
+            </div>
+            <div class="meta-box">
+              <div class="t">Asignado</div>
+              <div class="v" id="guardarAsignado">0</div>
+            </div>
+          </div>
+
+          <div class="footer-actions">
+            <button class="btn btn-danger" id="btnLimpiar">Limpiar pedido</button>
+            <button class="btn btn-success" id="btnGuardar">Guardar en PEDIDOPISO</button>
+          </div>
+        </div>
+
+        <div class="mobile-cart-bar">
+          <button class="mobile-cart-btn" id="btnVerCarritoMobile">
+            <span>Ver pedido</span>
+            <span id="mobileCartCount">0 partidas</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="sidebar">
+      <div class="card">
+        <h3 style="margin-top:0;">Pedido visible en PC</h3>
+        <div class="hint">En celular va por pasos. En PC se ve aquí en paralelo.</div>
+
+        <div class="summary-grid" style="margin-top:12px;">
+          <div class="meta-box">
+            <div class="t">Partidas</div>
+            <div class="v" id="pcPartidas">0</div>
+          </div>
+          <div class="meta-box">
+            <div class="t">Piezas</div>
+            <div class="v" id="pcPiezas">0</div>
+          </div>
+          <div class="meta-box">
+            <div class="t">Asignado</div>
+            <div class="v" id="pcAsignado">0</div>
+          </div>
+          <div class="meta-box">
+            <div class="t">Cliente</div>
+            <div class="v" id="pcCliente">-</div>
+          </div>
+        </div>
+
+        <div id="pedidoListPc" class="list" style="margin-top:12px;"></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="modal" id="modalResultados">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Seleccionar producto</div>
+        <button class="icon-btn" id="cerrarModalResultados">✕</button>
+      </div>
+
+      <div id="textoBusquedaModal" class="hint"></div>
+      <div id="resultadosModal" class="result-list"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalCantidad">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Capturar cantidad</div>
+        <button class="icon-btn" id="cerrarModalCantidad">✕</button>
+      </div>
+
+      <div id="productoSeleccionadoBox" class="selected-box"></div>
+
+      <div class="field">
+        <label for="cantidadModal">Cantidad</label>
+        <input type="number" id="cantidadModal" min="1" step="1" value="1">
+      </div>
+
+      <div class="footer-actions">
+        <button class="btn btn-secondary" id="cancelarCantidad">Cancelar</button>
+        <button class="btn btn-success" id="confirmarCantidad">Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalCarritoMobile">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Pedido actual</div>
+        <button class="icon-btn" id="cerrarModalCarritoMobile">✕</button>
+      </div>
+
+      <div id="pedidoListModalMobile" class="list"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from "./config.js";
+    import {
+      collection,
+      query,
+      where,
+      getDocs,
+      doc,
+      setDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const DB_NAME = "pedidoPisoDB";
+    const DB_VERSION = 1;
+    const STORE_PRODUCTOS = "productosActivos";
+    const STORE_META = "meta";
+    const HORAS_CATALOGO = 24;
+    const MS_CATALOGO = HORAS_CATALOGO * 60 * 60 * 1000;
+    const LIMITE_RESULTADOS = 30;
+
+    let productosLocales = [];
+    let pedido = [];
+    let pasoActual = 1;
+    let productoSeleccionado = null;
+    let resultadosActuales = [];
+
+    const estadoCatalogo = document.getElementById("estadoCatalogo");
+    const totalLocales = document.getElementById("totalLocales");
+    const ultimaSync = document.getElementById("ultimaSync");
+
+    const clienteInput = document.getElementById("cliente");
+    const capturaInput = document.getElementById("captura");
+    const observacionesInput = document.getElementById("observaciones");
+    const busquedaInput = document.getElementById("busqueda");
+
+    const totalPartidas = document.getElementById("totalPartidas");
+    const totalPiezas = document.getElementById("totalPiezas");
+
+    const pedidoListMobile = document.getElementById("pedidoListMobile");
+    const pedidoListPc = document.getElementById("pedidoListPc");
+    const pedidoListModalMobile = document.getElementById("pedidoListModalMobile");
+
+    const resumenCliente = document.getElementById("resumenCliente");
+    const resumenCaptura = document.getElementById("resumenCaptura");
+    const resumenPartidas = document.getElementById("resumenPartidas");
+    const resumenPiezas = document.getElementById("resumenPiezas");
+
+    const guardarCliente = document.getElementById("guardarCliente");
+    const guardarCaptura = document.getElementById("guardarCaptura");
+    const guardarPartidas = document.getElementById("guardarPartidas");
+    const guardarAsignado = document.getElementById("guardarAsignado");
+
+    const pcPartidas = document.getElementById("pcPartidas");
+    const pcPiezas = document.getElementById("pcPiezas");
+    const pcAsignado = document.getElementById("pcAsignado");
+    const pcCliente = document.getElementById("pcCliente");
+    const mobileCartCount = document.getElementById("mobileCartCount");
+
+    const modalResultados = document.getElementById("modalResultados");
+    const resultadosModal = document.getElementById("resultadosModal");
+    const textoBusquedaModal = document.getElementById("textoBusquedaModal");
+
+    const modalCantidad = document.getElementById("modalCantidad");
+    const productoSeleccionadoBox = document.getElementById("productoSeleccionadoBox");
+    const cantidadModal = document.getElementById("cantidadModal");
+
+    const modalCarritoMobile = document.getElementById("modalCarritoMobile");
+
+    function abrirDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = (event) => {
+          const dbi = event.target.result;
+
+          if (!dbi.objectStoreNames.contains(STORE_PRODUCTOS)) {
+            const store = dbi.createObjectStore(STORE_PRODUCTOS, { keyPath: "codigoBarra" });
+            store.createIndex("concepto", "concepto", { unique: false });
+            store.createIndex("activo", "activo", { unique: false });
+          }
+
+          if (!dbi.objectStoreNames.contains(STORE_META)) {
+            dbi.createObjectStore(STORE_META, { keyPath: "key" });
+          }
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function guardarProductosEnLocal(productos) {
+      const dbi = await abrirDB();
+
+      await new Promise((resolve, reject) => {
+        const tx = dbi.transaction([STORE_PRODUCTOS], "readwrite");
+        const store = tx.objectStore(STORE_PRODUCTOS);
+        const clearReq = store.clear();
+
+        clearReq.onsuccess = () => {
+          productos.forEach(prod => store.put(prod));
+        };
+
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function leerProductosLocales() {
+      const dbi = await abrirDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = dbi.transaction([STORE_PRODUCTOS], "readonly");
+        const store = tx.objectStore(STORE_PRODUCTOS);
+        const req = store.getAll();
+
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function guardarMeta(key, value) {
+      const dbi = await abrirDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = dbi.transaction([STORE_META], "readwrite");
+        const store = tx.objectStore(STORE_META);
+        store.put({ key, value });
+
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function leerMeta(key) {
+      const dbi = await abrirDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = dbi.transaction([STORE_META], "readonly");
+        const store = tx.objectStore(STORE_META);
+        const req = store.get(key);
+
+        req.onsuccess = () => resolve(req.result ? req.result.value : null);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    function setEstado(msg, tipo = "info") {
+      estadoCatalogo.className = `status ${tipo}`;
+      estadoCatalogo.textContent = msg;
+    }
+
+    function money(n) {
+      return Number(n || 0).toLocaleString("es-MX", {
+        style: "currency",
+        currency: "MXN"
+      });
+    }
+
+    function ahoraTexto() {
+      return new Date().toLocaleString("es-MX");
+    }
+
+    function generarFolio() {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mi = String(d.getMinutes()).padStart(2, "0");
+      const ss = String(d.getSeconds()).padStart(2, "0");
+      return `PED-${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function normalizarTexto(txt) {
+      return String(txt || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^\w\s/.-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function construirTextoBusqueda(producto) {
+      const partes = [
+        producto.codigoBarra || "",
+        producto.concepto || "",
+        producto.marca || "",
+        producto.departamento || "",
+        ...(Array.isArray(producto.codigosEquivalentes) ? producto.codigosEquivalentes : [])
+      ];
+
+      return normalizarTexto(partes.join(" "));
+    }
+
+    function partirTokens(texto) {
+      return normalizarTexto(texto)
+        .split(" ")
+        .map(t => t.trim())
+        .filter(Boolean);
+    }
+
+    function puntuarProducto(producto, queryTexto) {
+      const texto = construirTextoBusqueda(producto);
+      const tokens = partirTokens(queryTexto);
+      if (!tokens.length) return 0;
+
+      let score = 0;
+      let encontrados = 0;
+
+      const codigo = normalizarTexto(producto.codigoBarra || "");
+      const concepto = normalizarTexto(producto.concepto || "");
+      const marca = normalizarTexto(producto.marca || "");
+      const departamento = normalizarTexto(producto.departamento || "");
+
+      for (const token of tokens) {
+        let sumo = false;
+
+        if (codigo === token) {
+          score += 150;
+          encontrados++;
+          sumo = true;
+        } else if (codigo.startsWith(token)) {
+          score += 90;
+          encontrados++;
+          sumo = true;
+        } else if (codigo.includes(token)) {
+          score += 70;
+          encontrados++;
+          sumo = true;
+        }
+
+        if (concepto.includes(token)) {
+          score += 60;
+          if (!sumo) encontrados++;
+          sumo = true;
+        }
+
+        if (marca.includes(token)) {
+          score += 35;
+          if (!sumo) encontrados++;
+          sumo = true;
+        }
+
+        if (departamento.includes(token)) {
+          score += 20;
+          if (!sumo) encontrados++;
+          sumo = true;
+        }
+
+        if (!sumo && texto.includes(token)) {
+          score += 10;
+          encontrados++;
+        }
+      }
+
+      if (encontrados === 0) return 0;
+
+      const todos = tokens.every(token => texto.includes(token));
+      const fraseCompleta = texto.includes(normalizarTexto(queryTexto));
+
+      if (todos) score += 120;
+      if (fraseCompleta) score += 80;
+
+      score += encontrados * 25;
+      return score;
+    }
+
+    function buscarProductos(queryTexto, limite = LIMITE_RESULTADOS) {
+      const q = normalizarTexto(queryTexto);
+      if (!q) return [];
+
+      return productosLocales
+        .map(producto => ({
+          producto,
+          score: puntuarProducto(producto, q)
+        }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limite)
+        .map(x => x.producto);
+    }
+
+    function guardarPedidoTemporal() {
+      localStorage.setItem("pedidoPisoActual", JSON.stringify({
+        pedido,
+        cliente: clienteInput.value.trim(),
+        captura: capturaInput.value.trim(),
+        observaciones: observacionesInput.value.trim(),
+        pasoActual
+      }));
+    }
+
+    function cargarPedidoTemporal() {
+      try {
+        const raw = localStorage.getItem("pedidoPisoActual");
+        if (!raw) return false;
+
+        const data = JSON.parse(raw);
+        pedido = Array.isArray(data.pedido) ? data.pedido : [];
+        clienteInput.value = data.cliente || "";
+        capturaInput.value = data.captura || "";
+        observacionesInput.value = data.observaciones || "";
+        pasoActual = Number(data.pasoActual || 1);
+        return true;
+      } catch (e) {
+        console.error("No se pudo recuperar pedido temporal:", e);
+        return false;
+      }
+    }
+
+    function limpiarPedidoTemporal() {
+      localStorage.removeItem("pedidoPisoActual");
+    }
+
+    function catalogoVencido(ultima) {
+      if (!ultima) return true;
+      const tiempo = new Date(ultima).getTime();
+      if (Number.isNaN(tiempo)) return true;
+      return (Date.now() - tiempo) > MS_CATALOGO;
+    }
+
+    async function sincronizarCatalogo() {
+      try {
+        setEstado("Sincronizando catálogo activo desde Firebase...", "info");
+
+        const q = query(collection(db, "productos"), where("activo", "==", true));
+        const snap = await getDocs(q);
+
+        const productos = [];
+        snap.forEach((docSnap) => {
+          const data = docSnap.data() || {};
+
+          productos.push({
+            id: docSnap.id,
+            activo: data.activo === true,
+            actualizadoEn: data.actualizadoEn || null,
+            updatedAt: data.updatedAt || null,
+            cantidadPorCaja: Number(data.cantidadPorCaja || 0),
+            claveSat: data.claveSat || "",
+            codigoBarra: data.codigoBarra || docSnap.id || "",
+            codigosEquivalentes: Array.isArray(data.codigosEquivalentes) ? data.codigosEquivalentes : [],
+            comision_tipo: data.comision_tipo || "",
+            comision_valor: Number(data.comision_valor || 0),
+            concepto: data.concepto || "",
+            costoSinImpuesto: Number(data.costoSinImpuesto || 0),
+            departamento: data.departamento || "",
+            departamento_id: data.departamento_id || "",
+            iepsTasa: Number(data.iepsTasa || 0),
+            ivaTasa: Number(data.ivaTasa || 0),
+            marca: data.marca || "",
+            mayoreo: Number(data.mayoreo || 0),
+            medioMayoreo: Number(data.medioMayoreo || 0),
+            precioPublico: Number(data.precioPublico || 0),
+            unidadMedidaSat: data.unidadMedidaSat || ""
+          });
+        });
+
+        await guardarProductosEnLocal(productos);
+        await guardarMeta("ultimaSyncCatalogo", new Date().toISOString());
+
+        productosLocales = productos;
+        totalLocales.textContent = productosLocales.length.toLocaleString("es-MX");
+        ultimaSync.textContent = ahoraTexto();
+
+        setEstado(`Catálogo sincronizado correctamente. ${productosLocales.length} productos activos descargados.`, "ok");
+      } catch (error) {
+        console.error(error);
+        setEstado(`Error al sincronizar catálogo: ${error.message}`, "error");
+      }
+    }
+
+    async function cargarCatalogoLocal() {
+      try {
+        productosLocales = await leerProductosLocales();
+        const ultima = await leerMeta("ultimaSyncCatalogo");
+
+        totalLocales.textContent = productosLocales.length.toLocaleString("es-MX");
+        ultimaSync.textContent = ultima ? new Date(ultima).toLocaleString("es-MX") : "Sin datos";
+
+        if (productosLocales.length > 0) {
+          if (catalogoVencido(ultima)) {
+            setEstado("Catálogo local cargado pero vencido. Se actualizará.", "warn");
+          } else {
+            setEstado(`Catálogo local cargado. ${productosLocales.length} productos disponibles.`, "ok");
+          }
+        } else {
+          setEstado("No hay catálogo local. Debes sincronizar.", "warn");
+        }
+      } catch (error) {
+        console.error(error);
+        setEstado(`Error al cargar catálogo local: ${error.message}`, "error");
+      }
+    }
+
+    function goToStep(step) {
+      pasoActual = step;
+
+      document.querySelectorAll(".screen").forEach(el => el.classList.remove("active"));
+      document.getElementById(`screen${step}`).classList.add("active");
+
+      document.querySelectorAll(".step-chip").forEach(el => {
+        const num = Number(el.dataset.step);
+        el.classList.remove("active", "done");
+        if (num === step) el.classList.add("active");
+        if (num < step) el.classList.add("done");
+      });
+
+      actualizarResumenes();
+      guardarPedidoTemporal();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function actualizarResumenes() {
+      const partidas = pedido.length;
+      const piezas = pedido.reduce((acc, x) => acc + Number(x.cantidad || 0), 0);
+      const asignado = pedido.reduce((acc, x) => acc + Number(x.asignado || 0), 0);
+      const cliente = clienteInput.value.trim() || "-";
+      const captura = capturaInput.value.trim() || "-";
+
+      totalPartidas.textContent = partidas.toLocaleString("es-MX");
+      totalPiezas.textContent = piezas.toLocaleString("es-MX");
+
+      resumenCliente.textContent = cliente;
+      resumenCaptura.textContent = captura;
+      resumenPartidas.textContent = partidas.toLocaleString("es-MX");
+      resumenPiezas.textContent = piezas.toLocaleString("es-MX");
+
+      guardarCliente.textContent = cliente;
+      guardarCaptura.textContent = captura;
+      guardarPartidas.textContent = partidas.toLocaleString("es-MX");
+      guardarAsignado.textContent = asignado.toLocaleString("es-MX");
+
+      pcPartidas.textContent = partidas.toLocaleString("es-MX");
+      pcPiezas.textContent = piezas.toLocaleString("es-MX");
+      pcAsignado.textContent = asignado.toLocaleString("es-MX");
+      pcCliente.textContent = cliente;
+
+      mobileCartCount.textContent = `${partidas.toLocaleString("es-MX")} partidas`;
+    }
+
+    function abrirModalResultados() {
+      modalResultados.classList.add("show");
+    }
+
+    function cerrarModalResultados() {
+      modalResultados.classList.remove("show");
+    }
+
+    function abrirModalCantidad() {
+      modalCantidad.classList.add("show");
+      setTimeout(() => {
+        cantidadModal.focus();
+        cantidadModal.select();
+      }, 60);
+    }
+
+    function cerrarModalCantidad() {
+      modalCantidad.classList.remove("show");
+      productoSeleccionado = null;
+      cantidadModal.value = 1;
+    }
+
+    function abrirModalCarritoMobile() {
+      modalCarritoMobile.classList.add("show");
+      renderPedidoLists();
+    }
+
+    function cerrarModalCarritoMobile() {
+      modalCarritoMobile.classList.remove("show");
+    }
+
+    function mostrarResultadosBusqueda(texto) {
+      const q = (texto || "").trim();
+
+      if (!productosLocales.length) {
+        alert("No hay catálogo local cargado todavía.");
+        return;
+      }
+
+      if (!q) {
+        alert("Escribe algo para buscar.");
+        busquedaInput.focus();
+        return;
+      }
+
+      resultadosActuales = buscarProductos(q, LIMITE_RESULTADOS);
+      textoBusquedaModal.textContent = `Búsqueda: ${q}`;
+
+      if (!resultadosActuales.length) {
+        resultadosModal.innerHTML = `<div class="empty">No se encontraron coincidencias.</div>`;
+        abrirModalResultados();
+        return;
+      }
+
+      resultadosModal.innerHTML = resultadosActuales.map((p, index) => `
+        <div class="result-item" data-index="${index}">
+          <div class="item-head">
+            <div>
+              <div class="item-title">${escapeHtml(p.concepto || "Sin nombre")}</div>
+              <div class="item-code">${escapeHtml(p.codigoBarra || "")}</div>
+            </div>
+            <span class="badge">${escapeHtml(p.departamento || "SIN DEPTO")}</span>
+          </div>
+          <div class="hint">Marca: ${escapeHtml(p.marca || "GENERICA")}</div>
+          <div class="hint" style="margin-top:4px;">Público: ${money(p.precioPublico)}</div>
+        </div>
+      `).join("");
+
+      abrirModalResultados();
+    }
+
+    function prepararCantidadProducto(producto) {
+      productoSeleccionado = producto;
+
+      productoSeleccionadoBox.innerHTML = `
+        <div class="item-title">${escapeHtml(producto.concepto || "Sin nombre")}</div>
+        <div class="item-code">${escapeHtml(producto.codigoBarra || "")}</div>
+        <div class="hint" style="margin-top:6px;">Marca: ${escapeHtml(producto.marca || "GENERICA")}</div>
+        <div class="hint">Departamento: ${escapeHtml(producto.departamento || "SIN DEPTO")}</div>
+        <div class="hint">Precio público: ${money(producto.precioPublico)}</div>
+      `;
+
+      cantidadModal.value = 1;
+      cerrarModalResultados();
+      abrirModalCantidad();
+    }
+
+    function agregarProductoConCantidad(codigoBarra, cantidadNueva) {
+      const prod = productosLocales.find(p => String(p.codigoBarra) === String(codigoBarra));
+      if (!prod) return;
+
+      const cantidad = Math.max(1, Number(cantidadNueva || 1));
+      const idx = pedido.findIndex(x => String(x.codigoBarra) === String(codigoBarra));
+
+      if (idx >= 0) {
+        pedido[idx].cantidad = Number(pedido[idx].cantidad || 0) + cantidad;
+      } else {
+        pedido.unshift({
+          codigoBarra: prod.codigoBarra || "",
+          concepto: prod.concepto || "",
+          marca: prod.marca || "",
+          departamento: prod.departamento || "",
+          precioPublico: Number(prod.precioPublico || 0),
+          cantidad: cantidad,
+          asignado: 0,
+          cantidadPorCaja: Number(prod.cantidadPorCaja || 0),
+          unidadMedidaSat: prod.unidadMedidaSat || "H87",
+          ivaTasa: Number(prod.ivaTasa || 0),
+          iepsTasa: Number(prod.iepsTasa || 0)
+        });
+      }
+
+      renderPedidoLists();
+      actualizarResumenes();
+      guardarPedidoTemporal();
+      busquedaInput.value = "";
+      busquedaInput.focus();
+    }
+
+    function confirmarAgregarCantidad() {
+      if (!productoSeleccionado) return;
+
+      const cantidad = Number(cantidadModal.value);
+      if (!cantidad || cantidad <= 0) {
+        alert("Captura una cantidad válida.");
+        cantidadModal.focus();
+        cantidadModal.select();
+        return;
+      }
+
+      agregarProductoConCantidad(productoSeleccionado.codigoBarra, cantidad);
+      cerrarModalCantidad();
+    }
+
+    function actualizarCampoItem(index, campo, valor) {
+      if (!pedido[index]) return;
+
+      const n = Number(valor);
+      pedido[index][campo] = isNaN(n) ? 0 : n;
+      if (pedido[index][campo] < 0) pedido[index][campo] = 0;
+
+      renderPedidoLists();
+      actualizarResumenes();
+      guardarPedidoTemporal();
+    }
+
+    function eliminarItem(index) {
+      if (!pedido[index]) return;
+      pedido.splice(index, 1);
+      renderPedidoLists();
+      actualizarResumenes();
+      guardarPedidoTemporal();
+    }
+
+    function renderPedidoHtml() {
+      if (!pedido.length) {
+        return `<div class="empty">Aún no agregas productos al pedido.</div>`;
+      }
+
+      return pedido.map((item, index) => `
+        <div class="item">
+          <div class="item-head">
+            <div>
+              <div class="item-title">${escapeHtml(item.concepto || "Sin nombre")}</div>
+              <div class="item-code">${escapeHtml(item.codigoBarra || "")}</div>
+            </div>
+            <span class="badge">${escapeHtml(item.departamento || "SIN DEPTO")}</span>
+          </div>
+
+          <div class="hint">Precio público: ${money(item.precioPublico)}</div>
+
+          <div class="item-grid">
+            <div class="field">
+              <label>Cantidad</label>
+              <input type="number" min="0" step="1" value="${Number(item.cantidad || 0)}" data-index="${index}" data-campo="cantidad">
+            </div>
+
+            <div class="field">
+              <label>Asignado</label>
+              <input type="number" min="0" step="1" value="${Number(item.asignado || 0)}" data-index="${index}" data-campo="asignado">
+            </div>
+          </div>
+
+          <div class="item-footer">
+            <div class="hint">Caja: ${Number(item.cantidadPorCaja || 0)} | U. SAT: ${escapeHtml(item.unidadMedidaSat || "H87")}</div>
+            <button class="btn btn-danger" data-del="${index}">Quitar</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderPedidoLists() {
+      const html = renderPedidoHtml();
+      pedidoListMobile.innerHTML = html;
+      pedidoListPc.innerHTML = html;
+      pedidoListModalMobile.innerHTML = html;
+    }
+
+    function validarPaso2() {
+      const cliente = clienteInput.value.trim();
+      const captura = capturaInput.value.trim();
+
+      if (!cliente) {
+        alert("Captura el nombre del cliente.");
+        clienteInput.focus();
+        return false;
+      }
+
+      if (!captura) {
+        alert("Captura el nombre de quien captura.");
+        capturaInput.focus();
+        return false;
+      }
+
+      return true;
+    }
+
+    function validarPaso4() {
+      if (!pedido.length) {
+        alert("No hay productos capturados.");
+        goToStep(3);
+        return false;
+      }
+      return true;
+    }
+
+    async function guardarPedidoEnFirebase() {
+      try {
+        if (!pedido.length) {
+          alert("No hay productos en el pedido.");
+          return;
+        }
+
+        const cliente = clienteInput.value.trim();
+        const captura = capturaInput.value.trim();
+        const observaciones = observacionesInput.value.trim();
+        const folio = generarFolio();
+
+        const payload = {
+          folio,
+          tipo: "PEDIDO_PISO",
+          cliente,
+          captura,
+          observaciones,
+          creadoEn: serverTimestamp(),
+          creadoEnLocal: new Date().toISOString(),
+          totalPartidas: pedido.length,
+          totalPiezas: pedido.reduce((acc, x) => acc + Number(x.cantidad || 0), 0),
+          totalAsignado: pedido.reduce((acc, x) => acc + Number(x.asignado || 0), 0),
+          estatus: "PENDIENTE",
+          productos: pedido.map(x => ({
+            codigoBarra: x.codigoBarra || "",
+            concepto: x.concepto || "",
+            marca: x.marca || "",
+            departamento: x.departamento || "",
+            precioPublico: Number(x.precioPublico || 0),
+            cantidad: Number(x.cantidad || 0),
+            asignado: Number(x.asignado || 0),
+            cantidadPorCaja: Number(x.cantidadPorCaja || 0),
+            unidadMedidaSat: x.unidadMedidaSat || "H87",
+            ivaTasa: Number(x.ivaTasa || 0),
+            iepsTasa: Number(x.iepsTasa || 0)
+          }))
+        };
+
+        const btnGuardar = document.getElementById("btnGuardar");
+        btnGuardar.disabled = true;
+        btnGuardar.textContent = "Guardando...";
+
+        await setDoc(doc(db, "PEDIDOPISO", folio), payload);
+
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = "Guardar en PEDIDOPISO";
+
+        alert(`Pedido guardado correctamente con folio ${folio}`);
+
+        pedido = [];
+        clienteInput.value = "";
+        capturaInput.value = "";
+        observacionesInput.value = "";
+        busquedaInput.value = "";
+        pasoActual = 1;
+
+        limpiarPedidoTemporal();
+        renderPedidoLists();
+        actualizarResumenes();
+        goToStep(1);
+      } catch (error) {
+        console.error(error);
+        alert("Error al guardar pedido: " + error.message);
+
+        const btnGuardar = document.getElementById("btnGuardar");
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = "Guardar en PEDIDOPISO";
+      }
+    }
+
+    document.getElementById("btnSincronizar").addEventListener("click", sincronizarCatalogo);
+    document.getElementById("btnRecargarLocal").addEventListener("click", cargarCatalogoLocal);
+
+    document.getElementById("btnNuevoPedido").addEventListener("click", () => {
+      pedido = [];
+      clienteInput.value = "";
+      capturaInput.value = "";
+      observacionesInput.value = "";
+      busquedaInput.value = "";
+      renderPedidoLists();
+      actualizarResumenes();
+      guardarPedidoTemporal();
+      goToStep(2);
+    });
+
+    document.getElementById("btnContinuarTemporal").addEventListener("click", () => {
+      const existe = cargarPedidoTemporal();
+      renderPedidoLists();
+      actualizarResumenes();
+      goToStep(existe ? pasoActual : 2);
+    });
+
+    document.getElementById("btnPasoCaptura").addEventListener("click", () => {
+      if (!validarPaso2()) return;
+      goToStep(3);
+      busquedaInput.focus();
+    });
+
+    document.getElementById("btnPasoFinalizar").addEventListener("click", () => {
+      if (!validarPaso4()) return;
+      goToStep(4);
+    });
+
+    document.getElementById("btnPasoAsignar").addEventListener("click", () => {
+      goToStep(5);
+    });
+
+    document.getElementById("btnPasoGuardar").addEventListener("click", () => {
+      goToStep(6);
+    });
+
+    document.querySelectorAll("[data-go]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        goToStep(Number(btn.dataset.go));
+      });
+    });
+
+    document.getElementById("btnLimpiar").addEventListener("click", () => {
+      if (!pedido.length) return;
+      if (!confirm("¿Limpiar el pedido actual?")) return;
+
+      pedido = [];
+      renderPedidoLists();
+      actualizarResumenes();
+      guardarPedidoTemporal();
+      goToStep(3);
+    });
+
+    document.getElementById("btnGuardar").addEventListener("click", guardarPedidoEnFirebase);
+
+    document.getElementById("btnBuscar").addEventListener("click", () => {
+      mostrarResultadosBusqueda(busquedaInput.value);
+    });
+
+    busquedaInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        mostrarResultadosBusqueda(busquedaInput.value);
+      }
+    });
+
+    clienteInput.addEventListener("input", () => {
+      actualizarResumenes();
+      guardarPedidoTemporal();
+    });
+
+    capturaInput.addEventListener("input", () => {
+      actualizarResumenes();
+      guardarPedidoTemporal();
+    });
+
+    observacionesInput.addEventListener("input", guardarPedidoTemporal);
+
+    [pedidoListMobile, pedidoListPc, pedidoListModalMobile].forEach(lista => {
+      lista.addEventListener("input", (e) => {
+        const input = e.target.closest("input[data-index][data-campo]");
+        if (!input) return;
+
+        const index = Number(input.dataset.index);
+        const campo = input.dataset.campo;
+        actualizarCampoItem(index, campo, input.value);
+      });
+
+      lista.addEventListener("click", (e) => {
+        const btnDel = e.target.closest("[data-del]");
+        if (!btnDel) return;
+
+        eliminarItem(Number(btnDel.dataset.del));
+      });
+    });
+
+    resultadosModal.addEventListener("click", (e) => {
+      const item = e.target.closest(".result-item");
+      if (!item) return;
+
+      const index = Number(item.dataset.index);
+      const producto = resultadosActuales[index];
+      if (!producto) return;
+
+      prepararCantidadProducto(producto);
+    });
+
+    document.getElementById("cerrarModalResultados").addEventListener("click", cerrarModalResultados);
+    document.getElementById("cerrarModalCantidad").addEventListener("click", cerrarModalCantidad);
+    document.getElementById("cancelarCantidad").addEventListener("click", cerrarModalCantidad);
+    document.getElementById("confirmarCantidad").addEventListener("click", confirmarAgregarCantidad);
+
+    cantidadModal.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        confirmarAgregarCantidad();
+      }
+    });
+
+    modalResultados.addEventListener("click", (e) => {
+      if (e.target === modalResultados) cerrarModalResultados();
+    });
+
+    modalCantidad.addEventListener("click", (e) => {
+      if (e.target === modalCantidad) cerrarModalCantidad();
+    });
+
+    document.getElementById("btnVerCarritoMobile").addEventListener("click", abrirModalCarritoMobile);
+    document.getElementById("cerrarModalCarritoMobile").addEventListener("click", cerrarModalCarritoMobile);
+
+    modalCarritoMobile.addEventListener("click", (e) => {
+      if (e.target === modalCarritoMobile) cerrarModalCarritoMobile();
+    });
+
+    async function init() {
+      const existeTemporal = cargarPedidoTemporal();
+      renderPedidoLists();
+      actualizarResumenes();
+
+      await cargarCatalogoLocal();
+      const ultima = await leerMeta("ultimaSyncCatalogo");
+
+      if (!productosLocales.length || catalogoVencido(ultima)) {
+        await sincronizarCatalogo();
+      }
+
+      goToStep(existeTemporal ? pasoActual : 1);
+    }
+
+    init();
+  </script>
+</body>
+</html>
