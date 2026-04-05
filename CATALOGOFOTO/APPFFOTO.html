@@ -8,7 +8,7 @@
 <style>
 body{
   margin:0;
-  font-family:Arial;
+  font-family:Arial, sans-serif;
   background:#0c6cbd;
 }
 
@@ -23,6 +23,7 @@ body{
   border-radius:12px;
   padding:12px;
   margin-bottom:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
 }
 
 input, button{
@@ -31,21 +32,94 @@ input, button{
   border-radius:10px;
   margin-top:8px;
   font-size:16px;
+  box-sizing:border-box;
 }
 
-button{ border:none; font-weight:bold; }
+button{
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+}
 
 .btn1{ background:#00416A; color:white; }
 .btn2{ background:#16a34a; color:white; }
 .btn3{ background:#dc2626; color:white; }
 .btn4{ background:#ca8a04; color:white; }
 
-video{ width:100%; border-radius:12px; }
+video{
+  width:100%;
+  border-radius:12px;
+  background:#111;
+  min-height:220px;
+}
 
 img{
   width:100%;
   border-radius:10px;
   margin-top:6px;
+  background:#f3f4f6;
+  min-height:80px;
+  object-fit:cover;
+}
+
+.mini{
+  font-size:13px;
+  color:#444;
+}
+
+.ok{
+  color:#15803d;
+  font-weight:bold;
+}
+
+.warn{
+  color:#b45309;
+  font-weight:bold;
+}
+
+.error{
+  color:#b91c1c;
+  font-weight:bold;
+}
+
+/* PROGRESO */
+#loaderCard{
+  position:sticky;
+  top:10px;
+  z-index:20;
+}
+
+#progressWrap{
+  width:100%;
+  height:18px;
+  background:#e5e7eb;
+  border-radius:999px;
+  overflow:hidden;
+  margin-top:8px;
+}
+
+#progressBar{
+  width:0%;
+  height:100%;
+  background:linear-gradient(90deg,#00416A,#0c6cbd,#16a34a);
+  transition:width .25s ease;
+}
+
+#progressText{
+  margin-top:8px;
+  font-size:14px;
+  font-weight:bold;
+  color:#111827;
+}
+
+#progressSub{
+  margin-top:4px;
+  font-size:13px;
+  color:#4b5563;
+}
+
+.hidden{
+  display:none;
 }
 </style>
 </head>
@@ -54,33 +128,43 @@ img{
 
 <div class="wrap">
 
-<div class="card">
-<h3>Buscar producto</h3>
-<input id="busqueda" placeholder="Código o texto">
-<button class="btn1" onclick="buscar()">Buscar</button>
-<button class="btn4" onclick="actualizarCatalogo()">Actualizar catálogo</button>
-</div>
+  <!-- CARGA / PREPARACION -->
+  <div class="card" id="loaderCard">
+    <h3>Preparando app</h3>
+    <div id="progressWrap">
+      <div id="progressBar"></div>
+    </div>
+    <div id="progressText">Iniciando app...</div>
+    <div id="progressSub">Espera un momento</div>
+  </div>
 
-<div class="card">
-<h3 id="nombre">Sin producto</h3>
-<div id="estado">SIN FOTOS</div>
-<div id="alerta"></div>
-</div>
+  <div class="card">
+    <h3>Buscar producto</h3>
+    <input id="busqueda" placeholder="Código o texto">
+    <button class="btn1" onclick="buscar()">Buscar</button>
+    <button class="btn4" onclick="actualizarCatalogo()">Actualizar catálogo</button>
+  </div>
 
-<div class="card">
-<video id="video" autoplay playsinline></video>
-<button class="btn1" onclick="iniciarCamara()">Iniciar cámara</button>
-<button class="btn2" onclick="capturar()">Tomar foto</button>
-<button class="btn3" onclick="detenerCamara()">Detener</button>
-</div>
+  <div class="card">
+    <h3 id="nombre">Sin producto</h3>
+    <div id="estado">SIN FOTOS</div>
+    <div id="alerta"></div>
+  </div>
 
-<div class="card">
-<h3>Fotos</h3>
-<img id="f1">
-<img id="f2">
-<img id="f3">
-<button class="btn4" onclick="subir()">Subir</button>
-</div>
+  <div class="card">
+    <video id="video" autoplay playsinline></video>
+    <button class="btn1" onclick="iniciarCamara()">Iniciar cámara</button>
+    <button class="btn2" onclick="capturar()">Tomar foto</button>
+    <button class="btn3" onclick="detenerCamara()">Detener</button>
+  </div>
+
+  <div class="card">
+    <h3>Fotos</h3>
+    <img id="f1">
+    <img id="f2">
+    <img id="f3">
+    <button class="btn4" onclick="subir()">Subir</button>
+  </div>
 
 </div>
 
@@ -97,83 +181,261 @@ const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 const db = getFirestore(app);
 
-// ===== VARIABLES =====
+// =========================
+// VARIABLES GENERALES
+// =========================
 let productos = [];
 let productoActual = null;
 let fotos = [];
 let stream = null;
 
-// CACHE CONFIG
-const CACHE_KEY = "catalogo_productos";
-const CACHE_TIME = "catalogo_timestamp";
-const TTL = 1000 * 60 * 60 * 12; // 12 horas
+// =========================
+// ELEMENTOS DOM
+// =========================
+const video = document.getElementById("video");
+const nombre = document.getElementById("nombre");
+const estado = document.getElementById("estado");
+const alerta = document.getElementById("alerta");
 
-// ===== LOCAL STORAGE CACHE =====
-function guardarCache(data){
-  localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-  localStorage.setItem(CACHE_TIME, Date.now());
+const progressBar = document.getElementById("progressBar");
+const progressText = document.getElementById("progressText");
+const progressSub = document.getElementById("progressSub");
+const loaderCard = document.getElementById("loaderCard");
+
+// =========================
+// BARRA DE PROGRESO
+// =========================
+function setProgress(percent, text, sub=""){
+  progressBar.style.width = percent + "%";
+  progressText.textContent = text;
+  progressSub.textContent = sub;
 }
 
-function leerCache(){
-  const data = localStorage.getItem(CACHE_KEY);
-  return data ? JSON.parse(data) : null;
+function finalizarCarga(){
+  setProgress(100, "App lista", "Catálogo preparado correctamente");
+  setTimeout(()=>{
+    loaderCard.classList.add("hidden");
+  }, 700);
 }
 
-function cacheValido(){
-  const t = localStorage.getItem(CACHE_TIME);
-  if(!t) return false;
-  return (Date.now() - t) < TTL;
+function errorCarga(msg){
+  progressBar.style.width = "100%";
+  progressBar.style.background = "#dc2626";
+  progressText.textContent = "Error al preparar la app";
+  progressSub.textContent = msg || "Revisa consola";
 }
 
+// =========================
+// INDEXEDDB
+// =========================
+const DB_NAME = "provsoft_fotos_db";
+const DB_VERSION = 1;
+const STORE_PRODUCTOS = "productos";
+const STORE_META = "meta";
+const TTL_MS = 1000 * 60 * 60 * 12; // 12 horas
+
+let dbIDB = null;
+
+function abrirDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+    req.onupgradeneeded = (e)=>{
+      const db = e.target.result;
+
+      if(!db.objectStoreNames.contains(STORE_PRODUCTOS)){
+        db.createObjectStore(STORE_PRODUCTOS, { keyPath:"codigoBarra" });
+      }
+
+      if(!db.objectStoreNames.contains(STORE_META)){
+        db.createObjectStore(STORE_META, { keyPath:"key" });
+      }
+    };
+
+    req.onsuccess = (e)=>{
+      dbIDB = e.target.result;
+      resolve(dbIDB);
+    };
+
+    req.onerror = (e)=> reject(e);
+  });
+}
+
+function guardarMeta(key, value){
+  return new Promise((resolve, reject)=>{
+    const tx = dbIDB.transaction(STORE_META, "readwrite");
+    const store = tx.objectStore(STORE_META);
+
+    store.put({ key, value });
+
+    tx.oncomplete = ()=> resolve(true);
+    tx.onerror = reject;
+  });
+}
+
+function leerMeta(key){
+  return new Promise((resolve, reject)=>{
+    const tx = dbIDB.transaction(STORE_META, "readonly");
+    const store = tx.objectStore(STORE_META);
+    const req = store.get(key);
+
+    req.onsuccess = ()=> resolve(req.result ? req.result.value : null);
+    req.onerror = reject;
+  });
+}
+
+function limpiarProductosDB(){
+  return new Promise((resolve, reject)=>{
+    const tx = dbIDB.transaction(STORE_PRODUCTOS, "readwrite");
+    const store = tx.objectStore(STORE_PRODUCTOS);
+    const req = store.clear();
+
+    req.onsuccess = ()=> resolve(true);
+    req.onerror = reject;
+  });
+}
+
+function guardarProductosDB(lista){
+  return new Promise((resolve, reject)=>{
+    const tx = dbIDB.transaction(STORE_PRODUCTOS, "readwrite");
+    const store = tx.objectStore(STORE_PRODUCTOS);
+
+    for(const p of lista){
+      store.put(p);
+    }
+
+    tx.oncomplete = ()=> resolve(true);
+    tx.onerror = reject;
+  });
+}
+
+function leerProductosDB(){
+  return new Promise((resolve, reject)=>{
+    const tx = dbIDB.transaction(STORE_PRODUCTOS, "readonly");
+    const store = tx.objectStore(STORE_PRODUCTOS);
+    const req = store.getAll();
+
+    req.onsuccess = ()=> resolve(req.result || []);
+    req.onerror = reject;
+  });
+}
+
+async function cacheValido(){
+  const ts = await leerMeta("catalogo_timestamp");
+  if(!ts) return false;
+  return (Date.now() - ts) < TTL_MS;
+}
+
+// =========================
+// CATALOGO
+// =========================
 async function cargarCatalogo(){
-  if(cacheValido()){
-    productos = leerCache();
-    console.log("CATALOGO DESDE CACHE");
+  setProgress(5, "Iniciando app...", "Preparando almacenamiento local");
+
+  await abrirDB();
+
+  setProgress(20, "Abriendo base local...", "Revisando catálogo del dispositivo");
+
+  const esValido = await cacheValido();
+  const local = await leerProductosDB();
+
+  if(esValido && local.length > 0){
+    productos = local;
+    setProgress(80, "Catálogo local encontrado", `${productos.length} productos cargados`);
+    console.log("CATALOGO DESDE INDEXEDDB");
     return;
   }
 
-  console.log("DESCARGANDO CATALOGO...");
+  setProgress(35, "Descargando catálogo...", "Consultando Firebase Firestore");
 
   const snap = await getDocs(collection(db,"productos"));
 
-  productos = snap.docs.map(d => {
-    const p = d.data();
-    return {
-      ...p,
-      search: (p.concepto + " " + (p.marca||"") + " " + (p.codigoBarra||""))
-        .toLowerCase()
-    };
-  });
+  const total = snap.docs.length || 1;
+  const lista = [];
 
-  guardarCache(productos);
+  for(let i = 0; i < snap.docs.length; i++){
+    const p = snap.docs[i].data();
+
+    lista.push({
+      codigoBarra: String(p.codigoBarra || "").trim(),
+      concepto: String(p.concepto || "").trim(),
+      marca: String(p.marca || "").trim(),
+      search: `${p.concepto || ""} ${p.marca || ""} ${p.codigoBarra || ""}`.toLowerCase()
+    });
+
+    if(i % 50 === 0 || i === snap.docs.length - 1){
+      const avance = 35 + Math.round((i / total) * 30);
+      setProgress(avance, "Descargando catálogo...", `Procesando ${i + 1} de ${total}`);
+      await pausa(0);
+    }
+  }
+
+  setProgress(70, "Guardando catálogo en el dispositivo...", "Preparando modo local");
+
+  await limpiarProductosDB();
+  await guardarProductosDB(lista);
+  await guardarMeta("catalogo_timestamp", Date.now());
+
+  productos = lista;
+
+  setProgress(95, "Catálogo listo", `${productos.length} productos preparados`);
 }
 
 async function actualizarCatalogo(){
-  localStorage.removeItem(CACHE_KEY);
-  localStorage.removeItem(CACHE_TIME);
-  await cargarCatalogo();
-  alert("Catálogo actualizado");
+  try{
+    setProgress(10, "Actualizando catálogo...", "Abriendo base local");
+    loaderCard.classList.remove("hidden");
+
+    await abrirDB();
+
+    setProgress(25, "Limpiando catálogo anterior...", "Quitando datos locales viejos");
+    await limpiarProductosDB();
+    await guardarMeta("catalogo_timestamp", 0);
+
+    setProgress(40, "Descargando catálogo nuevo...", "Espera un momento");
+    await cargarCatalogo();
+
+    finalizarCarga();
+    alert("Catálogo actualizado");
+  }catch(err){
+    console.error(err);
+    errorCarga(err.message || "No se pudo actualizar");
+    alert("Error al actualizar catálogo");
+  }
 }
 
-function buscar(){
-  const q = document.getElementById("busqueda").value.toLowerCase();
+// =========================
+// UTILIDADES
+// =========================
+function pausa(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-  // ===== CODIGO DIRECTO =====
-  const exacto = productos.find(p => p.codigoBarra == q);
+// =========================
+// BUSQUEDA
+// =========================
+window.buscar = function(){
+  const q = document.getElementById("busqueda").value.trim().toLowerCase();
+
+  if(!q){
+    alert("Escribe código o texto");
+    return;
+  }
+
+  const exacto = productos.find(p => String(p.codigoBarra).toLowerCase() === q);
 
   if(exacto){
     seleccionar(exacto);
     return;
   }
 
-  // ===== BUSQUEDA POR TEXTO =====
   const resultados = productos.filter(p => p.search.includes(q));
 
-  if(resultados.length == 1){
+  if(resultados.length === 1){
     seleccionar(resultados[0]);
-  } else if(resultados.length > 1){
+  }else if(resultados.length > 1){
     mostrarLista(resultados);
-  } else {
+  }else{
     alert("No encontrado");
   }
 }
@@ -181,85 +443,158 @@ function buscar(){
 function mostrarLista(lista){
   let texto = "Selecciona:\n";
   lista.slice(0,10).forEach((p,i)=>{
-    texto += `${i+1}. ${p.concepto}\n`;
+    texto += `${i + 1}. ${p.concepto} [${p.codigoBarra}]\n`;
   });
 
   const i = prompt(texto);
   if(!i) return;
 
-  seleccionar(lista[i-1]);
+  const idx = parseInt(i,10) - 1;
+  if(isNaN(idx) || !lista[idx]) return;
+
+  seleccionar(lista[idx]);
 }
 
 async function seleccionar(p){
   productoActual = p;
-  document.getElementById("nombre").innerText = p.concepto;
+  nombre.innerText = p.concepto || "Sin nombre";
+  estado.innerText = "SIN FOTOS";
+  alerta.innerText = "";
 
-  // revisar si ya tiene fotos
-  const docRef = doc(db,"productos_fotos",p.codigoBarra);
-  const snap = await getDoc(docRef);
+  try{
+    const docRef = doc(db,"productos_fotos",p.codigoBarra);
+    const snap = await getDoc(docRef);
 
-  if(snap.exists()){
-    document.getElementById("alerta").innerText = "⚠ YA FOTOGRAFIADO";
-  } else {
-    document.getElementById("alerta").innerText = "";
+    if(snap.exists()){
+      alerta.innerText = "⚠ YA FOTOGRAFIADO";
+      alerta.className = "warn";
+    }else{
+      alerta.innerText = "Producto listo para fotografiar";
+      alerta.className = "ok";
+    }
+  }catch(err){
+    console.error(err);
+    alerta.innerText = "No se pudo validar si ya tiene fotos";
+    alerta.className = "error";
   }
 }
 
-async function iniciarCamara(){
-  stream = await navigator.mediaDevices.getUserMedia({
-    video:{ facingMode:"environment" }
-  });
-  video.srcObject = stream;
+// =========================
+// CAMARA
+// =========================
+window.iniciarCamara = async function(){
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:"environment" },
+      audio:false
+    });
+
+    video.srcObject = stream;
+  }catch(err){
+    console.error(err);
+    alert("No se pudo iniciar la cámara");
+  }
 }
 
-function detenerCamara(){
-  if(stream) stream.getTracks().forEach(t=>t.stop());
+window.detenerCamara = function(){
+  if(stream){
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+  video.srcObject = null;
 }
 
-function capturar(){
-  if(fotos.length>=3) return alert("Ya son 3");
+// =========================
+// FOTOS
+// =========================
+window.capturar = function(){
+  if(!productoActual) return alert("Primero selecciona un producto");
+  if(!video.srcObject) return alert("Primero inicia la cámara");
+  if(fotos.length >= 3) return alert("Ya son 3 fotos");
 
   const canvas = document.getElementById("canvas");
+
+  if(!video.videoWidth || !video.videoHeight){
+    return alert("La cámara aún no está lista");
+  }
+
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(video,0,0);
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   canvas.toBlob(blob=>{
+    if(!blob) return alert("No se pudo capturar la imagen");
+
     fotos.push(blob);
-    document.getElementById("f"+fotos.length).src = URL.createObjectURL(blob);
-    document.getElementById("estado").innerText = fotos.length + "/3";
-  },"image/jpeg",0.75);
+
+    const img = document.getElementById("f" + fotos.length);
+    img.src = URL.createObjectURL(blob);
+
+    estado.innerText = `${fotos.length}/3 FOTOS`;
+  }, "image/jpeg", 0.78);
 }
 
-async function subir(){
-  if(fotos.length!=3) return alert("Faltan fotos");
+window.subir = async function(){
+  try{
+    if(!productoActual) return alert("Primero selecciona un producto");
+    if(fotos.length !== 3) return alert("Faltan fotos");
 
-  const codigo = productoActual.codigoBarra;
+    const codigo = productoActual.codigoBarra;
+    const paths = [];
 
-  let paths=[];
+    for(let i = 0; i < 3; i++){
+      estado.innerText = `SUBIENDO ${i + 1}/3`;
 
-  for(let i=0;i<3;i++){
-    const path = `productos_fotos/${codigo}/${Date.now()}_${i}.jpg`;
-    const r = ref(storage,path);
+      const path = `productos_fotos/${codigo}/${Date.now()}_${i}.jpg`;
+      const r = ref(storage, path);
 
-    await uploadBytes(r,fotos[i]);
-    paths.push(path);
+      await uploadBytes(r, fotos[i]);
+      paths.push(path);
+    }
+
+    await setDoc(doc(db,"productos_fotos",codigo),{
+      codigoBarra: codigo,
+      concepto: productoActual.concepto || "",
+      fotos: paths,
+      status: "COMPLETO",
+      actualizadoEn: new Date().toISOString()
+    });
+
+    alert("OK SUBIDO");
+
+    fotos = [];
+    document.getElementById("f1").src = "";
+    document.getElementById("f2").src = "";
+    document.getElementById("f3").src = "";
+    estado.innerText = "SIN FOTOS";
+    alerta.innerText = "✅ FOTOS SUBIDAS";
+    alerta.className = "ok";
+
+  }catch(err){
+    console.error(err);
+    alert("Error al subir fotos");
   }
-
-  await setDoc(doc(db,"productos_fotos",codigo),{
-    codigoBarra:codigo,
-    fotos:paths,
-    status:"COMPLETO"
-  });
-
-  alert("OK SUBIDO");
-  fotos=[];
 }
 
-await cargarCatalogo();
+// =========================
+// INICIO APP
+// =========================
+async function init(){
+  try{
+    setProgress(1, "Iniciando app...", "Cargando módulos");
+
+    await cargarCatalogo();
+
+    finalizarCarga();
+  }catch(err){
+    console.error(err);
+    errorCarga(err.message || "Falló la preparación de la app");
+  }
+}
+
+await init();
 </script>
 </body>
 </html>
-
