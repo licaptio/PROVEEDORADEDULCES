@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>PROVSOFT Fotos Limpio</title>
-
+  <title>PROVSOFT Fotos Mobile V2</title>
   <style>
-    *{ box-sizing:border-box; }
-
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
     :root{
       --azul:#00416A;
       --azul2:#0c6cbd;
@@ -16,360 +14,567 @@
       --amarillo:#ca8a04;
       --gris:#374151;
       --gris2:#6b7280;
-      --fondo:#eef4fb;
+      --gris3:#9ca3af;
+      --fondo:#edf4ff;
+      --fondo2:#f8fbff;
       --borde:#d1d5db;
+      --ok:#dcfce7;
+      --warn:#fef3c7;
+      --danger:#fee2e2;
+      --shadow:0 18px 40px rgba(0,0,0,.14);
+      --radius:20px;
     }
-
-    body{
+    html,body{
       margin:0;
-      font-family:Arial, sans-serif;
-      background:var(--azul2);
+      padding:0;
+      min-height:100%;
+      font-family:Arial, Helvetica, sans-serif;
+      background:linear-gradient(180deg,var(--azul),var(--azul2));
+      color:#111827;
+      overflow:hidden;
     }
-
-    .wrap{
-      max-width:560px;
-      margin:auto;
-      padding:10px;
+    body{ position:relative; }
+    .app{
+      min-height:100dvh;
+      max-width:640px;
+      margin:0 auto;
+      padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0) 0;
+      position:relative;
+      background:transparent;
     }
-
+    .screen{
+      position:absolute;
+      inset:0;
+      padding:14px;
+      display:none;
+      flex-direction:column;
+      gap:12px;
+      overflow:hidden;
+    }
+    .screen.active{ display:flex; }
     .card{
       background:#fff;
-      border-radius:14px;
-      padding:12px;
-      margin-bottom:10px;
-      box-shadow:0 8px 20px rgba(0,0,0,.12);
-    }
-
-    h3{
-      margin:0 0 10px 0;
-    }
-
-    input, button, textarea{
-      width:100%;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
       padding:14px;
-      border-radius:10px;
-      margin-top:8px;
-      font-size:16px;
     }
-
-    input, textarea{
-      border:1px solid var(--borde);
-      outline:none;
+    .hero{
+      background:linear-gradient(135deg,#ffffff 0%, #eaf4ff 100%);
     }
-
-    button{
+    h1,h2,h3,p{ margin:0; }
+    h1{ font-size:24px; line-height:1.1; }
+    h2{ font-size:22px; line-height:1.1; }
+    h3{ font-size:18px; }
+    .subtle{ color:var(--gris2); font-size:14px; line-height:1.35; }
+    .small{ font-size:12px; color:var(--gris2); }
+    .muted{ color:var(--gris2); }
+    .grow{ flex:1; min-height:0; }
+    .scroll-y{ overflow:auto; min-height:0; }
+    .row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .row-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .stack{ display:flex; flex-direction:column; gap:10px; }
+    input,button{
+      width:100%;
       border:none;
-      font-weight:bold;
-      cursor:pointer;
+      border-radius:16px;
+      font-size:17px;
+      padding:15px 14px;
+      font-weight:700;
     }
-
-    button:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-    }
-
-    .btn1{ background:var(--azul); color:#fff; }
-    .btn2{ background:var(--verde); color:#fff; }
-    .btn3{ background:var(--rojo); color:#fff; }
-    .btn4{ background:var(--amarillo); color:#fff; }
-    .btn5{ background:var(--gris); color:#fff; }
-
-    .row{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:8px;
-    }
-
-    .hidden{ display:none !important; }
-
-    .estado{
-      margin-top:10px;
-      padding:10px;
-      border-radius:10px;
-      background:#f3f4f6;
-      font-weight:bold;
-    }
-
-    .codigo{
-      color:#374151;
-      font-size:14px;
-      margin-top:4px;
-    }
-
-    .mini{
-      color:#4b5563;
-      font-size:13px;
-      margin-top:8px;
-    }
-
-    .sugerencias{
-      margin-top:8px;
-      border:1px solid var(--borde);
-      border-radius:10px;
-      overflow:hidden;
+    input{
+      border:1.5px solid var(--borde);
+      outline:none;
+      font-weight:600;
       background:#fff;
-      max-height:280px;
-      overflow-y:auto;
-    }
-
-    .sugerencia{
-      padding:12px;
-      border-bottom:1px solid #e5e7eb;
-      cursor:pointer;
-    }
-
-    .sugerencia:last-child{
-      border-bottom:none;
-    }
-
-    .sugerencia:hover{
-      background:#eff6ff;
-    }
-
-    .sugerencia .cod{
-      font-size:12px;
-      color:var(--gris2);
-      margin-top:3px;
-    }
-
-    .badge{
-      display:inline-block;
-      padding:6px 10px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:bold;
-      margin-top:8px;
-      background:#e5e7eb;
       color:#111827;
     }
-
-    .slots{
-      display:grid;
-      grid-template-columns:repeat(3, 1fr);
-      gap:8px;
-      margin-top:10px;
+    input:focus{ border-color:var(--azul2); box-shadow:0 0 0 4px rgba(12,108,189,.12); }
+    button{ cursor:pointer; }
+    button:disabled{ opacity:.5; cursor:not-allowed; }
+    .btn-primary{ background:var(--azul); color:#fff; }
+    .btn-secondary{ background:var(--verde); color:#fff; }
+    .btn-warning{ background:var(--amarillo); color:#fff; }
+    .btn-danger{ background:var(--rojo); color:#fff; }
+    .btn-neutral{ background:#e5e7eb; color:#111827; }
+    .btn-dark{ background:#111827; color:#fff; }
+    .toolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
     }
-
-    .slot{
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      background:#eef2ff;
+      color:#1d4ed8;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      width:fit-content;
+    }
+    .pill.ok{ background:var(--ok); color:#166534; }
+    .pill.warn{ background:var(--warn); color:#92400e; }
+    .pill.danger{ background:var(--danger); color:#991b1b; }
+    .product-box{
+      border:1.5px solid #dbeafe;
+      background:#f8fbff;
+      border-radius:18px;
+      padding:12px;
+    }
+    .code-line{ font-size:13px; color:var(--gris2); margin-top:6px; }
+    .desc-box{
+      min-height:74px;
+      border-radius:18px;
+      padding:12px;
+      border:1.5px dashed var(--borde);
+      background:#fcfdff;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:6px;
+    }
+    .desc-box strong{ font-size:18px; }
+    .progress-wrap{ display:flex; flex-direction:column; gap:8px; }
+    .progress{
+      width:100%;
+      height:12px;
+      border-radius:999px;
+      overflow:hidden;
+      background:#dbe4ef;
+    }
+    .progress > span{
+      display:block;
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg,var(--azul2),var(--verde));
+      transition:width .2s ease;
+      border-radius:999px;
+    }
+    .progress-labels{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      font-size:13px;
+      color:var(--gris2);
+      font-weight:700;
+    }
+    .mini-progress{
+      position:fixed;
+      left:50%;
+      transform:translateX(-50%);
+      bottom:12px;
+      width:min(620px, calc(100vw - 24px));
+      background:rgba(17,24,39,.92);
+      color:#fff;
+      border-radius:18px;
+      padding:12px;
+      box-shadow:var(--shadow);
+      z-index:40;
+      display:none;
+    }
+    .mini-progress.show{ display:block; }
+    .mini-progress .small{ color:#d1d5db; }
+    .stage-indicator{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+    }
+    .stage-indicator .item{
+      text-align:center;
+      padding:9px 6px;
+      font-size:11px;
+      font-weight:800;
+      border-radius:14px;
+      background:#e5e7eb;
+      color:#4b5563;
+    }
+    .stage-indicator .item.on{ background:#dbeafe; color:#1d4ed8; }
+    .stage-indicator .item.done{ background:#dcfce7; color:#166534; }
+    .suggestions{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      max-height:42dvh;
+      overflow:auto;
+    }
+    .suggestion{
+      border:1px solid var(--borde);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+      cursor:pointer;
+    }
+    .suggestion .c{ color:var(--gris2); font-size:12px; margin-top:5px; }
+    .status-box{
+      padding:12px;
+      border-radius:16px;
+      font-weight:800;
+      background:#f3f4f6;
+    }
+    .photo-slots{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+    }
+    .photo-slot{
+      border-radius:18px;
       border:2px dashed var(--borde);
-      border-radius:12px;
-      min-height:96px;
+      background:#fff;
+      min-height:130px;
+      padding:8px;
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
-      background:#f9fafb;
       text-align:center;
-      padding:8px;
-      cursor:pointer;
-      position:relative;
+      gap:8px;
       overflow:hidden;
     }
-
-    .slot img{
+    .photo-slot img{
       width:100%;
-      height:80px;
+      height:86px;
       object-fit:cover;
-      border-radius:8px;
-      display:block;
+      border-radius:12px;
+      background:#111827;
     }
-
-    .slot .txt{
-      font-size:12px;
-      color:#374151;
-      margin-top:6px;
-      font-weight:bold;
+    .photo-slot.ok{ border-style:solid; border-color:#16a34a; background:#f0fdf4; }
+    .photo-slot.remote{ border-style:solid; border-color:#2563eb; background:#eff6ff; }
+    .photo-slot strong{ font-size:13px; }
+    .photo-slot .small{ line-height:1.2; }
+    .screen-footer{
+      margin-top:auto;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
     }
-
-    .slot .sub{
-      font-size:11px;
-      color:#6b7280;
-      margin-top:3px;
-    }
-
-    .slot.ok{
-      border-style:solid;
-      border-color:#16a34a;
-      background:#f0fdf4;
-    }
-
-    .slot.remote{
-      border-style:solid;
-      border-color:#2563eb;
-      background:#eff6ff;
-    }
-
-    .slot.empty{
-      background:#fff;
-    }
-
-    .top-right{
-      position:absolute;
-      top:6px;
-      right:6px;
-      font-size:10px;
-      background:rgba(0,0,0,.75);
-      color:#fff;
-      border-radius:999px;
-      padding:4px 6px;
-    }
-
-    .modal{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.85);
+    .camera-box{
+      background:#0f172a;
+      border-radius:20px;
+      overflow:hidden;
+      position:relative;
+      min-height:40dvh;
       display:flex;
       align-items:center;
       justify-content:center;
-      z-index:9999;
-      padding:10px;
     }
-
-    .modal-content{
+    video, canvas.preview-canvas{
       width:100%;
-      max-width:560px;
-      max-height:90vh;
-      overflow:auto;
-      background:#fff;
+      height:auto;
+      max-height:58dvh;
+      display:block;
+      background:#111827;
+    }
+    .camera-hud{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .scan-frame{
+      width:72%;
+      height:32%;
+      border:3px solid rgba(255,255,255,.9);
+      border-radius:18px;
+      box-shadow:0 0 0 9999px rgba(0,0,0,.15);
+    }
+    .thumb-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+    }
+    .thumb-grid img{
+      width:100%;
+      height:110px;
+      object-fit:cover;
       border-radius:14px;
+      background:#111827;
+    }
+    .center{ text-align:center; }
+    .hidden{ display:none !important; }
+    .overlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,.76);
+      z-index:80;
       padding:12px;
     }
-
-    video, .preview-img{
-      width:100%;
-      border-radius:12px;
-      background:#111;
-    }
-
-    .log{
-      margin-top:10px;
-      padding:10px;
-      background:#111827;
-      color:#e5e7eb;
-      border-radius:10px;
-      font-size:12px;
-      white-space:pre-wrap;
-      max-height:180px;
+    .overlay.show{ display:flex; }
+    .modal{
+      width:min(620px, 100%);
+      max-height:92dvh;
       overflow:auto;
+      background:#fff;
+      border-radius:22px;
+      padding:14px;
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .log-box{
+      background:#0f172a;
+      color:#e5e7eb;
+      border-radius:18px;
+      padding:12px;
+      font-size:12px;
+      line-height:1.4;
+      min-height:96px;
+      max-height:24dvh;
+      overflow:auto;
+      white-space:pre-wrap;
+    }
+    .tagline{ font-size:13px; font-weight:800; color:#1f2937; }
+    @media (max-width:420px){
+      h1{ font-size:22px; }
+      h2{ font-size:20px; }
+      .row, .row-3, .photo-slots, .thumb-grid{ grid-template-columns:1fr; }
+      .stage-indicator{ grid-template-columns:repeat(2,1fr); }
+      .photo-slot img{ height:140px; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-
-    <div class="card">
-      <h3>Identificar artículo</h3>
-      <input id="busqueda" placeholder="Código o texto" autocomplete="off" />
-      <div id="sugerencias" class="sugerencias hidden"></div>
-
-      <div class="row">
-        <button class="btn1" id="btnEscanearCodigo">Buscar por código</button>
-        <button class="btn5" id="btnLimpiarBusqueda">Limpiar</button>
-      </div>
-
-      <div class="mini">
-        Primero identifica el artículo. Luego se habilita el proceso de fotos.
-      </div>
-    </div>
-
-    <div class="card">
-      <h3 id="nombre">Sin artículo</h3>
-      <div id="codigoProducto" class="codigo"></div>
-      <div id="estado" class="estado">SIN ARTÍCULO</div>
-      <div id="badgeInfo" class="badge hidden"></div>
-
-      <div class="slots" id="slotsFotos">
-        <div class="slot empty" data-slot="0">
-          <div class="txt">Foto 1</div>
-          <div class="sub">Vacía</div>
+  <div class="app">
+    <section class="screen active" id="screenBoot">
+      <div class="card hero grow stack center" style="justify-content:center;">
+        <div class="pill">PROVSOFT · FOTOS CATÁLOGO</div>
+        <h1>Preparando aplicación</h1>
+        <p class="subtle" id="bootMessage">Iniciando catálogo local...</p>
+        <div class="progress-wrap">
+          <div class="progress"><span id="bootProgressBar"></span></div>
+          <div class="progress-labels">
+            <span id="bootStageLabel">Cargando catálogo</span>
+            <span id="bootPercent">0%</span>
+          </div>
         </div>
-        <div class="slot empty" data-slot="1">
-          <div class="txt">Foto 2</div>
-          <div class="sub">Vacía</div>
-        </div>
-        <div class="slot empty" data-slot="2">
-          <div class="txt">Foto 3</div>
-          <div class="sub">Vacía</div>
+        <div class="card" style="text-align:left;">
+          <div class="tagline">Estado</div>
+          <div class="small" id="bootDetail">Esperando...</div>
         </div>
       </div>
+    </section>
 
-      <div class="row">
-        <button class="btn2" id="btnTomarFoto" disabled>Tomar siguiente foto</button>
-        <button class="btn1" id="btnVerActuales" disabled>Ver actuales</button>
+    <section class="screen" id="screenIdentify">
+      <div class="card hero stack">
+        <div class="toolbar">
+          <div>
+            <div class="pill">Paso 1</div>
+            <h2>Identificar artículo</h2>
+          </div>
+          <button class="btn-neutral" id="btnReloadCatalog" style="width:auto;padding:10px 14px;">Actualizar</button>
+        </div>
+        <div class="stage-indicator">
+          <div class="item on">1. Buscar</div>
+          <div class="item">2. Validar</div>
+          <div class="item">3. Fotos</div>
+          <div class="item">4. Guardar</div>
+        </div>
       </div>
 
-      <div class="row">
-        <button class="btn3" id="btnLimpiarNuevas" disabled>Limpiar nuevas</button>
-        <button class="btn4" id="btnGuardar" disabled>Guardar en Firebase</button>
+      <div class="card stack">
+        <input id="searchInput" placeholder="Código o texto. Ej. Mariel 855 / 855 Mariel" autocomplete="off" />
+        <div class="desc-box">
+          <div class="small">Descripción identificada</div>
+          <strong id="identifyDesc">Sin artículo seleccionado</strong>
+          <div class="code-line" id="identifyCode">Código: —</div>
+        </div>
+        <div class="row">
+          <button class="btn-primary" id="btnOpenScanner">Escanear código</button>
+          <button class="btn-neutral" id="btnClearSearch">Limpiar</button>
+        </div>
+        <div class="small">La búsqueda es flexible por palabras, orden y equivalentes.</div>
       </div>
 
-      <div id="log" class="log">Iniciando...</div>
-    </div>
+      <div class="card grow scroll-y stack">
+        <div class="toolbar">
+          <h3>Sugerencias</h3>
+          <div class="small" id="suggestionCount">0 resultados</div>
+        </div>
+        <div class="suggestions" id="suggestionsList"></div>
+      </div>
+    </section>
 
+    <section class="screen" id="screenReview">
+      <div class="card hero stack">
+        <div class="pill">Paso 2</div>
+        <h2>Producto identificado</h2>
+        <div class="stage-indicator">
+          <div class="item done">1. Buscar</div>
+          <div class="item on">2. Validar</div>
+          <div class="item">3. Fotos</div>
+          <div class="item">4. Guardar</div>
+        </div>
+      </div>
+
+      <div class="card stack">
+        <div class="product-box">
+          <h3 id="reviewName">Sin producto</h3>
+          <div class="code-line" id="reviewCode">Código: —</div>
+        </div>
+        <div class="status-box" id="reviewStatus">Validando fotografías...</div>
+        <div class="progress-wrap hidden" id="reviewCheckWrap">
+          <div class="progress"><span id="reviewCheckBar"></span></div>
+          <div class="progress-labels">
+            <span>Revisando fotografías</span>
+            <span id="reviewCheckPercent">0%</span>
+          </div>
+        </div>
+        <div class="stack" id="reviewActionsEmpty">
+          <div class="subtle">Este producto no tiene fotos guardadas.</div>
+          <div class="row">
+            <button class="btn-secondary" id="btnWantPhotos">Sí, agregar fotos</button>
+            <button class="btn-neutral" id="btnBackFromReview1">Volver</button>
+          </div>
+        </div>
+        <div class="stack hidden" id="reviewActionsExisting">
+          <div class="subtle">Este producto ya está fotografiado.</div>
+          <div class="photo-slots" id="reviewExistingSlots"></div>
+          <div class="row">
+            <button class="btn-warning" id="btnModifyExisting">Modificar</button>
+            <button class="btn-neutral" id="btnCancelExisting">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screenCapture">
+      <div class="card hero stack">
+        <div class="pill">Paso 3</div>
+        <h2>Captura guiada</h2>
+        <div class="stage-indicator">
+          <div class="item done">1. Buscar</div>
+          <div class="item done">2. Validar</div>
+          <div class="item on">3. Fotos</div>
+          <div class="item">4. Guardar</div>
+        </div>
+      </div>
+
+      <div class="card stack">
+        <div class="product-box">
+          <h3 id="captureName">Producto</h3>
+          <div class="code-line" id="captureCode">Código: —</div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress"><span id="captureProgressBar"></span></div>
+          <div class="progress-labels">
+            <span id="captureStepLabel">Foto 1 de 3</span>
+            <span id="captureStepPercent">0%</span>
+          </div>
+        </div>
+        <div class="photo-slots" id="captureSlots"></div>
+        <div class="status-box" id="captureStatus">Listo para capturar Foto 1.</div>
+        <div class="row">
+          <button class="btn-secondary" id="btnCaptureNext">Tomar siguiente foto</button>
+          <button class="btn-neutral" id="btnBackToReview">Regresar</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screenConfirm">
+      <div class="card hero stack">
+        <div class="pill">Paso 4</div>
+        <h2>Confirmar guardado</h2>
+        <div class="stage-indicator">
+          <div class="item done">1. Buscar</div>
+          <div class="item done">2. Validar</div>
+          <div class="item done">3. Fotos</div>
+          <div class="item on">4. Guardar</div>
+        </div>
+      </div>
+
+      <div class="card stack grow scroll-y">
+        <div class="product-box">
+          <h3 id="confirmName">Producto</h3>
+          <div class="code-line" id="confirmCode">Código: —</div>
+        </div>
+        <div class="thumb-grid" id="confirmThumbs"></div>
+        <div class="progress-wrap hidden" id="uploadWrap">
+          <div class="progress"><span id="uploadBar"></span></div>
+          <div class="progress-labels">
+            <span id="uploadLabel">Subiendo a Firebase</span>
+            <span id="uploadPercent">0%</span>
+          </div>
+        </div>
+        <div class="row">
+          <button class="btn-primary" id="btnSaveAll">Guardar</button>
+          <button class="btn-neutral" id="btnBackToCapture">Regresar</button>
+        </div>
+        <div class="log-box" id="activityLog">Iniciando...</div>
+      </div>
+    </section>
   </div>
 
-  <!-- MODAL ESCANER -->
-  <div id="modalEscaner" class="modal hidden">
-    <div class="modal-content">
-      <h3>Escanear código</h3>
-      <video id="videoEscaner" autoplay playsinline muted></video>
-      <div class="mini">Apunta al código. Si no detecta, puedes cerrar y escribir manualmente.</div>
+  <div class="mini-progress" id="bgMiniProgress">
+    <div class="toolbar">
+      <strong id="bgTitle">Actualizando imágenes</strong>
+      <span class="small" id="bgPercent">0%</span>
+    </div>
+    <div class="progress" style="margin-top:8px;"><span id="bgBar"></span></div>
+    <div class="small" id="bgDetail" style="margin-top:8px;">Esperando...</div>
+  </div>
+
+  <div class="overlay" id="scannerOverlay">
+    <div class="modal">
+      <div class="toolbar">
+        <h3>Escanear código</h3>
+        <button class="btn-neutral" id="btnCloseScanner" style="width:auto;padding:10px 14px;">Cerrar</button>
+      </div>
+      <div class="camera-box">
+        <video id="scannerVideo" autoplay playsinline muted></video>
+        <div class="camera-hud"><div class="scan-frame"></div></div>
+      </div>
+      <div class="small">Apunta al código. Si no detecta, cierra y escribe manualmente.</div>
+    </div>
+  </div>
+
+  <div class="overlay" id="cameraOverlay">
+    <div class="modal">
+      <div class="toolbar">
+        <h3 id="cameraTitle">Tomar foto 1</h3>
+        <button class="btn-neutral" id="btnCloseCamera" style="width:auto;padding:10px 14px;">Cerrar</button>
+      </div>
+      <div class="camera-box">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+      </div>
       <div class="row">
-        <button class="btn3" id="btnCerrarEscaner">Cerrar</button>
-        <button class="btn5" id="btnManualEscaner">Manual</button>
+        <button class="btn-secondary" id="btnTakeShot">Capturar</button>
+        <button class="btn-neutral" id="btnCancelShot">Cancelar</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL CAMARA FOTO -->
-  <div id="modalCamaraFoto" class="modal hidden">
-    <div class="modal-content">
-      <h3>Tomar foto</h3>
-      <video id="videoFoto" autoplay playsinline muted></video>
-      <div class="row">
-        <button class="btn2" id="btnCapturarFoto">Capturar</button>
-        <button class="btn3" id="btnCerrarCamaraFoto">Cerrar</button>
+  <div class="overlay" id="previewOverlay">
+    <div class="modal">
+      <h3 id="previewTitle">Revisar foto</h3>
+      <canvas id="previewCanvas" class="preview-canvas"></canvas>
+      <div class="row-3">
+        <button class="btn-neutral" id="btnRotateLeft">↺ Rotar</button>
+        <button class="btn-neutral" id="btnRotateRight">↻ Rotar</button>
+        <button class="btn-neutral" id="btnCropCenter">Recortar</button>
       </div>
+      <div class="row">
+        <button class="btn-secondary" id="btnAcceptPreview">Aceptar</button>
+        <button class="btn-danger" id="btnRetryPreview">Cancelar y repetir</button>
+      </div>
+      <div class="small">El recorte aplica un encuadre central para quitar fondo. La rotación se guarda antes de aceptar.</div>
     </div>
   </div>
 
-  <!-- MODAL PREVIEW -->
-  <div id="modalPreview" class="modal hidden">
-    <div class="modal-content">
-      <h3>Revisar foto</h3>
-      <img id="previewImg" class="preview-img" alt="Preview">
+  <div class="overlay" id="confirmDoubleOverlay">
+    <div class="modal center">
+      <h3>Confirmación final</h3>
+      <p class="subtle">¿Estás seguro? ¿Estás conforme con las 3 fotos?</p>
       <div class="row">
-        <button class="btn2" id="btnAceptarPreview">Aceptar</button>
-        <button class="btn3" id="btnRepetirPreview">Repetir</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL FOTO DETALLE -->
-  <div id="modalFotoDetalle" class="modal hidden">
-    <div class="modal-content">
-      <h3 id="tituloFotoDetalle">Foto</h3>
-      <img id="imgFotoDetalle" class="preview-img" alt="Foto detalle">
-      <div class="row">
-        <button class="btn2" id="btnReemplazarFoto">Reemplazar</button>
-        <button class="btn3" id="btnEliminarFoto">Eliminar</button>
-      </div>
-      <button class="btn5" id="btnCerrarFotoDetalle">Cerrar</button>
-    </div>
-  </div>
-
-  <!-- MODAL FOTOS EXISTENTES -->
-  <div id="modalExistentes" class="modal hidden">
-    <div class="modal-content">
-      <h3>Este artículo ya tiene fotos</h3>
-      <div class="mini" id="textoExistentes"></div>
-      <div class="row">
-        <button class="btn1" id="btnExistentesVer">Ver fotos actuales</button>
-        <button class="btn3" id="btnExistentesReemplazar">Eliminar anteriores y volver a tomar</button>
-      </div>
-      <div class="row">
-        <button class="btn4" id="btnExistentesConservar">Conservar anteriores y pasar por alto</button>
-        <button class="btn5" id="btnExistentesCancelar">Cancelar</button>
+        <button class="btn-primary" id="btnConfirmYes">Sí, guardar</button>
+        <button class="btn-neutral" id="btnConfirmNo">No</button>
       </div>
     </div>
   </div>
@@ -378,16 +583,19 @@
     import { db } from "./config.js";
     import {
       collection,
-      getDocs,
-      query,
-      where,
-      limit,
       doc,
       getDoc,
+      getDocs,
+      getCountFromServer,
+      limit,
+      orderBy,
+      query,
+      serverTimestamp,
       setDoc,
-      serverTimestamp
+      startAfter,
+      where,
+      documentId
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
     import {
       getStorage,
       ref,
@@ -398,77 +606,185 @@
 
     const storage = getStorage();
 
-    const MAX_FOTOS = 3;
+    const DB_NAME = "provsoft-fotos-mobile-v2";
+    const DB_VERSION = 1;
+    const STORE_PRODUCTS = "products";
+    const STORE_IMAGES = "images";
+    const STORE_META = "meta";
+
     const COLL_PRODUCTOS = "productos";
     const COLL_META_FOTOS = "productos_fotos_meta";
     const STORAGE_BASE = "productos_fotos";
+    const PAGE_SIZE = 500;
+    const MAX_FOTOS = 3;
 
-    let catalogo = [];
-    let productoActual = null;
-    let metaExistente = null;
-    let fotosLocales = [null, null, null];
-    let previewActual = null;
-    let previewSlotIndex = null;
-    let slotObjetivo = null;
-    let streamEscaner = null;
-    let streamFoto = null;
-    let scannerActivo = false;
-    let replaceAllMode = false;
-    let pendingDeletePaths = [];
-    let currentDetailIndex = null;
+    const state = {
+      screen: "boot",
+      db: null,
+      products: [],
+      productIndex: [],
+      selectedProduct: null,
+      selectedMeta: null,
+      pendingDeletePaths: [],
+      replaceAllMode: false,
+      localPhotos: [null, null, null],
+      scannerStream: null,
+      cameraStream: null,
+      scannerActive: false,
+      bgImageSyncRunning: false,
+      bgImageQueue: [],
+      preview: {
+        bitmap: null,
+        canvasBlob: null,
+        rotation: 0,
+        cropMode: false,
+        targetSlot: null,
+        width: 0,
+        height: 0
+      }
+    };
 
-    const busqueda = document.getElementById("busqueda");
-    const sugerencias = document.getElementById("sugerencias");
-    const nombre = document.getElementById("nombre");
-    const codigoProducto = document.getElementById("codigoProducto");
-    const estado = document.getElementById("estado");
-    const badgeInfo = document.getElementById("badgeInfo");
-    const btnEscanearCodigo = document.getElementById("btnEscanearCodigo");
-    const btnLimpiarBusqueda = document.getElementById("btnLimpiarBusqueda");
-    const btnTomarFoto = document.getElementById("btnTomarFoto");
-    const btnVerActuales = document.getElementById("btnVerActuales");
-    const btnLimpiarNuevas = document.getElementById("btnLimpiarNuevas");
-    const btnGuardar = document.getElementById("btnGuardar");
-    const slotsFotos = document.getElementById("slotsFotos");
-    const logBox = document.getElementById("log");
+    const $ = (id) => document.getElementById(id);
 
-    const modalEscaner = document.getElementById("modalEscaner");
-    const videoEscaner = document.getElementById("videoEscaner");
-    const btnCerrarEscaner = document.getElementById("btnCerrarEscaner");
-    const btnManualEscaner = document.getElementById("btnManualEscaner");
-
-    const modalCamaraFoto = document.getElementById("modalCamaraFoto");
-    const videoFoto = document.getElementById("videoFoto");
-    const btnCapturarFoto = document.getElementById("btnCapturarFoto");
-    const btnCerrarCamaraFoto = document.getElementById("btnCerrarCamaraFoto");
-
-    const modalPreview = document.getElementById("modalPreview");
-    const previewImg = document.getElementById("previewImg");
-    const btnAceptarPreview = document.getElementById("btnAceptarPreview");
-    const btnRepetirPreview = document.getElementById("btnRepetirPreview");
-
-    const modalFotoDetalle = document.getElementById("modalFotoDetalle");
-    const tituloFotoDetalle = document.getElementById("tituloFotoDetalle");
-    const imgFotoDetalle = document.getElementById("imgFotoDetalle");
-    const btnReemplazarFoto = document.getElementById("btnReemplazarFoto");
-    const btnEliminarFoto = document.getElementById("btnEliminarFoto");
-    const btnCerrarFotoDetalle = document.getElementById("btnCerrarFotoDetalle");
-
-    const modalExistentes = document.getElementById("modalExistentes");
-    const textoExistentes = document.getElementById("textoExistentes");
-    const btnExistentesVer = document.getElementById("btnExistentesVer");
-    const btnExistentesReemplazar = document.getElementById("btnExistentesReemplazar");
-    const btnExistentesConservar = document.getElementById("btnExistentesConservar");
-    const btnExistentesCancelar = document.getElementById("btnExistentesCancelar");
+    const els = {
+      screenBoot: $("screenBoot"),
+      screenIdentify: $("screenIdentify"),
+      screenReview: $("screenReview"),
+      screenCapture: $("screenCapture"),
+      screenConfirm: $("screenConfirm"),
+      bootMessage: $("bootMessage"),
+      bootDetail: $("bootDetail"),
+      bootStageLabel: $("bootStageLabel"),
+      bootPercent: $("bootPercent"),
+      bootProgressBar: $("bootProgressBar"),
+      searchInput: $("searchInput"),
+      identifyDesc: $("identifyDesc"),
+      identifyCode: $("identifyCode"),
+      suggestionsList: $("suggestionsList"),
+      suggestionCount: $("suggestionCount"),
+      btnOpenScanner: $("btnOpenScanner"),
+      btnClearSearch: $("btnClearSearch"),
+      btnReloadCatalog: $("btnReloadCatalog"),
+      reviewName: $("reviewName"),
+      reviewCode: $("reviewCode"),
+      reviewStatus: $("reviewStatus"),
+      reviewCheckWrap: $("reviewCheckWrap"),
+      reviewCheckBar: $("reviewCheckBar"),
+      reviewCheckPercent: $("reviewCheckPercent"),
+      reviewActionsEmpty: $("reviewActionsEmpty"),
+      reviewActionsExisting: $("reviewActionsExisting"),
+      reviewExistingSlots: $("reviewExistingSlots"),
+      btnWantPhotos: $("btnWantPhotos"),
+      btnBackFromReview1: $("btnBackFromReview1"),
+      btnModifyExisting: $("btnModifyExisting"),
+      btnCancelExisting: $("btnCancelExisting"),
+      captureName: $("captureName"),
+      captureCode: $("captureCode"),
+      captureProgressBar: $("captureProgressBar"),
+      captureStepLabel: $("captureStepLabel"),
+      captureStepPercent: $("captureStepPercent"),
+      captureSlots: $("captureSlots"),
+      captureStatus: $("captureStatus"),
+      btnCaptureNext: $("btnCaptureNext"),
+      btnBackToReview: $("btnBackToReview"),
+      confirmName: $("confirmName"),
+      confirmCode: $("confirmCode"),
+      confirmThumbs: $("confirmThumbs"),
+      btnSaveAll: $("btnSaveAll"),
+      btnBackToCapture: $("btnBackToCapture"),
+      uploadWrap: $("uploadWrap"),
+      uploadBar: $("uploadBar"),
+      uploadLabel: $("uploadLabel"),
+      uploadPercent: $("uploadPercent"),
+      activityLog: $("activityLog"),
+      bgMiniProgress: $("bgMiniProgress"),
+      bgTitle: $("bgTitle"),
+      bgBar: $("bgBar"),
+      bgPercent: $("bgPercent"),
+      bgDetail: $("bgDetail"),
+      scannerOverlay: $("scannerOverlay"),
+      scannerVideo: $("scannerVideo"),
+      btnCloseScanner: $("btnCloseScanner"),
+      cameraOverlay: $("cameraOverlay"),
+      cameraTitle: $("cameraTitle"),
+      cameraVideo: $("cameraVideo"),
+      btnCloseCamera: $("btnCloseCamera"),
+      btnCancelShot: $("btnCancelShot"),
+      btnTakeShot: $("btnTakeShot"),
+      previewOverlay: $("previewOverlay"),
+      previewTitle: $("previewTitle"),
+      previewCanvas: $("previewCanvas"),
+      btnRotateLeft: $("btnRotateLeft"),
+      btnRotateRight: $("btnRotateRight"),
+      btnCropCenter: $("btnCropCenter"),
+      btnAcceptPreview: $("btnAcceptPreview"),
+      btnRetryPreview: $("btnRetryPreview"),
+      confirmDoubleOverlay: $("confirmDoubleOverlay"),
+      btnConfirmYes: $("btnConfirmYes"),
+      btnConfirmNo: $("btnConfirmNo")
+    };
 
     function log(msg){
-      const hora = new Date().toLocaleTimeString();
-      logBox.textContent += `\n[${hora}] ${msg}`;
-      logBox.scrollTop = logBox.scrollHeight;
+      const stamp = new Date().toLocaleTimeString();
+      els.activityLog.textContent += `\n[${stamp}] ${msg}`;
+      els.activityLog.scrollTop = els.activityLog.scrollHeight;
       console.log(msg);
     }
 
-    function normalizarTexto(txt = ""){
+    function showScreen(name){
+      state.screen = name;
+      [els.screenBoot, els.screenIdentify, els.screenReview, els.screenCapture, els.screenConfirm]
+        .forEach(el => el.classList.remove("active"));
+      const map = {
+        boot: els.screenBoot,
+        identify: els.screenIdentify,
+        review: els.screenReview,
+        capture: els.screenCapture,
+        confirm: els.screenConfirm
+      };
+      map[name]?.classList.add("active");
+    }
+
+    function setBootProgress(percent, title, detail){
+      const safe = Math.max(0, Math.min(100, Math.round(percent)));
+      els.bootProgressBar.style.width = `${safe}%`;
+      els.bootPercent.textContent = `${safe}%`;
+      if(title) els.bootStageLabel.textContent = title;
+      if(detail) els.bootDetail.textContent = detail;
+      if(title) els.bootMessage.textContent = title;
+    }
+
+    function setReviewCheck(percent){
+      const safe = Math.max(0, Math.min(100, Math.round(percent)));
+      els.reviewCheckWrap.classList.remove("hidden");
+      els.reviewCheckBar.style.width = `${safe}%`;
+      els.reviewCheckPercent.textContent = `${safe}%`;
+      if(safe >= 100) setTimeout(() => els.reviewCheckWrap.classList.add("hidden"), 350);
+    }
+
+    function setCaptureProgress(){
+      const count = state.localPhotos.filter(Boolean).length;
+      const current = Math.min(count + 1, 3);
+      const percent = Math.round((count / MAX_FOTOS) * 100);
+      els.captureProgressBar.style.width = `${percent}%`;
+      els.captureStepPercent.textContent = `${percent}%`;
+      els.captureStepLabel.textContent = count >= 3 ? "3 de 3 completadas" : `Foto ${current} de 3`;
+    }
+
+    function showBgProgress(show, title = "Actualizando imágenes", percent = 0, detail = ""){
+      if(!show){
+        els.bgMiniProgress.classList.remove("show");
+        return;
+      }
+      els.bgMiniProgress.classList.add("show");
+      els.bgTitle.textContent = title;
+      const safe = Math.max(0, Math.min(100, Math.round(percent)));
+      els.bgBar.style.width = `${safe}%`;
+      els.bgPercent.textContent = `${safe}%`;
+      els.bgDetail.textContent = detail || "Procesando...";
+    }
+
+    function normalizeText(txt = ""){
       return txt
         .toString()
         .normalize("NFD")
@@ -477,7 +793,7 @@
         .trim();
     }
 
-    function escaparHTML(txt = ""){
+    function escapeHtml(txt = ""){
       return txt
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
@@ -486,721 +802,835 @@
         .replaceAll("'", "&#039;");
     }
 
-    function setEstado(txt){
-      estado.innerText = txt;
-    }
-
-    function revokeLocalPreview(obj){
-      if(obj && obj.previewUrl && obj.previewUrl.startsWith("blob:")){
-        URL.revokeObjectURL(obj.previewUrl);
-      }
-    }
-
-    function limpiarLocales(){
-      fotosLocales.forEach(x => revokeLocalPreview(x));
-      fotosLocales = [null, null, null];
-    }
-
-    function resetTodoVisual(){
-      productoActual = null;
-      metaExistente = null;
-      replaceAllMode = false;
-      pendingDeletePaths = [];
-      limpiarLocales();
-      nombre.innerText = "Sin artículo";
-      codigoProducto.innerText = "";
-      setEstado("SIN ARTÍCULO");
-      badgeInfo.classList.add("hidden");
-      btnTomarFoto.disabled = true;
-      btnVerActuales.disabled = true;
-      btnLimpiarNuevas.disabled = true;
-      btnGuardar.disabled = true;
-      renderSlots();
-    }
-
-    function getFilledLocalCount(){
-      return fotosLocales.filter(Boolean).length;
+    function getImageCacheKey(code, slot){
+      return `${code}__${slot}`;
     }
 
     function firstEmptySlot(){
-      return fotosLocales.findIndex(x => !x);
+      return state.localPhotos.findIndex(x => !x);
     }
 
-    function hasExistingRemote(){
-      return !!(metaExistente && Array.isArray(metaExistente.urlsFotos) && metaExistente.urlsFotos.length);
+    function localPhotoCount(){
+      return state.localPhotos.filter(Boolean).length;
     }
 
-    function hasPendingLocalChanges(){
-      return getFilledLocalCount() > 0;
+    function hasExistingPhotos(){
+      return !!(state.selectedMeta && Array.isArray(state.selectedMeta.urlsFotos) && state.selectedMeta.urlsFotos.length);
     }
 
-    function renderBadge(){
-      const localCount = getFilledLocalCount();
-      if(!productoActual){
-        badgeInfo.classList.add("hidden");
-        badgeInfo.innerText = "";
-        return;
-      }
-
-      let txt = "";
-      if(localCount === 0 && !hasExistingRemote()){
-        txt = "0 / 3 nuevas";
-      }else if(localCount > 0){
-        txt = `${localCount} / 3 nuevas`;
-      }else if(hasExistingRemote()){
-        txt = "YA TIENE FOTOS";
-      }
-
-      if(txt){
-        badgeInfo.innerText = txt;
-        badgeInfo.classList.remove("hidden");
-      }else{
-        badgeInfo.classList.add("hidden");
-      }
-    }
-
-    function renderSlots(){
-      const existingUrls = hasExistingRemote() ? metaExistente.urlsFotos : [];
-      const html = Array.from({length: MAX_FOTOS}).map((_, i) => {
-        const local = fotosLocales[i];
-        const remoteUrl = !local && existingUrls[i] ? existingUrls[i] : null;
-
-        if(local){
-          return `
-            <div class="slot ok" data-slot="${i}">
-              <span class="top-right">NUEVA</span>
-              <img src="${local.previewUrl}" alt="Foto ${i+1}">
-              <div class="txt">Foto ${i+1}</div>
-              <div class="sub">Toca para ver</div>
-            </div>
-          `;
-        }
-
-        if(remoteUrl){
-          return `
-            <div class="slot remote" data-slot="${i}">
-              <span class="top-right">ACTUAL</span>
-              <img src="${remoteUrl}" alt="Foto ${i+1}">
-              <div class="txt">Foto ${i+1}</div>
-              <div class="sub">Toca para ver</div>
-            </div>
-          `;
-        }
-
-        return `
-          <div class="slot empty" data-slot="${i}">
-            <div class="txt">Foto ${i+1}</div>
-            <div class="sub">Vacía</div>
-          </div>
-        `;
-      }).join("");
-
-      slotsFotos.innerHTML = html;
-
-      [...slotsFotos.querySelectorAll(".slot")].forEach(el => {
-        el.addEventListener("click", () => abrirDetalleFoto(Number(el.dataset.slot)));
+    function resetLocalPhotos(){
+      state.localPhotos.forEach(item => {
+        if(item?.previewUrl?.startsWith("blob:")) URL.revokeObjectURL(item.previewUrl);
       });
-
-      renderBadge();
-      refreshBotones();
+      state.localPhotos = [null, null, null];
     }
 
-    function refreshBotones(){
-      const localCount = getFilledLocalCount();
-      const canWork = !!productoActual;
-      btnTomarFoto.disabled = !canWork || localCount >= MAX_FOTOS;
-      btnVerActuales.disabled = !canWork || (!hasExistingRemote() && localCount === 0);
-      btnLimpiarNuevas.disabled = localCount === 0;
-      btnGuardar.disabled = !canWork || localCount !== MAX_FOTOS;
+    function resetWorkflow(full = false){
+      resetLocalPhotos();
+      state.pendingDeletePaths = [];
+      state.replaceAllMode = false;
+      if(full){
+        state.selectedProduct = null;
+        state.selectedMeta = null;
+        els.searchInput.value = "";
+        els.identifyDesc.textContent = "Sin artículo seleccionado";
+        els.identifyCode.textContent = "Código: —";
+        renderSuggestions([]);
+      }
+      renderCaptureSlots();
+      renderConfirmThumbs();
+      setCaptureProgress();
     }
 
-    async function cargarCatalogo(){
-      try{
-        log("Cargando catálogo desde Firebase...");
-        const qy = query(
+    async function openDatabase(){
+      return await new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (event) => {
+          const dbx = event.target.result;
+          if(!dbx.objectStoreNames.contains(STORE_PRODUCTS)){
+            const store = dbx.createObjectStore(STORE_PRODUCTS, { keyPath: "code" });
+            store.createIndex("searchBag", "searchBag", { unique:false });
+          }
+          if(!dbx.objectStoreNames.contains(STORE_IMAGES)){
+            dbx.createObjectStore(STORE_IMAGES, { keyPath: "key" });
+          }
+          if(!dbx.objectStoreNames.contains(STORE_META)){
+            dbx.createObjectStore(STORE_META, { keyPath: "key" });
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function idbPut(storeName, value){
+      return await new Promise((resolve, reject) => {
+        const tx = state.db.transaction(storeName, "readwrite");
+        tx.objectStore(storeName).put(value);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function idbBulkPut(storeName, values){
+      return await new Promise((resolve, reject) => {
+        const tx = state.db.transaction(storeName, "readwrite");
+        const store = tx.objectStore(storeName);
+        for(const value of values) store.put(value);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function idbGet(storeName, key){
+      return await new Promise((resolve, reject) => {
+        const tx = state.db.transaction(storeName, "readonly");
+        const req = tx.objectStore(storeName).get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function idbGetAll(storeName){
+      return await new Promise((resolve, reject) => {
+        const tx = state.db.transaction(storeName, "readonly");
+        const req = tx.objectStore(storeName).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function idbClear(storeName){
+      return await new Promise((resolve, reject) => {
+        const tx = state.db.transaction(storeName, "readwrite");
+        tx.objectStore(storeName).clear();
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+function productToLocal(docSnap){
+  const raw = docSnap.data() || {};
+  const code = (raw.codigoBarra || raw.codigo || "").toString().trim();
+  const concept = (raw.concepto || raw.nombre || "").toString().trim();
+  const equiv = Array.isArray(raw.codigosEquivalentes)
+    ? raw.codigosEquivalentes.map(x => (x || "").toString().trim()).filter(Boolean)
+    : [];
+
+  const bag = normalizeText(`${code} ${concept} ${equiv.join(" ")}`);
+
+  return {
+    id: docSnap.id,
+    code,
+    concept,
+    equivalentes: equiv,
+    searchBag: bag,
+    active: raw.activo === true,
+
+    // 🔥 NUEVO
+    tieneFotos: raw.tieneFotos === true
+  };
+}
+ 
+    async function fetchAllActiveProducts(force = false){
+      setBootProgress(3, "Verificando catálogo", "Abriendo IndexedDB...");
+      const countQ = query(collection(db, COLL_PRODUCTOS), where("activo", "==", true));
+      const countSnap = await getCountFromServer(countQ);
+      const total = countSnap.data().count || 0;
+      await idbPut(STORE_META, { key:"products_total", value: total, updatedAt: Date.now() });
+      setBootProgress(8, "Descargando catálogo", `${total} productos activos detectados`);
+
+      let lastDoc = null;
+      let fetched = 0;
+      const all = [];
+      await idbClear(STORE_PRODUCTS);
+
+      while(true){
+        const pageQuery = query(
           collection(db, COLL_PRODUCTOS),
           where("activo", "==", true),
-          limit(3000)
+          orderBy(documentId()),
+          ...(lastDoc ? [startAfter(lastDoc.id)] : []),
+          limit(PAGE_SIZE)
         );
-        const snap = await getDocs(qy);
+        const snap = await getDocs(pageQuery);
 
-        catalogo = snap.docs.map(docSnap => {
-          const p = docSnap.data() || {};
-          return {
-            id: docSnap.id,
-            codigoBarra: p.codigoBarra || p.codigo || "",
-            concepto: p.concepto || p.nombre || "",
-            codigosEquivalentes: Array.isArray(p.codigosEquivalentes) ? p.codigosEquivalentes : [],
-            activo: p.activo === true
-          };
-        }).filter(p => p.codigoBarra || p.concepto);
+        const docs = snap.docs;
+        if(!docs.length) break;
 
-        log(`Productos cargados: ${catalogo.length}`);
+        const pageItems = docs.map(productToLocal).filter(x => x.code || x.concept);
+        all.push(...pageItems);
+        await idbBulkPut(STORE_PRODUCTS, pageItems);
+        fetched += pageItems.length;
+        lastDoc = docs[docs.length - 1];
+
+        const pct = total ? 8 + ((fetched / total) * 70) : 50;
+        setBootProgress(pct, "Descargando catálogo", `${fetched} / ${total || fetched} productos`);
+
+        if(docs.length < PAGE_SIZE) break;
+      }
+
+      await idbPut(STORE_META, { key:"products_last_sync", value: Date.now() });
+      state.products = all;
+      state.productIndex = all;
+      setBootProgress(82, "Catálogo local listo", `${all.length} productos guardados en IndexedDB`);
+      log(`Catálogo descargado: ${all.length} activos`);
+      return all;
+    }
+
+    async function loadProductsFromIndexedDb(){
+      const products = await idbGetAll(STORE_PRODUCTS);
+      state.products = products;
+      state.productIndex = products;
+      return products;
+    }
+
+    async function bootstrap(){
+      try{
+        state.db = await openDatabase();
+        const cached = await loadProductsFromIndexedDb();
+        const lastSync = await idbGet(STORE_META, "products_last_sync");
+        const shouldRefresh = !cached.length || !lastSync || (Date.now() - (lastSync.value || 0)) > (1000 * 60 * 60 * 8);
+
+        if(shouldRefresh){
+          await fetchAllActiveProducts(true);
+        }else{
+          setBootProgress(75, "Usando catálogo local", `${cached.length} productos activos disponibles`);
+          log(`Catálogo local usado: ${cached.length}`);
+        }
+
+        setBootProgress(90, "Preparando búsqueda", "Construyendo índices locales...");
+        await loadProductsFromIndexedDb();
+        setBootProgress(100, "Aplicación lista", `${state.products.length} productos activos preparados`);
+        syncIdentifyHeader(null);
+        setTimeout(() => showScreen("identify"), 350);
+        scheduleBackgroundImageSync();
       }catch(err){
         console.error(err);
-        log("Error cargando catálogo: " + (err.message || err));
-        alert("No se pudo cargar el catálogo");
+        setBootProgress(100, "Error al iniciar", err.message || String(err));
+        alert("No se pudo iniciar la aplicación.");
       }
     }
 
-    function obtenerCoincidencias(texto){
-      const q = normalizarTexto(texto);
-      if(!q) return [];
-
-      const parts = q.split(/\s+/).filter(Boolean);
-
-      const items = catalogo.filter(p => {
-        const codigo = normalizarTexto(p.codigoBarra);
-        const concepto = normalizarTexto(p.concepto);
-        const equivalentes = (p.codigosEquivalentes || []).map(x => normalizarTexto(x)).join(" ");
-        const bolsa = `${codigo} ${concepto} ${equivalentes}`.trim();
-        return parts.every(part => bolsa.includes(part));
-      });
-
-      items.sort((a,b) => {
-        const qa = normalizarTexto(a.codigoBarra);
-        const qb = normalizarTexto(b.codigoBarra);
-        const na = normalizarTexto(a.concepto);
-        const nb = normalizarTexto(b.concepto);
-
-        const aStarts = qa.startsWith(q) || na.startsWith(q) ? 1 : 0;
-        const bStarts = qb.startsWith(q) || nb.startsWith(q) ? 1 : 0;
-        if(aStarts !== bStarts) return bStarts - aStarts;
-
-        return na.localeCompare(nb);
-      });
-
-      return items.slice(0, 8);
-    }
-
-    function renderSugerencias(items){
-      if(!items.length){
-        sugerencias.innerHTML = "";
-        sugerencias.classList.add("hidden");
+    function syncIdentifyHeader(product){
+      if(!product){
+        els.identifyDesc.textContent = "Sin artículo seleccionado";
+        els.identifyCode.textContent = "Código: —";
         return;
       }
+      els.identifyDesc.textContent = product.concept || "Sin descripción";
+      els.identifyCode.textContent = `Código: ${product.code || "—"}`;
+    }
 
-      sugerencias.innerHTML = items.map((p,i) => `
-        <div class="sugerencia" data-index="${i}">
-          <div>${escaparHTML(p.concepto || "SIN NOMBRE")}</div>
-          <div class="cod">${escaparHTML(p.codigoBarra || "")}</div>
+    function getMatches(value){
+      const q = normalizeText(value);
+      if(!q) return [];
+      const parts = q.split(/\s+/).filter(Boolean);
+      const out = state.productIndex.filter(item => parts.every(part => item.searchBag.includes(part)));
+      out.sort((a,b) => {
+        const aExact = a.code === value.trim() ? 1 : 0;
+        const bExact = b.code === value.trim() ? 1 : 0;
+        if(aExact !== bExact) return bExact - aExact;
+        const aStarts = a.searchBag.startsWith(q) ? 1 : 0;
+        const bStarts = b.searchBag.startsWith(q) ? 1 : 0;
+        if(aStarts !== bStarts) return bStarts - aStarts;
+        return a.concept.localeCompare(b.concept, "es");
+      });
+      return out.slice(0, 25);
+    }
+
+    function renderSuggestions(items){
+      els.suggestionsList.innerHTML = items.map(item => `
+        <div class="suggestion" data-code="${escapeHtml(item.code)}">
+          <strong>${escapeHtml(item.concept || "SIN NOMBRE")}</strong>
+          <div class="c">Código: ${escapeHtml(item.code || "—")}</div>
         </div>
       `).join("");
-
-      sugerencias.classList.remove("hidden");
-
-      [...sugerencias.querySelectorAll(".sugerencia")].forEach((el, i) => {
-        el.addEventListener("click", () => seleccionarProducto(items[i]));
+      els.suggestionCount.textContent = `${items.length} resultado(s)`;
+      [...els.suggestionsList.querySelectorAll(".suggestion")].forEach(el => {
+        el.addEventListener("click", () => {
+          const code = el.dataset.code;
+          const found = state.products.find(p => p.code === code);
+          if(found) selectProduct(found);
+        });
       });
     }
 
-    async function cargarMetaProducto(codigo){
-      const refDoc = doc(db, COLL_META_FOTOS, codigo);
+    async function getProductMeta(code){
+      const refDoc = doc(db, COLL_META_FOTOS, code);
       const snap = await getDoc(refDoc);
       return snap.exists() ? snap.data() : null;
     }
 
-    async function seleccionarProducto(prod){
-      try{
-        if(hasPendingLocalChanges()){
-          const ok = confirm("Tienes fotos nuevas sin guardar. ¿Deseas descartarlas y cambiar de artículo?");
-          if(!ok) return;
-        }
+    async function getCachedImageUrl(code, slot, remoteUrl){
+      const key = getImageCacheKey(code, slot);
+      const cached = await idbGet(STORE_IMAGES, key);
+      if(cached?.blob){
+        return URL.createObjectURL(cached.blob);
+      }
+      return remoteUrl || null;
+    }
 
-        limpiarLocales();
-        productoActual = prod;
-        metaExistente = null;
-        replaceAllMode = false;
-        pendingDeletePaths = [];
-        nombre.innerText = prod.concepto || "Sin nombre";
-        codigoProducto.innerText = "Código: " + (prod.codigoBarra || "");
-        setEstado("VALIDANDO FOTOS EXISTENTES...");
-        renderSlots();
-        sugerencias.classList.add("hidden");
-        log(`Artículo identificado: ${prod.concepto} (${prod.codigoBarra})`);
+    async function renderExistingSlots(meta, code){
+      const urls = Array.isArray(meta?.urlsFotos) ? meta.urlsFotos : [];
+      const cards = [];
+      for(let i = 0; i < MAX_FOTOS; i++){
+        const remote = urls[i] || null;
+        const localUrl = remote ? await getCachedImageUrl(code, i, remote) : null;
+        cards.push(`
+          <div class="photo-slot ${remote ? "remote" : ""}">
+            ${localUrl ? `<img src="${localUrl}" alt="Foto ${i+1}">` : ""}
+            <strong>Foto ${i+1}</strong>
+            <div class="small">${remote ? "Actual guardada" : "Vacía"}</div>
+          </div>
+        `);
+      }
+      els.reviewExistingSlots.innerHTML = cards.join("");
+    }
 
-        metaExistente = await cargarMetaProducto(prod.codigoBarra);
+    async function selectProduct(product){
+      if(localPhotoCount() > 0){
+        const discard = confirm("Tienes fotos temporales sin guardar. ¿Deseas descartarlas y cambiar de artículo?");
+        if(!discard) return;
+      }
 
-        if(hasExistingRemote()){
-          setEstado("YA TIENE FOTOS");
-          textoExistentes.innerText =
-            `Este artículo ya tiene ${metaExistente.urlsFotos.length} foto(s). Elige qué hacer.`;
-          modalExistentes.classList.remove("hidden");
-          log("Se detectaron fotos previas");
-        }else{
-          setEstado("SIN FOTOS");
-          log("No tiene fotos previas");
-        }
-
-        renderSlots();
-      }catch(err){
-        console.error(err);
-        log("Error validando fotos existentes: " + (err.message || err));
-        alert("No se pudo validar si el artículo ya tiene fotos");
+      resetWorkflow(false);
+      state.selectedProduct = product;
+      state.selectedMeta = null;
+      syncIdentifyHeader(product);
+      els.reviewName.textContent = product.concept || "Sin descripción";
+      els.reviewCode.textContent = `Código: ${product.code || "—"}`;
+      els.captureName.textContent = product.concept || "Sin descripción";
+      els.captureCode.textContent = `Código: ${product.code || "—"}`;
+      els.confirmName.textContent = product.concept || "Sin descripción";
+      els.confirmCode.textContent = `Código: ${product.code || "—"}`;
+      showScreen("review");
+      setReviewCheck(10);
+      els.reviewStatus.textContent = "Validando fotografías existentes...";
+      els.reviewActionsEmpty.classList.add("hidden");
+      els.reviewActionsExisting.classList.add("hidden");
+      log(`Artículo identificado: ${product.concept} (${product.code})`);
+      setReviewCheck(55);
+      const meta = await getProductMeta(product.code);
+      state.selectedMeta = meta;
+      setReviewCheck(100);
+      if(hasExistingPhotos()){
+        els.reviewStatus.textContent = "Este artículo ya está fotografiado.";
+        els.reviewActionsExisting.classList.remove("hidden");
+        await renderExistingSlots(meta, product.code);
+      }else{
+        els.reviewStatus.textContent = "Este artículo no tiene fotos guardadas.";
+        els.reviewActionsEmpty.classList.remove("hidden");
+        els.reviewExistingSlots.innerHTML = "";
       }
     }
 
-    function limpiarBusqueda(){
-      busqueda.value = "";
-      sugerencias.innerHTML = "";
-      sugerencias.classList.add("hidden");
-      resetTodoVisual();
-      busqueda.focus();
-      log("Pantalla reiniciada");
+    function renderCaptureSlots(){
+      const html = Array.from({ length: MAX_FOTOS }).map((_, i) => {
+        const item = state.localPhotos[i];
+        if(item){
+          return `
+            <div class="photo-slot ok">
+              <img src="${item.previewUrl}" alt="Foto ${i+1}">
+              <strong>Foto ${i+1}</strong>
+              <div class="small">Aprobada</div>
+            </div>
+          `;
+        }
+        return `
+          <div class="photo-slot">
+            <strong>Foto ${i+1}</strong>
+            <div class="small">Pendiente</div>
+          </div>
+        `;
+      }).join("");
+      els.captureSlots.innerHTML = html;
+      setCaptureProgress();
+      const count = localPhotoCount();
+      els.captureStatus.textContent = count >= MAX_FOTOS
+        ? "Las 3 fotos están aprobadas. Puedes continuar a guardar."
+        : `Listo para capturar Foto ${count + 1}.`;
+      els.btnCaptureNext.textContent = count >= MAX_FOTOS ? "Fotos completas" : `Tomar foto ${count + 1}`;
+      els.btnCaptureNext.disabled = count >= MAX_FOTOS;
     }
 
-    busqueda.addEventListener("input", async () => {
-      const valor = busqueda.value.trim();
+    function renderConfirmThumbs(){
+      els.confirmThumbs.innerHTML = state.localPhotos.map((item, i) => `
+        <div>
+          ${item ? `<img src="${item.previewUrl}" alt="Foto ${i+1}">` : ""}
+          <div class="small center" style="margin-top:6px;">Foto ${i+1}</div>
+        </div>
+      `).join("");
+    }
 
-      if(!catalogo.length){
-        await cargarCatalogo();
-      }
-
-      if(!valor){
-        sugerencias.innerHTML = "";
-        sugerencias.classList.add("hidden");
-        resetTodoVisual();
-        return;
-      }
-
-      const items = obtenerCoincidencias(valor);
-      renderSugerencias(items);
-
-      if(items.length === 1){
-        const q = normalizarTexto(valor);
-        const p = items[0];
-        const exactoCodigo = normalizarTexto(p.codigoBarra) === q;
-        if(exactoCodigo){
-          seleccionarProducto(p);
-        }
-      }
-    });
-
-    async function abrirEscaner(){
+    async function openScanner(){
       try{
-        if(!catalogo.length){
-          await cargarCatalogo();
-        }
-
-        if(hasPendingLocalChanges()){
-          const ok = confirm("Tienes fotos nuevas sin guardar. ¿Deseas descartarlas y escanear otro artículo?");
-          if(!ok) return;
-        }
-
-        modalEscaner.classList.remove("hidden");
-        streamEscaner = await navigator.mediaDevices.getUserMedia({
-          video:{ facingMode:{ ideal:"environment" } },
-          audio:false
+        els.scannerOverlay.classList.add("show");
+        state.scannerStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
         });
-
-        videoEscaner.srcObject = streamEscaner;
-        await videoEscaner.play();
-        scannerActivo = true;
-        log("Escáner abierto");
-
+        els.scannerVideo.srcObject = state.scannerStream;
+        await els.scannerVideo.play();
+        state.scannerActive = true;
         if("BarcodeDetector" in window){
-          const detector = new BarcodeDetector({
-            formats:["ean_13","ean_8","upc_a","upc_e","code_128","code_39","itf"]
-          });
+          const detector = new BarcodeDetector({ formats:["ean_13","ean_8","upc_a","upc_e","code_128","code_39","itf"] });
           scanLoop(detector);
         }else{
-          log("BarcodeDetector no disponible; usar captura manual");
+          alert("Este navegador no soporta BarcodeDetector. Usa búsqueda manual.");
+          closeScanner();
         }
-
       }catch(err){
         console.error(err);
-        log("Error abriendo escáner: " + (err.message || err));
-        alert("No se pudo abrir el escáner");
-        cerrarEscaner();
+        alert("No se pudo abrir el escáner.");
+        closeScanner();
       }
     }
 
     async function scanLoop(detector){
-      if(!scannerActivo) return;
-
+      if(!state.scannerActive) return;
       try{
-        const codigos = await detector.detect(videoEscaner);
-        if(codigos && codigos.length){
-          const valor = codigos[0].rawValue || "";
-          if(valor){
-            log("Código detectado: " + valor);
-            cerrarEscaner();
-            busqueda.value = valor;
-            busqueda.dispatchEvent(new Event("input"));
+        const codes = await detector.detect(els.scannerVideo);
+        if(codes?.length){
+          const rawValue = codes[0].rawValue || "";
+          if(rawValue){
+            els.searchInput.value = rawValue;
+            closeScanner();
+            const found = state.products.find(p => p.code === rawValue || p.equivalentes.includes(rawValue));
+            if(found){
+              await selectProduct(found);
+            }else{
+              const suggestions = getMatches(rawValue);
+              syncIdentifyHeader(null);
+              renderSuggestions(suggestions);
+            }
             return;
           }
         }
       }catch(err){
         console.error(err);
       }
-
       requestAnimationFrame(() => scanLoop(detector));
     }
 
-    function cerrarEscaner(){
-      scannerActivo = false;
-      if(streamEscaner){
-        streamEscaner.getTracks().forEach(t => t.stop());
-      }
-      streamEscaner = null;
-      videoEscaner.srcObject = null;
-      modalEscaner.classList.add("hidden");
+    function stopStream(stream){
+      if(stream) stream.getTracks().forEach(track => track.stop());
     }
 
-    function escanerManual(){
-      cerrarEscaner();
-      const codigo = prompt("Escribe el código:");
-      if(!codigo) return;
-      busqueda.value = codigo.trim();
-      busqueda.dispatchEvent(new Event("input"));
+    function closeScanner(){
+      state.scannerActive = false;
+      stopStream(state.scannerStream);
+      state.scannerStream = null;
+      els.scannerVideo.srcObject = null;
+      els.scannerOverlay.classList.remove("show");
     }
 
-    async function abrirCamaraFoto(targetIndex = null){
+    async function openCameraForSlot(slotIndex){
       try{
-        if(!productoActual){
-          alert("Primero identifica el artículo");
-          return;
-        }
-
-        const idx = targetIndex !== null ? targetIndex : firstEmptySlot();
-        if(idx < 0 || idx >= MAX_FOTOS){
-          alert("Ya están completas las 3 fotos");
-          return;
-        }
-
-        slotObjetivo = idx;
-        modalCamaraFoto.classList.remove("hidden");
-
-        streamFoto = await navigator.mediaDevices.getUserMedia({
-          video:{ facingMode:{ ideal:"environment" } },
-          audio:false
+        els.cameraTitle.textContent = `Tomar foto ${slotIndex + 1}`;
+        els.cameraOverlay.classList.add("show");
+        state.cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
         });
-
-        videoFoto.srcObject = streamFoto;
-        await videoFoto.play();
-        log(`Cámara de foto abierta para Foto ${idx + 1}`);
+        els.cameraVideo.srcObject = state.cameraStream;
+        await els.cameraVideo.play();
       }catch(err){
         console.error(err);
-        log("Error abriendo cámara de foto: " + (err.message || err));
-        alert("No se pudo abrir la cámara");
-        cerrarCamaraFoto();
+        alert("No se pudo abrir la cámara.");
+        closeCamera();
       }
     }
 
-    function cerrarCamaraFoto(){
-      if(streamFoto){
-        streamFoto.getTracks().forEach(t => t.stop());
-      }
-      streamFoto = null;
-      videoFoto.srcObject = null;
-      modalCamaraFoto.classList.add("hidden");
+    function closeCamera(){
+      stopStream(state.cameraStream);
+      state.cameraStream = null;
+      els.cameraVideo.srcObject = null;
+      els.cameraOverlay.classList.remove("show");
     }
 
-    function capturarFoto(){
-      if(!videoFoto.videoWidth || !videoFoto.videoHeight){
-        alert("La cámara aún no está lista");
+    async function captureShot(){
+      if(!els.cameraVideo.videoWidth || !els.cameraVideo.videoHeight){
+        alert("La cámara aún no está lista.");
         return;
       }
-
+      const slot = firstEmptySlot();
+      if(slot === -1){
+        alert("Ya están completas las 3 fotos.");
+        return;
+      }
       const canvas = document.createElement("canvas");
-      canvas.width = videoFoto.videoWidth;
-      canvas.height = videoFoto.videoHeight;
+      canvas.width = els.cameraVideo.videoWidth;
+      canvas.height = els.cameraVideo.videoHeight;
+      canvas.getContext("2d").drawImage(els.cameraVideo, 0, 0);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.9));
+      if(!blob){
+        alert("No se pudo capturar la foto.");
+        return;
+      }
+      const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
+      state.preview = {
+        bitmap,
+        canvasBlob: null,
+        rotation: 0,
+        cropMode: false,
+        targetSlot: slot,
+        width: bitmap.width,
+        height: bitmap.height
+      };
+      drawPreview();
+      els.previewTitle.textContent = `Revisar foto ${slot + 1}`;
+      els.previewOverlay.classList.add("show");
+      closeCamera();
+    }
 
+    function drawPreview(){
+      const { bitmap, rotation, cropMode } = state.preview;
+      if(!bitmap) return;
+      const canvas = els.previewCanvas;
       const ctx = canvas.getContext("2d");
-      ctx.drawImage(videoFoto, 0, 0);
+      const radians = rotation * Math.PI / 180;
+      const swap = Math.abs(rotation) % 180 === 90;
+      const outW = swap ? bitmap.height : bitmap.width;
+      const outH = swap ? bitmap.width : bitmap.height;
+      canvas.width = outW;
+      canvas.height = outH;
+      ctx.save();
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(radians);
+      const drawW = bitmap.width;
+      const drawH = bitmap.height;
+      ctx.drawImage(bitmap, -drawW / 2, -drawH / 2);
+      ctx.restore();
 
-      canvas.toBlob(blob => {
-        if(!blob){
-          alert("No se pudo capturar la foto");
-          return;
+      if(cropMode){
+        const cropCanvas = document.createElement("canvas");
+        const cropCtx = cropCanvas.getContext("2d");
+        const ratio = 4 / 3;
+        let cropW = canvas.width;
+        let cropH = Math.round(cropW / ratio);
+        if(cropH > canvas.height){
+          cropH = canvas.height;
+          cropW = Math.round(cropH * ratio);
         }
-
-        previewActual = {
-          blob,
-          previewUrl: URL.createObjectURL(blob),
-          origin: "local"
-        };
-
-        previewSlotIndex = slotObjetivo;
-        previewImg.src = previewActual.previewUrl;
-        modalPreview.classList.remove("hidden");
-        log(`Foto capturada para slot ${previewSlotIndex + 1}`);
-      }, "image/jpeg", 0.82);
-    }
-
-    function aceptarPreview(){
-      if(previewSlotIndex === null || !previewActual) return;
-
-      revokeLocalPreview(fotosLocales[previewSlotIndex]);
-      fotosLocales[previewSlotIndex] = previewActual;
-
-      previewActual = null;
-      previewSlotIndex = null;
-
-      modalPreview.classList.add("hidden");
-      previewImg.src = "";
-      cerrarCamaraFoto();
-      renderSlots();
-
-      const next = firstEmptySlot();
-      if(next !== -1){
-        setEstado("FOTOS NUEVAS EN PROCESO");
-      }else{
-        setEstado("LISTO PARA GUARDAR");
+        const x = Math.round((canvas.width - cropW) / 2);
+        const y = Math.round((canvas.height - cropH) / 2);
+        cropCanvas.width = cropW;
+        cropCanvas.height = cropH;
+        cropCtx.drawImage(canvas, x, y, cropW, cropH, 0, 0, cropW, cropH);
+        canvas.width = cropW;
+        canvas.height = cropH;
+        ctx.drawImage(cropCanvas, 0, 0);
       }
-
-      log("Foto aceptada");
     }
 
-    function repetirPreview(){
-      if(previewActual){
-        revokeLocalPreview(previewActual);
-      }
-      previewActual = null;
-      previewSlotIndex = null;
-      previewImg.src = "";
-      modalPreview.classList.add("hidden");
-      log("Foto repetida");
+    function rotatePreview(delta){
+      state.preview.rotation = (state.preview.rotation + delta + 360) % 360;
+      drawPreview();
     }
 
-    function limpiarNuevas(){
-      limpiarLocales();
-      renderSlots();
-
-      if(hasExistingRemote()){
-        setEstado("YA TIENE FOTOS");
-      }else{
-        setEstado("SIN FOTOS");
-      }
-
-      log("Fotos nuevas limpiadas");
+    function cropPreviewCenter(){
+      state.preview.cropMode = !state.preview.cropMode;
+      drawPreview();
     }
 
-    function abrirDetalleFoto(index){
-      currentDetailIndex = index;
-      const local = fotosLocales[index];
-      const remoteUrl = hasExistingRemote() && metaExistente.urlsFotos[index] ? metaExistente.urlsFotos[index] : null;
-
-      if(!local && !remoteUrl) return;
-
-      tituloFotoDetalle.innerText = `Foto ${index + 1}`;
-      imgFotoDetalle.src = local ? local.previewUrl : remoteUrl;
-      modalFotoDetalle.classList.remove("hidden");
-    }
-
-    function cerrarDetalleFoto(){
-      currentDetailIndex = null;
-      imgFotoDetalle.src = "";
-      modalFotoDetalle.classList.add("hidden");
-    }
-
-    function reemplazarFotoActual(){
-      if(currentDetailIndex === null) return;
-      cerrarDetalleFoto();
-      abrirCamaraFoto(currentDetailIndex);
-    }
-
-    function eliminarFotoActual(){
-      if(currentDetailIndex === null) return;
-
-      const local = fotosLocales[currentDetailIndex];
-      if(local){
-        revokeLocalPreview(local);
-        fotosLocales[currentDetailIndex] = null;
-        renderSlots();
-        cerrarDetalleFoto();
-        setEstado(hasExistingRemote() ? "YA TIENE FOTOS" : "FOTOS NUEVAS EN PROCESO");
-        log(`Foto local ${currentDetailIndex + 1} eliminada`);
+    async function acceptPreview(){
+      const canvas = els.previewCanvas;
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.88));
+      if(!blob){
+        alert("No se pudo preparar la foto.");
         return;
       }
-
-      if(hasExistingRemote() && metaExistente.urlsFotos[currentDetailIndex]){
-        alert("Esa foto es una actual ya guardada. Usa 'Eliminar anteriores y volver a tomar' si quieres reemplazar el juego completo.");
+      const slot = state.preview.targetSlot;
+      const old = state.localPhotos[slot];
+      if(old?.previewUrl?.startsWith("blob:")) URL.revokeObjectURL(old.previewUrl);
+      state.localPhotos[slot] = {
+        blob,
+        previewUrl: URL.createObjectURL(blob),
+        slot,
+        updatedAt: Date.now()
+      };
+      state.preview.bitmap?.close?.();
+      state.preview = { bitmap:null, canvasBlob:null, rotation:0, cropMode:false, targetSlot:null, width:0, height:0 };
+      els.previewOverlay.classList.remove("show");
+      renderCaptureSlots();
+      if(localPhotoCount() >= MAX_FOTOS){
+        renderConfirmThumbs();
+        showScreen("confirm");
       }
     }
 
-    function verActuales(){
-      if(hasExistingRemote()){
-        abrirDetalleFoto(0);
+    function retryPreview(){
+      const slot = state.preview.targetSlot;
+      state.preview.bitmap?.close?.();
+      state.preview = { bitmap:null, canvasBlob:null, rotation:0, cropMode:false, targetSlot:null, width:0, height:0 };
+      els.previewOverlay.classList.remove("show");
+      openCameraForSlot(slot);
+    }
+
+    async function saveAllToFirebase(){
+      if(localPhotoCount() !== MAX_FOTOS){
+        alert("Debes completar las 3 fotos.");
         return;
       }
-
-      const firstLocal = fotosLocales.findIndex(Boolean);
-      if(firstLocal !== -1){
-        abrirDetalleFoto(firstLocal);
-      }
+      els.confirmDoubleOverlay.classList.add("show");
     }
 
-    function cerrarExistentes(){
-      modalExistentes.classList.add("hidden");
-    }
-
-    function accionExistentesVer(){
-      cerrarExistentes();
-      abrirDetalleFoto(0);
-    }
-
-    function accionExistentesConservar(){
-      replaceAllMode = false;
-      pendingDeletePaths = [];
-      setEstado("YA TIENE FOTOS");
-      renderSlots();
-      cerrarExistentes();
-      log("Se conservarán las fotos anteriores");
-    }
-
-    function accionExistentesReemplazar(){
-      replaceAllMode = true;
-      pendingDeletePaths = Array.isArray(metaExistente?.storagePaths) ? [...metaExistente.storagePaths] : [];
-      metaExistente = null;
-      limpiarLocales();
-      setEstado("SIN FOTOS");
-      renderSlots();
-      cerrarExistentes();
-      log("Modo reemplazo total activado");
-    }
-
-    function accionExistentesCancelar(){
-      cerrarExistentes();
-      setEstado("YA TIENE FOTOS");
-      log("Acción cancelada sobre fotos existentes");
-    }
-
-    async function borrarPathsAnteriores(){
-      if(!pendingDeletePaths.length) return;
-      for(const path of pendingDeletePaths){
-        try{
-          await deleteObject(ref(storage, path));
-          log("Anterior eliminada: " + path);
-        }catch(err){
-          console.error(err);
-          log("No se pudo eliminar anterior: " + path);
-        }
-      }
-      pendingDeletePaths = [];
-    }
-
-    async function subirFotosFirebase(){
+    async function performUpload(){
+      els.confirmDoubleOverlay.classList.remove("show");
       try{
-        if(!productoActual){
-          alert("Primero identifica el artículo");
-          return;
-        }
-
-        if(getFilledLocalCount() !== MAX_FOTOS){
-          alert("Debes completar las 3 fotos");
-          return;
-        }
-
-        btnGuardar.disabled = true;
-        setEstado("SUBIENDO...");
-        log("Subiendo fotos a Firebase Storage...");
-
-        const codigo = (productoActual.codigoBarra || "sin_codigo").replace(/[^\w\-]/g, "_");
+        els.uploadWrap.classList.remove("hidden");
+        els.btnSaveAll.disabled = true;
+        const code = (state.selectedProduct.code || "sin_codigo").replace(/[^\w\-]/g, "_");
         const stamp = new Date();
-        const yyyy = stamp.getFullYear();
-        const mm = String(stamp.getMonth() + 1).padStart(2, "0");
-        const dd = String(stamp.getDate()).padStart(2, "0");
-        const hh = String(stamp.getHours()).padStart(2, "0");
-        const mi = String(stamp.getMinutes()).padStart(2, "0");
-        const ss = String(stamp.getSeconds()).padStart(2, "0");
-        const folder = `${STORAGE_BASE}/${codigo}/${yyyy}${mm}${dd}_${hh}${mi}${ss}`;
-
+        const folder = `${STORAGE_BASE}/${code}/${stamp.getFullYear()}${String(stamp.getMonth()+1).padStart(2,"0")}${String(stamp.getDate()).padStart(2,"0")}_${String(stamp.getHours()).padStart(2,"0")}${String(stamp.getMinutes()).padStart(2,"0")}${String(stamp.getSeconds()).padStart(2,"0")}`;
         const urlsFotos = [];
         const storagePaths = [];
 
         for(let i = 0; i < MAX_FOTOS; i++){
-          const foto = fotosLocales[i];
-          if(!foto) throw new Error(`Falta foto ${i + 1}`);
-
-          const path = `${folder}/foto_${i + 1}.jpg`;
+          const item = state.localPhotos[i];
+          const path = `${folder}/foto_${i+1}.jpg`;
           const storageRef = ref(storage, path);
-
-          await uploadBytes(storageRef, foto.blob, { contentType:"image/jpeg" });
+          els.uploadLabel.textContent = `Subiendo foto ${i+1} de 3`;
+          els.uploadBar.style.width = `${Math.round((i / MAX_FOTOS) * 100)}%`;
+          els.uploadPercent.textContent = `${Math.round((i / MAX_FOTOS) * 100)}%`;
+          await uploadBytes(storageRef, item.blob, { contentType:"image/jpeg" });
           const url = await getDownloadURL(storageRef);
-
-          storagePaths.push(path);
           urlsFotos.push(url);
-
-          log(`Foto ${i + 1} subida`);
+          storagePaths.push(path);
+          log(`Foto ${i+1} subida a Firebase Storage`);
         }
 
-        await setDoc(doc(db, COLL_META_FOTOS, productoActual.codigoBarra), {
-          codigoBarra: productoActual.codigoBarra || "",
-          concepto: productoActual.concepto || "",
-          urlsFotos,
-          storagePaths,
-          updatedAt: serverTimestamp(),
-          createdAt: metaExistente?.createdAt || serverTimestamp(),
-          estatus: "OK",
-          totalFotos: urlsFotos.length
-        }, { merge:true });
+        if(state.pendingDeletePaths.length){
+          for(const path of state.pendingDeletePaths){
+            try{
+              await deleteObject(ref(storage, path));
+              log(`Anterior eliminada: ${path}`);
+            }catch(err){
+              console.error(err);
+              log(`No se pudo eliminar anterior: ${path}`);
+            }
+          }
+        }
 
-        await borrarPathsAnteriores();
-
-        metaExistente = {
-          codigoBarra: productoActual.codigoBarra || "",
-          concepto: productoActual.concepto || "",
+        await setDoc(doc(db, COLL_META_FOTOS, state.selectedProduct.code), {
+          codigoBarra: state.selectedProduct.code,
+          concepto: state.selectedProduct.concept,
           urlsFotos,
           storagePaths,
           totalFotos: urlsFotos.length,
+          estatus: "OK",
+          updatedAt: serverTimestamp(),
+          createdAt: state.selectedMeta?.createdAt || serverTimestamp()
+        }, { merge:true });
+
+        await setDoc(doc(db, COLL_PRODUCTOS, state.selectedProduct.id), {
+  tieneFotos: true
+}, { merge: true });
+
+        els.uploadBar.style.width = "100%";
+        els.uploadPercent.textContent = "100%";
+        els.uploadLabel.textContent = "Subida finalizada";
+        log("Registro actualizado en Firestore");
+        state.selectedMeta = {
+          codigoBarra: state.selectedProduct.code,
+          concepto: state.selectedProduct.concept,
+          urlsFotos,
+          storagePaths,
+          totalFotos: 3,
           estatus: "OK"
         };
 
-        limpiarLocales();
-        replaceAllMode = false;
-        setEstado("GUARDADO OK");
-        renderSlots();
-        log("Registro guardado en Firestore y Storage");
-        alert("Fotos guardadas en Firebase");
+        for(let i = 0; i < urlsFotos.length; i++){
+          try{
+            const response = await fetch(urlsFotos[i]);
+            const blob = await response.blob();
+            await idbPut(STORE_IMAGES, {
+              key: getImageCacheKey(state.selectedProduct.code, i),
+              code: state.selectedProduct.code,
+              slot: i,
+              blob,
+              remoteUrl: urlsFotos[i],
+              updatedAt: Date.now()
+            });
+          }catch(err){
+            console.error(err);
+          }
+        }
 
+        alert("Fotos guardadas correctamente.");
+        resetWorkflow(true);
+        showScreen("identify");
+        els.uploadWrap.classList.add("hidden");
+        els.btnSaveAll.disabled = false;
+        syncIdentifyHeader(null);
+        renderSuggestions([]);
       }catch(err){
         console.error(err);
-        setEstado("ERROR AL GUARDAR");
-        log("Error guardando: " + (err.message || err));
-        alert("Error al guardar en Firebase");
-      }finally{
-        refreshBotones();
+        els.uploadLabel.textContent = "Error al subir";
+        log(`Error guardando: ${err.message || err}`);
+        alert("Error al guardar en Firebase.");
+        els.btnSaveAll.disabled = false;
       }
     }
 
-    btnEscanearCodigo.addEventListener("click", abrirEscaner);
-    btnLimpiarBusqueda.addEventListener("click", limpiarBusqueda);
+async function scheduleBackgroundImageSync(){
+  if(state.bgImageSyncRunning) return;
+  state.bgImageSyncRunning = true;
 
-    btnCerrarEscaner.addEventListener("click", cerrarEscaner);
-    btnManualEscaner.addEventListener("click", escanerManual);
+  try{
 
-    btnTomarFoto.addEventListener("click", () => abrirCamaraFoto());
-    btnVerActuales.addEventListener("click", verActuales);
-    btnLimpiarNuevas.addEventListener("click", limpiarNuevas);
-    btnGuardar.addEventListener("click", subirFotosFirebase);
+    const productosConFotos = state.products
+      .filter(p => p.tieneFotos && p.urlsFotos?.length)
+      .slice(0, 1200);
 
-    btnCapturarFoto.addEventListener("click", capturarFoto);
-    btnCerrarCamaraFoto.addEventListener("click", cerrarCamaraFoto);
+    let done = 0;
 
-    btnAceptarPreview.addEventListener("click", aceptarPreview);
-    btnRepetirPreview.addEventListener("click", repetirPreview);
+    showBgProgress(true, "Descargando imágenes", 0, "Procesando...");
 
-    btnReemplazarFoto.addEventListener("click", reemplazarFotoActual);
-    btnEliminarFoto.addEventListener("click", eliminarFotoActual);
-    btnCerrarFotoDetalle.addEventListener("click", cerrarDetalleFoto);
+    for(const producto of productosConFotos){
 
-    btnExistentesVer.addEventListener("click", accionExistentesVer);
-    btnExistentesReemplazar.addEventListener("click", accionExistentesReemplazar);
-    btnExistentesConservar.addEventListener("click", accionExistentesConservar);
-    btnExistentesCancelar.addEventListener("click", accionExistentesCancelar);
+      for(let i = 0; i < Math.min(producto.urlsFotos.length, 3); i++){
 
-    window.addEventListener("beforeunload", () => {
-      if(streamEscaner) streamEscaner.getTracks().forEach(t => t.stop());
-      if(streamFoto) streamFoto.getTracks().forEach(t => t.stop());
-      if(previewActual) revokeLocalPreview(previewActual);
-      fotosLocales.forEach(x => revokeLocalPreview(x));
+        const key = getImageCacheKey(producto.code, i);
+
+        const existing = await idbGet(STORE_IMAGES, key);
+        if(existing?.blob) continue;
+
+        try{
+          const response = await fetch(producto.urlsFotos[i], { mode:"cors" });
+          const blob = await response.blob();
+
+          await idbPut(STORE_IMAGES, {
+            key,
+            code: producto.code,
+            slot: i,
+            blob,
+            remoteUrl: producto.urlsFotos[i],
+            updatedAt: Date.now()
+          });
+
+        }catch(err){
+          console.error("Error descargando imagen:", err);
+        }
+      }
+
+      done++;
+
+      showBgProgress(
+        true,
+        "Descargando imágenes",
+        (done / productosConFotos.length) * 100,
+        `${done} / ${productosConFotos.length} productos`
+      );
+    }
+
+    showBgProgress(true, "Descargando imágenes", 100, "Completado");
+    setTimeout(() => showBgProgress(false), 1200);
+
+  }finally{
+    state.bgImageSyncRunning = false;
+  }
+}
+
+
+    els.searchInput.addEventListener("input", () => {
+      const value = els.searchInput.value.trim();
+      if(!value){
+        renderSuggestions([]);
+        syncIdentifyHeader(null);
+        return;
+      }
+      const results = getMatches(value);
+      renderSuggestions(results);
+      if(results.length === 1 && normalizeText(results[0].code) === normalizeText(value)){
+        selectProduct(results[0]);
+      }
     });
 
-    resetTodoVisual();
-    renderSlots();
-    await cargarCatalogo();
-    log("App lista");
+    els.btnOpenScanner.addEventListener("click", openScanner);
+    els.btnCloseScanner.addEventListener("click", closeScanner);
+    els.btnClearSearch.addEventListener("click", () => {
+      resetWorkflow(true);
+      syncIdentifyHeader(null);
+    });
+    els.btnReloadCatalog.addEventListener("click", async () => {
+      showScreen("boot");
+      await fetchAllActiveProducts(true);
+      setBootProgress(100, "Catálogo actualizado", `${state.products.length} productos activos`);
+      setTimeout(() => showScreen("identify"), 250);
+      scheduleBackgroundImageSync();
+    });
+
+    els.btnBackFromReview1.addEventListener("click", () => showScreen("identify"));
+    els.btnCancelExisting.addEventListener("click", () => {
+      resetWorkflow(true);
+      showScreen("identify");
+    });
+    els.btnWantPhotos.addEventListener("click", () => {
+      renderCaptureSlots();
+      showScreen("capture");
+    });
+    els.btnModifyExisting.addEventListener("click", () => {
+      state.pendingDeletePaths = Array.isArray(state.selectedMeta?.storagePaths) ? [...state.selectedMeta.storagePaths] : [];
+      state.selectedMeta = null;
+      state.replaceAllMode = true;
+      renderCaptureSlots();
+      showScreen("capture");
+    });
+
+    els.btnBackToReview.addEventListener("click", async () => {
+      if(localPhotoCount() > 0){
+        const ok = confirm("Vas a regresar. Las fotos temporales seguirán guardadas mientras no limpies o cambies de producto.");
+        if(!ok) return;
+      }
+      showScreen("review");
+      if(state.selectedProduct){
+        if(hasExistingPhotos()){
+          els.reviewActionsExisting.classList.remove("hidden");
+          await renderExistingSlots(state.selectedMeta, state.selectedProduct.code);
+        }else{
+          els.reviewActionsEmpty.classList.remove("hidden");
+        }
+      }
+    });
+
+    els.btnCaptureNext.addEventListener("click", async () => {
+      const slot = firstEmptySlot();
+      if(slot === -1){
+        showScreen("confirm");
+        renderConfirmThumbs();
+        return;
+      }
+      await openCameraForSlot(slot);
+    });
+
+    els.btnCloseCamera.addEventListener("click", closeCamera);
+    els.btnCancelShot.addEventListener("click", closeCamera);
+    els.btnTakeShot.addEventListener("click", captureShot);
+    els.btnRotateLeft.addEventListener("click", () => rotatePreview(-90));
+    els.btnRotateRight.addEventListener("click", () => rotatePreview(90));
+    els.btnCropCenter.addEventListener("click", cropPreviewCenter);
+    els.btnAcceptPreview.addEventListener("click", acceptPreview);
+    els.btnRetryPreview.addEventListener("click", retryPreview);
+
+    els.btnBackToCapture.addEventListener("click", () => showScreen("capture"));
+    els.btnSaveAll.addEventListener("click", saveAllToFirebase);
+    els.btnConfirmNo.addEventListener("click", () => els.confirmDoubleOverlay.classList.remove("show"));
+    els.btnConfirmYes.addEventListener("click", performUpload);
+
+    window.addEventListener("beforeunload", () => {
+      stopStream(state.scannerStream);
+      stopStream(state.cameraStream);
+      state.preview.bitmap?.close?.();
+      resetLocalPhotos();
+    });
+
+    renderSuggestions([]);
+    renderCaptureSlots();
+    renderConfirmThumbs();
+    bootstrap();
   </script>
 </body>
 </html>
