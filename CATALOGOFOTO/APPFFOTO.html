@@ -278,7 +278,7 @@ const progressText = document.getElementById("progressText");
 const progressSub = document.getElementById("progressSub");
 const loaderCard = document.getElementById("loaderCard");
 
-<script type="module">
+
 function setProgress(percent, text, sub=""){
   progressBar.style.width = percent + "%";
   progressText.textContent = text;
@@ -380,7 +380,7 @@ async function cacheValido(){
   return (Date.now() - ts) < TTL_MS;
 }
 
-<script type="module">
+
 async function cargarCatalogo(){
   setProgress(5, "Iniciando app...", "Preparando almacenamiento local");
 
@@ -499,7 +499,7 @@ function buscarEnVivo(){
   mostrarSugerencias(resultados);
 }
 
-<script type="module">
+
 async function seleccionar(p){
   productoActual = p;
   nombre.innerText = p.concepto || "Sin nombre";
@@ -582,7 +582,7 @@ window.cerrarCamara = function(){
   modoCamara = null;
 }
 
-<script type="module">
+
 window.capturar = function(){
   if(!video.srcObject) return alert("La cámara no está activa");
 
@@ -638,7 +638,7 @@ window.capturar = function(){
   }
 }
 
-<script type="module">
+
 window.subir = async function(){
   try{
     if(!productoActual) return alert("Primero selecciona un producto");
@@ -710,4 +710,3 @@ await init();
 
 </body>
 </html>
-
