@@ -348,20 +348,29 @@ async function cargarCatalogo(){
 
   setProgress(35, "Descargando catálogo...", "Consultando Firebase Firestore");
 
-  const snap = await getDocs(collection(db,"productos"));
+  import { query, where } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+const q = query(
+  collection(db,"productos"),
+  where("activo","==",true)
+);
+
+const snap = await getDocs(q);
 
   const total = snap.docs.length || 1;
   const lista = [];
 
-  for(let i = 0; i < snap.docs.length; i++){
-    const p = snap.docs[i].data();
+for(let i = 0; i < snap.docs.length; i++){
+  const p = snap.docs[i].data();
 
-    lista.push({
-      codigoBarra: String(p.codigoBarra || "").trim(),
-      concepto: String(p.concepto || "").trim(),
-      marca: String(p.marca || "").trim(),
-      search: `${p.concepto || ""} ${p.marca || ""} ${p.codigoBarra || ""}`.toLowerCase()
-    });
+  if(!p.activo) continue;
+
+  lista.push({
+    codigoBarra: String(p.codigoBarra || "").trim(),
+    concepto: String(p.concepto || "").trim()
+  });
+}
+    
 
     if(i % 50 === 0 || i === snap.docs.length - 1){
       const avance = 35 + Math.round((i / total) * 30);
