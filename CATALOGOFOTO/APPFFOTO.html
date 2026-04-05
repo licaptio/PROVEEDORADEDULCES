@@ -1,1047 +1,278 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>PROVSOFT Fotos V4</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROVSOFT Fotos Firebase</title>
 
 <style>
-*{ box-sizing:border-box; }
-
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#0c6cbd;
-}
-
-.wrap{
-  max-width:520px;
-  margin:auto;
-  padding:10px;
-}
-
-.card{
-  background:white;
-  border-radius:12px;
-  padding:12px;
-  margin-bottom:10px;
-  box-shadow:0 2px 8px rgba(0,0,0,.08);
-}
-
-input, button{
-  width:100%;
-  padding:14px;
-  border-radius:10px;
-  margin-top:8px;
-  font-size:16px;
-  box-sizing:border-box;
-}
-
-button{
-  border:none;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.btn1{ background:#00416A; color:white; }
-.btn2{ background:#16a34a; color:white; }
-.btn3{ background:#dc2626; color:white; }
-.btn4{ background:#ca8a04; color:white; }
-.btn5{ background:#374151; color:white; }
-
-img{
-  width:100%;
-  border-radius:10px;
-  margin-top:6px;
-  background:#f3f4f6;
-  min-height:80px;
-  object-fit:cover;
-}
-
-.ok{
-  color:#15803d;
-  font-weight:bold;
-}
-
-.warn{
-  color:#b45309;
-  font-weight:bold;
-}
-
-.error{
-  color:#b91c1c;
-  font-weight:bold;
-}
-
-.hidden{
-  display:none !important;
-}
-
-/* loader */
-#loaderCard{
-  position:sticky;
-  top:10px;
-  z-index:20;
-}
-
-#progressWrap{
-  width:100%;
-  height:18px;
-  background:#e5e7eb;
-  border-radius:999px;
-  overflow:hidden;
-  margin-top:8px;
-}
-
-#progressBar{
-  width:0%;
-  height:100%;
-  background:linear-gradient(90deg,#00416A,#0c6cbd,#16a34a);
-  transition:width .25s ease;
-}
-
-#progressText{
-  margin-top:8px;
-  font-size:14px;
-  font-weight:bold;
-  color:#111827;
-}
-
-#progressSub{
-  margin-top:4px;
-  font-size:13px;
-  color:#4b5563;
-}
-
-/* sugerencias */
-.sugerencias{
-  margin-top:8px;
-  border:1px solid #d1d5db;
-  border-radius:10px;
-  background:#fff;
-  max-height:220px;
-  overflow-y:auto;
-  display:none;
-}
-
-.sugerencia-item{
-  padding:10px 12px;
-  border-bottom:1px solid #eef2f7;
-  cursor:pointer;
-  font-size:14px;
-}
-
-.sugerencia-item:last-child{
-  border-bottom:none;
-}
-
-.sugerencia-item:hover{
-  background:#f3f4f6;
-}
-
-/* modal */
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.82);
-  z-index:9999;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:14px;
-}
-
-.modal-content{
-  width:100%;
-  max-width:520px;
-  background:white;
-  border-radius:16px;
-  padding:12px;
-}
-
-video{
-  width:100%;
-  border-radius:12px;
-  background:#111;
-  min-height:260px;
-}
-
-#reader{
-  width:100%;
-  overflow:hidden;
-  border-radius:12px;
-  background:#111;
-  min-height:260px;
-}
-
-#reader video{
-  width:100% !important;
-  height:auto !important;
-  border-radius:12px;
-}
-
-.mini{
-  font-size:13px;
-  color:#444;
-  margin-top:8px;
-}
-
-.row{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:8px;
-}
-
-.thumb-label{
-  font-size:13px;
-  color:#374151;
-  margin-top:8px;
-  font-weight:bold;
-}
-
-.badge{
-  display:inline-block;
-  padding:6px 10px;
-  border-radius:999px;
-  font-size:12px;
-  font-weight:bold;
-  background:#eef2ff;
-  color:#1f2937;
-  margin-top:6px;
-}
-
-#scanStatus{
-  margin-top:8px;
-  font-size:14px;
-  font-weight:bold;
-}
+body{ margin:0; font-family:Arial; background:#0c6cbd; }
+.wrap{ max-width:520px; margin:auto; padding:10px; }
+.card{ background:white; border-radius:12px; padding:12px; margin-bottom:10px; }
+input,button{ width:100%; padding:14px; border-radius:10px; margin-top:8px; }
+button{ border:none; font-weight:bold; }
+.btn1{ background:#00416A;color:white;}
+.btn2{ background:#16a34a;color:white;}
+.btn3{ background:#dc2626;color:white;}
+.btn4{ background:#ca8a04;color:white;}
+.hidden{ display:none; }
+.modal{ position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center;}
+.modal-content{ background:white; border-radius:14px; width:100%; max-width:520px; padding:12px;}
+video,img{ width:100%; border-radius:10px;}
 </style>
 </head>
+
 <body>
 
 <div class="wrap">
 
-  <div class="card" id="loaderCard">
-    <h3>Preparando app</h3>
-    <div id="progressWrap">
-      <div id="progressBar"></div>
-    </div>
-    <div id="progressText">Iniciando app...</div>
-    <div id="progressSub">Espera un momento</div>
-  </div>
+<div class="card">
+<h3>Buscar producto</h3>
+<input id="busqueda" placeholder="Código o texto">
+<button class="btn1" onclick="abrirEscaner()">Escanear</button>
+</div>
 
-  <div class="card">
-    <h3>Buscar producto</h3>
-    <input id="busqueda" placeholder="Código o texto" autocomplete="off">
-    <button class="btn1" onclick="abrirEscaner()">Escanear código</button>
-    <div id="sugerencias" class="sugerencias"></div>
-  </div>
+<div class="card">
+<h3 id="nombre">Sin producto</h3>
+<div id="estado">SIN PRODUCTO</div>
 
-  <div class="card">
-    <h3 id="nombre">Sin producto</h3>
-    <div id="badgeProducto" class="badge hidden">Sin selección</div>
-    <div id="estado">SIN FOTOS</div>
-    <div id="alerta"></div>
-    <div class="row">
-      <button id="btnFotos" class="btn2 hidden" onclick="abrirCamaraFotos()">Tomar fotos</button>
-      <button id="btnLimpiarFotos" class="btn5 hidden" onclick="limpiarFotosActuales()">Limpiar fotos</button>
-    </div>
-  </div>
+<button id="btnFotos" class="btn2 hidden" onclick="abrirCamara()">Tomar fotos</button>
+<button id="btnVer" class="btn1 hidden" onclick="verFotos()">Ver fotos</button>
+<button id="btnLimpiar" class="btn3 hidden" onclick="limpiarFotos()">Limpiar</button>
 
-  <div class="card">
-    <h3>Fotos</h3>
-
-    <div class="thumb-label">Foto 1</div>
-    <img id="f1" alt="Foto 1">
-
-    <div class="thumb-label">Foto 2</div>
-    <img id="f2" alt="Foto 2">
-
-    <div class="thumb-label">Foto 3</div>
-    <img id="f3" alt="Foto 3">
-
-    <button class="btn4" onclick="subir()">Subir</button>
-  </div>
+<button class="btn4" onclick="subir()">Subir</button>
+</div>
 
 </div>
 
-<!-- MODAL ESCANER -->
-<div id="modalScanner" class="modal hidden">
-  <div class="modal-content">
-    <h3>Escanear código</h3>
-    <div id="reader"></div>
-    <div class="mini">Apunta al código de barras. El escaneo es automático.</div>
-    <div id="scanStatus"></div>
-    <button class="btn3" onclick="cerrarEscaner()">Cerrar</button>
-  </div>
+<!-- CAMARA -->
+<div id="modalCamara" class="modal hidden">
+<div class="modal-content">
+<video id="video" autoplay playsinline></video>
+<button class="btn2" onclick="capturar()">Capturar</button>
+<button class="btn3" onclick="cerrarCamara()">Cerrar</button>
+</div>
 </div>
 
-<!-- MODAL FOTOS -->
-<div id="modalCamaraFotos" class="modal hidden">
-  <div class="modal-content">
-    <h3 id="tituloCamara">Tomar foto</h3>
-    <video id="video" autoplay playsinline muted></video>
-    <div class="mini" id="textoCamara">Captura la foto del producto</div>
-    <button id="btnCapturar" class="btn2" onclick="capturarFoto()">Capturar foto</button>
-    <button class="btn3" onclick="cerrarCamaraFotos()">Cerrar</button>
-  </div>
+<!-- PREVIEW -->
+<div id="modalPreview" class="modal hidden">
+<div class="modal-content">
+<img id="preview">
+<button class="btn2" onclick="aceptar()">Aceptar</button>
+<button class="btn3" onclick="repetir()">Repetir</button>
+</div>
 </div>
 
-<canvas id="canvas" style="display:none;"></canvas>
-
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- GALERIA -->
+<div id="modalGaleria" class="modal hidden">
+<div class="modal-content">
+<div id="galeria"></div>
+<button class="btn3" onclick="cerrarGaleria()">Cerrar</button>
+</div>
+</div>
 
 <script type="module">
-import { firebaseConfig } from './config.js';
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
+/* =========================
+🔥 IMPORTS FIREBASE
+========================= */
+import { db } from "./config.js";
 import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  getDocs,
-  query,
-  where
-} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+  collection, getDocs, query, where, limit
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
-const db = getFirestore(app);
+import {
+  getStorage, ref, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-let productos = [];
+/* ========================= */
+const storage = getStorage();
+
+/* ========================= */
 let productoActual = null;
+let catalogo = [];
 let fotos = [];
-let streamFotos = null;
-let scanner = null;
-let scannerActivo = false;
-let ultimaLectura = "";
-let ultimaLecturaTs = 0;
+let stream = null;
+let tempFoto = null;
 
-const DB_NAME = "provsoft_fotos_db";
-const DB_VERSION = 1;
-const STORE_PRODUCTOS = "productos";
-const STORE_META = "meta";
-const TTL_MS = 1000 * 60 * 60 * 12;
-
-let dbIDB = null;
-
-/* DOM */
-const video = document.getElementById("video");
-const nombre = document.getElementById("nombre");
-const estado = document.getElementById("estado");
-const alerta = document.getElementById("alerta");
-const btnFotos = document.getElementById("btnFotos");
-const btnLimpiarFotos = document.getElementById("btnLimpiarFotos");
-const badgeProducto = document.getElementById("badgeProducto");
-
-const inputBusqueda = document.getElementById("busqueda");
-const sugerencias = document.getElementById("sugerencias");
-
-const modalScanner = document.getElementById("modalScanner");
-const modalCamaraFotos = document.getElementById("modalCamaraFotos");
-const scanStatus = document.getElementById("scanStatus");
-
-const progressBar = document.getElementById("progressBar");
-const progressText = document.getElementById("progressText");
-const progressSub = document.getElementById("progressSub");
-const loaderCard = document.getElementById("loaderCard");
-
-/* =========================
-   UTILIDADES UI
-========================= */
-function setProgress(percent, text, sub = ""){
-  progressBar.style.width = percent + "%";
-  progressText.textContent = text;
-  progressSub.textContent = sub;
-}
-
-function finalizarCarga(){
-  setProgress(100, "App lista", "Catálogo preparado correctamente");
-  setTimeout(() => {
-    loaderCard.classList.add("hidden");
-  }, 700);
-}
-
-function errorCarga(msg){
-  progressBar.style.width = "100%";
-  progressBar.style.background = "#dc2626";
-  progressText.textContent = "Error al preparar la app";
-  progressSub.textContent = msg || "Revisa consola";
-}
-
-function pausa(ms){
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function mostrarOk(msg){
-  alerta.textContent = msg;
-  alerta.className = "ok";
-}
-
-function mostrarWarn(msg){
-  alerta.textContent = msg;
-  alerta.className = "warn";
-}
-
-function mostrarError(msg){
-  alerta.textContent = msg;
-  alerta.className = "error";
-}
-
-/* =========================
-   INDEXEDDB
-========================= */
-function abrirDB(){
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-
-    req.onupgradeneeded = (e) => {
-      const dbx = e.target.result;
-
-      if(!dbx.objectStoreNames.contains(STORE_PRODUCTOS)){
-        dbx.createObjectStore(STORE_PRODUCTOS, { keyPath: "codigoBarra" });
-      }
-
-      if(!dbx.objectStoreNames.contains(STORE_META)){
-        dbx.createObjectStore(STORE_META, { keyPath: "key" });
-      }
-    };
-
-    req.onsuccess = (e) => {
-      dbIDB = e.target.result;
-      resolve(dbIDB);
-    };
-
-    req.onerror = (e) => reject(e);
-  });
-}
-
-function guardarMeta(key, value){
-  return new Promise((resolve, reject) => {
-    const tx = dbIDB.transaction(STORE_META, "readwrite");
-    const store = tx.objectStore(STORE_META);
-    store.put({ key, value });
-    tx.oncomplete = () => resolve(true);
-    tx.onerror = reject;
-  });
-}
-
-function leerMeta(key){
-  return new Promise((resolve, reject) => {
-    const tx = dbIDB.transaction(STORE_META, "readonly");
-    const store = tx.objectStore(STORE_META);
-    const req = store.get(key);
-
-    req.onsuccess = () => resolve(req.result ? req.result.value : null);
-    req.onerror = reject;
-  });
-}
-
-function guardarProductosDB(lista){
-  return new Promise((resolve, reject) => {
-    const tx = dbIDB.transaction(STORE_PRODUCTOS, "readwrite");
-    const store = tx.objectStore(STORE_PRODUCTOS);
-
-    for(const p of lista){
-      store.put(p);
-    }
-
-    tx.oncomplete = () => resolve(true);
-    tx.onerror = reject;
-  });
-}
-
-function leerProductosDB(){
-  return new Promise((resolve, reject) => {
-    const tx = dbIDB.transaction(STORE_PRODUCTOS, "readonly");
-    const store = tx.objectStore(STORE_PRODUCTOS);
-    const req = store.getAll();
-
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = reject;
-  });
-}
-
-async function cacheValido(){
-  const ts = await leerMeta("catalogo_timestamp");
-  if(!ts) return false;
-  return (Date.now() - ts) < TTL_MS;
-}
-
-/* =========================
-   CATALOGO
-========================= */
+/* ========================= BUSQUEDA */
 async function cargarCatalogo(){
-  setProgress(5, "Iniciando app...", "Preparando almacenamiento local");
-
-  await abrirDB();
-
-  setProgress(20, "Abriendo base local...", "Revisando catálogo del dispositivo");
-
-  const esValido = await cacheValido();
-  const local = await leerProductosDB();
-
-  if(esValido && local.length > 0){
-    productos = local;
-    setProgress(80, "Catálogo local encontrado", `${productos.length} productos cargados`);
-    return;
-  }
-
-  setProgress(35, "Descargando catálogo...", "Consultando Firebase Firestore");
-
-  const q = query(
-    collection(db, "productos"),
-    where("activo", "==", true)
+  const qy = query(
+    collection(db,"productos"),
+    where("activo","==",true),
+    limit(1000)
   );
+  const snap = await getDocs(qy);
 
-  const snap = await getDocs(q);
-  const total = snap.docs.length || 1;
-  const lista = [];
-
-  for(let i = 0; i < snap.docs.length; i++){
-    const p = snap.docs[i].data();
-
-    if(!p.activo) continue;
-
-    const codigo = String(p.codigoBarra || "").trim();
-    const concepto = String(p.concepto || "").trim();
-    const equivalentes = Array.isArray(p.codigosEquivalentes)
-      ? p.codigosEquivalentes.map(x => String(x || "").trim()).filter(Boolean)
-      : [];
-
-    lista.push({
-      codigoBarra: codigo,
-      concepto: concepto,
-      codigosEquivalentes: equivalentes,
-      search: `${codigo} ${concepto} ${equivalentes.join(" ")}`.toLowerCase()
-    });
-
-    if(i % 50 === 0 || i === snap.docs.length - 1){
-      const avance = 35 + Math.round((i / total) * 35);
-      setProgress(avance, "Descargando catálogo...", `Procesando ${i + 1} de ${total}`);
-      await pausa(0);
-    }
-  }
-
-  await guardarProductosDB(lista);
-  await guardarMeta("catalogo_timestamp", Date.now());
-
-  productos = lista;
-  setProgress(95, "Catálogo listo", `${productos.length} productos preparados`);
+  catalogo = snap.docs.map(d=>d.data());
 }
 
-/* =========================
-   BUSQUEDA
-========================= */
-function normalizarTexto(t){
-  return String(t || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
+function buscar(valor){
+  valor = valor.toLowerCase();
+
+  return catalogo.find(p =>
+    (p.codigoBarra||"").toLowerCase().includes(valor) ||
+    (p.concepto||"").toLowerCase().includes(valor)
+  );
 }
 
-function coincideProducto(producto, texto){
-  const q = normalizarTexto(texto);
-  if(!q) return false;
+document.getElementById("busqueda").addEventListener("input", async e=>{
+  const v = e.target.value.trim();
 
-  const tokens = q.split(/\s+/).filter(Boolean);
-  const equivalentes = Array.isArray(producto.codigosEquivalentes)
-    ? producto.codigosEquivalentes.join(" ")
-    : "";
+  if(!catalogo.length) await cargarCatalogo();
 
-  const base = normalizarTexto(`${producto.codigoBarra} ${producto.concepto} ${equivalentes}`);
-  return tokens.every(tok => base.includes(tok));
-}
+  if(!v){ reset(); return; }
 
-function mostrarSugerencias(lista){
-  if(!lista.length){
-    sugerencias.style.display = "none";
-    sugerencias.innerHTML = "";
-    return;
-  }
+  const p = buscar(v);
 
-  sugerencias.innerHTML = lista.map(p => `
-    <div class="sugerencia-item" data-codigo="${escapeHtml(p.codigoBarra)}">
-      <strong>${escapeHtml(p.codigoBarra)}</strong> - ${escapeHtml(p.concepto)}
-    </div>
-  `).join("");
+  if(p) seleccionar(p);
+});
 
-  sugerencias.style.display = "block";
-
-  document.querySelectorAll(".sugerencia-item").forEach(el => {
-    el.addEventListener("click", () => {
-      const codigo = el.dataset.codigo;
-      const prod = buscarProductoPorCodigo(codigo);
-      if(prod){
-        inputBusqueda.value = `${prod.codigoBarra} ${prod.concepto}`;
-        sugerencias.style.display = "none";
-        sugerencias.innerHTML = "";
-        seleccionar(prod);
-      }
-    });
-  });
-}
-
-function buscarEnVivo(){
-  const q = inputBusqueda.value.trim();
-
-  if(!q){
-    sugerencias.style.display = "none";
-    sugerencias.innerHTML = "";
-    return;
-  }
-
-  const resultados = productos
-    .filter(p => coincideProducto(p, q))
-    .slice(0, 15);
-
-  mostrarSugerencias(resultados);
-}
-
-function buscarProductoPorCodigo(codigo){
-  const limpio = String(codigo || "").trim();
-
-  return productos.find(p => {
-    if(String(p.codigoBarra || "").trim() === limpio) return true;
-    if(Array.isArray(p.codigosEquivalentes) && p.codigosEquivalentes.includes(limpio)) return true;
-    return false;
-  }) || null;
-}
-
-function escapeHtml(text){
-  return String(text || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-/* =========================
-   PRODUCTO
-========================= */
-function limpiarPreviewFotos(){
-  ["f1", "f2", "f3"].forEach(id => {
-    const img = document.getElementById(id);
-    if(img.src && img.src.startsWith("blob:")){
-      URL.revokeObjectURL(img.src);
-    }
-    img.removeAttribute("src");
-  });
-}
-
-function limpiarFotosActuales(){
-  fotos = [];
-  limpiarPreviewFotos();
-  estado.textContent = "SIN FOTOS";
-}
-
-async function seleccionar(p){
-  if(!p) return;
-
-  if(productoActual && productoActual.codigoBarra !== p.codigoBarra){
-    limpiarFotosActuales();
-  }
-
+/* ========================= PRODUCTO */
+function seleccionar(p){
   productoActual = p;
+  fotos = [];
+  document.getElementById("nombre").innerText = p.concepto;
+  document.getElementById("estado").innerText = "SIN FOTOS";
+  document.getElementById("btnFotos").classList.remove("hidden");
+}
 
-  nombre.innerText = p.concepto || "Sin nombre";
-  badgeProducto.textContent = p.codigoBarra || "Sin código";
-  badgeProducto.classList.remove("hidden");
+function reset(){
+  productoActual = null;
+  fotos = [];
+  document.getElementById("nombre").innerText = "Sin producto";
+  document.getElementById("estado").innerText = "SIN PRODUCTO";
+}
 
-  estado.innerText = fotos.length ? `${fotos.length}/3 FOTOS` : "SIN FOTOS";
-  btnFotos.classList.remove("hidden");
-  btnLimpiarFotos.classList.remove("hidden");
+/* ========================= ESCANER */
+function abrirEscaner(){
+  const c = prompt("Escanea código:");
+  if(!c) return;
 
-  alerta.innerText = "";
-  alerta.className = "";
+  const input = document.getElementById("busqueda");
+  input.value = c;
+  input.dispatchEvent(new Event("input"));
+}
 
-  try{
-    const docRef = doc(db, "productos_fotos", p.codigoBarra);
-    const snap = await getDoc(docRef);
+/* ========================= CAMARA */
+async function abrirCamara(){
+  if(!productoActual){ alert("Selecciona producto"); return; }
 
-    if(snap.exists()){
-      const data = snap.data() || {};
-      const totalFotos = Array.isArray(data.fotos) ? data.fotos.length : 0;
+  document.getElementById("modalCamara").classList.remove("hidden");
 
-      if(totalFotos >= 3){
-        mostrarWarn("⚠ YA FOTOGRAFIADO");
-      }else if(totalFotos > 0){
-        mostrarWarn(`⚠ Este producto ya tiene ${totalFotos} foto(s) guardada(s)`);
-      }else{
-        mostrarOk("Producto listo para fotografiar");
-      }
-    }else{
-      mostrarOk("Producto listo para fotografiar");
-    }
-  }catch(err){
-    console.error(err);
-    mostrarError("No se pudo validar si ya tiene fotos");
+  stream = await navigator.mediaDevices.getUserMedia({
+    video:{ facingMode:"environment" }
+  });
+
+  video.srcObject = stream;
+}
+
+function cerrarCamara(){
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  stream=null;
+  document.getElementById("modalCamara").classList.add("hidden");
+}
+
+/* ========================= FOTO */
+function capturar(){
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  canvas.getContext("2d").drawImage(video,0,0);
+
+  canvas.toBlob(b=>{
+    tempFoto = b;
+    preview.src = URL.createObjectURL(b);
+    document.getElementById("modalPreview").classList.remove("hidden");
+  },"image/jpeg",0.8);
+}
+
+function aceptar(){
+  fotos.push(tempFoto);
+  tempFoto=null;
+  cerrarCamara();
+  document.getElementById("modalPreview").classList.add("hidden");
+
+  document.getElementById("estado").innerText = fotos.length+"/3 FOTOS";
+
+  if(fotos.length>0){
+    document.getElementById("btnVer").classList.remove("hidden");
+    document.getElementById("btnLimpiar").classList.remove("hidden");
   }
 }
 
-/* =========================
-   ESCANER
-========================= */
-async function abrirEscaner(){
-  try{
-    if(scannerActivo) return;
-
-    modalScanner.classList.remove("hidden");
-    scanStatus.textContent = "Iniciando cámara...";
-    scannerActivo = true;
-    ultimaLectura = "";
-    ultimaLecturaTs = 0;
-
-    scanner = new Html5Qrcode("reader");
-
-    const cameras = await Html5Qrcode.getCameras();
-    if(!cameras || !cameras.length){
-      throw new Error("No se encontró cámara disponible");
-    }
-
-    let cameraConfig = { facingMode: "environment" };
-
-    await scanner.start(
-      cameraConfig,
-      {
-        fps: 10,
-        qrbox: { width: 260, height: 140 },
-        aspectRatio: 1.7778,
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true
-        },
-        rememberLastUsedCamera: true
-      },
-      (decodedText) => {
-        procesarCodigoEscaneado(decodedText);
-      },
-      () => {
-        // ignorar errores de frame para no ensuciar UI
-      }
-    );
-
-    scanStatus.textContent = "Escaneando automáticamente...";
-  }catch(err){
-    console.error(err);
-    scanStatus.textContent = "";
-    scannerActivo = false;
-    try{
-      if(scanner){
-        await scanner.clear();
-      }
-    }catch(_e){}
-    scanner = null;
-    modalScanner.classList.add("hidden");
-    alert("No se pudo iniciar el escáner: " + (err.message || err));
-  }
+function repetir(){
+  tempFoto=null;
+  document.getElementById("modalPreview").classList.add("hidden");
 }
 
-async function cerrarEscaner(){
-  try{
-    scanStatus.textContent = "Cerrando cámara...";
-    if(scanner){
-      try{
-        if(scanner.isScanning){
-          await scanner.stop();
-        }
-      }catch(_e){}
-      try{
-        await scanner.clear();
-      }catch(_e){}
-    }
-  }catch(err){
-    console.error(err);
-  }finally{
-    scanner = null;
-    scannerActivo = false;
-    scanStatus.textContent = "";
-    modalScanner.classList.add("hidden");
-    const reader = document.getElementById("reader");
-    if(reader) reader.innerHTML = "";
-  }
+/* ========================= GALERIA */
+function verFotos(){
+  const g = document.getElementById("galeria");
+  g.innerHTML="";
+
+  fotos.forEach(f=>{
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(f);
+    g.appendChild(img);
+  });
+
+  document.getElementById("modalGaleria").classList.remove("hidden");
 }
 
-function procesarCodigoEscaneado(decodedText){
-  const codigo = String(decodedText || "").trim();
-  if(!codigo) return;
-
-  const ahora = Date.now();
-
-  if(codigo === ultimaLectura && (ahora - ultimaLecturaTs) < 1500){
-    return;
-  }
-
-  ultimaLectura = codigo;
-  ultimaLecturaTs = ahora;
-
-  scanStatus.textContent = `Leído: ${codigo}`;
-
-  inputBusqueda.value = codigo;
-  buscarEnVivo();
-
-  const exacto = buscarProductoPorCodigo(codigo);
-  if(exacto){
-    seleccionar(exacto);
-    cerrarEscaner();
-  }else{
-    mostrarWarn(`Código escaneado no encontrado: ${codigo}`);
-  }
+function cerrarGaleria(){
+  document.getElementById("modalGaleria").classList.add("hidden");
 }
 
-/* =========================
-   CAMARA FOTOS
-========================= */
-async function abrirCamaraFotos(){
-  try{
-    if(!productoActual){
-      alert("Primero selecciona un producto");
-      return;
-    }
-
-    if(fotos.length >= 3){
-      alert("Ya capturaste las 3 fotos");
-      return;
-    }
-
-    modalCamaraFotos.classList.remove("hidden");
-
-    streamFotos = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
-      audio: false
-    });
-
-    video.srcObject = streamFotos;
-
-    await new Promise((resolve) => {
-      video.onloadedmetadata = () => resolve();
-    });
-
-    await video.play();
-  }catch(err){
-    console.error(err);
-    alert("No se pudo abrir la cámara de fotos");
-    cerrarCamaraFotos();
-  }
+/* ========================= LIMPIAR */
+function limpiarFotos(){
+  fotos=[];
+  document.getElementById("estado").innerText="SIN FOTOS";
 }
 
-function cerrarCamaraFotos(){
-  try{
-    if(streamFotos){
-      streamFotos.getTracks().forEach(t => t.stop());
-    }
-  }catch(err){
-    console.error(err);
-  }finally{
-    streamFotos = null;
-    video.srcObject = null;
-    modalCamaraFotos.classList.add("hidden");
-  }
-}
-
-function capturarFoto(){
-  try{
-    if(!productoActual){
-      alert("Primero selecciona un producto");
-      return;
-    }
-
-    if(!video.srcObject){
-      alert("La cámara no está activa");
-      return;
-    }
-
-    if(fotos.length >= 3){
-      alert("Ya son 3 fotos");
-      return;
-    }
-
-    if(!video.videoWidth || !video.videoHeight){
-      alert("La cámara aún no está lista");
-      return;
-    }
-
-    const canvas = document.getElementById("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    canvas.toBlob((blob) => {
-      if(!blob){
-        alert("No se pudo capturar la imagen");
-        return;
-      }
-
-      fotos.push(blob);
-
-      const idx = fotos.length;
-      const img = document.getElementById("f" + idx);
-
-      if(img.src && img.src.startsWith("blob:")){
-        URL.revokeObjectURL(img.src);
-      }
-
-      img.src = URL.createObjectURL(blob);
-      estado.innerText = `${fotos.length}/3 FOTOS`;
-
-      if(fotos.length >= 3){
-        cerrarCamaraFotos();
-      }
-    }, "image/jpeg", 0.82);
-  }catch(err){
-    console.error(err);
-    alert("Error al capturar la foto");
-  }
-}
-
-/* =========================
-   SUBIDA
-========================= */
+/* ========================= SUBIR FIREBASE */
 async function subir(){
   try{
+
     if(!productoActual){
-      alert("Primero selecciona un producto");
+      alert("Selecciona producto");
       return;
     }
 
     if(fotos.length !== 3){
-      alert("Debes capturar exactamente 3 fotos");
+      alert("Debes tomar 3 fotos");
       return;
     }
 
-    const codigo = String(productoActual.codigoBarra || "").trim();
-    const concepto = String(productoActual.concepto || "").trim();
+    document.getElementById("estado").innerText="SUBIENDO...";
 
-    const baseTs = Date.now();
-    const paths = [];
+    const codigo = productoActual.codigoBarra;
 
-    for(let i = 0; i < 3; i++){
-      estado.innerText = `SUBIENDO ${i + 1}/3`;
+    const folder = `${codigo}/${Date.now()}`;
 
-      const path = `productos_fotos/${codigo}/${baseTs}_${i + 1}.jpg`;
-      const storageRef = ref(storage, path);
+    for(let i=0;i<fotos.length;i++){
 
-      await uploadBytes(storageRef, fotos[i], {
-        contentType: "image/jpeg"
-      });
+      const ruta = `${folder}/foto_${i+1}.jpg`;
 
-      paths.push(path);
+      const storageRef = ref(storage, ruta);
+
+      await uploadBytes(storageRef, fotos[i]);
+
+      const url = await getDownloadURL(storageRef);
+
+      console.log("URL:", url);
     }
 
-    await setDoc(doc(db, "productos_fotos", codigo), {
-      codigoBarra: codigo,
-      concepto,
-      fotos: paths,
-      status: "COMPLETO",
-      actualizadoEn: new Date().toISOString()
-    }, { merge: true });
+    document.getElementById("estado").innerText="SUBIDA OK";
+    alert("Fotos subidas a Firebase");
 
-    limpiarFotosActuales();
-    estado.innerText = "SIN FOTOS";
-    mostrarOk("✅ FOTOS SUBIDAS");
-  }catch(err){
-    console.error(err);
-    alert("Error al subir fotos");
-    if(productoActual && fotos.length){
-      estado.innerText = `${fotos.length}/3 FOTOS`;
-    }
+  }catch(e){
+    console.error(e);
+    alert("Error al subir");
   }
 }
 
-/* =========================
-   EVENTOS
-========================= */
-inputBusqueda.addEventListener("input", () => {
-  const q = inputBusqueda.value.trim();
-
-  if(!q){
-    sugerencias.style.display = "none";
-    sugerencias.innerHTML = "";
-    return;
-  }
-
-  const exacto = buscarProductoPorCodigo(q);
-  if(exacto){
-    mostrarSugerencias([exacto]);
-    return;
-  }
-
-  buscarEnVivo();
-});
-
-inputBusqueda.addEventListener("keydown", (e) => {
-  if(e.key === "Enter"){
-    e.preventDefault();
-
-    const q = inputBusqueda.value.trim();
-    if(!q) return;
-
-    const exacto = buscarProductoPorCodigo(q);
-    if(exacto){
-      sugerencias.style.display = "none";
-      sugerencias.innerHTML = "";
-      seleccionar(exacto);
-      return;
-    }
-
-    const resultados = productos.filter(p => coincideProducto(p, q)).slice(0, 1);
-    if(resultados.length){
-      sugerencias.style.display = "none";
-      sugerencias.innerHTML = "";
-      seleccionar(resultados[0]);
-    }
-  }
-});
-
-inputBusqueda.addEventListener("focus", () => {
-  if(inputBusqueda.value.trim()){
-    buscarEnVivo();
-  }
-});
-
-document.addEventListener("click", (e) => {
-  if(!sugerencias.contains(e.target) && e.target !== inputBusqueda){
-    sugerencias.style.display = "none";
-  }
-});
-
-/* =========================
-   EXPORTAR A WINDOW
-========================= */
-window.abrirEscaner = abrirEscaner;
-window.cerrarEscaner = cerrarEscaner;
-window.abrirCamaraFotos = abrirCamaraFotos;
-window.cerrarCamaraFotos = cerrarCamaraFotos;
-window.capturarFoto = capturarFoto;
-window.subir = subir;
-window.limpiarFotosActuales = limpiarFotosActuales;
-
-/* =========================
-   INIT
-========================= */
-async function init(){
-  try{
-    setProgress(1, "Iniciando app...", "Cargando módulos");
-    await cargarCatalogo();
-    finalizarCarga();
-  }catch(err){
-    console.error(err);
-    errorCarga(err.message || "Falló la preparación de la app");
-  }
-}
-
-await init();
 </script>
-
 </body>
 </html>
