@@ -1,961 +1,265 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>PROVSOFT | Toma de Fotos</title>
-  <style>
-    :root{
-      --azul:#00416A;
-      --azul2:#0c6cbd;
-      --verde:#16a34a;
-      --rojo:#dc2626;
-      --amarillo:#ca8a04;
-      --gris:#64748b;
-      --bg:#eef3f8;
-      --card:#ffffff;
-      --borde:#d8e1ec;
-      --texto:#0f172a;
-      --muted:#475569;
-      --shadow:0 10px 24px rgba(0,0,0,.12);
-      --radius:16px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROVSOFT Fotos V2</title>
 
-    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0c6cbd;
+}
 
-    body{
-      margin:0;
-      font-family:Arial, Helvetica, sans-serif;
-      background:linear-gradient(180deg, var(--azul), var(--azul2));
-      color:var(--texto);
-      min-height:100vh;
-    }
+.wrap{
+  max-width:500px;
+  margin:auto;
+  padding:10px;
+}
 
-    .app{
-      max-width:680px;
-      margin:0 auto;
-      padding:12px 12px 100px;
-    }
+.card{
+  background:white;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:10px;
+}
 
-    .panel{
-      background:var(--card);
-      border-radius:var(--radius);
-      padding:14px;
-      margin-bottom:12px;
-      box-shadow:var(--shadow);
-    }
+input, button{
+  width:100%;
+  padding:14px;
+  border-radius:10px;
+  margin-top:8px;
+  font-size:16px;
+}
 
-    h1,h2,h3{ margin:0 0 10px; }
-    h1{ font-size:22px; color:var(--azul); }
-    h2{ font-size:20px; }
-    h3{ font-size:17px; }
+button{ border:none; font-weight:bold; }
 
-    .muted{ color:var(--muted); font-size:13px; }
-    .mini{ color:var(--muted); font-size:12px; }
+.btn1{ background:#00416A; color:white; }
+.btn2{ background:#16a34a; color:white; }
+.btn3{ background:#dc2626; color:white; }
+.btn4{ background:#ca8a04; color:white; }
 
-    .row{ display:grid; gap:10px; }
-    .row-2{ grid-template-columns:1fr 1fr; }
+video{ width:100%; border-radius:12px; }
 
-    @media (max-width:560px){
-      .row-2{ grid-template-columns:1fr; }
-    }
-
-    input, button{
-      width:100%;
-      border-radius:14px;
-      font-size:16px;
-      padding:14px;
-      border:1px solid var(--borde);
-    }
-
-    input{
-      background:#fff;
-      color:var(--texto);
-    }
-
-    input:focus{
-      outline:none;
-      border-color:var(--azul2);
-      box-shadow:0 0 0 3px rgba(12,108,189,.14);
-    }
-
-    button{
-      border:none;
-      font-weight:700;
-      cursor:pointer;
-    }
-
-    .btn-primary{ background:var(--azul); color:#fff; }
-    .btn-green{ background:var(--verde); color:#fff; }
-    .btn-red{ background:var(--rojo); color:#fff; }
-    .btn-yellow{ background:var(--amarillo); color:#fff; }
-    .btn-gray{ background:#e2e8f0; color:#0f172a; }
-
-    .toolbar{
-      display:grid;
-      gap:10px;
-      grid-template-columns:repeat(2, 1fr);
-    }
-
-    .toolbar-3{
-      display:grid;
-      gap:10px;
-      grid-template-columns:repeat(3, 1fr);
-    }
-
-    @media (max-width:560px){
-      .toolbar, .toolbar-3{ grid-template-columns:1fr; }
-    }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      border-radius:999px;
-      padding:8px 12px;
-      font-size:12px;
-      color:#fff;
-      font-weight:700;
-      min-width:130px;
-    }
-
-    .red{ background:var(--rojo); }
-    .yellow{ background:var(--amarillo); }
-    .green{ background:var(--verde); }
-    .gray{ background:var(--gris); }
-
-    .product-box{
-      border:1px solid var(--borde);
-      border-radius:14px;
-      padding:12px;
-      background:#f8fafc;
-    }
-
-    .product-meta{
-      display:grid;
-      grid-template-columns:repeat(2,1fr);
-      gap:8px;
-      margin-top:10px;
-      font-size:14px;
-    }
-
-    @media (max-width:480px){
-      .product-meta{ grid-template-columns:1fr; }
-    }
-
-    .camera-wrap{
-      position:relative;
-      background:#111827;
-      border-radius:18px;
-      overflow:hidden;
-      min-height:280px;
-    }
-
-    video{
-      width:100%;
-      display:block;
-      background:#000;
-      max-height:480px;
-      object-fit:cover;
-    }
-
-    .overlay{
-      position:absolute;
-      inset:14px;
-      border:2px dashed rgba(255,255,255,.4);
-      border-radius:18px;
-      pointer-events:none;
-    }
-
-    .shots{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:10px;
-    }
-
-    @media (max-width:560px){
-      .shots{ grid-template-columns:1fr; }
-    }
-
-    .shot{
-      background:#fff;
-      border:1px solid var(--borde);
-      border-radius:14px;
-      padding:10px;
-    }
-
-    .shot img{
-      width:100%;
-      aspect-ratio:1/1;
-      object-fit:cover;
-      border-radius:12px;
-      background:#e5e7eb;
-      display:block;
-    }
-
-    .progress{
-      height:12px;
-      width:100%;
-      background:#e2e8f0;
-      border-radius:999px;
-      overflow:hidden;
-      margin:8px 0;
-    }
-
-    .bar{
-      height:100%;
-      width:0%;
-      background:linear-gradient(90deg,var(--azul),var(--verde));
-      transition:width .18s ease;
-    }
-
-    .counter{
-      font-size:28px;
-      color:var(--azul);
-      font-weight:800;
-    }
-
-    .log{
-      min-height:120px;
-      max-height:220px;
-      overflow:auto;
-      background:#0f172a;
-      color:#e2e8f0;
-      border-radius:14px;
-      padding:12px;
-      font-size:13px;
-      white-space:pre-wrap;
-    }
-
-    .sticky-bottom{
-      position:fixed;
-      left:0;
-      right:0;
-      bottom:0;
-      background:rgba(255,255,255,.96);
-      backdrop-filter:blur(8px);
-      border-top:1px solid #dbe3ee;
-      padding:10px max(12px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
-      box-shadow:0 -10px 25px rgba(0,0,0,.12);
-    }
-
-    .sticky-inner{
-      max-width:680px;
-      margin:0 auto;
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-    }
-
-    .modal-backdrop{
-      position:fixed;
-      inset:0;
-      background:rgba(15,23,42,.55);
-      display:none;
-      align-items:flex-end;
-      justify-content:center;
-      z-index:50;
-    }
-
-    .modal-backdrop.show{ display:flex; }
-
-    .modal{
-      width:min(720px, 100%);
-      max-height:82vh;
-      background:#fff;
-      border-radius:22px 22px 0 0;
-      overflow:hidden;
-      box-shadow:0 -10px 30px rgba(0,0,0,.2);
-    }
-
-    .modal-head{
-      padding:14px;
-      border-bottom:1px solid #e2e8f0;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-
-    .modal-body{
-      padding:12px;
-      overflow:auto;
-      max-height:calc(82vh - 70px);
-    }
-
-    .result-item{
-      border:1px solid var(--borde);
-      border-radius:14px;
-      padding:12px;
-      margin-bottom:10px;
-      background:#fff;
-      cursor:pointer;
-    }
-
-    .result-item:active{
-      transform:scale(.995);
-      background:#f8fafc;
-    }
-
-    .result-title{
-      font-weight:700;
-      margin-bottom:6px;
-    }
-
-    .center{
-      text-align:center;
-    }
-  </style>
+img{
+  width:100%;
+  border-radius:10px;
+  margin-top:6px;
+}
+</style>
 </head>
+
 <body>
-  <div class="app">
-    <div class="panel">
-      <h1>PROVSOFT | Toma de Fotos</h1>
-      <div class="muted">Código exacto entra directo. Búsqueda por palabras abre selección. 3 fotos por producto.</div>
-    </div>
 
-    <div class="panel">
-      <div class="row">
-        <div>
-          <label class="mini" for="busquedaInput">Código o descripción</label>
-          <input id="busquedaInput" type="text" placeholder="Escanea código o escribe: 855 mariel / convermex" autocomplete="off" />
-        </div>
-        <div class="toolbar">
-          <button id="btnBuscar" class="btn-primary">Buscar</button>
-          <button id="btnLimpiarTodo" class="btn-gray">Limpiar / siguiente</button>
-        </div>
-      </div>
-      <div class="mini" style="margin-top:8px;">Al abrir, la app descarga catálogo de Firestore y busca localmente para no castigar la base.</div>
-    </div>
+<div class="wrap">
 
-    <div class="panel">
-      <div class="product-box">
-        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;">
-          <div>
-            <h2 id="productoNombre">Sin producto seleccionado</h2>
-            <div id="productoDescripcion" class="muted">Esperando búsqueda...</div>
-          </div>
-          <span id="estatusPill" class="pill red">SIN FOTOS</span>
-        </div>
+<div class="card">
+<h3>Buscar producto</h3>
+<input id="busqueda" placeholder="Código o texto">
+<button class="btn1" onclick="buscar()">Buscar</button>
+<button class="btn4" onclick="actualizarCatalogo()">Actualizar catálogo</button>
+</div>
 
-        <div class="product-meta">
-          <div><strong>Código:</strong> <span id="productoCodigo">-</span></div>
-          <div><strong>Marca:</strong> <span id="productoMarca">-</span></div>
-          <div><strong>Precio:</strong> <span id="productoPrecio">-</span></div>
-          <div><strong>Fotos:</strong> <span id="fotosTomadas">0 / 3</span></div>
-        </div>
-      </div>
-    </div>
+<div class="card">
+<h3 id="nombre">Sin producto</h3>
+<div id="estado">SIN FOTOS</div>
+<div id="alerta"></div>
+</div>
 
-    <div class="panel">
-      <h3>Cámara</h3>
-      <div class="camera-wrap">
-        <video id="video" autoplay playsinline muted></video>
-        <div class="overlay"></div>
-      </div>
-      <div class="toolbar-3" style="margin-top:10px;">
-        <button id="btnIniciarCamara" class="btn-primary">Iniciar cámara</button>
-        <button id="btnCapturar" class="btn-green">Tomar foto</button>
-        <button id="btnDetenerCamara" class="btn-red">Detener cámara</button>
-      </div>
-      <div class="mini" style="margin-top:8px;">Prioriza cámara trasera. Si el navegador soporta lector nativo, doble toque en el video intenta detectar el código.</div>
-    </div>
+<div class="card">
+<video id="video" autoplay playsinline></video>
+<button class="btn1" onclick="iniciarCamara()">Iniciar cámara</button>
+<button class="btn2" onclick="capturar()">Tomar foto</button>
+<button class="btn3" onclick="detenerCamara()">Detener</button>
+</div>
 
-    <div class="panel">
-      <h3>Fotos del producto</h3>
-      <div class="shots">
-        <div class="shot">
-          <strong>Foto 1</strong>
-          <img id="img1" alt="Foto 1" />
-          <div id="meta1" class="mini">Vacía</div>
-        </div>
-        <div class="shot">
-          <strong>Foto 2</strong>
-          <img id="img2" alt="Foto 2" />
-          <div id="meta2" class="mini">Vacía</div>
-        </div>
-        <div class="shot">
-          <strong>Foto 3</strong>
-          <img id="img3" alt="Foto 3" />
-          <div id="meta3" class="mini">Vacía</div>
-        </div>
-      </div>
-    </div>
+<div class="card">
+<h3>Fotos</h3>
+<img id="f1">
+<img id="f2">
+<img id="f3">
+<button class="btn4" onclick="subir()">Subir</button>
+</div>
 
-    <div class="panel">
-      <h3>Progreso</h3>
-      <div id="contadorSubida" class="counter">0%</div>
-      <div class="progress"><div id="barra" class="bar"></div></div>
-      <div id="detalleSubida" class="mini">Esperando capturas.</div>
-    </div>
+</div>
 
-    <div class="panel">
-      <h3>Bitácora</h3>
-      <div id="log" class="log"></div>
-    </div>
-  </div>
+<canvas id="canvas" style="display:none;"></canvas>
 
-  <div class="sticky-bottom">
-    <div class="sticky-inner">
-      <button id="btnReiniciarFotos" class="btn-gray">Borrar fotos</button>
-      <button id="btnSubirTodo" class="btn-yellow">Subir 3 fotos</button>
-    </div>
-  </div>
+<script type="module">
+import { firebaseConfig } from './config.js';
 
-  <div id="modalResultados" class="modal-backdrop">
-    <div class="modal">
-      <div class="modal-head">
-        <div>
-          <strong>Selecciona producto</strong>
-          <div id="modalSubtitulo" class="mini">Resultados encontrados</div>
-        </div>
-        <button id="btnCerrarModal" class="btn-gray" style="width:auto;padding:10px 14px;">Cerrar</button>
-      </div>
-      <div id="listaResultados" class="modal-body"></div>
-    </div>
-  </div>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-  <canvas id="canvas" style="display:none;"></canvas>
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
+const db = getFirestore(app);
 
-  <script type="module">
-    import { firebaseConfig } from './config.js';
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      doc,
-      getDoc,
-      setDoc,
-      serverTimestamp
-    } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js';
-    import {
-      getStorage,
-      ref,
-      uploadBytesResumable,
-      getDownloadURL
-    } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js';
+// ===== VARIABLES =====
+let productos = [];
+let productoActual = null;
+let fotos = [];
+let stream = null;
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
+// CACHE CONFIG
+const CACHE_KEY = "catalogo_productos";
+const CACHE_TIME = "catalogo_timestamp";
+const TTL = 1000 * 60 * 60 * 12; // 12 horas
 
-    const CONFIG = {
-      storageFolder: 'productos_fotos',
-      firestoreCollectionFotos: 'productos_fotos',
-      catalogoCollection: 'productos',
-      imageMaxSide: 1600,
-      imageQuality: 0.76,
-      fotosRequeridas: 3
-    };
+// ===== LOCAL STORAGE CACHE =====
+function guardarCache(data){
+  localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  localStorage.setItem(CACHE_TIME, Date.now());
+}
 
-    let streamActual = null;
-    let productoActual = null;
-    let productosCache = [];
-    let fotos = [null, null, null];
-    let fotoIndex = 0;
+function leerCache(){
+  const data = localStorage.getItem(CACHE_KEY);
+  return data ? JSON.parse(data) : null;
+}
 
-    const $ = (id) => document.getElementById(id);
+function cacheValido(){
+  const t = localStorage.getItem(CACHE_TIME);
+  if(!t) return false;
+  return (Date.now() - t) < TTL;
+}
 
-    const busquedaInput = $('busquedaInput');
-    const video = $('video');
-    const canvas = $('canvas');
-    const logBox = $('log');
-    const barra = $('barra');
-    const contadorSubida = $('contadorSubida');
-    const detalleSubida = $('detalleSubida');
-    const modalResultados = $('modalResultados');
-    const listaResultados = $('listaResultados');
+async function cargarCatalogo(){
+  if(cacheValido()){
+    productos = leerCache();
+    console.log("CATALOGO DESDE CACHE");
+    return;
+  }
 
-    function log(msg) {
-      const stamp = new Date().toLocaleTimeString();
-      logBox.textContent = `[${stamp}] ${msg}\n` + logBox.textContent;
-    }
+  console.log("DESCARGANDO CATALOGO...");
 
-    function normalizarTexto(txt = '') {
-      return txt
-        .toString()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
+  const snap = await getDocs(collection(db,"productos"));
+
+  productos = snap.docs.map(d => {
+    const p = d.data();
+    return {
+      ...p,
+      search: (p.concepto + " " + (p.marca||"") + " " + (p.codigoBarra||""))
         .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-    }
-
-    function esProbableCodigo(texto) {
-      const limpio = texto.replace(/\s+/g, '');
-      return /^\d{6,20}$/.test(limpio);
-    }
-
-    function actualizarProgreso(percent, text) {
-      contadorSubida.textContent = `${Math.round(percent)}%`;
-      barra.style.width = `${percent}%`;
-      detalleSubida.textContent = text;
-    }
-
-    function setStatus(text, colorClass) {
-      const pill = $('estatusPill');
-      pill.textContent = text;
-      pill.className = `pill ${colorClass}`;
-    }
-
-    function updateFotosTomadas() {
-      const count = fotos.filter(Boolean).length;
-      $('fotosTomadas').textContent = `${count} / ${CONFIG.fotosRequeridas}`;
-    }
-
-    function refreshStatusByFotos() {
-      const count = fotos.filter(Boolean).length;
-      updateFotosTomadas();
-
-      if (!productoActual) {
-        setStatus('SIN FOTOS', 'red');
-        return;
-      }
-
-      if (count === 0) setStatus('SIN FOTOS', 'red');
-      else if (count < CONFIG.fotosRequeridas) setStatus('INCOMPLETO', 'yellow');
-      else setStatus('LISTO PARA SUBIR', 'green');
-    }
-
-    function resetUIProducto() {
-      $('productoNombre').textContent = 'Sin producto seleccionado';
-      $('productoDescripcion').textContent = 'Esperando búsqueda...';
-      $('productoCodigo').textContent = '-';
-      $('productoMarca').textContent = '-';
-      $('productoPrecio').textContent = '-';
-      setStatus('SIN FOTOS', 'red');
-      updateFotosTomadas();
-    }
-
-    function renderProducto(p) {
-      $('productoNombre').textContent = p.concepto || p.nombre || 'Producto sin nombre';
-      $('productoDescripcion').textContent = p.descripcion || 'Producto localizado';
-      $('productoCodigo').textContent = p.codigoBarra || p.codigo || '-';
-      $('productoMarca').textContent = p.marca || '-';
-      $('productoPrecio').textContent = p.precioPublico != null ? `$${Number(p.precioPublico).toFixed(2)}` : '-';
-      refreshStatusByFotos();
-    }
-
-    function limpiarFotos() {
-      fotos = [null, null, null];
-      fotoIndex = 0;
-      ['img1','img2','img3'].forEach(id => $(id).src = '');
-      ['meta1','meta2','meta3'].forEach(id => $(id).textContent = 'Vacía');
-      actualizarProgreso(0, 'Esperando capturas.');
-      refreshStatusByFotos();
-    }
-
-    function limpiarTodo() {
-      productoActual = null;
-      busquedaInput.value = '';
-      limpiarFotos();
-      resetUIProducto();
-      busquedaInput.focus();
-      log('Listo para el siguiente producto.');
-    }
-
-    function abrirModalResultados(items, textoBuscado) {
-      $('modalSubtitulo').textContent = `${items.length} resultados para "${textoBuscado}"`;
-      listaResultados.innerHTML = '';
-
-      items.forEach((p) => {
-        const div = document.createElement('div');
-        div.className = 'result-item';
-        div.innerHTML = `
-          <div class="result-title">${escapeHtml(p.concepto || p.nombre || 'Sin nombre')}</div>
-          <div class="mini"><strong>Código:</strong> ${escapeHtml(p.codigoBarra || p.codigo || '-')}</div>
-          <div class="mini"><strong>Marca:</strong> ${escapeHtml(p.marca || '-')}</div>
-          <div class="mini"><strong>Precio:</strong> ${p.precioPublico != null ? '$' + Number(p.precioPublico).toFixed(2) : '-'}</div>
-        `;
-        div.addEventListener('click', async () => {
-          cerrarModalResultados();
-          await seleccionarProducto(p);
-        });
-        listaResultados.appendChild(div);
-      });
-
-      modalResultados.classList.add('show');
-    }
-
-    function cerrarModalResultados() {
-      modalResultados.classList.remove('show');
-    }
-
-    function escapeHtml(str = '') {
-      return String(str)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
-
-    async function cargarCatalogo() {
-      try {
-        log('Descargando catálogo...');
-        const snap = await getDocs(collection(db, CONFIG.catalogoCollection));
-
-        productosCache = snap.docs
-          .map(d => {
-            const p = d.data() || {};
-            const codigo = String(p.codigoBarra || p.codigo || d.id || '').trim();
-            const concepto = String(p.concepto || p.nombre || '').trim();
-            const marca = String(p.marca || '').trim();
-            const activo = p.activo !== false;
-
-            return {
-              id: d.id,
-              ...p,
-              codigoBarra: codigo,
-              concepto,
-              marca,
-              activo,
-              searchText: normalizarTexto(`${codigo} ${concepto} ${marca}`)
-            };
-          })
-          .filter(p => p.activo);
-
-        log(`Catálogo cargado: ${productosCache.length} productos activos.`);
-      } catch (err) {
-        console.error(err);
-        log(`Error cargando catálogo: ${err.message}`);
-        alert(`No se pudo descargar catálogo: ${err.message}`);
-      }
-    }
-
-    function buscarPorCodigo(codigo) {
-      const limpio = normalizarTexto(codigo);
-      return productosCache.find(p => normalizarTexto(p.codigoBarra) === limpio) || null;
-    }
-
-    function buscarPorTexto(query) {
-      const q = normalizarTexto(query);
-      if (!q) return [];
-
-      const tokens = q.split(' ').filter(Boolean);
-
-      return productosCache
-        .map(p => {
-          let score = 0;
-          let allMatch = true;
-
-          for (const t of tokens) {
-            if (p.searchText.includes(t)) score++;
-            else allMatch = false;
-          }
-
-          return { ...p, score, allMatch };
-        })
-        .filter(p => p.score > 0)
-        .sort((a, b) => {
-          if (a.allMatch !== b.allMatch) return a.allMatch ? -1 : 1;
-          if (b.score !== a.score) return b.score - a.score;
-          return (a.concepto || '').localeCompare(b.concepto || '');
-        })
-        .slice(0, 40);
-    }
-
-    async function revisarFotosExistentes(codigo) {
-      try {
-        const snap = await getDoc(doc(db, CONFIG.firestoreCollectionFotos, codigo));
-        if (!snap.exists()) return null;
-        return snap.data();
-      } catch (err) {
-        log(`No se pudo revisar historial de fotos: ${err.message}`);
-        return null;
-      }
-    }
-
-    async function seleccionarProducto(p) {
-      productoActual = p;
-      limpiarFotos();
-      renderProducto(productoActual);
-      log(`Producto seleccionado: ${p.concepto || p.nombre || p.codigoBarra}`);
-
-      const existente = await revisarFotosExistentes(p.codigoBarra);
-      if (existente?.fotosCount >= 3) {
-        log('Aviso: este producto ya tiene registro previo con 3 fotos.');
-      }
-    }
-
-    async function resolverBusqueda() {
-      const texto = busquedaInput.value.trim();
-      if (!texto) {
-        alert('Escribe o escanea algo.');
-        return;
-      }
-
-      if (!productosCache.length) {
-        alert('El catálogo aún no está cargado.');
-        return;
-      }
-
-      const intentoCodigo = texto.replace(/\s+/g, '');
-
-      if (esProbableCodigo(intentoCodigo)) {
-        const directo = buscarPorCodigo(intentoCodigo);
-        if (directo) {
-          await seleccionarProducto(directo);
-          return;
-        }
-      }
-
-      const resultados = buscarPorTexto(texto);
-
-      if (resultados.length === 0) {
-        productoActual = null;
-        resetUIProducto();
-        alert('Sin coincidencias.');
-        log(`Sin resultados para: ${texto}`);
-        return;
-      }
-
-      if (resultados.length === 1) {
-        await seleccionarProducto(resultados[0]);
-        return;
-      }
-
-      abrirModalResultados(resultados, texto);
-    }
-
-    async function iniciarCamara() {
-      try {
-        if (streamActual) detenerCamara();
-
-        streamActual = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          audio: false
-        });
-
-        video.srcObject = streamActual;
-        log('Cámara iniciada.');
-      } catch (err) {
-        console.error(err);
-        alert(`No se pudo iniciar la cámara: ${err.message}`);
-        log(`Error cámara: ${err.message}`);
-      }
-    }
-
-    function detenerCamara() {
-      if (streamActual) {
-        streamActual.getTracks().forEach(t => t.stop());
-        streamActual = null;
-        video.srcObject = null;
-        log('Cámara detenida.');
-      }
-    }
-
-    function calcularEscala(w, h, maxSide) {
-      if (Math.max(w, h) <= maxSide) return { width: w, height: h };
-      const ratio = w / h;
-      if (w >= h) return { width: maxSide, height: Math.round(maxSide / ratio) };
-      return { width: Math.round(maxSide * ratio), height: maxSide };
-    }
-
-    function canvasToBlob(canvas, mime, quality) {
-      return new Promise((resolve, reject) => {
-        canvas.toBlob(blob => {
-          if (!blob) return reject(new Error('No se pudo generar blob.'));
-          resolve(blob);
-        }, mime, quality);
-      });
-    }
-
-    async function capturarYComprimir() {
-      if (!productoActual) {
-        alert('Primero selecciona producto.');
-        return;
-      }
-      if (!video.srcObject) {
-        alert('Primero inicia la cámara.');
-        return;
-      }
-      if (fotoIndex >= CONFIG.fotosRequeridas) {
-        alert('Ya tienes las 3 fotos.');
-        return;
-      }
-
-      const vw = video.videoWidth;
-      const vh = video.videoHeight;
-
-      if (!vw || !vh) {
-        alert('La cámara aún no está lista.');
-        return;
-      }
-
-      const { width, height } = calcularEscala(vw, vh, CONFIG.imageMaxSide);
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, width, height);
-
-      const blob = await canvasToBlob(canvas, 'image/jpeg', CONFIG.imageQuality);
-      const previewUrl = URL.createObjectURL(blob);
-      const sizeKB = (blob.size / 1024).toFixed(1);
-
-      fotos[fotoIndex] = {
-        index: fotoIndex + 1,
-        blob,
-        previewUrl,
-        sizeKB,
-        mime: 'image/jpeg'
-      };
-
-      $(`img${fotoIndex + 1}`).src = previewUrl;
-      $(`meta${fotoIndex + 1}`).textContent = `${sizeKB} KB · JPEG · calidad ${Math.round(CONFIG.imageQuality * 100)}%`;
-
-      log(`Foto ${fotoIndex + 1} capturada: ${sizeKB} KB.`);
-      fotoIndex++;
-      refreshStatusByFotos();
-    }
-
-    async function subirFotos() {
-      if (!productoActual) {
-        alert('No hay producto seleccionado.');
-        return;
-      }
-
-      const fotosValidas = fotos.filter(Boolean);
-      if (fotosValidas.length !== CONFIG.fotosRequeridas) {
-        alert('Debes tomar las 3 fotos.');
-        return;
-      }
-
-      try {
-        const codigo = productoActual.codigoBarra || productoActual.codigo;
-        const sello = new Date().toISOString().replace(/[:.]/g, '-');
-        const resultados = [];
-
-        actualizarProgreso(0, 'Preparando subida...');
-
-        for (let i = 0; i < fotosValidas.length; i++) {
-          const foto = fotosValidas[i];
-          const filePath = `${CONFIG.storageFolder}/${codigo}/${sello}_${foto.index}.jpg`;
-          const storageRef = ref(storage, filePath);
-
-          log(`Subiendo foto ${foto.index} → ${filePath}`);
-
-          const metadata = {
-            contentType: 'image/jpeg',
-            customMetadata: {
-              codigo,
-              fotoNumero: String(foto.index),
-              modulo: 'catalogo_fotos_producto'
-            }
-          };
-
-          const task = uploadBytesResumable(storageRef, foto.blob, metadata);
-
-          await new Promise((resolve, reject) => {
-            task.on(
-              'state_changed',
-              (snapshot) => {
-                const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                const parcial = ((i / fotosValidas.length) * 100) + (percent / fotosValidas.length);
-                actualizarProgreso(parcial, `Subiendo foto ${foto.index}... ${percent.toFixed(0)}%`);
-              },
-              reject,
-              resolve
-            );
-          });
-
-          const downloadURL = await getDownloadURL(task.snapshot.ref);
-
-          resultados.push({
-            fotoNumero: foto.index,
-            path: filePath,
-            url: downloadURL,
-            sizeKB: foto.sizeKB,
-            uploadedAt: new Date().toISOString()
-          });
-        }
-
-        await setDoc(doc(db, CONFIG.firestoreCollectionFotos, codigo), {
-          codigoBarra: codigo,
-          nombre: productoActual.concepto || productoActual.nombre || null,
-          marca: productoActual.marca || null,
-          precioPublico: productoActual.precioPublico ?? null,
-          fotos: resultados,
-          fotosCount: resultados.length,
-          status: 'COMPLETO',
-          updatedAt: serverTimestamp(),
-          updatedAtISO: new Date().toISOString()
-        }, { merge: true });
-
-        actualizarProgreso(100, 'Subida completa y registro guardado.');
-        setStatus('COMPLETO', 'green');
-        log('Registro guardado en Firestore.');
-        alert('Las 3 fotos se subieron correctamente.');
-      } catch (err) {
-        console.error(err);
-        log(`Error subida: ${err.message}`);
-        alert(`Error al subir: ${err.message}`);
-      }
-    }
-
-    async function intentarEscaneoAutomaticoUnaVez() {
-      if (!('BarcodeDetector' in window)) {
-        log('BarcodeDetector no disponible en este navegador.');
-        return;
-      }
-
-      try {
-        const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'upc_a', 'upc_e'] });
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = video.videoWidth;
-        tempCanvas.height = video.videoHeight;
-        const ctx = tempCanvas.getContext('2d');
-        ctx.drawImage(video, 0, 0);
-        const encontrados = await detector.detect(tempCanvas);
-
-        if (encontrados?.length) {
-          busquedaInput.value = encontrados[0].rawValue || '';
-          log(`Código detectado: ${busquedaInput.value}`);
-          await resolverBusqueda();
-        } else {
-          log('No se detectó código en ese intento.');
-        }
-      } catch (err) {
-        log(`Error lector: ${err.message}`);
-      }
-    }
-
-    $('btnBuscar').addEventListener('click', resolverBusqueda);
-
-    busquedaInput.addEventListener('keydown', async (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        await resolverBusqueda();
-      }
-    });
-
-    $('btnLimpiarTodo').addEventListener('click', limpiarTodo);
-    $('btnIniciarCamara').addEventListener('click', iniciarCamara);
-    $('btnDetenerCamara').addEventListener('click', detenerCamara);
-    $('btnCapturar').addEventListener('click', capturarYComprimir);
-    $('btnSubirTodo').addEventListener('click', subirFotos);
-    $('btnReiniciarFotos').addEventListener('click', () => {
-      limpiarFotos();
-      log('Fotos locales borradas.');
-    });
-    $('btnCerrarModal').addEventListener('click', cerrarModalResultados);
-    modalResultados.addEventListener('click', (e) => {
-      if (e.target === modalResultados) cerrarModalResultados();
-    });
-
-    video.addEventListener('dblclick', intentarEscaneoAutomaticoUnaVez);
-
-    resetUIProducto();
-    limpiarFotos();
-    log('Inicializando módulo...');
-    await cargarCatalogo();
-    log('Módulo listo.');
-  </script>
+    };
+  });
+
+  guardarCache(productos);
+}
+
+async function actualizarCatalogo(){
+  localStorage.removeItem(CACHE_KEY);
+  localStorage.removeItem(CACHE_TIME);
+  await cargarCatalogo();
+  alert("Catálogo actualizado");
+}
+
+function buscar(){
+  const q = document.getElementById("busqueda").value.toLowerCase();
+
+  // ===== CODIGO DIRECTO =====
+  const exacto = productos.find(p => p.codigoBarra == q);
+
+  if(exacto){
+    seleccionar(exacto);
+    return;
+  }
+
+  // ===== BUSQUEDA POR TEXTO =====
+  const resultados = productos.filter(p => p.search.includes(q));
+
+  if(resultados.length == 1){
+    seleccionar(resultados[0]);
+  } else if(resultados.length > 1){
+    mostrarLista(resultados);
+  } else {
+    alert("No encontrado");
+  }
+}
+
+function mostrarLista(lista){
+  let texto = "Selecciona:\n";
+  lista.slice(0,10).forEach((p,i)=>{
+    texto += `${i+1}. ${p.concepto}\n`;
+  });
+
+  const i = prompt(texto);
+  if(!i) return;
+
+  seleccionar(lista[i-1]);
+}
+
+async function seleccionar(p){
+  productoActual = p;
+  document.getElementById("nombre").innerText = p.concepto;
+
+  // revisar si ya tiene fotos
+  const docRef = doc(db,"productos_fotos",p.codigoBarra);
+  const snap = await getDoc(docRef);
+
+  if(snap.exists()){
+    document.getElementById("alerta").innerText = "⚠ YA FOTOGRAFIADO";
+  } else {
+    document.getElementById("alerta").innerText = "";
+  }
+}
+
+async function iniciarCamara(){
+  stream = await navigator.mediaDevices.getUserMedia({
+    video:{ facingMode:"environment" }
+  });
+  video.srcObject = stream;
+}
+
+function detenerCamara(){
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+}
+
+function capturar(){
+  if(fotos.length>=3) return alert("Ya son 3");
+
+  const canvas = document.getElementById("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video,0,0);
+
+  canvas.toBlob(blob=>{
+    fotos.push(blob);
+    document.getElementById("f"+fotos.length).src = URL.createObjectURL(blob);
+    document.getElementById("estado").innerText = fotos.length + "/3";
+  },"image/jpeg",0.75);
+}
+
+async function subir(){
+  if(fotos.length!=3) return alert("Faltan fotos");
+
+  const codigo = productoActual.codigoBarra;
+
+  let paths=[];
+
+  for(let i=0;i<3;i++){
+    const path = `productos_fotos/${codigo}/${Date.now()}_${i}.jpg`;
+    const r = ref(storage,path);
+
+    await uploadBytes(r,fotos[i]);
+    paths.push(path);
+  }
+
+  await setDoc(doc(db,"productos_fotos",codigo),{
+    codigoBarra:codigo,
+    fotos:paths,
+    status:"COMPLETO"
+  });
+
+  alert("OK SUBIDO");
+  fotos=[];
+}
+
+await cargarCatalogo();
+</script>
 </body>
 </html>
+
