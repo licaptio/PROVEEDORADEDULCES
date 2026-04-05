@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PROVSOFT - Fotos Producto</title>
+
+<style>
+body { margin:0; font-family:Arial; background:#0c6cbd; }
+.wrap { padding:10px; max-width:500px; margin:auto; }
+
+.card {
+  background:white;
+  border-radius:12px;
+  padding:12px;
+  margin-bottom:10px;
+}
+
+input, button {
+  width:100%;
+  padding:14px;
+  border-radius:10px;
+  margin-top:8px;
+  font-size:16px;
+}
+
+button { border:none; font-weight:bold; }
+
+.btn1 { background:#00416A; color:white; }
+.btn2 { background:#16a34a; color:white; }
+.btn3 { background:#dc2626; color:white; }
+.btn4 { background:#ca8a04; color:white; }
+
+video { width:100%; border-radius:12px; }
+
+img { width:100%; border-radius:10px; margin-top:6px; }
+
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<div class="card">
+<h3>Escanear producto</h3>
+<input id="codigo" placeholder="Código de barras">
+<button class="btn1" onclick="buscar()">Buscar</button>
+</div>
+
+<div class="card">
+<h3 id="nombre">Sin producto</h3>
+<div id="estado">SIN FOTOS</div>
+</div>
+
+<div class="card">
+<video id="video" autoplay playsinline></video>
+<button class="btn1" onclick="iniciarCamara()">Iniciar cámara</button>
+<button class="btn2" onclick="capturar()">Tomar foto</button>
+<button class="btn3" onclick="detenerCamara()">Detener</button>
+</div>
+
+<div class="card">
+<h3>Fotos</h3>
+<img id="f1">
+<img id="f2">
+<img id="f3">
+<button class="btn4" onclick="subir()">Subir 3 fotos</button>
+</div>
+
+</div>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script type="module">
+import { firebaseConfig } from './config.js';
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
+const db = getFirestore(app);
+
+let stream = null;
+let fotos = [];
+let producto = null;
+
+window.buscar = function() {
+  const codigo = document.getElementById("codigo").value;
+  producto = { codigoBarra: codigo, nombre: "Producto " + codigo };
+  document.getElementById("nombre").innerText = producto.nombre;
+}
+
+window.iniciarCamara = async function() {
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "environment" }
+  });
+  video.srcObject = stream;
+}
+
+window.detenerCamara = function() {
+  if(stream) stream.getTracks().forEach(t => t.stop());
+}
+
+window.capturar = function() {
+  if(fotos.length >= 3) return alert("Ya son 3");
+
+  const canvas = document.getElementById("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext("2d");
+
+  ctx.drawImage(video,0,0);
+
+  canvas.toBlob(blob => {
+    fotos.push(blob);
+    document.getElementById("f"+fotos.length).src = URL.createObjectURL(blob);
+    document.getElementById("estado").innerText = fotos.length + " / 3";
+  }, "image/jpeg", 0.75);
+}
+
+window.subir = async function() {
+  if(fotos.length !== 3) return alert("Faltan fotos");
+
+  const codigo = producto.codigoBarra;
+  const urls = [];
+
+  for(let i=0;i<3;i++){
+    const path = `productos_fotos/${codigo}/${Date.now()}_${i}.jpg`;
+    const storageRef = ref(storage, path);
+
+    await uploadBytes(storageRef, fotos[i]);
+    urls.push(path);
+  }
+
+  await setDoc(doc(db,"productos_fotos",codigo),{
+    codigoBarra: codigo,
+    fotos: urls,
+    status: "COMPLETO"
+  });
+
+  alert("SUBIDO OK");
+  fotos = [];
+}
+</script>
+
+</body>
+</html>
