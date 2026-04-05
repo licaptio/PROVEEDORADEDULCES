@@ -175,7 +175,16 @@ import { firebaseConfig } from './config.js';
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
 import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  collection, 
+  getDocs,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
@@ -347,9 +356,7 @@ async function cargarCatalogo(){
   }
 
   setProgress(35, "Descargando catálogo...", "Consultando Firebase Firestore");
-
-  import { query, where } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-
+ 
 const q = query(
   collection(db,"productos"),
   where("activo","==",true)
@@ -369,15 +376,13 @@ for(let i = 0; i < snap.docs.length; i++){
     codigoBarra: String(p.codigoBarra || "").trim(),
     concepto: String(p.concepto || "").trim()
   });
-}
-    
 
-    if(i % 50 === 0 || i === snap.docs.length - 1){
-      const avance = 35 + Math.round((i / total) * 30);
-      setProgress(avance, "Descargando catálogo...", `Procesando ${i + 1} de ${total}`);
-      await pausa(0);
-    }
+  if(i % 50 === 0 || i === snap.docs.length - 1){
+    const avance = 35 + Math.round((i / total) * 30);
+    setProgress(avance, "Descargando catálogo...", `Procesando ${i + 1} de ${total}`);
+    await pausa(0);
   }
+}
 
   setProgress(70, "Guardando catálogo en el dispositivo...", "Preparando modo local");
 
