@@ -24,15 +24,17 @@
       --shadow:0 18px 40px rgba(0,0,0,.14);
       --radius:20px;
     }
-    html,body{
-      margin:0;
-      padding:0;
-      min-height:100%;
-      font-family:Arial, Helvetica, sans-serif;
-      background:linear-gradient(180deg,var(--azul),var(--azul2));
-      color:#111827;
-      overflow:hidden;
-    }
+html,body{
+  margin:0;
+  padding:0;
+  min-height:100%;
+  font-family:Arial, Helvetica, sans-serif;
+  background:linear-gradient(180deg,var(--azul),var(--azul2));
+  color:#111827;
+
+  overflow:auto; /* 🔥 FIX */
+}
+    
     body{ position:relative; }
     .app{
       min-height:100dvh;
@@ -42,15 +44,17 @@
       position:relative;
       background:transparent;
     }
-    .screen{
-      position:absolute;
-      inset:0;
-      padding:14px;
-      display:none;
-      flex-direction:column;
-      gap:12px;
-      overflow:hidden;
-    }
+.screen{
+  position:absolute;
+  inset:0;
+  padding:14px;
+  display:none;
+  flex-direction:column;
+  gap:12px;
+
+  overflow-y:auto; /* 🔥 FIX REAL */
+}
+    
     .screen.active{ display:flex; }
     .card{
       background:#fff;
