@@ -1,278 +1,1206 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PROVSOFT Fotos Firebase</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>PROVSOFT Fotos Limpio</title>
 
-<style>
-body{ margin:0; font-family:Arial; background:#0c6cbd; }
-.wrap{ max-width:520px; margin:auto; padding:10px; }
-.card{ background:white; border-radius:12px; padding:12px; margin-bottom:10px; }
-input,button{ width:100%; padding:14px; border-radius:10px; margin-top:8px; }
-button{ border:none; font-weight:bold; }
-.btn1{ background:#00416A;color:white;}
-.btn2{ background:#16a34a;color:white;}
-.btn3{ background:#dc2626;color:white;}
-.btn4{ background:#ca8a04;color:white;}
-.hidden{ display:none; }
-.modal{ position:fixed; inset:0; background:rgba(0,0,0,.85); display:flex; align-items:center; justify-content:center;}
-.modal-content{ background:white; border-radius:14px; width:100%; max-width:520px; padding:12px;}
-video,img{ width:100%; border-radius:10px;}
-</style>
+  <style>
+    *{ box-sizing:border-box; }
+
+    :root{
+      --azul:#00416A;
+      --azul2:#0c6cbd;
+      --verde:#16a34a;
+      --rojo:#dc2626;
+      --amarillo:#ca8a04;
+      --gris:#374151;
+      --gris2:#6b7280;
+      --fondo:#eef4fb;
+      --borde:#d1d5db;
+    }
+
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:var(--azul2);
+    }
+
+    .wrap{
+      max-width:560px;
+      margin:auto;
+      padding:10px;
+    }
+
+    .card{
+      background:#fff;
+      border-radius:14px;
+      padding:12px;
+      margin-bottom:10px;
+      box-shadow:0 8px 20px rgba(0,0,0,.12);
+    }
+
+    h3{
+      margin:0 0 10px 0;
+    }
+
+    input, button, textarea{
+      width:100%;
+      padding:14px;
+      border-radius:10px;
+      margin-top:8px;
+      font-size:16px;
+    }
+
+    input, textarea{
+      border:1px solid var(--borde);
+      outline:none;
+    }
+
+    button{
+      border:none;
+      font-weight:bold;
+      cursor:pointer;
+    }
+
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .btn1{ background:var(--azul); color:#fff; }
+    .btn2{ background:var(--verde); color:#fff; }
+    .btn3{ background:var(--rojo); color:#fff; }
+    .btn4{ background:var(--amarillo); color:#fff; }
+    .btn5{ background:var(--gris); color:#fff; }
+
+    .row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .hidden{ display:none !important; }
+
+    .estado{
+      margin-top:10px;
+      padding:10px;
+      border-radius:10px;
+      background:#f3f4f6;
+      font-weight:bold;
+    }
+
+    .codigo{
+      color:#374151;
+      font-size:14px;
+      margin-top:4px;
+    }
+
+    .mini{
+      color:#4b5563;
+      font-size:13px;
+      margin-top:8px;
+    }
+
+    .sugerencias{
+      margin-top:8px;
+      border:1px solid var(--borde);
+      border-radius:10px;
+      overflow:hidden;
+      background:#fff;
+      max-height:280px;
+      overflow-y:auto;
+    }
+
+    .sugerencia{
+      padding:12px;
+      border-bottom:1px solid #e5e7eb;
+      cursor:pointer;
+    }
+
+    .sugerencia:last-child{
+      border-bottom:none;
+    }
+
+    .sugerencia:hover{
+      background:#eff6ff;
+    }
+
+    .sugerencia .cod{
+      font-size:12px;
+      color:var(--gris2);
+      margin-top:3px;
+    }
+
+    .badge{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:bold;
+      margin-top:8px;
+      background:#e5e7eb;
+      color:#111827;
+    }
+
+    .slots{
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .slot{
+      border:2px dashed var(--borde);
+      border-radius:12px;
+      min-height:96px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      background:#f9fafb;
+      text-align:center;
+      padding:8px;
+      cursor:pointer;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .slot img{
+      width:100%;
+      height:80px;
+      object-fit:cover;
+      border-radius:8px;
+      display:block;
+    }
+
+    .slot .txt{
+      font-size:12px;
+      color:#374151;
+      margin-top:6px;
+      font-weight:bold;
+    }
+
+    .slot .sub{
+      font-size:11px;
+      color:#6b7280;
+      margin-top:3px;
+    }
+
+    .slot.ok{
+      border-style:solid;
+      border-color:#16a34a;
+      background:#f0fdf4;
+    }
+
+    .slot.remote{
+      border-style:solid;
+      border-color:#2563eb;
+      background:#eff6ff;
+    }
+
+    .slot.empty{
+      background:#fff;
+    }
+
+    .top-right{
+      position:absolute;
+      top:6px;
+      right:6px;
+      font-size:10px;
+      background:rgba(0,0,0,.75);
+      color:#fff;
+      border-radius:999px;
+      padding:4px 6px;
+    }
+
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.85);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:9999;
+      padding:10px;
+    }
+
+    .modal-content{
+      width:100%;
+      max-width:560px;
+      max-height:90vh;
+      overflow:auto;
+      background:#fff;
+      border-radius:14px;
+      padding:12px;
+    }
+
+    video, .preview-img{
+      width:100%;
+      border-radius:12px;
+      background:#111;
+    }
+
+    .log{
+      margin-top:10px;
+      padding:10px;
+      background:#111827;
+      color:#e5e7eb;
+      border-radius:10px;
+      font-size:12px;
+      white-space:pre-wrap;
+      max-height:180px;
+      overflow:auto;
+    }
+  </style>
 </head>
-
 <body>
+  <div class="wrap">
 
-<div class="wrap">
+    <div class="card">
+      <h3>Identificar artículo</h3>
+      <input id="busqueda" placeholder="Código o texto" autocomplete="off" />
+      <div id="sugerencias" class="sugerencias hidden"></div>
 
-<div class="card">
-<h3>Buscar producto</h3>
-<input id="busqueda" placeholder="Código o texto">
-<button class="btn1" onclick="abrirEscaner()">Escanear</button>
-</div>
+      <div class="row">
+        <button class="btn1" id="btnEscanearCodigo">Buscar por código</button>
+        <button class="btn5" id="btnLimpiarBusqueda">Limpiar</button>
+      </div>
 
-<div class="card">
-<h3 id="nombre">Sin producto</h3>
-<div id="estado">SIN PRODUCTO</div>
+      <div class="mini">
+        Primero identifica el artículo. Luego se habilita el proceso de fotos.
+      </div>
+    </div>
 
-<button id="btnFotos" class="btn2 hidden" onclick="abrirCamara()">Tomar fotos</button>
-<button id="btnVer" class="btn1 hidden" onclick="verFotos()">Ver fotos</button>
-<button id="btnLimpiar" class="btn3 hidden" onclick="limpiarFotos()">Limpiar</button>
+    <div class="card">
+      <h3 id="nombre">Sin artículo</h3>
+      <div id="codigoProducto" class="codigo"></div>
+      <div id="estado" class="estado">SIN ARTÍCULO</div>
+      <div id="badgeInfo" class="badge hidden"></div>
 
-<button class="btn4" onclick="subir()">Subir</button>
-</div>
+      <div class="slots" id="slotsFotos">
+        <div class="slot empty" data-slot="0">
+          <div class="txt">Foto 1</div>
+          <div class="sub">Vacía</div>
+        </div>
+        <div class="slot empty" data-slot="1">
+          <div class="txt">Foto 2</div>
+          <div class="sub">Vacía</div>
+        </div>
+        <div class="slot empty" data-slot="2">
+          <div class="txt">Foto 3</div>
+          <div class="sub">Vacía</div>
+        </div>
+      </div>
 
-</div>
+      <div class="row">
+        <button class="btn2" id="btnTomarFoto" disabled>Tomar siguiente foto</button>
+        <button class="btn1" id="btnVerActuales" disabled>Ver actuales</button>
+      </div>
 
-<!-- CAMARA -->
-<div id="modalCamara" class="modal hidden">
-<div class="modal-content">
-<video id="video" autoplay playsinline></video>
-<button class="btn2" onclick="capturar()">Capturar</button>
-<button class="btn3" onclick="cerrarCamara()">Cerrar</button>
-</div>
-</div>
+      <div class="row">
+        <button class="btn3" id="btnLimpiarNuevas" disabled>Limpiar nuevas</button>
+        <button class="btn4" id="btnGuardar" disabled>Guardar en Firebase</button>
+      </div>
 
-<!-- PREVIEW -->
-<div id="modalPreview" class="modal hidden">
-<div class="modal-content">
-<img id="preview">
-<button class="btn2" onclick="aceptar()">Aceptar</button>
-<button class="btn3" onclick="repetir()">Repetir</button>
-</div>
-</div>
+      <div id="log" class="log">Iniciando...</div>
+    </div>
 
-<!-- GALERIA -->
-<div id="modalGaleria" class="modal hidden">
-<div class="modal-content">
-<div id="galeria"></div>
-<button class="btn3" onclick="cerrarGaleria()">Cerrar</button>
-</div>
-</div>
+  </div>
 
-<script type="module">
+  <!-- MODAL ESCANER -->
+  <div id="modalEscaner" class="modal hidden">
+    <div class="modal-content">
+      <h3>Escanear código</h3>
+      <video id="videoEscaner" autoplay playsinline muted></video>
+      <div class="mini">Apunta al código. Si no detecta, puedes cerrar y escribir manualmente.</div>
+      <div class="row">
+        <button class="btn3" id="btnCerrarEscaner">Cerrar</button>
+        <button class="btn5" id="btnManualEscaner">Manual</button>
+      </div>
+    </div>
+  </div>
 
-/* =========================
-🔥 IMPORTS FIREBASE
-========================= */
-import { db } from "./config.js";
-import {
-  collection, getDocs, query, where, limit
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <!-- MODAL CAMARA FOTO -->
+  <div id="modalCamaraFoto" class="modal hidden">
+    <div class="modal-content">
+      <h3>Tomar foto</h3>
+      <video id="videoFoto" autoplay playsinline muted></video>
+      <div class="row">
+        <button class="btn2" id="btnCapturarFoto">Capturar</button>
+        <button class="btn3" id="btnCerrarCamaraFoto">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
-import {
-  getStorage, ref, uploadBytes, getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+  <!-- MODAL PREVIEW -->
+  <div id="modalPreview" class="modal hidden">
+    <div class="modal-content">
+      <h3>Revisar foto</h3>
+      <img id="previewImg" class="preview-img" alt="Preview">
+      <div class="row">
+        <button class="btn2" id="btnAceptarPreview">Aceptar</button>
+        <button class="btn3" id="btnRepetirPreview">Repetir</button>
+      </div>
+    </div>
+  </div>
 
-/* ========================= */
-const storage = getStorage();
+  <!-- MODAL FOTO DETALLE -->
+  <div id="modalFotoDetalle" class="modal hidden">
+    <div class="modal-content">
+      <h3 id="tituloFotoDetalle">Foto</h3>
+      <img id="imgFotoDetalle" class="preview-img" alt="Foto detalle">
+      <div class="row">
+        <button class="btn2" id="btnReemplazarFoto">Reemplazar</button>
+        <button class="btn3" id="btnEliminarFoto">Eliminar</button>
+      </div>
+      <button class="btn5" id="btnCerrarFotoDetalle">Cerrar</button>
+    </div>
+  </div>
 
-/* ========================= */
-let productoActual = null;
-let catalogo = [];
-let fotos = [];
-let stream = null;
-let tempFoto = null;
+  <!-- MODAL FOTOS EXISTENTES -->
+  <div id="modalExistentes" class="modal hidden">
+    <div class="modal-content">
+      <h3>Este artículo ya tiene fotos</h3>
+      <div class="mini" id="textoExistentes"></div>
+      <div class="row">
+        <button class="btn1" id="btnExistentesVer">Ver fotos actuales</button>
+        <button class="btn3" id="btnExistentesReemplazar">Eliminar anteriores y volver a tomar</button>
+      </div>
+      <div class="row">
+        <button class="btn4" id="btnExistentesConservar">Conservar anteriores y pasar por alto</button>
+        <button class="btn5" id="btnExistentesCancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
 
-/* ========================= BUSQUEDA */
-async function cargarCatalogo(){
-  const qy = query(
-    collection(db,"productos"),
-    where("activo","==",true),
-    limit(1000)
-  );
-  const snap = await getDocs(qy);
+  <script type="module">
+    import { db } from "./config.js";
+    import {
+      collection,
+      getDocs,
+      query,
+      where,
+      limit,
+      doc,
+      getDoc,
+      setDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  catalogo = snap.docs.map(d=>d.data());
-}
+    import {
+      getStorage,
+      ref,
+      uploadBytes,
+      getDownloadURL,
+      deleteObject
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-function buscar(valor){
-  valor = valor.toLowerCase();
+    const storage = getStorage();
 
-  return catalogo.find(p =>
-    (p.codigoBarra||"").toLowerCase().includes(valor) ||
-    (p.concepto||"").toLowerCase().includes(valor)
-  );
-}
+    const MAX_FOTOS = 3;
+    const COLL_PRODUCTOS = "productos";
+    const COLL_META_FOTOS = "productos_fotos_meta";
+    const STORAGE_BASE = "productos_fotos";
 
-document.getElementById("busqueda").addEventListener("input", async e=>{
-  const v = e.target.value.trim();
+    let catalogo = [];
+    let productoActual = null;
+    let metaExistente = null;
+    let fotosLocales = [null, null, null];
+    let previewActual = null;
+    let previewSlotIndex = null;
+    let slotObjetivo = null;
+    let streamEscaner = null;
+    let streamFoto = null;
+    let scannerActivo = false;
+    let replaceAllMode = false;
+    let pendingDeletePaths = [];
+    let currentDetailIndex = null;
 
-  if(!catalogo.length) await cargarCatalogo();
+    const busqueda = document.getElementById("busqueda");
+    const sugerencias = document.getElementById("sugerencias");
+    const nombre = document.getElementById("nombre");
+    const codigoProducto = document.getElementById("codigoProducto");
+    const estado = document.getElementById("estado");
+    const badgeInfo = document.getElementById("badgeInfo");
+    const btnEscanearCodigo = document.getElementById("btnEscanearCodigo");
+    const btnLimpiarBusqueda = document.getElementById("btnLimpiarBusqueda");
+    const btnTomarFoto = document.getElementById("btnTomarFoto");
+    const btnVerActuales = document.getElementById("btnVerActuales");
+    const btnLimpiarNuevas = document.getElementById("btnLimpiarNuevas");
+    const btnGuardar = document.getElementById("btnGuardar");
+    const slotsFotos = document.getElementById("slotsFotos");
+    const logBox = document.getElementById("log");
 
-  if(!v){ reset(); return; }
+    const modalEscaner = document.getElementById("modalEscaner");
+    const videoEscaner = document.getElementById("videoEscaner");
+    const btnCerrarEscaner = document.getElementById("btnCerrarEscaner");
+    const btnManualEscaner = document.getElementById("btnManualEscaner");
 
-  const p = buscar(v);
+    const modalCamaraFoto = document.getElementById("modalCamaraFoto");
+    const videoFoto = document.getElementById("videoFoto");
+    const btnCapturarFoto = document.getElementById("btnCapturarFoto");
+    const btnCerrarCamaraFoto = document.getElementById("btnCerrarCamaraFoto");
 
-  if(p) seleccionar(p);
-});
+    const modalPreview = document.getElementById("modalPreview");
+    const previewImg = document.getElementById("previewImg");
+    const btnAceptarPreview = document.getElementById("btnAceptarPreview");
+    const btnRepetirPreview = document.getElementById("btnRepetirPreview");
 
-/* ========================= PRODUCTO */
-function seleccionar(p){
-  productoActual = p;
-  fotos = [];
-  document.getElementById("nombre").innerText = p.concepto;
-  document.getElementById("estado").innerText = "SIN FOTOS";
-  document.getElementById("btnFotos").classList.remove("hidden");
-}
+    const modalFotoDetalle = document.getElementById("modalFotoDetalle");
+    const tituloFotoDetalle = document.getElementById("tituloFotoDetalle");
+    const imgFotoDetalle = document.getElementById("imgFotoDetalle");
+    const btnReemplazarFoto = document.getElementById("btnReemplazarFoto");
+    const btnEliminarFoto = document.getElementById("btnEliminarFoto");
+    const btnCerrarFotoDetalle = document.getElementById("btnCerrarFotoDetalle");
 
-function reset(){
-  productoActual = null;
-  fotos = [];
-  document.getElementById("nombre").innerText = "Sin producto";
-  document.getElementById("estado").innerText = "SIN PRODUCTO";
-}
+    const modalExistentes = document.getElementById("modalExistentes");
+    const textoExistentes = document.getElementById("textoExistentes");
+    const btnExistentesVer = document.getElementById("btnExistentesVer");
+    const btnExistentesReemplazar = document.getElementById("btnExistentesReemplazar");
+    const btnExistentesConservar = document.getElementById("btnExistentesConservar");
+    const btnExistentesCancelar = document.getElementById("btnExistentesCancelar");
 
-/* ========================= ESCANER */
-function abrirEscaner(){
-  const c = prompt("Escanea código:");
-  if(!c) return;
-
-  const input = document.getElementById("busqueda");
-  input.value = c;
-  input.dispatchEvent(new Event("input"));
-}
-
-/* ========================= CAMARA */
-async function abrirCamara(){
-  if(!productoActual){ alert("Selecciona producto"); return; }
-
-  document.getElementById("modalCamara").classList.remove("hidden");
-
-  stream = await navigator.mediaDevices.getUserMedia({
-    video:{ facingMode:"environment" }
-  });
-
-  video.srcObject = stream;
-}
-
-function cerrarCamara(){
-  if(stream) stream.getTracks().forEach(t=>t.stop());
-  stream=null;
-  document.getElementById("modalCamara").classList.add("hidden");
-}
-
-/* ========================= FOTO */
-function capturar(){
-  const canvas = document.createElement("canvas");
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-
-  canvas.getContext("2d").drawImage(video,0,0);
-
-  canvas.toBlob(b=>{
-    tempFoto = b;
-    preview.src = URL.createObjectURL(b);
-    document.getElementById("modalPreview").classList.remove("hidden");
-  },"image/jpeg",0.8);
-}
-
-function aceptar(){
-  fotos.push(tempFoto);
-  tempFoto=null;
-  cerrarCamara();
-  document.getElementById("modalPreview").classList.add("hidden");
-
-  document.getElementById("estado").innerText = fotos.length+"/3 FOTOS";
-
-  if(fotos.length>0){
-    document.getElementById("btnVer").classList.remove("hidden");
-    document.getElementById("btnLimpiar").classList.remove("hidden");
-  }
-}
-
-function repetir(){
-  tempFoto=null;
-  document.getElementById("modalPreview").classList.add("hidden");
-}
-
-/* ========================= GALERIA */
-function verFotos(){
-  const g = document.getElementById("galeria");
-  g.innerHTML="";
-
-  fotos.forEach(f=>{
-    const img = document.createElement("img");
-    img.src = URL.createObjectURL(f);
-    g.appendChild(img);
-  });
-
-  document.getElementById("modalGaleria").classList.remove("hidden");
-}
-
-function cerrarGaleria(){
-  document.getElementById("modalGaleria").classList.add("hidden");
-}
-
-/* ========================= LIMPIAR */
-function limpiarFotos(){
-  fotos=[];
-  document.getElementById("estado").innerText="SIN FOTOS";
-}
-
-/* ========================= SUBIR FIREBASE */
-async function subir(){
-  try{
-
-    if(!productoActual){
-      alert("Selecciona producto");
-      return;
+    function log(msg){
+      const hora = new Date().toLocaleTimeString();
+      logBox.textContent += `\n[${hora}] ${msg}`;
+      logBox.scrollTop = logBox.scrollHeight;
+      console.log(msg);
     }
 
-    if(fotos.length !== 3){
-      alert("Debes tomar 3 fotos");
-      return;
+    function normalizarTexto(txt = ""){
+      return txt
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
     }
 
-    document.getElementById("estado").innerText="SUBIENDO...";
-
-    const codigo = productoActual.codigoBarra;
-
-    const folder = `${codigo}/${Date.now()}`;
-
-    for(let i=0;i<fotos.length;i++){
-
-      const ruta = `${folder}/foto_${i+1}.jpg`;
-
-      const storageRef = ref(storage, ruta);
-
-      await uploadBytes(storageRef, fotos[i]);
-
-      const url = await getDownloadURL(storageRef);
-
-      console.log("URL:", url);
+    function escaparHTML(txt = ""){
+      return txt
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
-    document.getElementById("estado").innerText="SUBIDA OK";
-    alert("Fotos subidas a Firebase");
+    function setEstado(txt){
+      estado.innerText = txt;
+    }
 
-  }catch(e){
-    console.error(e);
-    alert("Error al subir");
-  }
-}
+    function revokeLocalPreview(obj){
+      if(obj && obj.previewUrl && obj.previewUrl.startsWith("blob:")){
+        URL.revokeObjectURL(obj.previewUrl);
+      }
+    }
 
-</script>
+    function limpiarLocales(){
+      fotosLocales.forEach(x => revokeLocalPreview(x));
+      fotosLocales = [null, null, null];
+    }
+
+    function resetTodoVisual(){
+      productoActual = null;
+      metaExistente = null;
+      replaceAllMode = false;
+      pendingDeletePaths = [];
+      limpiarLocales();
+      nombre.innerText = "Sin artículo";
+      codigoProducto.innerText = "";
+      setEstado("SIN ARTÍCULO");
+      badgeInfo.classList.add("hidden");
+      btnTomarFoto.disabled = true;
+      btnVerActuales.disabled = true;
+      btnLimpiarNuevas.disabled = true;
+      btnGuardar.disabled = true;
+      renderSlots();
+    }
+
+    function getFilledLocalCount(){
+      return fotosLocales.filter(Boolean).length;
+    }
+
+    function firstEmptySlot(){
+      return fotosLocales.findIndex(x => !x);
+    }
+
+    function hasExistingRemote(){
+      return !!(metaExistente && Array.isArray(metaExistente.urlsFotos) && metaExistente.urlsFotos.length);
+    }
+
+    function hasPendingLocalChanges(){
+      return getFilledLocalCount() > 0;
+    }
+
+    function renderBadge(){
+      const localCount = getFilledLocalCount();
+      if(!productoActual){
+        badgeInfo.classList.add("hidden");
+        badgeInfo.innerText = "";
+        return;
+      }
+
+      let txt = "";
+      if(localCount === 0 && !hasExistingRemote()){
+        txt = "0 / 3 nuevas";
+      }else if(localCount > 0){
+        txt = `${localCount} / 3 nuevas`;
+      }else if(hasExistingRemote()){
+        txt = "YA TIENE FOTOS";
+      }
+
+      if(txt){
+        badgeInfo.innerText = txt;
+        badgeInfo.classList.remove("hidden");
+      }else{
+        badgeInfo.classList.add("hidden");
+      }
+    }
+
+    function renderSlots(){
+      const existingUrls = hasExistingRemote() ? metaExistente.urlsFotos : [];
+      const html = Array.from({length: MAX_FOTOS}).map((_, i) => {
+        const local = fotosLocales[i];
+        const remoteUrl = !local && existingUrls[i] ? existingUrls[i] : null;
+
+        if(local){
+          return `
+            <div class="slot ok" data-slot="${i}">
+              <span class="top-right">NUEVA</span>
+              <img src="${local.previewUrl}" alt="Foto ${i+1}">
+              <div class="txt">Foto ${i+1}</div>
+              <div class="sub">Toca para ver</div>
+            </div>
+          `;
+        }
+
+        if(remoteUrl){
+          return `
+            <div class="slot remote" data-slot="${i}">
+              <span class="top-right">ACTUAL</span>
+              <img src="${remoteUrl}" alt="Foto ${i+1}">
+              <div class="txt">Foto ${i+1}</div>
+              <div class="sub">Toca para ver</div>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="slot empty" data-slot="${i}">
+            <div class="txt">Foto ${i+1}</div>
+            <div class="sub">Vacía</div>
+          </div>
+        `;
+      }).join("");
+
+      slotsFotos.innerHTML = html;
+
+      [...slotsFotos.querySelectorAll(".slot")].forEach(el => {
+        el.addEventListener("click", () => abrirDetalleFoto(Number(el.dataset.slot)));
+      });
+
+      renderBadge();
+      refreshBotones();
+    }
+
+    function refreshBotones(){
+      const localCount = getFilledLocalCount();
+      const canWork = !!productoActual;
+      btnTomarFoto.disabled = !canWork || localCount >= MAX_FOTOS;
+      btnVerActuales.disabled = !canWork || (!hasExistingRemote() && localCount === 0);
+      btnLimpiarNuevas.disabled = localCount === 0;
+      btnGuardar.disabled = !canWork || localCount !== MAX_FOTOS;
+    }
+
+    async function cargarCatalogo(){
+      try{
+        log("Cargando catálogo desde Firebase...");
+        const qy = query(
+          collection(db, COLL_PRODUCTOS),
+          where("activo", "==", true),
+          limit(3000)
+        );
+        const snap = await getDocs(qy);
+
+        catalogo = snap.docs.map(docSnap => {
+          const p = docSnap.data() || {};
+          return {
+            id: docSnap.id,
+            codigoBarra: p.codigoBarra || p.codigo || "",
+            concepto: p.concepto || p.nombre || "",
+            codigosEquivalentes: Array.isArray(p.codigosEquivalentes) ? p.codigosEquivalentes : [],
+            activo: p.activo === true
+          };
+        }).filter(p => p.codigoBarra || p.concepto);
+
+        log(`Productos cargados: ${catalogo.length}`);
+      }catch(err){
+        console.error(err);
+        log("Error cargando catálogo: " + (err.message || err));
+        alert("No se pudo cargar el catálogo");
+      }
+    }
+
+    function obtenerCoincidencias(texto){
+      const q = normalizarTexto(texto);
+      if(!q) return [];
+
+      const parts = q.split(/\s+/).filter(Boolean);
+
+      const items = catalogo.filter(p => {
+        const codigo = normalizarTexto(p.codigoBarra);
+        const concepto = normalizarTexto(p.concepto);
+        const equivalentes = (p.codigosEquivalentes || []).map(x => normalizarTexto(x)).join(" ");
+        const bolsa = `${codigo} ${concepto} ${equivalentes}`.trim();
+        return parts.every(part => bolsa.includes(part));
+      });
+
+      items.sort((a,b) => {
+        const qa = normalizarTexto(a.codigoBarra);
+        const qb = normalizarTexto(b.codigoBarra);
+        const na = normalizarTexto(a.concepto);
+        const nb = normalizarTexto(b.concepto);
+
+        const aStarts = qa.startsWith(q) || na.startsWith(q) ? 1 : 0;
+        const bStarts = qb.startsWith(q) || nb.startsWith(q) ? 1 : 0;
+        if(aStarts !== bStarts) return bStarts - aStarts;
+
+        return na.localeCompare(nb);
+      });
+
+      return items.slice(0, 8);
+    }
+
+    function renderSugerencias(items){
+      if(!items.length){
+        sugerencias.innerHTML = "";
+        sugerencias.classList.add("hidden");
+        return;
+      }
+
+      sugerencias.innerHTML = items.map((p,i) => `
+        <div class="sugerencia" data-index="${i}">
+          <div>${escaparHTML(p.concepto || "SIN NOMBRE")}</div>
+          <div class="cod">${escaparHTML(p.codigoBarra || "")}</div>
+        </div>
+      `).join("");
+
+      sugerencias.classList.remove("hidden");
+
+      [...sugerencias.querySelectorAll(".sugerencia")].forEach((el, i) => {
+        el.addEventListener("click", () => seleccionarProducto(items[i]));
+      });
+    }
+
+    async function cargarMetaProducto(codigo){
+      const refDoc = doc(db, COLL_META_FOTOS, codigo);
+      const snap = await getDoc(refDoc);
+      return snap.exists() ? snap.data() : null;
+    }
+
+    async function seleccionarProducto(prod){
+      try{
+        if(hasPendingLocalChanges()){
+          const ok = confirm("Tienes fotos nuevas sin guardar. ¿Deseas descartarlas y cambiar de artículo?");
+          if(!ok) return;
+        }
+
+        limpiarLocales();
+        productoActual = prod;
+        metaExistente = null;
+        replaceAllMode = false;
+        pendingDeletePaths = [];
+        nombre.innerText = prod.concepto || "Sin nombre";
+        codigoProducto.innerText = "Código: " + (prod.codigoBarra || "");
+        setEstado("VALIDANDO FOTOS EXISTENTES...");
+        renderSlots();
+        sugerencias.classList.add("hidden");
+        log(`Artículo identificado: ${prod.concepto} (${prod.codigoBarra})`);
+
+        metaExistente = await cargarMetaProducto(prod.codigoBarra);
+
+        if(hasExistingRemote()){
+          setEstado("YA TIENE FOTOS");
+          textoExistentes.innerText =
+            `Este artículo ya tiene ${metaExistente.urlsFotos.length} foto(s). Elige qué hacer.`;
+          modalExistentes.classList.remove("hidden");
+          log("Se detectaron fotos previas");
+        }else{
+          setEstado("SIN FOTOS");
+          log("No tiene fotos previas");
+        }
+
+        renderSlots();
+      }catch(err){
+        console.error(err);
+        log("Error validando fotos existentes: " + (err.message || err));
+        alert("No se pudo validar si el artículo ya tiene fotos");
+      }
+    }
+
+    function limpiarBusqueda(){
+      busqueda.value = "";
+      sugerencias.innerHTML = "";
+      sugerencias.classList.add("hidden");
+      resetTodoVisual();
+      busqueda.focus();
+      log("Pantalla reiniciada");
+    }
+
+    busqueda.addEventListener("input", async () => {
+      const valor = busqueda.value.trim();
+
+      if(!catalogo.length){
+        await cargarCatalogo();
+      }
+
+      if(!valor){
+        sugerencias.innerHTML = "";
+        sugerencias.classList.add("hidden");
+        resetTodoVisual();
+        return;
+      }
+
+      const items = obtenerCoincidencias(valor);
+      renderSugerencias(items);
+
+      if(items.length === 1){
+        const q = normalizarTexto(valor);
+        const p = items[0];
+        const exactoCodigo = normalizarTexto(p.codigoBarra) === q;
+        if(exactoCodigo){
+          seleccionarProducto(p);
+        }
+      }
+    });
+
+    async function abrirEscaner(){
+      try{
+        if(!catalogo.length){
+          await cargarCatalogo();
+        }
+
+        if(hasPendingLocalChanges()){
+          const ok = confirm("Tienes fotos nuevas sin guardar. ¿Deseas descartarlas y escanear otro artículo?");
+          if(!ok) return;
+        }
+
+        modalEscaner.classList.remove("hidden");
+        streamEscaner = await navigator.mediaDevices.getUserMedia({
+          video:{ facingMode:{ ideal:"environment" } },
+          audio:false
+        });
+
+        videoEscaner.srcObject = streamEscaner;
+        await videoEscaner.play();
+        scannerActivo = true;
+        log("Escáner abierto");
+
+        if("BarcodeDetector" in window){
+          const detector = new BarcodeDetector({
+            formats:["ean_13","ean_8","upc_a","upc_e","code_128","code_39","itf"]
+          });
+          scanLoop(detector);
+        }else{
+          log("BarcodeDetector no disponible; usar captura manual");
+        }
+
+      }catch(err){
+        console.error(err);
+        log("Error abriendo escáner: " + (err.message || err));
+        alert("No se pudo abrir el escáner");
+        cerrarEscaner();
+      }
+    }
+
+    async function scanLoop(detector){
+      if(!scannerActivo) return;
+
+      try{
+        const codigos = await detector.detect(videoEscaner);
+        if(codigos && codigos.length){
+          const valor = codigos[0].rawValue || "";
+          if(valor){
+            log("Código detectado: " + valor);
+            cerrarEscaner();
+            busqueda.value = valor;
+            busqueda.dispatchEvent(new Event("input"));
+            return;
+          }
+        }
+      }catch(err){
+        console.error(err);
+      }
+
+      requestAnimationFrame(() => scanLoop(detector));
+    }
+
+    function cerrarEscaner(){
+      scannerActivo = false;
+      if(streamEscaner){
+        streamEscaner.getTracks().forEach(t => t.stop());
+      }
+      streamEscaner = null;
+      videoEscaner.srcObject = null;
+      modalEscaner.classList.add("hidden");
+    }
+
+    function escanerManual(){
+      cerrarEscaner();
+      const codigo = prompt("Escribe el código:");
+      if(!codigo) return;
+      busqueda.value = codigo.trim();
+      busqueda.dispatchEvent(new Event("input"));
+    }
+
+    async function abrirCamaraFoto(targetIndex = null){
+      try{
+        if(!productoActual){
+          alert("Primero identifica el artículo");
+          return;
+        }
+
+        const idx = targetIndex !== null ? targetIndex : firstEmptySlot();
+        if(idx < 0 || idx >= MAX_FOTOS){
+          alert("Ya están completas las 3 fotos");
+          return;
+        }
+
+        slotObjetivo = idx;
+        modalCamaraFoto.classList.remove("hidden");
+
+        streamFoto = await navigator.mediaDevices.getUserMedia({
+          video:{ facingMode:{ ideal:"environment" } },
+          audio:false
+        });
+
+        videoFoto.srcObject = streamFoto;
+        await videoFoto.play();
+        log(`Cámara de foto abierta para Foto ${idx + 1}`);
+      }catch(err){
+        console.error(err);
+        log("Error abriendo cámara de foto: " + (err.message || err));
+        alert("No se pudo abrir la cámara");
+        cerrarCamaraFoto();
+      }
+    }
+
+    function cerrarCamaraFoto(){
+      if(streamFoto){
+        streamFoto.getTracks().forEach(t => t.stop());
+      }
+      streamFoto = null;
+      videoFoto.srcObject = null;
+      modalCamaraFoto.classList.add("hidden");
+    }
+
+    function capturarFoto(){
+      if(!videoFoto.videoWidth || !videoFoto.videoHeight){
+        alert("La cámara aún no está lista");
+        return;
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = videoFoto.videoWidth;
+      canvas.height = videoFoto.videoHeight;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(videoFoto, 0, 0);
+
+      canvas.toBlob(blob => {
+        if(!blob){
+          alert("No se pudo capturar la foto");
+          return;
+        }
+
+        previewActual = {
+          blob,
+          previewUrl: URL.createObjectURL(blob),
+          origin: "local"
+        };
+
+        previewSlotIndex = slotObjetivo;
+        previewImg.src = previewActual.previewUrl;
+        modalPreview.classList.remove("hidden");
+        log(`Foto capturada para slot ${previewSlotIndex + 1}`);
+      }, "image/jpeg", 0.82);
+    }
+
+    function aceptarPreview(){
+      if(previewSlotIndex === null || !previewActual) return;
+
+      revokeLocalPreview(fotosLocales[previewSlotIndex]);
+      fotosLocales[previewSlotIndex] = previewActual;
+
+      previewActual = null;
+      previewSlotIndex = null;
+
+      modalPreview.classList.add("hidden");
+      previewImg.src = "";
+      cerrarCamaraFoto();
+      renderSlots();
+
+      const next = firstEmptySlot();
+      if(next !== -1){
+        setEstado("FOTOS NUEVAS EN PROCESO");
+      }else{
+        setEstado("LISTO PARA GUARDAR");
+      }
+
+      log("Foto aceptada");
+    }
+
+    function repetirPreview(){
+      if(previewActual){
+        revokeLocalPreview(previewActual);
+      }
+      previewActual = null;
+      previewSlotIndex = null;
+      previewImg.src = "";
+      modalPreview.classList.add("hidden");
+      log("Foto repetida");
+    }
+
+    function limpiarNuevas(){
+      limpiarLocales();
+      renderSlots();
+
+      if(hasExistingRemote()){
+        setEstado("YA TIENE FOTOS");
+      }else{
+        setEstado("SIN FOTOS");
+      }
+
+      log("Fotos nuevas limpiadas");
+    }
+
+    function abrirDetalleFoto(index){
+      currentDetailIndex = index;
+      const local = fotosLocales[index];
+      const remoteUrl = hasExistingRemote() && metaExistente.urlsFotos[index] ? metaExistente.urlsFotos[index] : null;
+
+      if(!local && !remoteUrl) return;
+
+      tituloFotoDetalle.innerText = `Foto ${index + 1}`;
+      imgFotoDetalle.src = local ? local.previewUrl : remoteUrl;
+      modalFotoDetalle.classList.remove("hidden");
+    }
+
+    function cerrarDetalleFoto(){
+      currentDetailIndex = null;
+      imgFotoDetalle.src = "";
+      modalFotoDetalle.classList.add("hidden");
+    }
+
+    function reemplazarFotoActual(){
+      if(currentDetailIndex === null) return;
+      cerrarDetalleFoto();
+      abrirCamaraFoto(currentDetailIndex);
+    }
+
+    function eliminarFotoActual(){
+      if(currentDetailIndex === null) return;
+
+      const local = fotosLocales[currentDetailIndex];
+      if(local){
+        revokeLocalPreview(local);
+        fotosLocales[currentDetailIndex] = null;
+        renderSlots();
+        cerrarDetalleFoto();
+        setEstado(hasExistingRemote() ? "YA TIENE FOTOS" : "FOTOS NUEVAS EN PROCESO");
+        log(`Foto local ${currentDetailIndex + 1} eliminada`);
+        return;
+      }
+
+      if(hasExistingRemote() && metaExistente.urlsFotos[currentDetailIndex]){
+        alert("Esa foto es una actual ya guardada. Usa 'Eliminar anteriores y volver a tomar' si quieres reemplazar el juego completo.");
+      }
+    }
+
+    function verActuales(){
+      if(hasExistingRemote()){
+        abrirDetalleFoto(0);
+        return;
+      }
+
+      const firstLocal = fotosLocales.findIndex(Boolean);
+      if(firstLocal !== -1){
+        abrirDetalleFoto(firstLocal);
+      }
+    }
+
+    function cerrarExistentes(){
+      modalExistentes.classList.add("hidden");
+    }
+
+    function accionExistentesVer(){
+      cerrarExistentes();
+      abrirDetalleFoto(0);
+    }
+
+    function accionExistentesConservar(){
+      replaceAllMode = false;
+      pendingDeletePaths = [];
+      setEstado("YA TIENE FOTOS");
+      renderSlots();
+      cerrarExistentes();
+      log("Se conservarán las fotos anteriores");
+    }
+
+    function accionExistentesReemplazar(){
+      replaceAllMode = true;
+      pendingDeletePaths = Array.isArray(metaExistente?.storagePaths) ? [...metaExistente.storagePaths] : [];
+      metaExistente = null;
+      limpiarLocales();
+      setEstado("SIN FOTOS");
+      renderSlots();
+      cerrarExistentes();
+      log("Modo reemplazo total activado");
+    }
+
+    function accionExistentesCancelar(){
+      cerrarExistentes();
+      setEstado("YA TIENE FOTOS");
+      log("Acción cancelada sobre fotos existentes");
+    }
+
+    async function borrarPathsAnteriores(){
+      if(!pendingDeletePaths.length) return;
+      for(const path of pendingDeletePaths){
+        try{
+          await deleteObject(ref(storage, path));
+          log("Anterior eliminada: " + path);
+        }catch(err){
+          console.error(err);
+          log("No se pudo eliminar anterior: " + path);
+        }
+      }
+      pendingDeletePaths = [];
+    }
+
+    async function subirFotosFirebase(){
+      try{
+        if(!productoActual){
+          alert("Primero identifica el artículo");
+          return;
+        }
+
+        if(getFilledLocalCount() !== MAX_FOTOS){
+          alert("Debes completar las 3 fotos");
+          return;
+        }
+
+        btnGuardar.disabled = true;
+        setEstado("SUBIENDO...");
+        log("Subiendo fotos a Firebase Storage...");
+
+        const codigo = (productoActual.codigoBarra || "sin_codigo").replace(/[^\w\-]/g, "_");
+        const stamp = new Date();
+        const yyyy = stamp.getFullYear();
+        const mm = String(stamp.getMonth() + 1).padStart(2, "0");
+        const dd = String(stamp.getDate()).padStart(2, "0");
+        const hh = String(stamp.getHours()).padStart(2, "0");
+        const mi = String(stamp.getMinutes()).padStart(2, "0");
+        const ss = String(stamp.getSeconds()).padStart(2, "0");
+        const folder = `${STORAGE_BASE}/${codigo}/${yyyy}${mm}${dd}_${hh}${mi}${ss}`;
+
+        const urlsFotos = [];
+        const storagePaths = [];
+
+        for(let i = 0; i < MAX_FOTOS; i++){
+          const foto = fotosLocales[i];
+          if(!foto) throw new Error(`Falta foto ${i + 1}`);
+
+          const path = `${folder}/foto_${i + 1}.jpg`;
+          const storageRef = ref(storage, path);
+
+          await uploadBytes(storageRef, foto.blob, { contentType:"image/jpeg" });
+          const url = await getDownloadURL(storageRef);
+
+          storagePaths.push(path);
+          urlsFotos.push(url);
+
+          log(`Foto ${i + 1} subida`);
+        }
+
+        await setDoc(doc(db, COLL_META_FOTOS, productoActual.codigoBarra), {
+          codigoBarra: productoActual.codigoBarra || "",
+          concepto: productoActual.concepto || "",
+          urlsFotos,
+          storagePaths,
+          updatedAt: serverTimestamp(),
+          createdAt: metaExistente?.createdAt || serverTimestamp(),
+          estatus: "OK",
+          totalFotos: urlsFotos.length
+        }, { merge:true });
+
+        await borrarPathsAnteriores();
+
+        metaExistente = {
+          codigoBarra: productoActual.codigoBarra || "",
+          concepto: productoActual.concepto || "",
+          urlsFotos,
+          storagePaths,
+          totalFotos: urlsFotos.length,
+          estatus: "OK"
+        };
+
+        limpiarLocales();
+        replaceAllMode = false;
+        setEstado("GUARDADO OK");
+        renderSlots();
+        log("Registro guardado en Firestore y Storage");
+        alert("Fotos guardadas en Firebase");
+
+      }catch(err){
+        console.error(err);
+        setEstado("ERROR AL GUARDAR");
+        log("Error guardando: " + (err.message || err));
+        alert("Error al guardar en Firebase");
+      }finally{
+        refreshBotones();
+      }
+    }
+
+    btnEscanearCodigo.addEventListener("click", abrirEscaner);
+    btnLimpiarBusqueda.addEventListener("click", limpiarBusqueda);
+
+    btnCerrarEscaner.addEventListener("click", cerrarEscaner);
+    btnManualEscaner.addEventListener("click", escanerManual);
+
+    btnTomarFoto.addEventListener("click", () => abrirCamaraFoto());
+    btnVerActuales.addEventListener("click", verActuales);
+    btnLimpiarNuevas.addEventListener("click", limpiarNuevas);
+    btnGuardar.addEventListener("click", subirFotosFirebase);
+
+    btnCapturarFoto.addEventListener("click", capturarFoto);
+    btnCerrarCamaraFoto.addEventListener("click", cerrarCamaraFoto);
+
+    btnAceptarPreview.addEventListener("click", aceptarPreview);
+    btnRepetirPreview.addEventListener("click", repetirPreview);
+
+    btnReemplazarFoto.addEventListener("click", reemplazarFotoActual);
+    btnEliminarFoto.addEventListener("click", eliminarFotoActual);
+    btnCerrarFotoDetalle.addEventListener("click", cerrarDetalleFoto);
+
+    btnExistentesVer.addEventListener("click", accionExistentesVer);
+    btnExistentesReemplazar.addEventListener("click", accionExistentesReemplazar);
+    btnExistentesConservar.addEventListener("click", accionExistentesConservar);
+    btnExistentesCancelar.addEventListener("click", accionExistentesCancelar);
+
+    window.addEventListener("beforeunload", () => {
+      if(streamEscaner) streamEscaner.getTracks().forEach(t => t.stop());
+      if(streamFoto) streamFoto.getTracks().forEach(t => t.stop());
+      if(previewActual) revokeLocalPreview(previewActual);
+      fotosLocales.forEach(x => revokeLocalPreview(x));
+    });
+
+    resetTodoVisual();
+    renderSlots();
+    await cargarCatalogo();
+    log("App lista");
+  </script>
 </body>
 </html>
