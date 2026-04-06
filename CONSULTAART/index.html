@@ -1139,10 +1139,15 @@ input:focus{
   const COLECCION_FOTOS_META = "productos_fotos_meta";
 
   const DB_NAME = "provsoft_local_db";
+  const DB_VERSION = 2;
   const STORE_NAME = "catalogo_productos";
   const META_STORE = "meta_store";
+  const FOTO_META_STORE = "productos_fotos_meta_cache";
+  const FOTO_BLOB_STORE = "productos_fotos_blob_cache";
   const CATALOGO_KEY = "productos";
   const AUTO_SYNC_HOURS = 24;
+  const FOTO_META_TTL_HOURS = 24;
+  const FOTO_BLOB_TTL_DAYS = 7;
 
   const busquedaInput = document.getElementById("busquedaInput");
   const sugerenciasBox = document.getElementById("sugerenciasBox");
@@ -1179,6 +1184,7 @@ input:focus{
 
   // cache simple para no releer metas de fotos ya consultadas
   const cacheFotosMeta = new Map();
+  let currentPhotoObjectUrls = [];
 
   function mostrarStatus(msg, tipo = "ok") {
     statusBox.className = `status ${tipo}`;
@@ -1194,7 +1200,18 @@ input:focus{
     limpiarFotosUI("Sin fotos por ahora");
   }
 
+  function liberarObjectUrlsActuales() {
+    if (!Array.isArray(currentPhotoObjectUrls) || !currentPhotoObjectUrls.length) return;
+    currentPhotoObjectUrls.forEach(url => {
+      try {
+        URL.revokeObjectURL(url);
+      } catch {}
+    });
+    currentPhotoObjectUrls = [];
+  }
+
   function limpiarFotosUI(texto = "Sin fotos por ahora") {
+    liberarObjectUrlsActuales();
     fotosCount.textContent = "0 fotos";
     fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">${texto}</div>`;
   }
@@ -1324,7 +1341,7 @@ input:focus{
 
   function abrirDB() {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, 1);
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onupgradeneeded = (event) => {
         const dbLocal = event.target.result;
@@ -1336,6 +1353,21 @@ input:focus{
         if (!dbLocal.objectStoreNames.contains(META_STORE)) {
           dbLocal.createObjectStore(META_STORE, { keyPath: "key" });
         }
+
+        if (!dbLocal.objectStoreNames.contains(FOTO_META_STORE)) {
+          dbLocal.createObjectStore(FOTO_META_STORE, { keyPath: "key" });
+        }
+
+        if (!dbLocal.objectStoreNames.contains(FOTO_BLOB_STORE)) {
+          const fotoBlobStore = dbLocal.createObjectStore(FOTO_BLOB_STORE, { keyPath: "key" });
+          fotoBlobStore.createIndex("codigo", "codigo", { unique: false });
+        } else {
+          const tx = event.target.transaction;
+          const fotoBlobStore = tx.objectStore(FOTO_BLOB_STORE);
+          if (!fotoBlobStore.indexNames.contains("codigo")) {
+            fotoBlobStore.createIndex("codigo", "codigo", { unique: false });
+          }
+        }
       };
 
       request.onsuccess = () => resolve(request.result);
@@ -1343,7 +1375,9 @@ input:focus{
     });
   }
 
-  function renderFotos(urls = []) {
+  function renderFotos(urls = [], opciones = {}) {
+    liberarObjectUrlsActuales();
+
     const lista = Array.isArray(urls)
       ? urls.filter(u => typeof u === "string" && u.trim())
       : [];
@@ -1351,6 +1385,10 @@ input:focus{
     if (!lista.length) {
       limpiarFotosUI("Sin fotos por ahora");
       return;
+    }
+
+    if (opciones.trackObjectUrls) {
+      currentPhotoObjectUrls = [...lista];
     }
 
     fotosCount.textContent = `${lista.length} foto${lista.length === 1 ? "" : "s"}`;
@@ -1407,6 +1445,183 @@ input:focus{
     return urls.filter(Boolean);
   }
 
+  function esFechaVigente(fechaIso, horasMaximas) {
+    if (!fechaIso) return false;
+
+    const fecha = new Date(fechaIso).getTime();
+    if (isNaN(fecha)) return false;
+
+    const ahora = Date.now();
+    const diffHoras = (ahora - fecha) / (1000 * 60 * 60);
+    return diffHoras <= horasMaximas;
+  }
+
+  function esBlobCacheVigente(fechaIso) {
+    return esFechaVigente(fechaIso, FOTO_BLOB_TTL_DAYS * 24);
+  }
+
+  function construirFirmaMeta(meta = {}) {
+    const firma = {
+      estatus: meta?.estatus || null,
+      versionFotos: meta?.versionFotos || meta?.version || null,
+      updatedAt: meta?.updatedAt || meta?.fechaActualizacion || null,
+      urlsFotos: Array.isArray(meta?.urlsFotos) ? meta.urlsFotos : [],
+      storagePaths: Array.isArray(meta?.storagePaths) ? meta.storagePaths : [],
+      totalFotos: meta?.totalFotos || meta?.cantidadFotos || null
+    };
+
+    return JSON.stringify(firma);
+  }
+
+  async function leerMetaFotosIndexedDB(codigo) {
+    const dbLocal = await abrirDB();
+
+    return new Promise((resolve, reject) => {
+      const tx = dbLocal.transaction(FOTO_META_STORE, "readonly");
+      const request = tx.objectStore(FOTO_META_STORE).get(String(codigo));
+
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function guardarMetaFotosIndexedDB(codigo, meta, firma) {
+    const dbLocal = await abrirDB();
+
+    return new Promise((resolve, reject) => {
+      const tx = dbLocal.transaction(FOTO_META_STORE, "readwrite");
+      tx.objectStore(FOTO_META_STORE).put({
+        key: String(codigo),
+        codigo: String(codigo),
+        meta,
+        firma,
+        fecha_cache: new Date().toISOString()
+      });
+
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function leerFotosBlobIndexedDB(codigo) {
+    const dbLocal = await abrirDB();
+
+    return new Promise((resolve, reject) => {
+      const tx = dbLocal.transaction(FOTO_BLOB_STORE, "readonly");
+      const index = tx.objectStore(FOTO_BLOB_STORE).index("codigo");
+      const request = index.getAll(String(codigo));
+
+      request.onsuccess = () => {
+        const items = Array.isArray(request.result) ? request.result : [];
+        items.sort((a, b) => (a.index || 0) - (b.index || 0));
+        resolve(items);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function borrarFotosBlobIndexedDB(codigo) {
+    const existentes = await leerFotosBlobIndexedDB(codigo);
+    if (!existentes.length) return true;
+
+    const dbLocal = await abrirDB();
+
+    return new Promise((resolve, reject) => {
+      const tx = dbLocal.transaction(FOTO_BLOB_STORE, "readwrite");
+      const store = tx.objectStore(FOTO_BLOB_STORE);
+
+      existentes.forEach(item => {
+        if (item?.key) store.delete(item.key);
+      });
+
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function guardarFotosBlobIndexedDB(codigo, blobs = [], firma = "") {
+    const codigoLimpio = String(codigo || "").trim();
+    if (!codigoLimpio || !Array.isArray(blobs) || !blobs.length) return false;
+
+    await borrarFotosBlobIndexedDB(codigoLimpio);
+    const dbLocal = await abrirDB();
+
+    return new Promise((resolve, reject) => {
+      const tx = dbLocal.transaction(FOTO_BLOB_STORE, "readwrite");
+      const store = tx.objectStore(FOTO_BLOB_STORE);
+      const fechaCache = new Date().toISOString();
+
+      blobs.forEach((blob, index) => {
+        store.put({
+          key: `${codigoLimpio}::${index}`,
+          codigo: codigoLimpio,
+          index,
+          blob,
+          mimeType: blob?.type || "image/jpeg",
+          firma,
+          fecha_cache: fechaCache
+        });
+      });
+
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function leerFotosCacheLocal(codigo) {
+    const codigoLimpio = String(codigo || "").trim();
+    if (!codigoLimpio) return null;
+
+    const [metaCache, blobsCache] = await Promise.all([
+      leerMetaFotosIndexedDB(codigoLimpio).catch(() => null),
+      leerFotosBlobIndexedDB(codigoLimpio).catch(() => [])
+    ]);
+
+    const blobsValidos = Array.isArray(blobsCache)
+      ? blobsCache.filter(item => item?.blob instanceof Blob && esBlobCacheVigente(item?.fecha_cache))
+      : [];
+
+    return {
+      metaCache,
+      blobsCache: blobsValidos
+    };
+  }
+
+  function construirObjectUrlsDesdeBlobs(blobsCache = []) {
+    return blobsCache
+      .filter(item => item?.blob instanceof Blob)
+      .map(item => URL.createObjectURL(item.blob));
+  }
+
+  async function descargarBlobsDesdeUrls(urls = []) {
+    if (!Array.isArray(urls) || !urls.length) return [];
+
+    const blobs = await Promise.all(
+      urls.map(async (url) => {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return await response.blob();
+        } catch (error) {
+          console.warn("No se pudo descargar blob de imagen:", url, error);
+          return null;
+        }
+      })
+    );
+
+    return blobs.filter(blob => blob instanceof Blob);
+  }
+
+  async function resolverUrlsDeMeta(meta = {}) {
+    let urls = Array.isArray(meta?.urlsFotos) ? meta.urlsFotos.filter(Boolean) : [];
+
+    if (!urls.length && Array.isArray(meta?.storagePaths) && meta.storagePaths.length) {
+      urls = await resolverUrlsDesdeStoragePaths(meta.storagePaths);
+    }
+
+    return urls;
+  }
+
   async function obtenerMetaFotosPorCodigo(codigo) {
     const codigoLimpio = String(codigo || "").trim();
     if (!codigoLimpio) return null;
@@ -1461,34 +1676,82 @@ input:focus{
         return;
       }
 
+      if (data.tieneFotos === false) {
+        limpiarFotosUI("Este producto no tiene fotos");
+        return;
+      }
+
       fotosCount.textContent = "...";
-      fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">Cargando fotos...</div>`;
+      fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">Buscando fotos locales...</div>`;
+
+      const cacheLocal = await leerFotosCacheLocal(codigo);
+
+      if (cacheLocal?.blobsCache?.length) {
+        const urlsLocales = construirObjectUrlsDesdeBlobs(cacheLocal.blobsCache);
+        renderFotos(urlsLocales, { trackObjectUrls: true });
+
+        if (
+          cacheLocal.metaCache?.fecha_cache &&
+          esFechaVigente(cacheLocal.metaCache.fecha_cache, FOTO_META_TTL_HOURS)
+        ) {
+          return;
+        }
+
+        fotosCount.textContent = `${urlsLocales.length} foto${urlsLocales.length === 1 ? "" : "s"} · actualizando`;
+      } else {
+        fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">Cargando fotos...</div>`;
+      }
 
       const meta = await obtenerMetaFotosPorCodigo(codigo);
 
       if (!meta) {
-        limpiarFotosUI("Sin fotos registradas");
+        if (!cacheLocal?.blobsCache?.length) {
+          limpiarFotosUI("Sin fotos registradas");
+        }
         return;
       }
 
-      // Si existe estatus y no está OK, no mostramos
       if (meta.estatus && String(meta.estatus).toUpperCase() !== "OK") {
-        limpiarFotosUI("Las fotos existen pero no están listas");
+        if (!cacheLocal?.blobsCache?.length) {
+          limpiarFotosUI("Las fotos existen pero no están listas");
+        }
         return;
       }
 
-      let urls = Array.isArray(meta.urlsFotos) ? meta.urlsFotos.filter(Boolean) : [];
+      const firmaRemota = construirFirmaMeta(meta);
 
-      // fallback a storagePaths si urlsFotos viene vacío
-      if (!urls.length && Array.isArray(meta.storagePaths) && meta.storagePaths.length) {
-        urls = await resolverUrlsDesdeStoragePaths(meta.storagePaths);
+      if (
+        cacheLocal?.metaCache?.firma === firmaRemota &&
+        cacheLocal?.blobsCache?.length &&
+        cacheLocal.blobsCache.every(item => esBlobCacheVigente(item?.fecha_cache))
+      ) {
+        await guardarMetaFotosIndexedDB(codigo, meta, firmaRemota);
+        return;
       }
+
+      const urls = await resolverUrlsDeMeta(meta);
 
       if (!urls.length) {
-        limpiarFotosUI("No se pudieron resolver las fotos");
+        if (!cacheLocal?.blobsCache?.length) {
+          limpiarFotosUI("No se pudieron resolver las fotos");
+        }
         return;
       }
 
+      const blobs = await descargarBlobsDesdeUrls(urls);
+
+      if (blobs.length === urls.length && blobs.length > 0) {
+        await guardarMetaFotosIndexedDB(codigo, meta, firmaRemota);
+        await guardarFotosBlobIndexedDB(codigo, blobs, firmaRemota);
+
+        const urlsLocales = construirObjectUrlsDesdeBlobs(
+          blobs.map((blob, index) => ({ blob, index, fecha_cache: new Date().toISOString() }))
+        );
+        renderFotos(urlsLocales, { trackObjectUrls: true });
+        return;
+      }
+
+      await guardarMetaFotosIndexedDB(codigo, meta, firmaRemota);
       renderFotos(urls);
     } catch (error) {
       console.error("Error cargando fotos del producto:", error);
@@ -1956,6 +2219,11 @@ input:focus{
   btnCerrarScanner.addEventListener("click", detenerScanner);
   btnDetenerScanner.addEventListener("click", detenerScanner);
   btnCambiarCamara.addEventListener("click", cambiarCamara);
+
+  window.addEventListener("beforeunload", () => {
+    liberarObjectUrlsActuales();
+    detenerScanner();
+  });
 
   iniciarCatalogo();
 </script>
