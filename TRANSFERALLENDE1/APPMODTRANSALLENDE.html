@@ -494,11 +494,19 @@
               <input id="almacenOrigen" value="CEDIS MATRIZ" disabled />
             </div>
 
-            <div id="estado" class="estado-box muted">Listo.</div>
+<div id="estado" class="estado-box muted">Listo.</div>
 
-            <div class="save-wrap">
-              <button id="btnGuardarSurtido" class="btn-success">Guardar surtido</button>
-            </div>
+<div class="save-wrap" style="display:flex; gap:10px; flex-wrap:wrap;">
+  
+<button id="btnImprimirSolicitud" class="btn-warning" style="display:none;">
+  Imprimir hoja de surtido
+</button>
+
+  <button id="btnGuardarSurtido" class="btn-success">
+    Guardar surtido
+  </button>
+
+</div>
           </div>
         </div>
 
@@ -1046,12 +1054,17 @@
         }
 
         setStatus(`Solicitud ${data.folio || snap.id} cargada correctamente.`, 'ok');
+        mostrarBotonImprimirSolicitud(true);
       } catch (error) {
         console.error(error);
         setStatus('Error al cargar solicitud: ' + error.message, 'error');
       }
     }
-
+function mostrarBotonImprimirSolicitud(mostrar = false) {
+  const btn = $('btnImprimirSolicitud');
+  if (!btn) return;
+  btn.style.display = mostrar ? 'inline-block' : 'none';
+}
     async function cargarSurtidoPendientePorFolio(folio) {
       try {
         const docRef = doc(db, ...COLECCION_SURTIDO, folio);
@@ -1738,11 +1751,12 @@
       renderDetalle();
       renderResumen();
       setStatus('Nueva operación lista. Seleccione una solicitud pendiente.', 'ok');
+      mostrarBotonImprimirSolicitud(false);
     }
 
     function bindEvents() {
       $('btnCargarSolicitud').addEventListener('click', cargarSolicitud);
-
+      $('btnImprimirSolicitud').addEventListener('click', imprimirSolicitud);
       $('btnNuevaOperacion').addEventListener('click', () => {
         if (!confirm('¿Limpiar operación actual?')) return;
         limpiarPantalla();
@@ -1811,7 +1825,17 @@
         }
       });
     }
+async function imprimirSolicitud() {
+  if (!solicitudOriginal) {
+    alert('Primero carga una solicitud.');
+    return;
+  }
 
+  const payload = construirPayloadSurtido();
+
+  await generarPDFOficial(payload);
+}
+    
     async function init() {
       setStatus('Inicializando sistema...');
       $('folioEntrada').value = generarFolioEntrada();
