@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Visor Detalle de Artículos – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial; background:#f4f6f8; padding:20px }
+    h2 { margin-bottom:5px }
+    table { width:100%; border-collapse:collapse; background:#fff }
+    th,td { padding:6px; border:1px solid #ccc; font-size:13px }
+    th { background:#eee }
+    .totales { margin-top:15px; font-size:15px }
+  </style>
+</head>
+
+<body>
+
+<h2>🧾 Visor Detalle de Artículos (Conciliación)</h2>
+<p>PROVSOFT · Artículo por ticket · Control Global</p>
+
+<label>📍 Ruta:</label>
+<select id="ruta">
+  <option value="Almacen_Ruta_1">Ruta 1</option>
+  <option value="Almacen_Ruta_2">Ruta 2</option>
+  <option value="Almacen_Ruta_3">Ruta 3</option>
+</select>
+
+<label style="margin-left:10px">📅 Fecha:</label>
+<input type="date" id="fecha">
+
+<button id="btnCargar">Cargar</button>
+
+<hr>
+
+<table>
+  <thead>
+    <tr>
+      <th>Hora</th>
+      <th>Folio</th>
+      <th>Cant</th>
+      <th>Artículo</th>
+      <th>Unitario</th>
+      <th>Importe</th>
+      <th>IVA</th>
+      <th>IEPS</th>
+      <th>Total Línea</th>
+    </tr>
+  </thead>
+  <tbody id="tabla"></tbody>
+</table>
+
+<div class="totales">
+  <b>Total Día:</b> $<span id="totalDia">0.00</span> <br>
+  <b>Total IVA:</b> $<span id="totalIVA">0.00</span> <br>
+  <b>Total IEPS:</b> $<span id="totalIEPS">0.00</span>
+</div>
+
+<script type="module" src="./visor-detalle-articulos.js"></script>
+</body>
+</html>
