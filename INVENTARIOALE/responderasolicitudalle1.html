@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -7,6 +7,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>  
 
   <style>
     :root {
@@ -323,6 +324,20 @@
       </div>
       <div id="emptyRespuesta" class="empty">Todavía no hay una solicitud cargada.</div>
 
+      <div class="field">
+  <label>Firma</label>
+
+  <canvas id="firmaCanvas" width="400" height="200"
+    style="border:2px solid #cbd5e1; border-radius:12px; background:white;">
+  </canvas>
+
+  <div style="margin-top:10px;">
+    <button type="button" onclick="limpiarFirma()" class="btn-gray">Limpiar firma</button>
+  </div>
+
+  <div class="muted">Firma obligatoria</div>
+</div>
+
       <div class="footer-box">
         <div class="field">
           <label>Observaciones generales</label>
@@ -363,6 +378,7 @@
 
     let solicitudActual = null;
     let productosActuales = [];
+    let signaturePad;
 
     function setStatus(msg, type = "") {
       const el = $("status");
@@ -391,7 +407,20 @@
     function fechaHoraActualISO() {
       return new Date().toISOString();
     }
+function iniciarFirma() {
+  const canvas = document.getElementById("firmaCanvas");
 
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  canvas.width = canvas.offsetWidth * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+  canvas.getContext("2d").scale(ratio, ratio);
+
+  signaturePad = new SignaturePad(canvas);
+}
+
+function limpiarFirma() {
+  signaturePad.clear();
+}
     async function cargarSolicitudesPendientes() {
       try {
         setStatus("Consultando solicitudes pendientes...", "warn");
@@ -538,11 +567,16 @@
           alert("Falta quién responde.");
           return;
         }
+        if (!signaturePad || signaturePad.isEmpty()) {
+          alert("Falta la firma.");
+          return;
+        }
 
         const folioRespuesta = await generarFolioRespuesta(solicitudActual.folio || solicitudActual.id);
         $("folioRespuesta").value = folioRespuesta;
 
         setStatus("Guardando respuesta...", "warn");
+        const firmaBase64 = signaturePad.toDataURL();
 
         const payload = {
           folio_respuesta: folioRespuesta,
@@ -554,6 +588,7 @@
           fecha_solicitud: solicitudActual.fecha || "",
           observaciones_generales: $("observacionesGenerales").value.trim(),
           creado_en: firebase.firestore.FieldValue.serverTimestamp(),
+          firma: firmaBase64,
           productos: productosActuales.map(item => ({
             orden: Number(item.orden || 0),
             codigo: item.codigo,
@@ -582,6 +617,8 @@
 
         await batch.commit();
 
+        limpiarFirma();
+
         setStatus(`Respuesta guardada correctamente con folio ${folioRespuesta}.`, "ok");
         await cargarSolicitudesPendientes();
       } catch (err) {
@@ -601,6 +638,8 @@
     window.addEventListener("load", async () => {
       ponerFechaHoy();
       await cargarSolicitudesPendientes();
+
+      iniciarFirma();
 
       const folioURL = obtenerFolioDesdeURL();
       if (folioURL) {
