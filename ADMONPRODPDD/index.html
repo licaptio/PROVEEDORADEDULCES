@@ -1,0 +1,1290 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Administrador de Productos - PROVSOFT</title>
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      margin:0;
+      background:#f4f7fb;
+      color:#1f2937;
+    }
+    .wrap{
+      padding:16px;
+    }
+    .top{
+      background:linear-gradient(135deg,#00416A,#0c6cbd);
+      color:#fff;
+      padding:16px;
+      border-radius:12px;
+      margin-bottom:14px;
+    }
+    .top h1{
+      margin:0 0 6px;
+      font-size:22px;
+    }
+    .filtros{
+      display:grid;
+      grid-template-columns: 1.6fr 180px 180px 140px 150px 140px;
+      gap:10px;
+      margin-bottom:14px;
+    }
+    input, select, button, textarea{
+      border-radius:10px;
+      border:1px solid #cbd5e1;
+      padding:10px 12px;
+      font-size:14px;
+      font-family: Arial, sans-serif;
+      box-sizing:border-box;
+    }
+    input, select, button{
+      height:42px;
+    }
+    textarea{
+      min-height:100px;
+      resize:vertical;
+    }
+    button{
+      background:#0c6cbd;
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-weight:700;
+    }
+    button:hover{
+      opacity:.95;
+    }
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+    .btn-danger{
+      background:#b91c1c;
+    }
+    .btn-warning{
+      background:#b45309;
+    }
+    .btn-gray{
+      background:#475569;
+    }
+    .btn-green{
+      background:#15803d;
+    }
+    .meta{
+      margin-bottom:10px;
+      font-size:13px;
+      color:#475569;
+      font-weight:700;
+    }
+    .tabla-wrap{
+      background:#fff;
+      border-radius:12px;
+      overflow:auto;
+      border:1px solid #e2e8f0;
+      max-height:68vh;
+    }
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:1600px;
+    }
+    th, td{
+      padding:10px 12px;
+      border-bottom:1px solid #e5e7eb;
+      text-align:left;
+      font-size:13px;
+      vertical-align:top;
+    }
+    th{
+      position:sticky;
+      top:0;
+      background:#eaf3fb;
+      z-index:1;
+      font-size:12px;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .tag{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:700;
+    }
+    .si{ background:#dcfce7; color:#166534; }
+    .no{ background:#fee2e2; color:#991b1b; }
+
+    .mono{
+      font-family: Consolas, monospace;
+      white-space:pre-wrap;
+      word-break:break-word;
+      max-width:420px;
+    }
+
+    .modal{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:9999;
+    }
+    .modal.show{
+      display:flex;
+    }
+    .modal-box{
+      width:min(1300px, 100%);
+      max-height:90vh;
+      overflow:auto;
+      background:#fff;
+      border-radius:16px;
+      padding:18px;
+    }
+    .acciones{
+      display:flex;
+      gap:8px;
+      margin-bottom:12px;
+      flex-wrap:wrap;
+    }
+    .detalle-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
+    }
+    .campo{
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      padding:10px;
+      background:#f8fafc;
+    }
+    .campo .k{
+      font-size:11px;
+      font-weight:800;
+      color:#64748b;
+      text-transform:uppercase;
+      margin-bottom:6px;
+    }
+    .readonly{
+      background:#e5e7eb !important;
+      color:#475569;
+    }
+    .status{
+      margin-bottom:10px;
+      padding:10px 12px;
+      border-radius:10px;
+      display:none;
+      font-size:13px;
+      font-weight:700;
+    }
+    .status.ok{
+      display:block;
+      background:#dcfce7;
+      color:#166534;
+    }
+    .status.error{
+      display:block;
+      background:#fee2e2;
+      color:#991b1b;
+    }
+    .status.info{
+      display:block;
+      background:#eff6ff;
+      color:#1d4ed8;
+    }
+
+    .overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(255,255,255,.8);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:12000;
+      backdrop-filter: blur(2px);
+    }
+    .overlay.hidden{
+      display:none;
+    }
+    .overlay-box{
+      background:#fff;
+      border:1px solid #dbeafe;
+      border-radius:16px;
+      padding:18px 22px;
+      min-width:320px;
+      box-shadow:0 18px 40px rgba(0,0,0,.12);
+      text-align:center;
+    }
+    .overlay-title{
+      font-size:18px;
+      font-weight:900;
+      color:#00416A;
+      margin-bottom:8px;
+    }
+    .overlay-text{
+      font-size:13px;
+      color:#475569;
+      font-weight:700;
+    }
+    .barra{
+      width:100%;
+      height:12px;
+      background:#e5e7eb;
+      border-radius:999px;
+      overflow:hidden;
+      margin-top:14px;
+    }
+    .barra-fill{
+      width:0%;
+      height:100%;
+      background:linear-gradient(135deg,#00416A,#0c6cbd);
+      transition:width .2s ease;
+    }
+
+    .paginacion{
+      margin-top:12px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      background:#fff;
+      border:1px solid #e2e8f0;
+      border-radius:12px;
+      padding:10px 12px;
+    }
+    .paginacion-izq,
+    .paginacion-der{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .pagina-info{
+      font-size:13px;
+      font-weight:700;
+      color:#475569;
+    }
+    .pagina-mini{
+      min-width:44px;
+      text-align:center;
+      font-weight:800;
+      color:#0f172a;
+    }
+
+    @media (max-width: 1100px){
+      .filtros{
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
+    @media (max-width: 900px){
+      .filtros{
+        grid-template-columns:1fr;
+      }
+      .detalle-grid{
+        grid-template-columns:1fr;
+      }
+      .paginacion{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .paginacion-izq,
+      .paginacion-der{
+        justify-content:center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay" id="overlayCarga">
+    <div class="overlay-box">
+      <div class="overlay-title">Cargando catálogo</div>
+      <div class="overlay-text" id="overlayTexto">Preparando datos...</div>
+      <div class="barra">
+        <div class="barra-fill" id="barraFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="top">
+      <h1>Administrador de Productos - PROVSOFT</h1>
+      <div>Ver, editar, desactivar y administrar productos. Código original protegido.</div>
+    </div>
+
+    <div class="filtros">
+      <input id="txtBuscar" placeholder="Buscar por código, equivalente, concepto, marca, departamento..." />
+      <select id="selActivo">
+        <option value="todos">Todos</option>
+        <option value="true">Solo activos</option>
+        <option value="false">Solo inactivos</option>
+      </select>
+      <select id="selOrden">
+        <option value="concepto">Orden: Concepto</option>
+        <option value="codigoBarra">Orden: Código</option>
+        <option value="updatedAt">Orden: UpdatedAt</option>
+        <option value="precioPublico">Orden: Precio público</option>
+      </select>
+      <button id="btnRecargar">Recargar</button>
+      <button id="btnFiltrarTabla" class="btn-green">Filtrar tabla</button>
+      <select id="selPageSize">
+        <option value="50">50 por página</option>
+        <option value="100" selected>100 por página</option>
+        <option value="200">200 por página</option>
+        <option value="500">500 por página</option>
+      </select>
+    </div>
+
+    <div class="meta" id="meta">Cargando...</div>
+
+    <div class="tabla-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Activo</th>
+            <th>ID</th>
+            <th>Código</th>
+            <th>Concepto</th>
+            <th>Marca</th>
+            <th>Departamento</th>
+            <th>Precio Público</th>
+            <th>IVA</th>
+            <th>IEPS</th>
+            <th>Equivalentes</th>
+            <th>UpdatedAt</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="paginacion">
+      <div class="paginacion-izq">
+        <button id="btnPrimera" class="btn-gray">Primera</button>
+        <button id="btnAnterior" class="btn-gray">Anterior</button>
+        <span class="pagina-mini" id="paginaActualTxt">1</span>
+        <button id="btnSiguiente" class="btn-gray">Siguiente</button>
+        <button id="btnUltima" class="btn-gray">Última</button>
+      </div>
+      <div class="paginacion-der">
+        <span class="pagina-info" id="resumenPaginacion">Mostrando 0 a 0 de 0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <div id="statusModal" class="status"></div>
+
+      <div class="acciones">
+        <button id="btnGuardar">Guardar cambios</button>
+        <button id="btnActivar">Activar producto</button>
+        <button id="btnDesactivar" class="btn-warning">Desactivar producto</button>
+        <button id="btnEliminarReal" class="btn-danger">Eliminar físicamente</button>
+        <button id="btnCerrar" class="btn-gray">Cerrar</button>
+      </div>
+
+      <div class="detalle-grid" id="detalleGrid"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalBusqueda">
+    <div class="modal-box" style="width:min(1000px,100%);">
+      <div class="acciones">
+        <button id="btnCerrarBusqueda" class="btn-gray">Cerrar</button>
+      </div>
+
+      <div class="meta" id="metaBusqueda">Escribe para buscar productos...</div>
+
+      <div class="tabla-wrap" style="max-height:60vh;">
+        <table>
+          <thead>
+            <tr>
+              <th>Activo</th>
+              <th>Código</th>
+              <th>Concepto</th>
+              <th>Marca</th>
+              <th>Departamento</th>
+              <th>Elegir</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyBusqueda"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { db } from "./config.js";
+    import {
+      collection,
+      getDocs,
+      query,
+      orderBy,
+      limit,
+      Timestamp,
+      doc,
+      updateDoc,
+      deleteDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const txtBuscar = document.getElementById("txtBuscar");
+    const selActivo = document.getElementById("selActivo");
+    const selOrden = document.getElementById("selOrden");
+    const btnRecargar = document.getElementById("btnRecargar");
+    const btnFiltrarTabla = document.getElementById("btnFiltrarTabla");
+    const selPageSize = document.getElementById("selPageSize");
+
+    const tbody = document.getElementById("tbody");
+    const meta = document.getElementById("meta");
+    const modal = document.getElementById("modal");
+    const detalleGrid = document.getElementById("detalleGrid");
+    const btnCerrar = document.getElementById("btnCerrar");
+    const btnGuardar = document.getElementById("btnGuardar");
+    const btnActivar = document.getElementById("btnActivar");
+    const btnDesactivar = document.getElementById("btnDesactivar");
+    const btnEliminarReal = document.getElementById("btnEliminarReal");
+    const statusModal = document.getElementById("statusModal");
+
+    const modalBusqueda = document.getElementById("modalBusqueda");
+    const tbodyBusqueda = document.getElementById("tbodyBusqueda");
+    const metaBusqueda = document.getElementById("metaBusqueda");
+    const btnCerrarBusqueda = document.getElementById("btnCerrarBusqueda");
+
+    const overlayCarga = document.getElementById("overlayCarga");
+    const overlayTexto = document.getElementById("overlayTexto");
+    const barraFill = document.getElementById("barraFill");
+
+    const btnPrimera = document.getElementById("btnPrimera");
+    const btnAnterior = document.getElementById("btnAnterior");
+    const btnSiguiente = document.getElementById("btnSiguiente");
+    const btnUltima = document.getElementById("btnUltima");
+    const paginaActualTxt = document.getElementById("paginaActualTxt");
+    const resumenPaginacion = document.getElementById("resumenPaginacion");
+
+    let productos = [];
+    let productosFiltrados = [];
+    let catalogoBusqueda = [];
+    let productoActual = null;
+    let busquedaTimer = null;
+
+    let paginaActual = 1;
+    let pageSize = Number(selPageSize.value) || 100;
+
+    const CAMPOS_BLOQUEADOS = ["id", "codigoBarra"];
+    const DB_NAME = "provsoft_admin_productos_db";
+    const DB_VERSION = 1;
+    const STORE_CATALOGO = "catalogo";
+    const STORE_META = "meta";
+    const KEY_CATALOGO = "productos";
+    const AUTO_SYNC_HOURS = 12;
+
+    function setStatus(msg = "", tipo = "") {
+      statusModal.className = "status";
+      statusModal.textContent = msg;
+      if (tipo) statusModal.classList.add(tipo);
+    }
+
+    function setOverlay(texto = "Procesando...", pct = 0, visible = true){
+      overlayTexto.textContent = texto;
+      barraFill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+      overlayCarga.classList.toggle("hidden", !visible);
+    }
+
+    function norm(v){
+      return String(v ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function fmtFecha(v){
+      try{
+        let d = null;
+        if (v instanceof Timestamp) d = v.toDate();
+        else if (v?.seconds !== undefined) d = new Date(v.seconds * 1000);
+        else if (v) d = new Date(v);
+
+        if (!d || isNaN(d.getTime())) return "--";
+
+        return new Intl.DateTimeFormat("es-MX", {
+          dateStyle:"medium",
+          timeStyle:"short"
+        }).format(d);
+      }catch{
+        return "--";
+      }
+    }
+
+    function detectarTipo(valor){
+      if (Array.isArray(valor)) return "array";
+      if (valor instanceof Timestamp || valor?.seconds !== undefined) return "timestamp";
+      if (typeof valor === "boolean") return "boolean";
+      if (typeof valor === "number") return "number";
+      if (valor && typeof valor === "object") return "object";
+      return "string";
+    }
+
+    function escaparHtml(txt){
+      return String(txt ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function prepararCatalogoBusqueda(lista){
+      catalogoBusqueda = (Array.isArray(lista) ? lista : []).map(p => {
+        const equivalentes = Array.isArray(p.codigosEquivalentes) ? p.codigosEquivalentes : [];
+        const codigo = norm(p.codigoBarra || p.codigo || p.id);
+        const id = norm(p.id);
+        const concepto = norm(p.concepto || p.descripcion || p.nombre);
+        const marca = norm(p.marca);
+        const depto = norm(p.departamento);
+        const claveSat = norm(p.claveSat);
+        const departamentoId = norm(p.departamento_id);
+        const unidadSat = norm(p.unidadMedidaSat);
+        const eqNorm = equivalentes.map(x => norm(x));
+
+        return {
+          raw: p,
+          busquedaCodigo: codigo,
+          busquedaId: id,
+          busquedaConcepto: concepto,
+          busquedaMarca: marca,
+          busquedaDepto: depto,
+          busquedaClaveSat: claveSat,
+          busquedaDepartamentoId: departamentoId,
+          busquedaUnidadSat: unidadSat,
+          busquedaEquivalentes: eqNorm,
+          busquedaGeneral: [
+            id,
+            codigo,
+            concepto,
+            marca,
+            depto,
+            claveSat,
+            departamentoId,
+            unidadSat,
+            ...eqNorm
+          ].join(" ")
+        };
+      });
+    }
+
+    function abrirDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = (event) => {
+          const dbLocal = event.target.result;
+          if (!dbLocal.objectStoreNames.contains(STORE_CATALOGO)) {
+            dbLocal.createObjectStore(STORE_CATALOGO, { keyPath: "key" });
+          }
+          if (!dbLocal.objectStoreNames.contains(STORE_META)) {
+            dbLocal.createObjectStore(STORE_META, { keyPath: "key" });
+          }
+        };
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function guardarCatalogoCache(lista) {
+      const dbLocal = await abrirDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = dbLocal.transaction([STORE_CATALOGO, STORE_META], "readwrite");
+        tx.objectStore(STORE_CATALOGO).put({
+          key: KEY_CATALOGO,
+          items: lista
+        });
+        tx.objectStore(STORE_META).put({
+          key: "ultima_sync",
+          fecha: new Date().toISOString(),
+          total: lista.length
+        });
+
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function leerCatalogoCache() {
+      const dbLocal = await abrirDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = dbLocal.transaction(STORE_CATALOGO, "readonly");
+        const req = tx.objectStore(STORE_CATALOGO).get(KEY_CATALOGO);
+
+        req.onsuccess = () => resolve(req.result ? req.result.items : null);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function leerMetaCache() {
+      const dbLocal = await abrirDB();
+
+      return new Promise((resolve, reject) => {
+        const tx = dbLocal.transaction(STORE_META, "readonly");
+        const req = tx.objectStore(STORE_META).get("ultima_sync");
+
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    function necesitaAutoSync(metaCache){
+      if (!metaCache?.fecha) return true;
+      const ultima = new Date(metaCache.fecha).getTime();
+      if (isNaN(ultima)) return true;
+      const ahora = Date.now();
+      const diffHoras = (ahora - ultima) / (1000 * 60 * 60);
+      return diffHoras >= AUTO_SYNC_HOURS;
+    }
+
+    async function descargarProductosFirestore(){
+      setOverlay("Consultando Firestore...", 15, true);
+
+      const campoOrden = selOrden.value || "concepto";
+      let snap;
+
+      try{
+        const q = query(
+          collection(db, "productos"),
+          orderBy(campoOrden),
+          limit(8000)
+        );
+        snap = await getDocs(q);
+      }catch(err){
+        console.warn("No se pudo ordenar por ese campo, se cargará sin orderBy:", err);
+        const q = query(collection(db, "productos"), limit(8000));
+        snap = await getDocs(q);
+      }
+
+      const total = snap.size || 1;
+      let procesados = 0;
+      const lista = [];
+
+      snap.forEach(d => {
+        procesados++;
+        lista.push({
+          id: d.id,
+          ...d.data()
+        });
+
+        const pct = 15 + Math.round((procesados / total) * 85);
+        setOverlay(`Bajando catálogo... ${procesados} / ${total}`, pct, true);
+      });
+
+      return lista;
+    }
+
+    function resetPaginacion(){
+      paginaActual = 1;
+    }
+
+    function totalPaginas(){
+      return Math.max(1, Math.ceil(productosFiltrados.length / pageSize));
+    }
+
+    function normalizarPaginaActual(){
+      const total = totalPaginas();
+      if (paginaActual < 1) paginaActual = 1;
+      if (paginaActual > total) paginaActual = total;
+    }
+
+    function obtenerProductosPagina(){
+      normalizarPaginaActual();
+      const inicio = (paginaActual - 1) * pageSize;
+      const fin = inicio + pageSize;
+      return productosFiltrados.slice(inicio, fin);
+    }
+
+    function actualizarPaginacionUI(){
+      normalizarPaginaActual();
+
+      const total = productosFiltrados.length;
+      const totalPags = totalPaginas();
+      const inicio = total === 0 ? 0 : ((paginaActual - 1) * pageSize) + 1;
+      const fin = total === 0 ? 0 : Math.min(paginaActual * pageSize, total);
+
+      paginaActualTxt.textContent = `${paginaActual} / ${totalPags}`;
+      resumenPaginacion.textContent = `Mostrando ${inicio} a ${fin} de ${total}`;
+
+      btnPrimera.disabled = paginaActual <= 1;
+      btnAnterior.disabled = paginaActual <= 1;
+      btnSiguiente.disabled = paginaActual >= totalPags;
+      btnUltima.disabled = paginaActual >= totalPags;
+    }
+
+    function aplicarLista(lista){
+      productos = Array.isArray(lista) ? lista : [];
+      productosFiltrados = [...productos];
+      prepararCatalogoBusqueda(productos);
+      resetPaginacion();
+      renderTabla();
+
+      meta.textContent = `Total Firestore: ${productos.length} | Mostrando: ${productosFiltrados.length}`;
+      console.log("TOTAL PRODUCTOS CARGADOS:", productos.length);
+      console.log("PRUEBA SNICKERS:", productos.find(p => String(p.codigoBarra) === "7506174512255"));
+    }
+
+    async function cargarProductosDesdeFirestoreYCache(){
+      const lista = await descargarProductosFirestore();
+      aplicarLista(lista);
+      await guardarCatalogoCache(lista);
+      setOverlay("Catálogo actualizado", 100, false);
+    }
+
+    async function sincronizarSilencioso(){
+      try{
+        meta.textContent = "Actualizando catálogo en segundo plano...";
+        const lista = await descargarProductosFirestore();
+        aplicarLista(lista);
+        await guardarCatalogoCache(lista);
+        meta.textContent = `Catálogo actualizado | Total: ${productos.length}`;
+        setOverlay("", 0, false);
+      }catch(err){
+        console.error("Error en sync silenciosa:", err);
+        setOverlay("", 0, false);
+        meta.textContent = `Catálogo local listo | Total: ${productos.length}`;
+      }
+    }
+
+    async function cargarProductos(){
+      try{
+        setOverlay("Preparando catálogo local...", 10, true);
+        const cache = await leerCatalogoCache().catch(() => null);
+        const metaCache = await leerMetaCache().catch(() => null);
+
+        if (cache && cache.length) {
+          aplicarLista(cache);
+          setOverlay("", 0, false);
+
+          if (metaCache?.fecha) {
+            meta.textContent = `Catálogo local listo | Total: ${productos.length} | Última sync: ${new Date(metaCache.fecha).toLocaleString("es-MX")}`;
+          } else {
+            meta.textContent = `Catálogo local listo | Total: ${productos.length}`;
+          }
+
+          if (necesitaAutoSync(metaCache)) {
+            sincronizarSilencioso();
+          }
+          return;
+        }
+
+        await cargarProductosDesdeFirestoreYCache();
+      } catch(err){
+        console.error(err);
+        setOverlay("", 0, false);
+        meta.textContent = "Error cargando catálogo";
+      }
+    }
+
+    function aplicarFiltros(){
+      const b = norm(txtBuscar.value);
+      const activo = selActivo.value;
+
+      productosFiltrados = productos.filter(p => {
+        if (activo === "true" && p.activo !== true) return false;
+        if (activo === "false" && p.activo !== false) return false;
+
+        if (!b) return true;
+
+        const codigo = norm(p.codigoBarra || p.codigo || p.id);
+        const id = norm(p.id);
+        const concepto = norm(p.concepto || p.descripcion || p.nombre);
+        const marca = norm(p.marca);
+        const depto = norm(p.departamento);
+        const claveSat = norm(p.claveSat);
+        const equivalentes = Array.isArray(p.codigosEquivalentes)
+          ? p.codigosEquivalentes.map(x => norm(x)).join(" ")
+          : "";
+
+        const bolsa = [id, codigo, concepto, marca, depto, claveSat, equivalentes].join(" ");
+        const tokens = b.split(/\s+/).filter(Boolean);
+
+        return tokens.every(token => bolsa.includes(token));
+      });
+
+      resetPaginacion();
+      renderTabla();
+    }
+
+    function buscarCoincidenciasLocales(texto) {
+      const b = norm(texto);
+      if (!b) return [];
+
+      const activo = selActivo.value;
+      const tokens = b.split(/\s+/).filter(Boolean);
+
+      const resultados = catalogoBusqueda
+        .map(item => {
+          const p = item.raw;
+
+          if (activo === "true" && p.activo !== true) return null;
+          if (activo === "false" && p.activo !== false) return null;
+
+          const bolsa = item.busquedaGeneral;
+          const cumple = tokens.every(token => bolsa.includes(token));
+          if (!cumple) return null;
+
+          let score = 0;
+
+          if (item.busquedaCodigo === b) score += 5000;
+          if (item.busquedaConcepto === b) score += 4000;
+          if (item.busquedaMarca === b) score += 2500;
+
+          if (item.busquedaCodigo.startsWith(b)) score += 2000;
+          if (item.busquedaConcepto.startsWith(b)) score += 1500;
+          if (item.busquedaMarca.startsWith(b)) score += 1000;
+
+          if (item.busquedaCodigo.includes(b)) score += 900;
+          if (item.busquedaConcepto.includes(b)) score += 700;
+          if (item.busquedaEquivalentes.some(x => x.includes(b))) score += 600;
+          if (item.busquedaMarca.includes(b)) score += 400;
+          if (item.busquedaDepto.includes(b)) score += 200;
+
+          score += tokens.filter(t => item.busquedaCodigo.includes(t)).length * 300;
+          score += tokens.filter(t => item.busquedaConcepto.includes(t)).length * 180;
+          score += tokens.filter(t => item.busquedaEquivalentes.some(eq => eq.includes(t))).length * 150;
+          score += tokens.filter(t => item.busquedaMarca.includes(t)).length * 120;
+
+          return { producto: p, score };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 50);
+
+      return resultados.map(x => x.producto);
+    }
+
+    function renderBusquedaRapida(lista, texto) {
+      metaBusqueda.textContent = `Coincidencias para: "${texto}" | Resultados: ${lista.length}`;
+
+      if (!lista.length) {
+        tbodyBusqueda.innerHTML = `
+          <tr>
+            <td colspan="6">Sin resultados</td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbodyBusqueda.innerHTML = lista.map(p => `
+        <tr>
+          <td><span class="tag ${p.activo === true ? "si" : "no"}">${p.activo === true ? "TRUE" : "FALSE"}</span></td>
+          <td>${escaparHtml(p.codigoBarra || p.codigo || p.id || "--")}</td>
+          <td>${escaparHtml(p.concepto || p.descripcion || p.nombre || "--")}</td>
+          <td>${escaparHtml(p.marca || "--")}</td>
+          <td>${escaparHtml(p.departamento || "--")}</td>
+          <td>
+            <button onclick="window.seleccionarResultadoBusqueda('${String(p.id).replace(/'/g,"\\'")}')">
+              Seleccionar
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function manejarBusquedaRapida() {
+      const texto = txtBuscar.value.trim();
+
+      clearTimeout(busquedaTimer);
+
+      if (!texto) {
+        modalBusqueda.classList.remove("show");
+        tbodyBusqueda.innerHTML = "";
+        metaBusqueda.textContent = "Escribe para buscar productos...";
+        return;
+      }
+
+      busquedaTimer = setTimeout(() => {
+        const lista = buscarCoincidenciasLocales(texto);
+        renderBusquedaRapida(lista, texto);
+        modalBusqueda.classList.add("show");
+      }, 180);
+    }
+
+    function renderTabla(){
+      normalizarPaginaActual();
+      const listaPagina = obtenerProductosPagina();
+
+      meta.textContent = `Total Firestore: ${productos.length} | Mostrando filtrados: ${productosFiltrados.length}`;
+
+      tbody.innerHTML = listaPagina.map(p => `
+        <tr>
+          <td><span class="tag ${p.activo === true ? "si" : "no"}">${p.activo === true ? "TRUE" : "FALSE"}</span></td>
+          <td class="mono">${escaparHtml(p.id || "--")}</td>
+          <td>${escaparHtml(p.codigoBarra || p.codigo || p.id || "--")}</td>
+          <td>${escaparHtml(p.concepto || p.descripcion || p.nombre || "--")}</td>
+          <td>${escaparHtml(p.marca || "--")}</td>
+          <td>${escaparHtml(p.departamento || "--")}</td>
+          <td>${p.precioPublico ?? "--"}</td>
+          <td>${p.ivaTasa ?? "--"}</td>
+          <td>${p.iepsTasa ?? "--"}</td>
+          <td class="mono">${escaparHtml(Array.isArray(p.codigosEquivalentes) ? JSON.stringify(p.codigosEquivalentes) : "--")}</td>
+          <td>${fmtFecha(p.updatedAt)}</td>
+          <td><button onclick="window.abrirEditor('${String(p.id).replace(/'/g,"\\'")}')">Ver / Editar</button></td>
+        </tr>
+      `).join("");
+
+      if (!listaPagina.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="12">Sin resultados</td>
+          </tr>
+        `;
+      }
+
+      actualizarPaginacionUI();
+    }
+
+    function renderCampo(key, value){
+      const tipo = detectarTipo(value);
+      const bloqueado = CAMPOS_BLOQUEADOS.includes(key);
+
+      if (key === "id") {
+        return `
+          <div class="campo">
+            <div class="k">id</div>
+            <input class="readonly" value="${escaparHtml(value)}" readonly />
+          </div>
+        `;
+      }
+
+      if (bloqueado) {
+        return `
+          <div class="campo">
+            <div class="k">${escaparHtml(key)}</div>
+            <input class="readonly" data-key="${escaparHtml(key)}" data-type="${tipo}" value="${escaparHtml(value)}" readonly />
+          </div>
+        `;
+      }
+
+      if (tipo === "boolean") {
+        return `
+          <div class="campo">
+            <div class="k">${escaparHtml(key)}</div>
+            <select data-key="${escaparHtml(key)}" data-type="boolean">
+              <option value="true" ${value === true ? "selected" : ""}>true</option>
+              <option value="false" ${value === false ? "selected" : ""}>false</option>
+            </select>
+          </div>
+        `;
+      }
+
+      if (tipo === "number") {
+        return `
+          <div class="campo">
+            <div class="k">${escaparHtml(key)}</div>
+            <input type="number" step="any" data-key="${escaparHtml(key)}" data-type="number" value="${value}" />
+          </div>
+        `;
+      }
+
+      if (tipo === "array" || tipo === "object") {
+        return `
+          <div class="campo">
+            <div class="k">${escaparHtml(key)} (${tipo})</div>
+            <textarea data-key="${escaparHtml(key)}" data-type="${tipo}">${escaparHtml(JSON.stringify(value, null, 2))}</textarea>
+          </div>
+        `;
+      }
+
+      if (tipo === "timestamp") {
+        return `
+          <div class="campo">
+            <div class="k">${escaparHtml(key)} (timestamp)</div>
+            <input class="readonly" value="${escaparHtml(fmtFecha(value))}" readonly />
+          </div>
+        `;
+      }
+
+      return `
+        <div class="campo">
+          <div class="k">${escaparHtml(key)}</div>
+          <input type="text" data-key="${escaparHtml(key)}" data-type="string" value="${escaparHtml(value ?? "")}" />
+        </div>
+      `;
+    }
+
+    function actualizarBotonesActivo() {
+      if (!productoActual) return;
+      const activo = productoActual.activo === true;
+      btnActivar.style.display = activo ? "none" : "inline-block";
+      btnDesactivar.style.display = activo ? "inline-block" : "none";
+    }
+
+    window.abrirEditor = function(id){
+      productoActual = productos.find(x => String(x.id) === String(id));
+      if (!productoActual) return;
+
+      setStatus("", "");
+
+      const entries = Object.entries(productoActual).sort((a,b) => a[0].localeCompare(b[0], "es"));
+      detalleGrid.innerHTML = entries.map(([k,v]) => renderCampo(k, v)).join("");
+      actualizarBotonesActivo();
+      modal.classList.add("show");
+    };
+
+    window.seleccionarResultadoBusqueda = function(id) {
+      const p = productos.find(x => String(x.id) === String(id));
+      if (!p) return;
+
+      modalBusqueda.classList.remove("show");
+      txtBuscar.value = p.codigoBarra || p.codigo || p.concepto || p.nombre || "";
+      window.abrirEditor(p.id);
+    };
+
+    function recolectarCambios() {
+      const campos = detalleGrid.querySelectorAll("[data-key]");
+      const data = {};
+
+      for (const el of campos) {
+        const key = el.dataset.key;
+        const type = el.dataset.type;
+        if (CAMPOS_BLOQUEADOS.includes(key)) continue;
+
+        let value = el.value;
+
+        try {
+          if (type === "boolean") {
+            data[key] = value === "true";
+          } else if (type === "number") {
+            data[key] = value === "" ? null : Number(value);
+          } else if (type === "array" || type === "object") {
+            data[key] = value.trim() === "" ? (type === "array" ? [] : {}) : JSON.parse(value);
+          } else {
+            data[key] = value;
+          }
+        } catch (err) {
+          throw new Error(`Campo inválido: ${key}. Revisa el JSON o formato.`);
+        }
+      }
+
+      data.updatedAt = serverTimestamp();
+      return data;
+    }
+
+    async function refrescarDespuesCambio(){
+      try{
+        const lista = await descargarProductosFirestore();
+        aplicarLista(lista);
+        await guardarCatalogoCache(lista);
+      }catch(err){
+        console.error("No se pudo refrescar después del cambio:", err);
+        await cargarProductos();
+      }
+    }
+
+    async function guardarCambios() {
+      if (!productoActual?.id) return;
+
+      try {
+        setStatus("Guardando cambios...", "info");
+
+        const cambios = recolectarCambios();
+        delete cambios.id;
+        delete cambios.codigoBarra;
+
+        const refDoc = doc(db, "productos", productoActual.id);
+        await updateDoc(refDoc, cambios);
+
+        setStatus("Cambios guardados correctamente.", "ok");
+        await refrescarDespuesCambio();
+
+        productoActual = productos.find(x => x.id === productoActual.id) || productoActual;
+        if (productoActual) window.abrirEditor(productoActual.id);
+      } catch (err) {
+        console.error(err);
+        setStatus(err.message || "Error guardando cambios.", "error");
+      }
+    }
+
+    async function desactivarProducto() {
+      if (!productoActual?.id) return;
+
+      const nombre = productoActual.concepto || productoActual.nombre || "(sin nombre)";
+      const codigo = productoActual.codigoBarra || productoActual.id || "--";
+
+      const ok = confirm(
+        `Vas a poner este producto en ACTIVO = false.\n\n` +
+        `Código: ${codigo}\n` +
+        `Concepto: ${nombre}\n\n` +
+        `¿Confirmas la desactivación?`
+      );
+      if (!ok) return;
+
+      try {
+        setStatus("Desactivando producto...", "info");
+
+        const refDoc = doc(db, "productos", productoActual.id);
+        await updateDoc(refDoc, {
+          activo: false,
+          updatedAt: serverTimestamp()
+        });
+
+        setStatus("Producto desactivado correctamente.", "ok");
+        await refrescarDespuesCambio();
+        modal.classList.remove("show");
+      } catch (err) {
+        console.error(err);
+        setStatus("Error al desactivar producto.", "error");
+      }
+    }
+
+    async function activarProducto() {
+      if (!productoActual?.id) return;
+
+      const nombre = productoActual.concepto || productoActual.nombre || "(sin nombre)";
+      const codigo = productoActual.codigoBarra || productoActual.id || "--";
+
+      const ok = confirm(
+        `Vas a poner este producto en ACTIVO = true.\n\n` +
+        `Código: ${codigo}\n` +
+        `Concepto: ${nombre}\n\n` +
+        `¿Confirmas la activación?`
+      );
+      if (!ok) return;
+
+      try {
+        setStatus("Activando producto...", "info");
+
+        const refDoc = doc(db, "productos", productoActual.id);
+        await updateDoc(refDoc, {
+          activo: true,
+          updatedAt: serverTimestamp()
+        });
+
+        setStatus("Producto activado correctamente.", "ok");
+        await refrescarDespuesCambio();
+        modal.classList.remove("show");
+      } catch (err) {
+        console.error(err);
+        setStatus("Error al activar producto.", "error");
+      }
+    }
+
+    async function eliminarFisicamente() {
+      if (!productoActual?.id) return;
+
+      const nombre = productoActual.concepto || productoActual.nombre || "(sin nombre)";
+      const codigo = productoActual.codigoBarra || productoActual.id || "--";
+
+      const ok1 = confirm(
+        `Vas a ELIMINAR FÍSICAMENTE este producto.\n\n` +
+        `Código: ${codigo}\n` +
+        `Concepto: ${nombre}\n\n` +
+        `Esta acción borra el documento de Firestore.\n` +
+        `¿Deseas continuar?`
+      );
+      if (!ok1) return;
+
+      const ok2 = confirm(
+        `CONFIRMACIÓN FINAL\n\n` +
+        `Se eliminará definitivamente:\n` +
+        `Código: ${codigo}\n` +
+        `Concepto: ${nombre}\n\n` +
+        `Esto no se puede deshacer.\n` +
+        `¿Eliminar definitivamente?`
+      );
+      if (!ok2) return;
+
+      try {
+        setStatus("Eliminando físicamente...", "info");
+
+        const refDoc = doc(db, "productos", productoActual.id);
+        await deleteDoc(refDoc);
+
+        setStatus("Producto eliminado físicamente.", "ok");
+        await refrescarDespuesCambio();
+        modal.classList.remove("show");
+      } catch (err) {
+        console.error(err);
+        setStatus("Error eliminando físicamente.", "error");
+      }
+    }
+
+    txtBuscar.addEventListener("input", manejarBusquedaRapida);
+
+    txtBuscar.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+      }
+    });
+
+    selActivo.addEventListener("change", () => {
+      if (txtBuscar.value.trim()) {
+        manejarBusquedaRapida();
+      }
+    });
+
+    selOrden.addEventListener("change", cargarProductos);
+    btnRecargar.addEventListener("click", cargarProductos);
+
+    btnFiltrarTabla.addEventListener("click", () => {
+      aplicarFiltros();
+      modalBusqueda.classList.remove("show");
+    });
+
+    selPageSize.addEventListener("change", () => {
+      pageSize = Number(selPageSize.value) || 100;
+      resetPaginacion();
+      renderTabla();
+    });
+
+    btnPrimera.addEventListener("click", () => {
+      paginaActual = 1;
+      renderTabla();
+    });
+
+    btnAnterior.addEventListener("click", () => {
+      paginaActual--;
+      renderTabla();
+    });
+
+    btnSiguiente.addEventListener("click", () => {
+      paginaActual++;
+      renderTabla();
+    });
+
+    btnUltima.addEventListener("click", () => {
+      paginaActual = totalPaginas();
+      renderTabla();
+    });
+
+    btnCerrar.addEventListener("click", () => modal.classList.remove("show"));
+    btnGuardar.addEventListener("click", guardarCambios);
+    btnActivar.addEventListener("click", activarProducto);
+    btnDesactivar.addEventListener("click", desactivarProducto);
+    btnEliminarReal.addEventListener("click", eliminarFisicamente);
+
+    btnCerrarBusqueda.addEventListener("click", () => {
+      modalBusqueda.classList.remove("show");
+    });
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) modal.classList.remove("show");
+    });
+
+    modalBusqueda.addEventListener("click", (e) => {
+      if (e.target === modalBusqueda) modalBusqueda.classList.remove("show");
+    });
+
+    cargarProductos();
+  </script>
+</body>
+</html>
