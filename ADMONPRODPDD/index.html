@@ -1,1290 +1,1497 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Administrador de Productos - PROVSOFT</title>
-  <style>
-    body{
-      font-family: Arial, sans-serif;
-      margin:0;
-      background:#f4f7fb;
-      color:#1f2937;
-    }
-    .wrap{
-      padding:16px;
-    }
-    .top{
-      background:linear-gradient(135deg,#00416A,#0c6cbd);
-      color:#fff;
-      padding:16px;
-      border-radius:12px;
-      margin-bottom:14px;
-    }
-    .top h1{
-      margin:0 0 6px;
-      font-size:22px;
-    }
-    .filtros{
-      display:grid;
-      grid-template-columns: 1.6fr 180px 180px 140px 150px 140px;
-      gap:10px;
-      margin-bottom:14px;
-    }
-    input, select, button, textarea{
-      border-radius:10px;
-      border:1px solid #cbd5e1;
-      padding:10px 12px;
-      font-size:14px;
-      font-family: Arial, sans-serif;
-      box-sizing:border-box;
-    }
-    input, select, button{
-      height:42px;
-    }
-    textarea{
-      min-height:100px;
-      resize:vertical;
-    }
-    button{
-      background:#0c6cbd;
-      color:#fff;
-      border:none;
-      cursor:pointer;
-      font-weight:700;
-    }
-    button:hover{
-      opacity:.95;
-    }
-    button:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-    }
-    .btn-danger{
-      background:#b91c1c;
-    }
-    .btn-warning{
-      background:#b45309;
-    }
-    .btn-gray{
-      background:#475569;
-    }
-    .btn-green{
-      background:#15803d;
-    }
-    .meta{
-      margin-bottom:10px;
-      font-size:13px;
-      color:#475569;
-      font-weight:700;
-    }
-    .tabla-wrap{
-      background:#fff;
-      border-radius:12px;
-      overflow:auto;
-      border:1px solid #e2e8f0;
-      max-height:68vh;
-    }
-    table{
-      width:100%;
-      border-collapse:collapse;
-      min-width:1600px;
-    }
-    th, td{
-      padding:10px 12px;
-      border-bottom:1px solid #e5e7eb;
-      text-align:left;
-      font-size:13px;
-      vertical-align:top;
-    }
-    th{
-      position:sticky;
-      top:0;
-      background:#eaf3fb;
-      z-index:1;
-      font-size:12px;
-      text-transform:uppercase;
-      white-space:nowrap;
-    }
-    .tag{
-      display:inline-block;
-      padding:4px 8px;
-      border-radius:999px;
-      font-size:11px;
-      font-weight:700;
-    }
-    .si{ background:#dcfce7; color:#166534; }
-    .no{ background:#fee2e2; color:#991b1b; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PROVSOFT - Productos</title>
 
-    .mono{
-      font-family: Consolas, monospace;
-      white-space:pre-wrap;
-      word-break:break-word;
-      max-width:420px;
-    }
+<style>
+body{
+  font-family:Arial, sans-serif;
+  margin:0;
+  background:#f4f7fb;
+  color:#1f2937;
+}
+.wrap{
+  padding:16px;
+}
+.top{
+  background:linear-gradient(135deg,#00416A,#0c6cbd);
+  color:#fff;
+  padding:16px;
+  border-radius:12px;
+  margin-bottom:14px;
+}
+.top h2{
+  margin:0;
+}
+.filtros{
+  display:grid;
+  grid-template-columns:minmax(340px,1.6fr) 180px 140px 160px;
+  gap:10px;
+  align-items:center;
+}
+input,select,button,textarea{
+  border-radius:10px;
+  border:1px solid #cbd5e1;
+  padding:10px 12px;
+  font-size:14px;
+  font-family:Arial, sans-serif;
+  box-sizing:border-box;
+}
+input,select,button{
+  height:42px;
+}
+textarea{
+  min-height:120px;
+  resize:vertical;
+}
+button{
+  background:#0c6cbd;
+  color:#fff;
+  border:none;
+  font-weight:700;
+  cursor:pointer;
+}
+button:hover{
+  opacity:.95;
+}
+button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+.btn-gray{ background:#475569; }
+.btn-warning{ background:#b45309; }
+.btn-danger{ background:#b91c1c; }
+.btn-green{ background:#15803d; }
 
-    .modal{
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,.55);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      padding:18px;
-      z-index:9999;
-    }
-    .modal.show{
-      display:flex;
-    }
-    .modal-box{
-      width:min(1300px, 100%);
-      max-height:90vh;
-      overflow:auto;
-      background:#fff;
-      border-radius:16px;
-      padding:18px;
-    }
-    .acciones{
-      display:flex;
-      gap:8px;
-      margin-bottom:12px;
-      flex-wrap:wrap;
-    }
-    .detalle-grid{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:12px;
-    }
-    .campo{
-      border:1px solid #e5e7eb;
-      border-radius:12px;
-      padding:10px;
-      background:#f8fafc;
-    }
-    .campo .k{
-      font-size:11px;
-      font-weight:800;
-      color:#64748b;
-      text-transform:uppercase;
-      margin-bottom:6px;
-    }
-    .readonly{
-      background:#e5e7eb !important;
-      color:#475569;
-    }
-    .status{
-      margin-bottom:10px;
-      padding:10px 12px;
-      border-radius:10px;
-      display:none;
-      font-size:13px;
-      font-weight:700;
-    }
-    .status.ok{
-      display:block;
-      background:#dcfce7;
-      color:#166534;
-    }
-    .status.error{
-      display:block;
-      background:#fee2e2;
-      color:#991b1b;
-    }
-    .status.info{
-      display:block;
-      background:#eff6ff;
-      color:#1d4ed8;
-    }
+.meta{
+  margin-top:10px;
+  margin-bottom:10px;
+  font-size:13px;
+  color:#475569;
+  font-weight:700;
+}
 
-    .overlay{
-      position:fixed;
-      inset:0;
-      background:rgba(255,255,255,.8);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:12000;
-      backdrop-filter: blur(2px);
-    }
-    .overlay.hidden{
-      display:none;
-    }
-    .overlay-box{
-      background:#fff;
-      border:1px solid #dbeafe;
-      border-radius:16px;
-      padding:18px 22px;
-      min-width:320px;
-      box-shadow:0 18px 40px rgba(0,0,0,.12);
-      text-align:center;
-    }
-    .overlay-title{
-      font-size:18px;
-      font-weight:900;
-      color:#00416A;
-      margin-bottom:8px;
-    }
-    .overlay-text{
-      font-size:13px;
-      color:#475569;
-      font-weight:700;
-    }
-    .barra{
-      width:100%;
-      height:12px;
-      background:#e5e7eb;
-      border-radius:999px;
-      overflow:hidden;
-      margin-top:14px;
-    }
-    .barra-fill{
-      width:0%;
-      height:100%;
-      background:linear-gradient(135deg,#00416A,#0c6cbd);
-      transition:width .2s ease;
-    }
+.tabla-wrap{
+  background:#fff;
+  border-radius:12px;
+  margin-top:14px;
+  overflow:auto;
+  max-height:70vh;
+  border:1px solid #e5e7eb;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+th,td{
+  padding:10px 12px;
+  border-bottom:1px solid #e5e7eb;
+  font-size:13px;
+  text-align:left;
+  vertical-align:top;
+}
+th{
+  background:#eef6ff;
+  position:sticky;
+  top:0;
+  z-index:1;
+}
 
-    .paginacion{
-      margin-top:12px;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      flex-wrap:wrap;
-      background:#fff;
-      border:1px solid #e2e8f0;
-      border-radius:12px;
-      padding:10px 12px;
-    }
-    .paginacion-izq,
-    .paginacion-der{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    .pagina-info{
-      font-size:13px;
-      font-weight:700;
-      color:#475569;
-    }
-    .pagina-mini{
-      min-width:44px;
-      text-align:center;
-      font-weight:800;
-      color:#0f172a;
-    }
+.tag{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+}
+.si{ background:#dcfce7; color:#166534; }
+.no{ background:#fee2e2; color:#991b1b; }
 
-    @media (max-width: 1100px){
-      .filtros{
-        grid-template-columns:1fr 1fr;
-      }
-    }
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.50);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  z-index:5000;
+}
+.modal.show{
+  display:flex;
+}
 
-    @media (max-width: 900px){
-      .filtros{
-        grid-template-columns:1fr;
-      }
-      .detalle-grid{
-        grid-template-columns:1fr;
-      }
-      .paginacion{
-        flex-direction:column;
-        align-items:stretch;
-      }
-      .paginacion-izq,
-      .paginacion-der{
-        justify-content:center;
-      }
-    }
-  </style>
+.modal-buscador-box{
+  width:min(1100px,100%);
+  max-height:85vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:16px;
+  padding:18px;
+}
+
+.modal-editor-box{
+  width:min(96vw, 1700px);
+  height:min(94vh, 1000px);
+  overflow:auto;
+  background:#fff;
+  border-radius:16px;
+  padding:18px;
+}
+
+.acciones{
+  display:flex;
+  gap:8px;
+  margin-bottom:12px;
+  flex-wrap:wrap;
+}
+
+.campo-busqueda{
+  margin-bottom:12px;
+}
+
+.resultados-wrap{
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  overflow:auto;
+  max-height:60vh;
+}
+
+.resultados-busqueda{
+  width:100%;
+  border-collapse:collapse;
+}
+.resultados-busqueda tr{
+  cursor:pointer;
+}
+.resultados-busqueda tr:hover,
+.resultados-busqueda tr.activa{
+  background:#eff6ff;
+}
+.codigo-col{
+  width:190px;
+  white-space:nowrap;
+  font-family:Consolas, monospace;
+  font-weight:700;
+  color:#0f172a;
+}
+
+.editor-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.campo{
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:10px;
+  background:#f8fafc;
+}
+.campo label{
+  display:block;
+  font-size:11px;
+  font-weight:800;
+  color:#64748b;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+.readonly{
+  background:#e5e7eb !important;
+  color:#475569;
+}
+
+.status{
+  margin-bottom:10px;
+  padding:10px 12px;
+  border-radius:10px;
+  display:none;
+  font-size:13px;
+  font-weight:700;
+}
+.status.ok{
+  display:block;
+  background:#dcfce7;
+  color:#166534;
+}
+.status.error{
+  display:block;
+  background:#fee2e2;
+  color:#991b1b;
+}
+.status.info{
+  display:block;
+  background:#eff6ff;
+  color:#1d4ed8;
+}
+
+.eq-wrap,
+.ppc-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.eq-input-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.eq-input-row input{
+  flex:1;
+}
+.eq-lista,
+.ppc-lista{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.eq-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  border:1px solid #dbeafe;
+  background:#eff6ff;
+  border-radius:10px;
+  padding:8px 10px;
+}
+.eq-codigo{
+  font-family:Consolas, monospace;
+  font-size:13px;
+  font-weight:700;
+  color:#0f172a;
+  word-break:break-all;
+}
+.eq-vacio,
+.ppc-vacio{
+  font-size:13px;
+  color:#64748b;
+  font-style:italic;
+}
+
+.ppc-input-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr)) 140px;
+  gap:8px;
+  align-items:center;
+}
+.ppc-item{
+  border:1px solid #dbeafe;
+  background:#eff6ff;
+  border-radius:12px;
+  padding:10px;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr)) 120px;
+  gap:10px;
+  align-items:center;
+}
+.ppc-bloque{
+  min-width:0;
+}
+.ppc-k{
+  display:block;
+  font-size:10px;
+  font-weight:800;
+  color:#64748b;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.ppc-v{
+  font-size:13px;
+  font-weight:700;
+  color:#0f172a;
+  word-break:break-word;
+}
+
+@media (max-width: 1100px){
+  .filtros{
+    grid-template-columns:1fr 1fr;
+  }
+  .ppc-input-grid,
+  .ppc-item{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media (max-width: 900px){
+  .filtros{
+    grid-template-columns:1fr;
+  }
+  .editor-grid{
+    grid-template-columns:1fr;
+  }
+  .ppc-input-grid,
+  .ppc-item{
+    grid-template-columns:1fr;
+  }
+}
+</style>
 </head>
+
 <body>
-  <div class="overlay" id="overlayCarga">
-    <div class="overlay-box">
-      <div class="overlay-title">Cargando catálogo</div>
-      <div class="overlay-text" id="overlayTexto">Preparando datos...</div>
-      <div class="barra">
-        <div class="barra-fill" id="barraFill"></div>
-      </div>
-    </div>
+<div class="wrap">
+  <div class="top">
+    <h2>Administrador de Productos</h2>
   </div>
 
-  <div class="wrap">
-    <div class="top">
-      <h1>Administrador de Productos - PROVSOFT</h1>
-      <div>Ver, editar, desactivar y administrar productos. Código original protegido.</div>
+  <div class="filtros">
+    <input id="txtBuscarPrincipal" placeholder="Código directo o texto para buscar..." autocomplete="off"/>
+    <select id="selActivo">
+      <option value="todos">Todos</option>
+      <option value="true">Activos</option>
+      <option value="false">Inactivos</option>
+    </select>
+    <button id="btnBuscarPrincipal">Buscar</button>
+    <button id="btnReset" class="btn-gray">Ver todos</button>
+  </div>
+
+  <div class="meta" id="meta">Cargando...</div>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Activo</th>
+          <th>Código</th>
+          <th>Concepto</th>
+          <th>Marca</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MODAL 1: SUGERENCIAS -->
+<div class="modal" id="modalBuscador">
+  <div class="modal-buscador-box">
+    <div class="acciones">
+      <button id="btnCerrarBuscador" class="btn-gray">Cerrar</button>
     </div>
 
-    <div class="filtros">
-      <input id="txtBuscar" placeholder="Buscar por código, equivalente, concepto, marca, departamento..." />
-      <select id="selActivo">
-        <option value="todos">Todos</option>
-        <option value="true">Solo activos</option>
-        <option value="false">Solo inactivos</option>
-      </select>
-      <select id="selOrden">
-        <option value="concepto">Orden: Concepto</option>
-        <option value="codigoBarra">Orden: Código</option>
-        <option value="updatedAt">Orden: UpdatedAt</option>
-        <option value="precioPublico">Orden: Precio público</option>
-      </select>
-      <button id="btnRecargar">Recargar</button>
-      <button id="btnFiltrarTabla" class="btn-green">Filtrar tabla</button>
-      <select id="selPageSize">
-        <option value="50">50 por página</option>
-        <option value="100" selected>100 por página</option>
-        <option value="200">200 por página</option>
-        <option value="500">500 por página</option>
-      </select>
+    <div class="campo-busqueda">
+      <input id="txtBuscarModal" placeholder="Escribe código, concepto, marca o equivalente..." autocomplete="off" style="width:100%;">
     </div>
 
-    <div class="meta" id="meta">Cargando...</div>
+    <div class="meta" id="metaBusqueda">Escribe para buscar productos...</div>
 
-    <div class="tabla-wrap">
-      <table>
+    <div class="resultados-wrap">
+      <table class="resultados-busqueda">
         <thead>
           <tr>
             <th>Activo</th>
-            <th>ID</th>
-            <th>Código</th>
+            <th class="codigo-col">Código</th>
             <th>Concepto</th>
             <th>Marca</th>
-            <th>Departamento</th>
-            <th>Precio Público</th>
-            <th>IVA</th>
-            <th>IEPS</th>
-            <th>Equivalentes</th>
-            <th>UpdatedAt</th>
-            <th>Acción</th>
           </tr>
         </thead>
-        <tbody id="tbody"></tbody>
+        <tbody id="tbodyBusqueda"></tbody>
       </table>
     </div>
-
-    <div class="paginacion">
-      <div class="paginacion-izq">
-        <button id="btnPrimera" class="btn-gray">Primera</button>
-        <button id="btnAnterior" class="btn-gray">Anterior</button>
-        <span class="pagina-mini" id="paginaActualTxt">1</span>
-        <button id="btnSiguiente" class="btn-gray">Siguiente</button>
-        <button id="btnUltima" class="btn-gray">Última</button>
-      </div>
-      <div class="paginacion-der">
-        <span class="pagina-info" id="resumenPaginacion">Mostrando 0 a 0 de 0</span>
-      </div>
-    </div>
   </div>
+</div>
 
-  <div class="modal" id="modal">
-    <div class="modal-box">
-      <div id="statusModal" class="status"></div>
+<!-- MODAL 2: EDITOR -->
+<div class="modal" id="modalEditor">
+  <div class="modal-editor-box">
+    <div id="statusModal" class="status"></div>
 
-      <div class="acciones">
-        <button id="btnGuardar">Guardar cambios</button>
-        <button id="btnActivar">Activar producto</button>
-        <button id="btnDesactivar" class="btn-warning">Desactivar producto</button>
-        <button id="btnEliminarReal" class="btn-danger">Eliminar físicamente</button>
-        <button id="btnCerrar" class="btn-gray">Cerrar</button>
-      </div>
-
-      <div class="detalle-grid" id="detalleGrid"></div>
+    <div class="acciones">
+      <button id="btnGuardar">Guardar cambios</button>
+      <button id="btnActivar">Activar producto</button>
+      <button id="btnDesactivar" class="btn-warning">Desactivar producto</button>
+      <button id="btnEliminarReal" class="btn-danger">Eliminar físicamente</button>
+      <button id="btnCerrarEditor" class="btn-gray">Cerrar</button>
     </div>
+
+    <div class="editor-grid" id="editorCampos"></div>
   </div>
-
-  <div class="modal" id="modalBusqueda">
-    <div class="modal-box" style="width:min(1000px,100%);">
-      <div class="acciones">
-        <button id="btnCerrarBusqueda" class="btn-gray">Cerrar</button>
-      </div>
-
-      <div class="meta" id="metaBusqueda">Escribe para buscar productos...</div>
-
-      <div class="tabla-wrap" style="max-height:60vh;">
-        <table>
-          <thead>
-            <tr>
-              <th>Activo</th>
-              <th>Código</th>
-              <th>Concepto</th>
-              <th>Marca</th>
-              <th>Departamento</th>
-              <th>Elegir</th>
-            </tr>
-          </thead>
-          <tbody id="tbodyBusqueda"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <script type="module">
-    import { db } from "./config.js";
-    import {
-      collection,
-      getDocs,
-      query,
-      orderBy,
-      limit,
-      Timestamp,
-      doc,
-      updateDoc,
-      deleteDoc,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const txtBuscar = document.getElementById("txtBuscar");
-    const selActivo = document.getElementById("selActivo");
-    const selOrden = document.getElementById("selOrden");
-    const btnRecargar = document.getElementById("btnRecargar");
-    const btnFiltrarTabla = document.getElementById("btnFiltrarTabla");
-    const selPageSize = document.getElementById("selPageSize");
-
-    const tbody = document.getElementById("tbody");
-    const meta = document.getElementById("meta");
-    const modal = document.getElementById("modal");
-    const detalleGrid = document.getElementById("detalleGrid");
-    const btnCerrar = document.getElementById("btnCerrar");
-    const btnGuardar = document.getElementById("btnGuardar");
-    const btnActivar = document.getElementById("btnActivar");
-    const btnDesactivar = document.getElementById("btnDesactivar");
-    const btnEliminarReal = document.getElementById("btnEliminarReal");
-    const statusModal = document.getElementById("statusModal");
-
-    const modalBusqueda = document.getElementById("modalBusqueda");
-    const tbodyBusqueda = document.getElementById("tbodyBusqueda");
-    const metaBusqueda = document.getElementById("metaBusqueda");
-    const btnCerrarBusqueda = document.getElementById("btnCerrarBusqueda");
-
-    const overlayCarga = document.getElementById("overlayCarga");
-    const overlayTexto = document.getElementById("overlayTexto");
-    const barraFill = document.getElementById("barraFill");
-
-    const btnPrimera = document.getElementById("btnPrimera");
-    const btnAnterior = document.getElementById("btnAnterior");
-    const btnSiguiente = document.getElementById("btnSiguiente");
-    const btnUltima = document.getElementById("btnUltima");
-    const paginaActualTxt = document.getElementById("paginaActualTxt");
-    const resumenPaginacion = document.getElementById("resumenPaginacion");
-
-    let productos = [];
-    let productosFiltrados = [];
-    let catalogoBusqueda = [];
-    let productoActual = null;
-    let busquedaTimer = null;
-
-    let paginaActual = 1;
-    let pageSize = Number(selPageSize.value) || 100;
-
-    const CAMPOS_BLOQUEADOS = ["id", "codigoBarra"];
-    const DB_NAME = "provsoft_admin_productos_db";
-    const DB_VERSION = 1;
-    const STORE_CATALOGO = "catalogo";
-    const STORE_META = "meta";
-    const KEY_CATALOGO = "productos";
-    const AUTO_SYNC_HOURS = 12;
-
-    function setStatus(msg = "", tipo = "") {
-      statusModal.className = "status";
-      statusModal.textContent = msg;
-      if (tipo) statusModal.classList.add(tipo);
-    }
-
-    function setOverlay(texto = "Procesando...", pct = 0, visible = true){
-      overlayTexto.textContent = texto;
-      barraFill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
-      overlayCarga.classList.toggle("hidden", !visible);
-    }
-
-    function norm(v){
-      return String(v ?? "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase()
-        .replace(/[^A-Z0-9]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-    }
-
-    function fmtFecha(v){
-      try{
-        let d = null;
-        if (v instanceof Timestamp) d = v.toDate();
-        else if (v?.seconds !== undefined) d = new Date(v.seconds * 1000);
-        else if (v) d = new Date(v);
-
-        if (!d || isNaN(d.getTime())) return "--";
-
-        return new Intl.DateTimeFormat("es-MX", {
-          dateStyle:"medium",
-          timeStyle:"short"
-        }).format(d);
-      }catch{
-        return "--";
-      }
-    }
-
-    function detectarTipo(valor){
-      if (Array.isArray(valor)) return "array";
-      if (valor instanceof Timestamp || valor?.seconds !== undefined) return "timestamp";
-      if (typeof valor === "boolean") return "boolean";
-      if (typeof valor === "number") return "number";
-      if (valor && typeof valor === "object") return "object";
-      return "string";
-    }
-
-    function escaparHtml(txt){
-      return String(txt ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    function prepararCatalogoBusqueda(lista){
-      catalogoBusqueda = (Array.isArray(lista) ? lista : []).map(p => {
-        const equivalentes = Array.isArray(p.codigosEquivalentes) ? p.codigosEquivalentes : [];
-        const codigo = norm(p.codigoBarra || p.codigo || p.id);
-        const id = norm(p.id);
-        const concepto = norm(p.concepto || p.descripcion || p.nombre);
-        const marca = norm(p.marca);
-        const depto = norm(p.departamento);
-        const claveSat = norm(p.claveSat);
-        const departamentoId = norm(p.departamento_id);
-        const unidadSat = norm(p.unidadMedidaSat);
-        const eqNorm = equivalentes.map(x => norm(x));
-
-        return {
-          raw: p,
-          busquedaCodigo: codigo,
-          busquedaId: id,
-          busquedaConcepto: concepto,
-          busquedaMarca: marca,
-          busquedaDepto: depto,
-          busquedaClaveSat: claveSat,
-          busquedaDepartamentoId: departamentoId,
-          busquedaUnidadSat: unidadSat,
-          busquedaEquivalentes: eqNorm,
-          busquedaGeneral: [
-            id,
-            codigo,
-            concepto,
-            marca,
-            depto,
-            claveSat,
-            departamentoId,
-            unidadSat,
-            ...eqNorm
-          ].join(" ")
-        };
-      });
-    }
-
-    function abrirDB() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-        request.onupgradeneeded = (event) => {
-          const dbLocal = event.target.result;
-          if (!dbLocal.objectStoreNames.contains(STORE_CATALOGO)) {
-            dbLocal.createObjectStore(STORE_CATALOGO, { keyPath: "key" });
-          }
-          if (!dbLocal.objectStoreNames.contains(STORE_META)) {
-            dbLocal.createObjectStore(STORE_META, { keyPath: "key" });
-          }
-        };
-
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-    }
-
-    async function guardarCatalogoCache(lista) {
-      const dbLocal = await abrirDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction([STORE_CATALOGO, STORE_META], "readwrite");
-        tx.objectStore(STORE_CATALOGO).put({
-          key: KEY_CATALOGO,
-          items: lista
-        });
-        tx.objectStore(STORE_META).put({
-          key: "ultima_sync",
-          fecha: new Date().toISOString(),
-          total: lista.length
-        });
-
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => reject(tx.error);
-      });
-    }
-
-    async function leerCatalogoCache() {
-      const dbLocal = await abrirDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction(STORE_CATALOGO, "readonly");
-        const req = tx.objectStore(STORE_CATALOGO).get(KEY_CATALOGO);
-
-        req.onsuccess = () => resolve(req.result ? req.result.items : null);
-        req.onerror = () => reject(req.error);
-      });
-    }
-
-    async function leerMetaCache() {
-      const dbLocal = await abrirDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction(STORE_META, "readonly");
-        const req = tx.objectStore(STORE_META).get("ultima_sync");
-
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => reject(req.error);
-      });
-    }
-
-    function necesitaAutoSync(metaCache){
-      if (!metaCache?.fecha) return true;
-      const ultima = new Date(metaCache.fecha).getTime();
-      if (isNaN(ultima)) return true;
-      const ahora = Date.now();
-      const diffHoras = (ahora - ultima) / (1000 * 60 * 60);
-      return diffHoras >= AUTO_SYNC_HOURS;
-    }
-
-    async function descargarProductosFirestore(){
-      setOverlay("Consultando Firestore...", 15, true);
-
-      const campoOrden = selOrden.value || "concepto";
-      let snap;
-
-      try{
-        const q = query(
-          collection(db, "productos"),
-          orderBy(campoOrden),
-          limit(8000)
-        );
-        snap = await getDocs(q);
-      }catch(err){
-        console.warn("No se pudo ordenar por ese campo, se cargará sin orderBy:", err);
-        const q = query(collection(db, "productos"), limit(8000));
-        snap = await getDocs(q);
-      }
-
-      const total = snap.size || 1;
-      let procesados = 0;
-      const lista = [];
-
-      snap.forEach(d => {
-        procesados++;
-        lista.push({
-          id: d.id,
-          ...d.data()
-        });
-
-        const pct = 15 + Math.round((procesados / total) * 85);
-        setOverlay(`Bajando catálogo... ${procesados} / ${total}`, pct, true);
-      });
-
-      return lista;
-    }
-
-    function resetPaginacion(){
-      paginaActual = 1;
-    }
-
-    function totalPaginas(){
-      return Math.max(1, Math.ceil(productosFiltrados.length / pageSize));
-    }
-
-    function normalizarPaginaActual(){
-      const total = totalPaginas();
-      if (paginaActual < 1) paginaActual = 1;
-      if (paginaActual > total) paginaActual = total;
-    }
-
-    function obtenerProductosPagina(){
-      normalizarPaginaActual();
-      const inicio = (paginaActual - 1) * pageSize;
-      const fin = inicio + pageSize;
-      return productosFiltrados.slice(inicio, fin);
-    }
-
-    function actualizarPaginacionUI(){
-      normalizarPaginaActual();
-
-      const total = productosFiltrados.length;
-      const totalPags = totalPaginas();
-      const inicio = total === 0 ? 0 : ((paginaActual - 1) * pageSize) + 1;
-      const fin = total === 0 ? 0 : Math.min(paginaActual * pageSize, total);
-
-      paginaActualTxt.textContent = `${paginaActual} / ${totalPags}`;
-      resumenPaginacion.textContent = `Mostrando ${inicio} a ${fin} de ${total}`;
-
-      btnPrimera.disabled = paginaActual <= 1;
-      btnAnterior.disabled = paginaActual <= 1;
-      btnSiguiente.disabled = paginaActual >= totalPags;
-      btnUltima.disabled = paginaActual >= totalPags;
-    }
-
-    function aplicarLista(lista){
-      productos = Array.isArray(lista) ? lista : [];
-      productosFiltrados = [...productos];
-      prepararCatalogoBusqueda(productos);
-      resetPaginacion();
-      renderTabla();
-
-      meta.textContent = `Total Firestore: ${productos.length} | Mostrando: ${productosFiltrados.length}`;
-      console.log("TOTAL PRODUCTOS CARGADOS:", productos.length);
-      console.log("PRUEBA SNICKERS:", productos.find(p => String(p.codigoBarra) === "7506174512255"));
-    }
-
-    async function cargarProductosDesdeFirestoreYCache(){
-      const lista = await descargarProductosFirestore();
-      aplicarLista(lista);
-      await guardarCatalogoCache(lista);
-      setOverlay("Catálogo actualizado", 100, false);
-    }
-
-    async function sincronizarSilencioso(){
-      try{
-        meta.textContent = "Actualizando catálogo en segundo plano...";
-        const lista = await descargarProductosFirestore();
-        aplicarLista(lista);
-        await guardarCatalogoCache(lista);
-        meta.textContent = `Catálogo actualizado | Total: ${productos.length}`;
-        setOverlay("", 0, false);
-      }catch(err){
-        console.error("Error en sync silenciosa:", err);
-        setOverlay("", 0, false);
-        meta.textContent = `Catálogo local listo | Total: ${productos.length}`;
-      }
-    }
-
-    async function cargarProductos(){
-      try{
-        setOverlay("Preparando catálogo local...", 10, true);
-        const cache = await leerCatalogoCache().catch(() => null);
-        const metaCache = await leerMetaCache().catch(() => null);
-
-        if (cache && cache.length) {
-          aplicarLista(cache);
-          setOverlay("", 0, false);
-
-          if (metaCache?.fecha) {
-            meta.textContent = `Catálogo local listo | Total: ${productos.length} | Última sync: ${new Date(metaCache.fecha).toLocaleString("es-MX")}`;
-          } else {
-            meta.textContent = `Catálogo local listo | Total: ${productos.length}`;
-          }
-
-          if (necesitaAutoSync(metaCache)) {
-            sincronizarSilencioso();
-          }
-          return;
-        }
-
-        await cargarProductosDesdeFirestoreYCache();
-      } catch(err){
-        console.error(err);
-        setOverlay("", 0, false);
-        meta.textContent = "Error cargando catálogo";
-      }
-    }
-
-    function aplicarFiltros(){
-      const b = norm(txtBuscar.value);
-      const activo = selActivo.value;
-
-      productosFiltrados = productos.filter(p => {
-        if (activo === "true" && p.activo !== true) return false;
-        if (activo === "false" && p.activo !== false) return false;
-
-        if (!b) return true;
-
-        const codigo = norm(p.codigoBarra || p.codigo || p.id);
-        const id = norm(p.id);
-        const concepto = norm(p.concepto || p.descripcion || p.nombre);
-        const marca = norm(p.marca);
-        const depto = norm(p.departamento);
-        const claveSat = norm(p.claveSat);
-        const equivalentes = Array.isArray(p.codigosEquivalentes)
-          ? p.codigosEquivalentes.map(x => norm(x)).join(" ")
-          : "";
-
-        const bolsa = [id, codigo, concepto, marca, depto, claveSat, equivalentes].join(" ");
-        const tokens = b.split(/\s+/).filter(Boolean);
-
-        return tokens.every(token => bolsa.includes(token));
-      });
-
-      resetPaginacion();
-      renderTabla();
-    }
-
-    function buscarCoincidenciasLocales(texto) {
-      const b = norm(texto);
-      if (!b) return [];
-
-      const activo = selActivo.value;
-      const tokens = b.split(/\s+/).filter(Boolean);
-
-      const resultados = catalogoBusqueda
-        .map(item => {
-          const p = item.raw;
-
-          if (activo === "true" && p.activo !== true) return null;
-          if (activo === "false" && p.activo !== false) return null;
-
-          const bolsa = item.busquedaGeneral;
-          const cumple = tokens.every(token => bolsa.includes(token));
-          if (!cumple) return null;
-
-          let score = 0;
-
-          if (item.busquedaCodigo === b) score += 5000;
-          if (item.busquedaConcepto === b) score += 4000;
-          if (item.busquedaMarca === b) score += 2500;
-
-          if (item.busquedaCodigo.startsWith(b)) score += 2000;
-          if (item.busquedaConcepto.startsWith(b)) score += 1500;
-          if (item.busquedaMarca.startsWith(b)) score += 1000;
-
-          if (item.busquedaCodigo.includes(b)) score += 900;
-          if (item.busquedaConcepto.includes(b)) score += 700;
-          if (item.busquedaEquivalentes.some(x => x.includes(b))) score += 600;
-          if (item.busquedaMarca.includes(b)) score += 400;
-          if (item.busquedaDepto.includes(b)) score += 200;
-
-          score += tokens.filter(t => item.busquedaCodigo.includes(t)).length * 300;
-          score += tokens.filter(t => item.busquedaConcepto.includes(t)).length * 180;
-          score += tokens.filter(t => item.busquedaEquivalentes.some(eq => eq.includes(t))).length * 150;
-          score += tokens.filter(t => item.busquedaMarca.includes(t)).length * 120;
-
-          return { producto: p, score };
-        })
-        .filter(Boolean)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 50);
-
-      return resultados.map(x => x.producto);
-    }
-
-    function renderBusquedaRapida(lista, texto) {
-      metaBusqueda.textContent = `Coincidencias para: "${texto}" | Resultados: ${lista.length}`;
-
-      if (!lista.length) {
-        tbodyBusqueda.innerHTML = `
-          <tr>
-            <td colspan="6">Sin resultados</td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbodyBusqueda.innerHTML = lista.map(p => `
-        <tr>
-          <td><span class="tag ${p.activo === true ? "si" : "no"}">${p.activo === true ? "TRUE" : "FALSE"}</span></td>
-          <td>${escaparHtml(p.codigoBarra || p.codigo || p.id || "--")}</td>
-          <td>${escaparHtml(p.concepto || p.descripcion || p.nombre || "--")}</td>
-          <td>${escaparHtml(p.marca || "--")}</td>
-          <td>${escaparHtml(p.departamento || "--")}</td>
-          <td>
-            <button onclick="window.seleccionarResultadoBusqueda('${String(p.id).replace(/'/g,"\\'")}')">
-              Seleccionar
-            </button>
-          </td>
-        </tr>
-      `).join("");
-    }
-
-    function manejarBusquedaRapida() {
-      const texto = txtBuscar.value.trim();
-
-      clearTimeout(busquedaTimer);
-
-      if (!texto) {
-        modalBusqueda.classList.remove("show");
-        tbodyBusqueda.innerHTML = "";
-        metaBusqueda.textContent = "Escribe para buscar productos...";
-        return;
-      }
-
-      busquedaTimer = setTimeout(() => {
-        const lista = buscarCoincidenciasLocales(texto);
-        renderBusquedaRapida(lista, texto);
-        modalBusqueda.classList.add("show");
-      }, 180);
-    }
-
-    function renderTabla(){
-      normalizarPaginaActual();
-      const listaPagina = obtenerProductosPagina();
-
-      meta.textContent = `Total Firestore: ${productos.length} | Mostrando filtrados: ${productosFiltrados.length}`;
-
-      tbody.innerHTML = listaPagina.map(p => `
-        <tr>
-          <td><span class="tag ${p.activo === true ? "si" : "no"}">${p.activo === true ? "TRUE" : "FALSE"}</span></td>
-          <td class="mono">${escaparHtml(p.id || "--")}</td>
-          <td>${escaparHtml(p.codigoBarra || p.codigo || p.id || "--")}</td>
-          <td>${escaparHtml(p.concepto || p.descripcion || p.nombre || "--")}</td>
-          <td>${escaparHtml(p.marca || "--")}</td>
-          <td>${escaparHtml(p.departamento || "--")}</td>
-          <td>${p.precioPublico ?? "--"}</td>
-          <td>${p.ivaTasa ?? "--"}</td>
-          <td>${p.iepsTasa ?? "--"}</td>
-          <td class="mono">${escaparHtml(Array.isArray(p.codigosEquivalentes) ? JSON.stringify(p.codigosEquivalentes) : "--")}</td>
-          <td>${fmtFecha(p.updatedAt)}</td>
-          <td><button onclick="window.abrirEditor('${String(p.id).replace(/'/g,"\\'")}')">Ver / Editar</button></td>
-        </tr>
-      `).join("");
-
-      if (!listaPagina.length) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="12">Sin resultados</td>
-          </tr>
-        `;
-      }
-
-      actualizarPaginacionUI();
-    }
-
-    function renderCampo(key, value){
-      const tipo = detectarTipo(value);
-      const bloqueado = CAMPOS_BLOQUEADOS.includes(key);
-
-      if (key === "id") {
-        return `
-          <div class="campo">
-            <div class="k">id</div>
-            <input class="readonly" value="${escaparHtml(value)}" readonly />
-          </div>
-        `;
-      }
-
-      if (bloqueado) {
-        return `
-          <div class="campo">
-            <div class="k">${escaparHtml(key)}</div>
-            <input class="readonly" data-key="${escaparHtml(key)}" data-type="${tipo}" value="${escaparHtml(value)}" readonly />
-          </div>
-        `;
-      }
-
-      if (tipo === "boolean") {
-        return `
-          <div class="campo">
-            <div class="k">${escaparHtml(key)}</div>
-            <select data-key="${escaparHtml(key)}" data-type="boolean">
-              <option value="true" ${value === true ? "selected" : ""}>true</option>
-              <option value="false" ${value === false ? "selected" : ""}>false</option>
-            </select>
-          </div>
-        `;
-      }
-
-      if (tipo === "number") {
-        return `
-          <div class="campo">
-            <div class="k">${escaparHtml(key)}</div>
-            <input type="number" step="any" data-key="${escaparHtml(key)}" data-type="number" value="${value}" />
-          </div>
-        `;
-      }
-
-      if (tipo === "array" || tipo === "object") {
-        return `
-          <div class="campo">
-            <div class="k">${escaparHtml(key)} (${tipo})</div>
-            <textarea data-key="${escaparHtml(key)}" data-type="${tipo}">${escaparHtml(JSON.stringify(value, null, 2))}</textarea>
-          </div>
-        `;
-      }
-
-      if (tipo === "timestamp") {
-        return `
-          <div class="campo">
-            <div class="k">${escaparHtml(key)} (timestamp)</div>
-            <input class="readonly" value="${escaparHtml(fmtFecha(value))}" readonly />
-          </div>
-        `;
-      }
-
-      return `
-        <div class="campo">
-          <div class="k">${escaparHtml(key)}</div>
-          <input type="text" data-key="${escaparHtml(key)}" data-type="string" value="${escaparHtml(value ?? "")}" />
+</div>
+
+<script type="module">
+import { db } from "./config.js";
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  Timestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const txtBuscarPrincipal = document.getElementById("txtBuscarPrincipal");
+const selActivo = document.getElementById("selActivo");
+const btnBuscarPrincipal = document.getElementById("btnBuscarPrincipal");
+const btnReset = document.getElementById("btnReset");
+const tbody = document.getElementById("tbody");
+const meta = document.getElementById("meta");
+
+const modalBuscador = document.getElementById("modalBuscador");
+const txtBuscarModal = document.getElementById("txtBuscarModal");
+const tbodyBusqueda = document.getElementById("tbodyBusqueda");
+const metaBusqueda = document.getElementById("metaBusqueda");
+const btnCerrarBuscador = document.getElementById("btnCerrarBuscador");
+
+const modalEditor = document.getElementById("modalEditor");
+const editorCampos = document.getElementById("editorCampos");
+const btnCerrarEditor = document.getElementById("btnCerrarEditor");
+const btnGuardar = document.getElementById("btnGuardar");
+const btnActivar = document.getElementById("btnActivar");
+const btnDesactivar = document.getElementById("btnDesactivar");
+const btnEliminarReal = document.getElementById("btnEliminarReal");
+const statusModal = document.getElementById("statusModal");
+
+let productos = [];
+let filtrados = [];
+let resultadosBusqueda = [];
+let idxBusqueda = -1;
+let productoActual = null;
+
+const CAMPOS_BLOQUEADOS = ["id", "codigoBarra"];
+
+const ESQUEMA_BASE = {
+  activo: true,
+  codigoBarra: "",
+  codigosEquivalentes: [],
+  concepto: "",
+  marca: "",
+  proveedor: "",
+  departamento: "",
+  departamento_id: "",
+  claveSat: "",
+  unidadMedidaSat: "",
+  costoSinImpuesto: null,
+  precioPublico: null,
+  ivaTasa: 0,
+  iepsTasa: 0,
+  cantidadPorCaja: 1,
+  mayoreo: null,
+  medioMayoreo: null,
+  comision_tipo: "",
+  comision_valor: 0,
+  preciosPorCantidad: [],
+  actualizadoEn: "",
+  ultima_actualizacion: "",
+  updatedAt: null
+};
+
+const ORDEN_CAMPOS = [
+  "id",
+  "activo",
+  "codigoBarra",
+  "codigosEquivalentes",
+  "concepto",
+  "marca",
+  "proveedor",
+  "departamento",
+  "departamento_id",
+  "claveSat",
+  "unidadMedidaSat",
+  "cantidadPorCaja",
+  "costoSinImpuesto",
+  "precioPublico",
+  "mayoreo",
+  "medioMayoreo",
+  "ivaTasa",
+  "iepsTasa",
+  "comision_tipo",
+  "comision_valor",
+  "preciosPorCantidad",
+  "actualizadoEn",
+  "ultima_actualizacion",
+  "updatedAt"
+];
+
+function setStatus(msg = "", tipo = ""){
+  statusModal.className = "status";
+  statusModal.textContent = msg;
+  if (tipo) statusModal.classList.add(tipo);
+}
+
+function escaparHtml(txt){
+  return String(txt ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function norm(v){
+  return String(v ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function fmtFecha(v){
+  try{
+    let d = null;
+    if (v instanceof Timestamp) d = v.toDate();
+    else if (v?.seconds !== undefined) d = new Date(v.seconds * 1000);
+    else if (v) d = new Date(v);
+    if (!d || isNaN(d.getTime())) return "--";
+    return new Intl.DateTimeFormat("es-MX", {
+      dateStyle:"medium",
+      timeStyle:"short"
+    }).format(d);
+  }catch{
+    return "--";
+  }
+}
+
+function detectarTipo(valor){
+  if (Array.isArray(valor)) return "array";
+  if (valor instanceof Timestamp || valor?.seconds !== undefined) return "timestamp";
+  if (typeof valor === "boolean") return "boolean";
+  if (typeof valor === "number") return "number";
+  if (valor && typeof valor === "object") return "object";
+  return "string";
+}
+
+function bolsaBusqueda(p){
+  return [
+    norm(p.codigoBarra),
+    norm(p.concepto),
+    norm(p.marca),
+    norm(p.departamento),
+    ...(Array.isArray(p.codigosEquivalentes) ? p.codigosEquivalentes.map(x => norm(x)) : [])
+  ].join(" ");
+}
+
+function coincideActivo(p){
+  if (selActivo.value === "true") return p.activo === true;
+  if (selActivo.value === "false") return p.activo === false;
+  return true;
+}
+
+function construirProductoEditable(producto){
+  const merged = {
+    ...ESQUEMA_BASE,
+    ...producto
+  };
+
+  if (!Array.isArray(merged.codigosEquivalentes)) merged.codigosEquivalentes = [];
+  if (!Array.isArray(merged.preciosPorCantidad)) merged.preciosPorCantidad = [];
+
+  merged.preciosPorCantidad = merged.preciosPorCantidad
+    .filter(x => x && typeof x === "object")
+    .map(x => ({
+      cantidadMinima: x.cantidadMinima ?? null,
+      precioUnitario: x.precioUnitario ?? null,
+      precioTotal: x.precioTotal ?? null
+    }));
+
+  return merged;
+}
+
+function ordenarCamposProducto(producto){
+  const keys = Object.keys(producto);
+  return keys.sort((a,b) => {
+    const ia = ORDEN_CAMPOS.indexOf(a);
+    const ib = ORDEN_CAMPOS.indexOf(b);
+
+    if (ia === -1 && ib === -1) return a.localeCompare(b, "es");
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+}
+
+async function cargar(){
+  try{
+    meta.textContent = "Cargando productos...";
+    const snap = await getDocs(collection(db, "productos"));
+    productos = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    filtrados = [...productos];
+    renderTabla();
+  }catch(err){
+    console.error(err);
+    meta.textContent = "Error cargando productos";
+  }
+}
+
+function renderTabla(){
+  meta.textContent = `Total: ${productos.length} | Mostrando: ${filtrados.length}`;
+
+  if (!filtrados.length){
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5">Sin resultados</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = filtrados.map(p => `
+    <tr>
+      <td><span class="tag ${p.activo === true ? "si" : "no"}">${p.activo === true ? "TRUE" : "FALSE"}</span></td>
+      <td>${escaparHtml(p.codigoBarra || "--")}</td>
+      <td>${escaparHtml(p.concepto || "--")}</td>
+      <td>${escaparHtml(p.marca || "--")}</td>
+      <td>
+        <button onclick="window.abrirEditor('${String(p.id).replace(/'/g,"\\'")}')">Editar</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+function filtrarTablaPorProducto(p){
+  if (!p) return;
+  filtrados = [p];
+  renderTabla();
+  txtBuscarPrincipal.value = p.codigoBarra || p.concepto || "";
+}
+
+function buscarCoincidencias(texto){
+  const b = norm(texto);
+  if (!b) return [];
+
+  const tokens = b.split(/\s+/).filter(Boolean);
+
+  return productos
+    .filter(p => coincideActivo(p))
+    .map(p => {
+      const bolsa = bolsaBusqueda(p);
+      const ok = tokens.every(t => bolsa.includes(t));
+      if (!ok) return null;
+
+      let score = 0;
+      if (norm(p.codigoBarra) === b) score += 7000;
+      if ((Array.isArray(p.codigosEquivalentes) ? p.codigosEquivalentes.map(x => norm(x)) : []).includes(b)) score += 6500;
+      if (norm(p.concepto) === b) score += 4000;
+      if (norm(p.codigoBarra).startsWith(b)) score += 2000;
+      if (norm(p.concepto).startsWith(b)) score += 1500;
+      if (norm(p.codigoBarra).includes(b)) score += 800;
+      if (norm(p.concepto).includes(b)) score += 600;
+      if (norm(p.marca).includes(b)) score += 300;
+
+      return { producto: p, score };
+    })
+    .filter(Boolean)
+    .sort((a,b) => b.score - a.score)
+    .slice(0, 50)
+    .map(x => x.producto);
+}
+
+function buscarCoincidenciaExacta(texto){
+  const b = norm(texto);
+  if (!b) return null;
+
+  const candidatos = productos.filter(p => coincideActivo(p));
+
+  const exactoCodigo = candidatos.find(p => norm(p.codigoBarra) === b);
+  if (exactoCodigo) return exactoCodigo;
+
+  const exactoEquivalente = candidatos.find(p => {
+    const eqs = Array.isArray(p.codigosEquivalentes) ? p.codigosEquivalentes : [];
+    return eqs.some(eq => norm(eq) === b);
+  });
+  if (exactoEquivalente) return exactoEquivalente;
+
+  return null;
+}
+
+function abrirModalSugerencias(texto){
+  modalBuscador.classList.add("show");
+  txtBuscarModal.value = texto || "";
+  txtBuscarModal.focus();
+
+  const lista = buscarCoincidencias(texto || "");
+  renderResultadosBusqueda(lista, texto || "");
+}
+
+function resolverBusquedaPrincipal(){
+  const texto = txtBuscarPrincipal.value.trim();
+
+  if (!texto){
+    filtrados = productos.filter(p => coincideActivo(p));
+    renderTabla();
+    return;
+  }
+
+  const exacto = buscarCoincidenciaExacta(texto);
+  if (exacto){
+    filtrarTablaPorProducto(exacto);
+    return;
+  }
+
+  abrirModalSugerencias(texto);
+}
+
+function renderResultadosBusqueda(lista, texto){
+  resultadosBusqueda = Array.isArray(lista) ? lista : [];
+  idxBusqueda = resultadosBusqueda.length ? 0 : -1;
+
+  metaBusqueda.textContent = texto
+    ? `Coincidencias para: "${texto}" | Resultados: ${resultadosBusqueda.length}`
+    : "Escribe para buscar productos...";
+
+  if (!resultadosBusqueda.length){
+    tbodyBusqueda.innerHTML = `
+      <tr>
+        <td colspan="4">Sin resultados</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbodyBusqueda.innerHTML = resultadosBusqueda.map((p, i) => `
+    <tr class="${i === idxBusqueda ? "activa" : ""}" data-id="${escaparHtml(p.id)}">
+      <td><span class="tag ${p.activo === true ? "si" : "no"}">${p.activo === true ? "TRUE" : "FALSE"}</span></td>
+      <td class="codigo-col">${escaparHtml(p.codigoBarra || "--")}</td>
+      <td>${escaparHtml(p.concepto || "--")}</td>
+      <td>${escaparHtml(p.marca || "--")}</td>
+    </tr>
+  `).join("");
+
+  tbodyBusqueda.querySelectorAll("tr[data-id]").forEach((row, i) => {
+    row.addEventListener("click", () => {
+      seleccionarDesdeSugerencias(row.dataset.id);
+    });
+
+    row.addEventListener("mouseenter", () => {
+      idxBusqueda = i;
+      pintarActivaBusqueda();
+    });
+  });
+}
+
+function pintarActivaBusqueda(){
+  const filas = tbodyBusqueda.querySelectorAll("tr[data-id]");
+  filas.forEach((fila, i) => fila.classList.toggle("activa", i === idxBusqueda));
+}
+
+function scrollActivaBusqueda(){
+  const filas = tbodyBusqueda.querySelectorAll("tr[data-id]");
+  const fila = filas[idxBusqueda];
+  if (fila) fila.scrollIntoView({ block:"nearest" });
+}
+
+function seleccionarDesdeSugerencias(id){
+  const p = productos.find(x => String(x.id) === String(id));
+  if (!p) return;
+
+  filtrarTablaPorProducto(p);
+  modalBuscador.classList.remove("show");
+  txtBuscarModal.value = "";
+  tbodyBusqueda.innerHTML = "";
+  metaBusqueda.textContent = "Escribe para buscar productos...";
+  resultadosBusqueda = [];
+  idxBusqueda = -1;
+}
+
+/* ===== dinámicos equivalentes ===== */
+
+function renderCodigosEquivalentes(lista){
+  const arr = Array.isArray(lista) ? lista : [];
+
+  return `
+    <div class="campo">
+      <label>codigosEquivalentes</label>
+      <div class="eq-wrap">
+        <div class="eq-input-row">
+          <input type="text" id="nuevoEquivalenteInput" placeholder="Escribe un código equivalente" />
+          <button type="button" id="btnAgregarEquivalente" class="btn-green">Agregar</button>
         </div>
-      `;
-    }
 
-    function actualizarBotonesActivo() {
-      if (!productoActual) return;
-      const activo = productoActual.activo === true;
-      btnActivar.style.display = activo ? "none" : "inline-block";
-      btnDesactivar.style.display = activo ? "inline-block" : "none";
-    }
-
-    window.abrirEditor = function(id){
-      productoActual = productos.find(x => String(x.id) === String(id));
-      if (!productoActual) return;
-
-      setStatus("", "");
-
-      const entries = Object.entries(productoActual).sort((a,b) => a[0].localeCompare(b[0], "es"));
-      detalleGrid.innerHTML = entries.map(([k,v]) => renderCampo(k, v)).join("");
-      actualizarBotonesActivo();
-      modal.classList.add("show");
-    };
-
-    window.seleccionarResultadoBusqueda = function(id) {
-      const p = productos.find(x => String(x.id) === String(id));
-      if (!p) return;
-
-      modalBusqueda.classList.remove("show");
-      txtBuscar.value = p.codigoBarra || p.codigo || p.concepto || p.nombre || "";
-      window.abrirEditor(p.id);
-    };
-
-    function recolectarCambios() {
-      const campos = detalleGrid.querySelectorAll("[data-key]");
-      const data = {};
-
-      for (const el of campos) {
-        const key = el.dataset.key;
-        const type = el.dataset.type;
-        if (CAMPOS_BLOQUEADOS.includes(key)) continue;
-
-        let value = el.value;
-
-        try {
-          if (type === "boolean") {
-            data[key] = value === "true";
-          } else if (type === "number") {
-            data[key] = value === "" ? null : Number(value);
-          } else if (type === "array" || type === "object") {
-            data[key] = value.trim() === "" ? (type === "array" ? [] : {}) : JSON.parse(value);
-          } else {
-            data[key] = value;
+        <div class="eq-lista" id="listaEquivalentes">
+          ${
+            arr.length
+              ? arr.map((codigo, i) => `
+                  <div class="eq-item" data-index="${i}">
+                    <div class="eq-codigo">${escaparHtml(codigo)}</div>
+                    <button type="button" class="btn-danger btnQuitarEquivalente" data-index="${i}">Quitar</button>
+                  </div>
+                `).join("")
+              : `<div class="eq-vacio">Sin códigos equivalentes</div>`
           }
-        } catch (err) {
-          throw new Error(`Campo inválido: ${key}. Revisa el JSON o formato.`);
-        }
-      }
+        </div>
 
-      data.updatedAt = serverTimestamp();
-      return data;
-    }
+        <input type="hidden" id="codigosEquivalentesHidden" data-key="codigosEquivalentes" data-type="array" value='${escaparHtml(JSON.stringify(arr))}' />
+      </div>
+    </div>
+  `;
+}
 
-    async function refrescarDespuesCambio(){
-      try{
-        const lista = await descargarProductosFirestore();
-        aplicarLista(lista);
-        await guardarCatalogoCache(lista);
-      }catch(err){
-        console.error("No se pudo refrescar después del cambio:", err);
-        await cargarProductos();
-      }
-    }
+function obtenerEquivalentesActuales(){
+  const hidden = document.getElementById("codigosEquivalentesHidden");
+  if (!hidden) return [];
+  try{
+    const arr = JSON.parse(hidden.value || "[]");
+    return Array.isArray(arr) ? arr : [];
+  }catch{
+    return [];
+  }
+}
 
-    async function guardarCambios() {
-      if (!productoActual?.id) return;
+function actualizarEquivalentesUI(lista){
+  const hidden = document.getElementById("codigosEquivalentesHidden");
+  const cont = document.getElementById("listaEquivalentes");
+  if (!hidden || !cont) return;
 
-      try {
-        setStatus("Guardando cambios...", "info");
+  const arr = Array.isArray(lista) ? lista : [];
+  hidden.value = JSON.stringify(arr);
 
-        const cambios = recolectarCambios();
-        delete cambios.id;
-        delete cambios.codigoBarra;
+  if (!arr.length){
+    cont.innerHTML = `<div class="eq-vacio">Sin códigos equivalentes</div>`;
+    enlazarEventosEquivalentes();
+    return;
+  }
 
-        const refDoc = doc(db, "productos", productoActual.id);
-        await updateDoc(refDoc, cambios);
+  cont.innerHTML = arr.map((codigo, i) => `
+    <div class="eq-item" data-index="${i}">
+      <div class="eq-codigo">${escaparHtml(codigo)}</div>
+      <button type="button" class="btn-danger btnQuitarEquivalente" data-index="${i}">Quitar</button>
+    </div>
+  `).join("");
 
-        setStatus("Cambios guardados correctamente.", "ok");
-        await refrescarDespuesCambio();
+  enlazarEventosEquivalentes();
+}
 
-        productoActual = productos.find(x => x.id === productoActual.id) || productoActual;
-        if (productoActual) window.abrirEditor(productoActual.id);
-      } catch (err) {
-        console.error(err);
-        setStatus(err.message || "Error guardando cambios.", "error");
-      }
-    }
+function agregarEquivalente(){
+  const input = document.getElementById("nuevoEquivalenteInput");
+  if (!input) return;
 
-    async function desactivarProducto() {
-      if (!productoActual?.id) return;
+  const valor = String(input.value || "").trim();
+  if (!valor) return;
 
-      const nombre = productoActual.concepto || productoActual.nombre || "(sin nombre)";
-      const codigo = productoActual.codigoBarra || productoActual.id || "--";
+  const actuales = obtenerEquivalentesActuales();
+  const yaExiste = actuales.some(x => norm(x) === norm(valor));
 
-      const ok = confirm(
-        `Vas a poner este producto en ACTIVO = false.\n\n` +
-        `Código: ${codigo}\n` +
-        `Concepto: ${nombre}\n\n` +
-        `¿Confirmas la desactivación?`
-      );
-      if (!ok) return;
+  if (yaExiste){
+    alert("Ese código equivalente ya existe.");
+    input.focus();
+    input.select();
+    return;
+  }
 
-      try {
-        setStatus("Desactivando producto...", "info");
+  actuales.push(valor);
+  actualizarEquivalentesUI(actuales);
+  input.value = "";
+  input.focus();
+}
 
-        const refDoc = doc(db, "productos", productoActual.id);
-        await updateDoc(refDoc, {
-          activo: false,
-          updatedAt: serverTimestamp()
-        });
+function quitarEquivalente(index){
+  const actuales = obtenerEquivalentesActuales();
+  actuales.splice(index, 1);
+  actualizarEquivalentesUI(actuales);
+}
 
-        setStatus("Producto desactivado correctamente.", "ok");
-        await refrescarDespuesCambio();
-        modal.classList.remove("show");
-      } catch (err) {
-        console.error(err);
-        setStatus("Error al desactivar producto.", "error");
-      }
-    }
+function enlazarEventosEquivalentes(){
+  const btnAgregar = document.getElementById("btnAgregarEquivalente");
+  const input = document.getElementById("nuevoEquivalenteInput");
 
-    async function activarProducto() {
-      if (!productoActual?.id) return;
+  if (btnAgregar){
+    btnAgregar.onclick = agregarEquivalente;
+  }
 
-      const nombre = productoActual.concepto || productoActual.nombre || "(sin nombre)";
-      const codigo = productoActual.codigoBarra || productoActual.id || "--";
-
-      const ok = confirm(
-        `Vas a poner este producto en ACTIVO = true.\n\n` +
-        `Código: ${codigo}\n` +
-        `Concepto: ${nombre}\n\n` +
-        `¿Confirmas la activación?`
-      );
-      if (!ok) return;
-
-      try {
-        setStatus("Activando producto...", "info");
-
-        const refDoc = doc(db, "productos", productoActual.id);
-        await updateDoc(refDoc, {
-          activo: true,
-          updatedAt: serverTimestamp()
-        });
-
-        setStatus("Producto activado correctamente.", "ok");
-        await refrescarDespuesCambio();
-        modal.classList.remove("show");
-      } catch (err) {
-        console.error(err);
-        setStatus("Error al activar producto.", "error");
-      }
-    }
-
-    async function eliminarFisicamente() {
-      if (!productoActual?.id) return;
-
-      const nombre = productoActual.concepto || productoActual.nombre || "(sin nombre)";
-      const codigo = productoActual.codigoBarra || productoActual.id || "--";
-
-      const ok1 = confirm(
-        `Vas a ELIMINAR FÍSICAMENTE este producto.\n\n` +
-        `Código: ${codigo}\n` +
-        `Concepto: ${nombre}\n\n` +
-        `Esta acción borra el documento de Firestore.\n` +
-        `¿Deseas continuar?`
-      );
-      if (!ok1) return;
-
-      const ok2 = confirm(
-        `CONFIRMACIÓN FINAL\n\n` +
-        `Se eliminará definitivamente:\n` +
-        `Código: ${codigo}\n` +
-        `Concepto: ${nombre}\n\n` +
-        `Esto no se puede deshacer.\n` +
-        `¿Eliminar definitivamente?`
-      );
-      if (!ok2) return;
-
-      try {
-        setStatus("Eliminando físicamente...", "info");
-
-        const refDoc = doc(db, "productos", productoActual.id);
-        await deleteDoc(refDoc);
-
-        setStatus("Producto eliminado físicamente.", "ok");
-        await refrescarDespuesCambio();
-        modal.classList.remove("show");
-      } catch (err) {
-        console.error(err);
-        setStatus("Error eliminando físicamente.", "error");
-      }
-    }
-
-    txtBuscar.addEventListener("input", manejarBusquedaRapida);
-
-    txtBuscar.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
+  if (input){
+    input.onkeydown = (e) => {
+      if (e.key === "Enter"){
         e.preventDefault();
+        agregarEquivalente();
       }
-    });
+    };
+  }
 
-    selActivo.addEventListener("change", () => {
-      if (txtBuscar.value.trim()) {
-        manejarBusquedaRapida();
+  document.querySelectorAll(".btnQuitarEquivalente").forEach(btn => {
+    btn.onclick = () => {
+      const idx = Number(btn.dataset.index);
+      quitarEquivalente(idx);
+    };
+  });
+}
+
+/* ===== dinámicos precios por cantidad ===== */
+
+function renderPreciosPorCantidad(lista){
+  const arr = Array.isArray(lista) ? lista : [];
+
+  return `
+    <div class="campo">
+      <label>preciosPorCantidad</label>
+
+      <div class="ppc-wrap">
+        <div class="ppc-input-grid">
+          <input type="number" step="1" min="1" id="ppcCantidadMinima" placeholder="Cantidad mínima" />
+          <input type="number" step="any" min="0" id="ppcPrecioUnitario" placeholder="Precio unitario" />
+          <input type="number" step="any" min="0" id="ppcPrecioTotal" placeholder="Precio total (opcional)" />
+          <button type="button" id="btnAgregarPpc" class="btn-green">Agregar</button>
+        </div>
+
+        <div class="ppc-lista" id="listaPpc">
+          ${
+            arr.length
+              ? arr.map((item, i) => `
+                <div class="ppc-item" data-index="${i}">
+                  <div class="ppc-bloque">
+                    <span class="ppc-k">Cantidad mínima</span>
+                    <div class="ppc-v">${escaparHtml(item.cantidadMinima ?? "--")}</div>
+                  </div>
+                  <div class="ppc-bloque">
+                    <span class="ppc-k">Precio unitario</span>
+                    <div class="ppc-v">${escaparHtml(item.precioUnitario ?? "--")}</div>
+                  </div>
+                  <div class="ppc-bloque">
+                    <span class="ppc-k">Precio total</span>
+                    <div class="ppc-v">${escaparHtml(item.precioTotal ?? "--")}</div>
+                  </div>
+                  <button type="button" class="btn-danger btnQuitarPpc" data-index="${i}">Quitar</button>
+                </div>
+              `).join("")
+              : `<div class="ppc-vacio">Sin precios por cantidad</div>`
+          }
+        </div>
+
+        <input type="hidden" id="preciosPorCantidadHidden" data-key="preciosPorCantidad" data-type="array" value='${escaparHtml(JSON.stringify(arr))}' />
+      </div>
+    </div>
+  `;
+}
+
+function obtenerPpcActuales(){
+  const hidden = document.getElementById("preciosPorCantidadHidden");
+  if (!hidden) return [];
+  try{
+    const arr = JSON.parse(hidden.value || "[]");
+    return Array.isArray(arr) ? arr : [];
+  }catch{
+    return [];
+  }
+}
+
+function actualizarPpcUI(lista){
+  const hidden = document.getElementById("preciosPorCantidadHidden");
+  const cont = document.getElementById("listaPpc");
+  if (!hidden || !cont) return;
+
+  const arr = Array.isArray(lista) ? lista : [];
+  hidden.value = JSON.stringify(arr);
+
+  if (!arr.length){
+    cont.innerHTML = `<div class="ppc-vacio">Sin precios por cantidad</div>`;
+    enlazarEventosPpc();
+    return;
+  }
+
+  cont.innerHTML = arr.map((item, i) => `
+    <div class="ppc-item" data-index="${i}">
+      <div class="ppc-bloque">
+        <span class="ppc-k">Cantidad mínima</span>
+        <div class="ppc-v">${escaparHtml(item.cantidadMinima ?? "--")}</div>
+      </div>
+      <div class="ppc-bloque">
+        <span class="ppc-k">Precio unitario</span>
+        <div class="ppc-v">${escaparHtml(item.precioUnitario ?? "--")}</div>
+      </div>
+      <div class="ppc-bloque">
+        <span class="ppc-k">Precio total</span>
+        <div class="ppc-v">${escaparHtml(item.precioTotal ?? "--")}</div>
+      </div>
+      <button type="button" class="btn-danger btnQuitarPpc" data-index="${i}">Quitar</button>
+    </div>
+  `).join("");
+
+  enlazarEventosPpc();
+}
+
+function agregarPpc(){
+  const cantidadEl = document.getElementById("ppcCantidadMinima");
+  const unitarioEl = document.getElementById("ppcPrecioUnitario");
+  const totalEl = document.getElementById("ppcPrecioTotal");
+  if (!cantidadEl || !unitarioEl || !totalEl) return;
+
+  const cantidadMinima = Number(cantidadEl.value);
+  const precioUnitario = Number(unitarioEl.value);
+  const precioTotalManual = totalEl.value === "" ? null : Number(totalEl.value);
+
+  if (!Number.isFinite(cantidadMinima) || cantidadMinima <= 0 || !Number.isInteger(cantidadMinima)){
+    alert("La cantidad mínima debe ser un entero mayor a 0.");
+    cantidadEl.focus();
+    return;
+  }
+
+  if (!Number.isFinite(precioUnitario) || precioUnitario < 0){
+    alert("El precio unitario debe ser 0 o mayor.");
+    unitarioEl.focus();
+    return;
+  }
+
+  if (precioTotalManual !== null && (!Number.isFinite(precioTotalManual) || precioTotalManual < 0)){
+    alert("El precio total debe ser 0 o mayor.");
+    totalEl.focus();
+    return;
+  }
+
+  const actuales = obtenerPpcActuales();
+  const yaExiste = actuales.some(x => Number(x.cantidadMinima) === cantidadMinima);
+  if (yaExiste){
+    alert("Ya existe un precio para esa cantidad mínima.");
+    cantidadEl.focus();
+    cantidadEl.select();
+    return;
+  }
+
+  const precioTotal = precioTotalManual !== null
+    ? precioTotalManual
+    : Number((cantidadMinima * precioUnitario).toFixed(2));
+
+  actuales.push({
+    cantidadMinima,
+    precioUnitario,
+    precioTotal
+  });
+
+  actuales.sort((a,b) => Number(a.cantidadMinima) - Number(b.cantidadMinima));
+  actualizarPpcUI(actuales);
+
+  cantidadEl.value = "";
+  unitarioEl.value = "";
+  totalEl.value = "";
+  cantidadEl.focus();
+}
+
+function quitarPpc(index){
+  const actuales = obtenerPpcActuales();
+  actuales.splice(index, 1);
+  actualizarPpcUI(actuales);
+}
+
+function enlazarEventosPpc(){
+  const btnAgregar = document.getElementById("btnAgregarPpc");
+  const cantidadEl = document.getElementById("ppcCantidadMinima");
+  const unitarioEl = document.getElementById("ppcPrecioUnitario");
+  const totalEl = document.getElementById("ppcPrecioTotal");
+
+  if (btnAgregar){
+    btnAgregar.onclick = agregarPpc;
+  }
+
+  [cantidadEl, unitarioEl, totalEl].forEach(el => {
+    if (el){
+      el.onkeydown = (e) => {
+        if (e.key === "Enter"){
+          e.preventDefault();
+          agregarPpc();
+        }
+      };
+    }
+  });
+
+  document.querySelectorAll(".btnQuitarPpc").forEach(btn => {
+    btn.onclick = () => {
+      const idx = Number(btn.dataset.index);
+      quitarPpc(idx);
+    };
+  });
+}
+
+function renderCampo(key, value){
+  if (key === "codigosEquivalentes") {
+    return renderCodigosEquivalentes(value);
+  }
+
+  if (key === "preciosPorCantidad") {
+    return renderPreciosPorCantidad(value);
+  }
+
+  const tipo = detectarTipo(value);
+  const bloqueado = CAMPOS_BLOQUEADOS.includes(key);
+
+  if (key === "id") {
+    return `
+      <div class="campo">
+        <label>id</label>
+        <input class="readonly" value="${escaparHtml(value)}" readonly />
+      </div>
+    `;
+  }
+
+  if (bloqueado) {
+    return `
+      <div class="campo">
+        <label>${escaparHtml(key)}</label>
+        <input class="readonly" data-key="${escaparHtml(key)}" data-type="${tipo}" value="${escaparHtml(value)}" readonly />
+      </div>
+    `;
+  }
+
+  if (tipo === "boolean") {
+    return `
+      <div class="campo">
+        <label>${escaparHtml(key)}</label>
+        <select data-key="${escaparHtml(key)}" data-type="boolean">
+          <option value="true" ${value === true ? "selected" : ""}>true</option>
+          <option value="false" ${value === false ? "selected" : ""}>false</option>
+        </select>
+      </div>
+    `;
+  }
+
+  if (tipo === "number") {
+    return `
+      <div class="campo">
+        <label>${escaparHtml(key)}</label>
+        <input type="number" step="any" data-key="${escaparHtml(key)}" data-type="number" value="${value ?? ""}" />
+      </div>
+    `;
+  }
+
+  if (tipo === "array" || tipo === "object") {
+    return `
+      <div class="campo">
+        <label>${escaparHtml(key)} (${tipo})</label>
+        <textarea data-key="${escaparHtml(key)}" data-type="${tipo}">${escaparHtml(JSON.stringify(value, null, 2))}</textarea>
+      </div>
+    `;
+  }
+
+  if (tipo === "timestamp") {
+    return `
+      <div class="campo">
+        <label>${escaparHtml(key)} (timestamp)</label>
+        <input class="readonly" value="${escaparHtml(fmtFecha(value))}" readonly />
+      </div>
+    `;
+  }
+
+  return `
+    <div class="campo">
+      <label>${escaparHtml(key)}</label>
+      <input type="text" data-key="${escaparHtml(key)}" data-type="string" value="${escaparHtml(value ?? "")}" />
+    </div>
+  `;
+}
+
+function enlazarEventosEditorDinamico(){
+  enlazarEventosEquivalentes();
+  enlazarEventosPpc();
+}
+
+function actualizarBotonesActivo(){
+  if (!productoActual) return;
+  const activo = productoActual.activo === true;
+  btnActivar.style.display = activo ? "none" : "inline-block";
+  btnDesactivar.style.display = activo ? "inline-block" : "none";
+}
+
+window.abrirEditor = function(id){
+  productoActual = productos.find(x => String(x.id) === String(id));
+  if (!productoActual) return;
+
+  setStatus("", "");
+  const productoEditable = construirProductoEditable(productoActual);
+  const keysOrdenadas = ordenarCamposProducto(productoEditable);
+  editorCampos.innerHTML = keysOrdenadas.map(k => renderCampo(k, productoEditable[k])).join("");
+  enlazarEventosEditorDinamico();
+  actualizarBotonesActivo();
+  modalEditor.classList.add("show");
+};
+
+function validarAntesDeGuardar(data){
+  if (!Array.isArray(data.codigosEquivalentes)) data.codigosEquivalentes = [];
+  if (!Array.isArray(data.preciosPorCantidad)) data.preciosPorCantidad = [];
+
+  const eqNormalizados = [];
+  const vistosEq = new Set();
+
+  for (const raw of data.codigosEquivalentes){
+    const valor = String(raw ?? "").trim();
+    if (!valor) continue;
+
+    const n = norm(valor);
+    if (vistosEq.has(n)){
+      throw new Error(`Código equivalente duplicado: ${valor}`);
+    }
+    vistosEq.add(n);
+    eqNormalizados.push(valor);
+  }
+
+  data.codigosEquivalentes = eqNormalizados;
+
+  const ppcLimpios = [];
+  const vistosCantidades = new Set();
+
+  for (const item of data.preciosPorCantidad){
+    if (!item || typeof item !== "object") continue;
+
+    const cantidadMinima = Number(item.cantidadMinima);
+    const precioUnitario = Number(item.precioUnitario);
+    const precioTotal = item.precioTotal === null || item.precioTotal === "" || item.precioTotal === undefined
+      ? Number((cantidadMinima * precioUnitario).toFixed(2))
+      : Number(item.precioTotal);
+
+    if (!Number.isFinite(cantidadMinima) || cantidadMinima <= 0 || !Number.isInteger(cantidadMinima)){
+      throw new Error("Hay un precio por cantidad con cantidad mínima inválida.");
+    }
+
+    if (!Number.isFinite(precioUnitario) || precioUnitario < 0){
+      throw new Error("Hay un precio por cantidad con precio unitario inválido.");
+    }
+
+    if (!Number.isFinite(precioTotal) || precioTotal < 0){
+      throw new Error("Hay un precio por cantidad con precio total inválido.");
+    }
+
+    if (vistosCantidades.has(cantidadMinima)){
+      throw new Error(`Cantidad mínima duplicada en precios por cantidad: ${cantidadMinima}`);
+    }
+    vistosCantidades.add(cantidadMinima);
+
+    ppcLimpios.push({
+      cantidadMinima,
+      precioUnitario,
+      precioTotal
+    });
+  }
+
+  ppcLimpios.sort((a,b) => a.cantidadMinima - b.cantidadMinima);
+  data.preciosPorCantidad = ppcLimpios;
+
+  const camposNoNegativos = [
+    "cantidadPorCaja",
+    "costoSinImpuesto",
+    "precioPublico",
+    "mayoreo",
+    "medioMayoreo",
+    "ivaTasa",
+    "iepsTasa",
+    "comision_valor"
+  ];
+
+  for (const campo of camposNoNegativos){
+    const valor = data[campo];
+    if (valor === null || valor === "" || valor === undefined) continue;
+    if (typeof valor === "number" && valor < 0){
+      throw new Error(`El campo ${campo} no puede ser negativo.`);
+    }
+  }
+
+  return data;
+}
+
+function recolectarCambios(){
+  const campos = editorCampos.querySelectorAll("[data-key]");
+  const data = {};
+
+  for (const el of campos) {
+    const key = el.dataset.key;
+    const type = el.dataset.type;
+    if (CAMPOS_BLOQUEADOS.includes(key)) continue;
+
+    let value = el.value;
+
+    try {
+      if (type === "boolean") {
+        data[key] = value === "true";
+      } else if (type === "number") {
+        data[key] = value === "" ? null : Number(value);
+      } else if (type === "array" || type === "object") {
+        data[key] = value.trim() === "" ? (type === "array" ? [] : {}) : JSON.parse(value);
+      } else {
+        data[key] = value;
       }
+    } catch {
+      throw new Error(`Campo inválido: ${key}`);
+    }
+  }
+
+  data.updatedAt = serverTimestamp();
+  return validarAntesDeGuardar(data);
+}
+
+async function refrescar(){
+  const snap = await getDocs(collection(db, "productos"));
+  productos = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+
+  if (productoActual?.id) {
+    productoActual = productos.find(x => x.id === productoActual.id) || productoActual;
+  }
+
+  const texto = txtBuscarPrincipal.value.trim();
+  if (!texto){
+    filtrados = productos.filter(p => coincideActivo(p));
+    renderTabla();
+    return;
+  }
+
+  const exacto = buscarCoincidenciaExacta(texto);
+  if (exacto){
+    filtrarTablaPorProducto(exacto);
+    return;
+  }
+
+  filtrados = productos.filter(p => coincideActivo(p));
+  renderTabla();
+}
+
+async function guardarCambios(){
+  if (!productoActual?.id) return;
+
+  try{
+    setStatus("Guardando cambios...", "info");
+
+    const cambios = recolectarCambios();
+    const refDoc = doc(db, "productos", productoActual.id);
+
+    await updateDoc(refDoc, cambios);
+
+    setStatus("Cambios guardados correctamente.", "ok");
+    await refrescar();
+
+    if (productoActual?.id) {
+      window.abrirEditor(productoActual.id);
+    }
+  }catch(err){
+    console.error(err);
+    setStatus(err.message || "Error guardando cambios.", "error");
+  }
+}
+
+async function activarProducto(){
+  if (!productoActual?.id) return;
+
+  const ok = confirm(`¿Activar producto?\n\n${productoActual.codigoBarra || "--"}\n${productoActual.concepto || "--"}`);
+  if (!ok) return;
+
+  try{
+    setStatus("Activando producto...", "info");
+    await updateDoc(doc(db, "productos", productoActual.id), {
+      activo: true,
+      updatedAt: serverTimestamp()
     });
+    setStatus("Producto activado.", "ok");
+    await refrescar();
+    modalEditor.classList.remove("show");
+  }catch(err){
+    console.error(err);
+    setStatus("Error al activar producto.", "error");
+  }
+}
 
-    selOrden.addEventListener("change", cargarProductos);
-    btnRecargar.addEventListener("click", cargarProductos);
+async function desactivarProducto(){
+  if (!productoActual?.id) return;
 
-    btnFiltrarTabla.addEventListener("click", () => {
-      aplicarFiltros();
-      modalBusqueda.classList.remove("show");
+  const ok = confirm(`¿Desactivar producto?\n\n${productoActual.codigoBarra || "--"}\n${productoActual.concepto || "--"}`);
+  if (!ok) return;
+
+  try{
+    setStatus("Desactivando producto...", "info");
+    await updateDoc(doc(db, "productos", productoActual.id), {
+      activo: false,
+      updatedAt: serverTimestamp()
     });
+    setStatus("Producto desactivado.", "ok");
+    await refrescar();
+    modalEditor.classList.remove("show");
+  }catch(err){
+    console.error(err);
+    setStatus("Error al desactivar producto.", "error");
+  }
+}
 
-    selPageSize.addEventListener("change", () => {
-      pageSize = Number(selPageSize.value) || 100;
-      resetPaginacion();
-      renderTabla();
-    });
+async function eliminarFisicamente(){
+  if (!productoActual?.id) return;
 
-    btnPrimera.addEventListener("click", () => {
-      paginaActual = 1;
-      renderTabla();
-    });
+  const ok1 = confirm(`Vas a eliminar físicamente:\n\n${productoActual.codigoBarra || "--"}\n${productoActual.concepto || "--"}\n\n¿Continuar?`);
+  if (!ok1) return;
 
-    btnAnterior.addEventListener("click", () => {
-      paginaActual--;
-      renderTabla();
-    });
+  const ok2 = confirm("Confirmación final: esto no se puede deshacer. ¿Eliminar definitivamente?");
+  if (!ok2) return;
 
-    btnSiguiente.addEventListener("click", () => {
-      paginaActual++;
-      renderTabla();
-    });
+  try{
+    setStatus("Eliminando físicamente...", "info");
+    await deleteDoc(doc(db, "productos", productoActual.id));
+    setStatus("Producto eliminado físicamente.", "ok");
+    await refrescar();
+    modalEditor.classList.remove("show");
+  }catch(err){
+    console.error(err);
+    setStatus("Error eliminando físicamente.", "error");
+  }
+}
 
-    btnUltima.addEventListener("click", () => {
-      paginaActual = totalPaginas();
-      renderTabla();
-    });
+btnBuscarPrincipal.addEventListener("click", resolverBusquedaPrincipal);
 
-    btnCerrar.addEventListener("click", () => modal.classList.remove("show"));
-    btnGuardar.addEventListener("click", guardarCambios);
-    btnActivar.addEventListener("click", activarProducto);
-    btnDesactivar.addEventListener("click", desactivarProducto);
-    btnEliminarReal.addEventListener("click", eliminarFisicamente);
+txtBuscarPrincipal.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    resolverBusquedaPrincipal();
+  }
+});
 
-    btnCerrarBusqueda.addEventListener("click", () => {
-      modalBusqueda.classList.remove("show");
-    });
+btnReset.addEventListener("click", () => {
+  txtBuscarPrincipal.value = "";
+  selActivo.value = "todos";
+  filtrados = [...productos];
+  renderTabla();
+});
 
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) modal.classList.remove("show");
-    });
+btnCerrarBuscador.addEventListener("click", () => {
+  modalBuscador.classList.remove("show");
+});
 
-    modalBusqueda.addEventListener("click", (e) => {
-      if (e.target === modalBusqueda) modalBusqueda.classList.remove("show");
-    });
+txtBuscarModal.addEventListener("input", () => {
+  const texto = txtBuscarModal.value.trim();
+  const lista = buscarCoincidencias(texto);
+  renderResultadosBusqueda(lista, texto);
+});
 
-    cargarProductos();
-  </script>
+txtBuscarModal.addEventListener("keydown", (e) => {
+  if (!resultadosBusqueda.length) {
+    if (e.key === "Escape") modalBuscador.classList.remove("show");
+    return;
+  }
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    idxBusqueda++;
+    if (idxBusqueda >= resultadosBusqueda.length) idxBusqueda = 0;
+    pintarActivaBusqueda();
+    scrollActivaBusqueda();
+  }
+
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    idxBusqueda--;
+    if (idxBusqueda < 0) idxBusqueda = resultadosBusqueda.length - 1;
+    pintarActivaBusqueda();
+    scrollActivaBusqueda();
+  }
+
+  if (e.key === "Enter") {
+    e.preventDefault();
+    const p = resultadosBusqueda[idxBusqueda];
+    if (p) seleccionarDesdeSugerencias(p.id);
+  }
+
+  if (e.key === "Escape") {
+    modalBuscador.classList.remove("show");
+  }
+});
+
+btnCerrarEditor.addEventListener("click", () => modalEditor.classList.remove("show"));
+btnGuardar.addEventListener("click", guardarCambios);
+btnActivar.addEventListener("click", activarProducto);
+btnDesactivar.addEventListener("click", desactivarProducto);
+btnEliminarReal.addEventListener("click", eliminarFisicamente);
+
+modalBuscador.addEventListener("click", (e) => {
+  if (e.target === modalBuscador) modalBuscador.classList.remove("show");
+});
+
+modalEditor.addEventListener("click", (e) => {
+  if (e.target === modalEditor) modalEditor.classList.remove("show");
+});
+
+cargar();
+</script>
 </body>
 </html>
