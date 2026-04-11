@@ -1384,22 +1384,23 @@ async function guardarCambios(){
   if (!productoActual?.id) return;
 
   try{
+    btnGuardar.disabled = true;
     setStatus("Guardando cambios...", "info");
 
     const cambios = recolectarCambios();
     const refDoc = doc(db, "productos", productoActual.id);
 
     await updateDoc(refDoc, cambios);
-
-    setStatus("Cambios guardados correctamente.", "ok");
     await refrescar();
 
-    if (productoActual?.id) {
-      window.abrirEditor(productoActual.id);
-    }
+    modalEditor.classList.remove("show");
+    setStatus("", "");
+
   }catch(err){
     console.error(err);
     setStatus(err.message || "Error guardando cambios.", "error");
+  }finally{
+    btnGuardar.disabled = false;
   }
 }
 
