@@ -1,0 +1,686 @@
+1. Estructura general del sistema
+
+El archivo está dividido en tres bloques principales:
+
+1. HTML
+Define la estructura visual de la pantalla:
+
+Encabezado principal con el título “Administrador de Productos”.
+Barra de filtros.
+Tabla de resultados.
+Modal de búsqueda avanzada o sugerencias.
+Modal de edición detallada del producto.
+
+2. CSS
+Define toda la presentación visual:
+
+Diseño tipo panel administrativo.
+Colores corporativos.
+Tabla con encabezados fijos.
+Diseño responsivo para pantallas grandes y móviles.
+Estilos para etiquetas de estado, modales, formularios y bloques dinámicos.
+
+3. JavaScript
+Contiene la lógica completa del sistema:
+
+Carga de productos desde Firestore.
+Normalización y búsqueda.
+Renderizado de la tabla.
+Manejo de modales.
+Edición dinámica de campos.
+Validaciones previas al guardado.
+Persistencia de cambios en Firestore.
+Activación, desactivación y eliminación definitiva.
+2. Objetivo principal del código
+
+El propósito operativo del código es ofrecer un catálogo administrativo editable de productos que permita:
+
+Ver todos los productos registrados.
+Filtrar por activos, inactivos o todos.
+Buscar productos por código exacto o por coincidencias parciales.
+Buscar también por concepto, marca, departamento o códigos equivalentes.
+Editar campos generales del producto.
+Editar listas dinámicas como codigosEquivalentes.
+Editar estructuras tipo arreglo como preciosPorCantidad.
+Cambiar el estado activo/inactivo.
+Eliminar físicamente un producto de la base de datos.
+
+En términos prácticos, es un módulo CRUD administrativo enriquecido, con una lógica de búsqueda más avanzada que una tabla simple.
+
+3. Interfaz principal
+
+La vista inicial muestra un bloque de filtros compuesto por:
+
+Un campo de texto principal para búsqueda.
+Un selector de estado Activo con opciones:
+Todos
+Activos
+Inactivos
+Botón Buscar
+Botón Ver todos
+
+Debajo se muestra una línea de metadatos que indica el estado de carga o el total de registros, y posteriormente una tabla con las columnas:
+
+Activo
+Código
+Concepto
+Marca
+Acción
+
+En la columna de acción, cada fila tiene un botón Editar, que abre el editor del producto correspondiente.
+
+4. Estilo visual y comportamiento responsive
+
+El CSS implementa un estilo limpio y empresarial:
+
+Fondo claro general.
+Encabezado con degradado azul corporativo.
+Tabla blanca con bordes suaves.
+Encabezados sticky para mantener visibles los títulos de las columnas al hacer scroll.
+Tags verdes o rojos para indicar estado activo o inactivo.
+Botones por color según la acción:
+Azul: acción principal
+Gris: secundario
+Naranja: advertencia
+Rojo: acción destructiva
+Verde: agregar elementos dinámicos
+
+También tiene media queries para adaptar la interfaz a resoluciones menores, reorganizando grids en una sola columna cuando el ancho de pantalla disminuye. Esto permite que el panel sea usable en PC y en pantallas más pequeñas.
+
+5. Conexión con Firebase Firestore
+
+El script usa importación ES Modules y depende de:
+
+db desde ./config.js
+Funciones de Firestore:
+collection
+getDocs
+doc
+updateDoc
+deleteDoc
+serverTimestamp
+Timestamp
+
+Esto indica que el sistema trabaja directamente contra la colección:
+
+productos
+
+Cada documento de Firestore se convierte en un objeto local con:
+
+id del documento
+todos los campos internos del producto obtenidos desde d.data()
+
+La carga principal se hace mediante la función cargar(), la cual consulta toda la colección y llena el arreglo global productos.
+
+6. Variables globales y estado interno
+
+El código maneja varias variables de estado para controlar la aplicación:
+
+productos: catálogo completo cargado desde Firestore.
+filtrados: conjunto actual visible en la tabla.
+resultadosBusqueda: resultados temporales del modal de sugerencias.
+idxBusqueda: índice actual seleccionado en la búsqueda por teclado.
+productoActual: producto actualmente abierto en edición.
+bloqueoReaperturaBuscador: evita reaperturas accidentales del modal.
+ultimoElementoConFoco: guarda referencia del foco anterior.
+
+Esto muestra que la aplicación mantiene una lógica de interfaz relativamente ordenada, separando el catálogo completo, los filtros visibles y el contexto de edición.
+
+7. Esquema base del producto
+
+Existe un objeto llamado ESQUEMA_BASE que funciona como plantilla para asegurar que, al editar un producto, existan todos los campos esperados aunque el documento original no los tenga completos.
+
+Entre los campos definidos se incluyen:
+
+activo
+codigoBarra
+codigosEquivalentes
+concepto
+marca
+proveedor
+departamento
+departamento_id
+claveSat
+unidadMedidaSat
+costoSinImpuesto
+precioPublico
+ivaTasa
+iepsTasa
+cantidadPorCaja
+mayoreo
+medioMayoreo
+comision_tipo
+comision_valor
+preciosPorCantidad
+actualizadoEn
+ultima_actualizacion
+updatedAt
+
+Esto es importante porque vuelve el editor más robusto: aunque un producto venga incompleto, el sistema genera una versión “editable” consistente.
+
+8. Orden de visualización de campos
+
+La constante ORDEN_CAMPOS define el orden preferido de renderización en el editor. Esto evita que los campos salgan en orden aleatorio según cómo llegue el documento desde Firestore.
+
+La función ordenarCamposProducto() compara los campos existentes contra esta lista y deja al final cualquier campo adicional no contemplado, ordenándolos alfabéticamente. Esto mejora la legibilidad del editor y permite crecimiento futuro del esquema sin romper la vista.
+
+9. Normalización y utilidades
+
+El sistema tiene varias funciones auxiliares relevantes:
+
+escaparHtml()
+
+Convierte caracteres especiales a entidades HTML para evitar que valores del producto rompan la estructura visual o generen inyección en el DOM.
+
+norm()
+
+Normaliza texto:
+
+elimina acentos
+convierte a mayúsculas
+comprime espacios
+recorta extremos
+
+Esto permite búsquedas más tolerantes y uniformes.
+
+fmtFecha()
+
+Formatea timestamps de Firebase o fechas estándar para mostrar una fecha legible en formato es-MX.
+
+detectarTipo()
+
+Detecta si un valor es:
+
+array
+timestamp
+boolean
+number
+object
+string
+
+Esto se usa para construir dinámicamente el editor según el tipo de dato de cada campo.
+
+10. Carga inicial de productos
+
+La función cargar():
+
+Muestra en pantalla “Cargando productos...”.
+Consulta la colección productos en Firestore.
+Convierte cada documento en objeto JS.
+Llena productos.
+Copia ese arreglo a filtrados.
+Llama a renderTabla().
+
+Si ocurre un error:
+
+se imprime en consola
+se actualiza el texto de meta a “Error cargando productos”
+
+Esto significa que toda la aplicación depende de una carga total inicial del catálogo en memoria. No usa paginación ni consulta incremental; trae todos los productos y luego trabaja localmente con ellos.
+
+11. Render de la tabla principal
+
+La función renderTabla() construye visualmente la tabla a partir del arreglo filtrados.
+
+Su comportamiento es:
+
+Muestra el total general de productos y cuántos se están mostrando.
+Si no hay resultados, renderiza una fila con “Sin resultados”.
+Si sí hay registros, construye una fila por producto.
+
+Cada fila incluye:
+
+Estado activo con una tag verde o roja.
+Código.
+Concepto.
+Marca.
+Botón “Editar”.
+
+El botón “Editar” llama a window.abrirEditor(id).
+
+Esto permite una navegación simple: primero localizar producto, luego abrir su editor detallado.
+
+12. Lógica de filtrado por estado
+
+La función coincideActivo(p) evalúa el valor seleccionado en el combo selActivo:
+
+si es "true" devuelve solo productos activos
+si es "false" devuelve solo inactivos
+si es "todos" devuelve cualquier producto
+
+Esta lógica es reutilizada tanto en la tabla principal como en las búsquedas del modal, para asegurar consistencia en los resultados visibles.
+
+13. Búsqueda principal y lógica de coincidencia exacta
+
+La búsqueda principal no es simplemente un filtro textual.
+
+La función resolverBusquedaPrincipal() sigue esta lógica:
+
+Lee el texto del cuadro principal.
+Si está vacío:
+muestra todos los productos respetando el filtro activo/inactivo.
+Si hay texto:
+primero intenta encontrar coincidencia exacta con buscarCoincidenciaExacta().
+si encuentra coincidencia exacta por:
+codigoBarra
+o cualquiera de los codigosEquivalentes
+entonces filtra la tabla y deja únicamente ese producto.
+si no encuentra coincidencia exacta, abre el modal de sugerencias.
+
+Esto es importante porque privilegia el flujo rápido de escaneo o captura exacta, y deja el buscador avanzado solo para casos ambiguos.
+
+14. Búsqueda avanzada por coincidencias
+
+La función buscarCoincidencias(texto) implementa una búsqueda flexible:
+
+Bolsa de búsqueda
+
+Para cada producto, la función bolsaBusqueda(p) genera un texto combinado con:
+
+código de barras
+concepto
+marca
+departamento
+códigos equivalentes
+
+Todo ello normalizado.
+
+Coincidencia por tokens
+
+El texto buscado se separa en tokens y se exige que todos aparezcan dentro de la bolsa del producto.
+
+Scoring
+
+Además, el código asigna puntajes para ordenar resultados por relevancia. Por ejemplo:
+
+coincidencia exacta de código: puntaje más alto
+coincidencia exacta de código equivalente: muy alto
+coincidencia exacta de concepto: alto
+coincidencia por inicio de código o concepto: medio
+coincidencias parciales: menor
+
+Luego:
+
+ordena de mayor a menor score
+limita resultados a 50
+devuelve solo los productos
+
+Esto da una búsqueda bastante buena para uso administrativo, porque no solo encuentra coincidencias, sino que intenta poner primero el resultado más probable.
+
+15. Modal de sugerencias
+
+Cuando no existe coincidencia exacta, se abre un modal de búsqueda.
+
+Este modal permite:
+
+escribir texto libre
+ver coincidencias en tiempo real
+navegar con teclado
+seleccionar con Enter
+seleccionar con clic
+cerrar con Escape
+cerrar con botón o clic fuera del contenido
+
+Cada resultado muestra:
+
+estado activo
+código
+concepto
+marca
+
+Internamente, el sistema mantiene idxBusqueda para resaltar el resultado activo.
+
+Funciones involucradas:
+
+abrirModalBuscador()
+cerrarModalBuscador()
+limpiarBuscadorModal()
+renderResultadosBusqueda()
+pintarActivaBusqueda()
+scrollActivaBusqueda()
+seleccionarDesdeSugerencias()
+
+Al seleccionar un producto:
+
+se filtra la tabla principal para mostrarlo
+se cierra el modal
+se devuelve foco al cuadro principal
+
+Este flujo está bien pensado para uso rápido con teclado o escáner.
+
+16. Editor dinámico del producto
+
+El modal de edición es la parte más robusta del código.
+
+Cuando se llama window.abrirEditor(id):
+
+Busca el producto por su id.
+Lo guarda en productoActual.
+Limpia el estado de mensajes.
+Construye un objeto editable mezclando el documento real con ESQUEMA_BASE.
+Ordena sus campos.
+Renderiza cada campo dinámicamente con renderCampo().
+Enlaza eventos especiales.
+Actualiza visibilidad de botones de activar/desactivar.
+Muestra el modal.
+
+Esto significa que el editor no está hecho a mano campo por campo, sino de manera genérica y tipada.
+
+17. Tipos de campos en el editor
+
+La función renderCampo(key, value) decide cómo dibujar cada campo según su tipo.
+
+Campo id
+
+Se muestra como solo lectura.
+
+Campos bloqueados
+
+Los definidos en CAMPOS_BLOQUEADOS (id, codigoBarra) no se dejan editar.
+
+Booleanos
+
+Se renderizan como select con true/false.
+
+Números
+
+Se renderizan como input type="number".
+
+Arrays y objetos
+
+Se renderizan como textarea con JSON serializado, salvo casos especiales.
+
+Timestamps
+
+Se muestran formateados y en solo lectura.
+
+Strings
+
+Se muestran como input type="text".
+
+Esto permite editar campos sin necesidad de diseñar manualmente cada formulario. Es una estrategia flexible, aunque depende de que el usuario respete el formato correcto cuando edita JSON en textareas.
+
+18. Manejo especial de codigosEquivalentes
+
+El campo codigosEquivalentes no se edita como JSON crudo. Tiene una interfaz propia más amigable.
+
+Qué permite
+visualizar los códigos actuales
+agregar nuevos códigos uno por uno
+evitar duplicados normalizados
+eliminar códigos existentes
+Cómo trabaja
+
+Se usa un input auxiliar, un botón “Agregar”, una lista visual y un input hidden que guarda el arreglo serializado en JSON.
+
+Funciones implicadas:
+
+renderCodigosEquivalentes()
+obtenerEquivalentesActuales()
+actualizarEquivalentesUI()
+agregarEquivalente()
+quitarEquivalente()
+enlazarEventosEquivalentes()
+
+Validación clave:
+
+no permite meter el mismo equivalente dos veces, aunque cambie mayúsculas/minúsculas o acentos.
+
+Este bloque está bien resuelto porque mejora mucho la usabilidad respecto a editar un arreglo manualmente.
+
+19. Manejo especial de preciosPorCantidad
+
+También existe un editor visual específico para preciosPorCantidad.
+
+Cada entrada contiene:
+
+cantidadMinima
+precioUnitario
+precioTotal
+Qué permite
+capturar reglas de precio escalonado
+validar que la cantidad mínima sea entero mayor a 0
+validar que los precios sean no negativos
+impedir duplicidad de cantidad mínima
+calcular automáticamente precioTotal si no se captura manualmente
+ordenar por cantidadMinima
+
+Funciones implicadas:
+
+renderPreciosPorCantidad()
+obtenerPpcActuales()
+actualizarPpcUI()
+agregarPpc()
+quitarPpc()
+enlazarEventosPpc()
+
+Este módulo es especialmente útil para ventas por mayoreo o escalas comerciales.
+
+20. Recolección de cambios del editor
+
+La función recolectarCambios() recorre todos los elementos del editor que tengan data-key.
+
+Por cada campo:
+
+ignora campos bloqueados
+toma el tipo definido en data-type
+convierte el valor según corresponda:
+boolean
+number
+array
+object
+string
+
+Si encuentra un JSON inválido en textarea, lanza error con el nombre del campo.
+
+Al final:
+
+agrega updatedAt = serverTimestamp()
+manda el objeto a validarAntesDeGuardar()
+
+Esto centraliza la transformación desde la interfaz hacia el formato correcto para Firestore.
+
+21. Validaciones previas al guardado
+
+La función validarAntesDeGuardar(data) realiza saneamiento y validaciones importantes:
+
+Para codigosEquivalentes
+garantiza que sea arreglo
+elimina vacíos
+detecta duplicados normalizados
+deja una lista limpia
+Para preciosPorCantidad
+valida que cada elemento sea objeto
+valida cantidadMinima
+valida precioUnitario
+calcula o valida precioTotal
+impide cantidades mínimas repetidas
+ordena el arreglo
+Para varios campos numéricos
+
+Valida que no sean negativos:
+
+cantidadPorCaja
+costoSinImpuesto
+precioPublico
+mayoreo
+medioMayoreo
+ivaTasa
+iepsTasa
+comision_valor
+
+Si algo no cumple, lanza error con mensaje claro.
+
+Esta parte es crítica porque reduce el riesgo de que el usuario deje basura estructural en la base.
+
+22. Guardado de cambios
+
+La función guardarCambios():
+
+Verifica que exista productoActual.
+Muestra mensaje “Guardando cambios...”.
+Recolecta y valida cambios.
+Obtiene la referencia del documento en Firestore.
+Ejecuta updateDoc.
+Muestra éxito.
+Llama a refrescar().
+Reabre el editor del mismo producto actualizado.
+
+Esto último es relevante: después de guardar, vuelve a cargar el producto para que el usuario siga trabajando con la versión ya persistida.
+
+23. Refresco de catálogo
+
+La función refrescar() vuelve a consultar toda la colección productos.
+
+Después:
+
+repone el arreglo productos
+intenta actualizar la referencia de productoActual
+reevalúa el texto del buscador principal
+si hay coincidencia exacta, vuelve a filtrar sobre ese producto
+si no, deja una vista general acorde al filtro activo/inactivo
+
+Es un enfoque simple y confiable, aunque no es el más eficiente para catálogos muy grandes porque recarga toda la colección después de cada operación.
+
+24. Activación y desactivación de productos
+
+Hay dos funciones específicas:
+
+activarProducto()
+pide confirmación
+actualiza activo: true
+actualiza updatedAt
+refresca catálogo
+cierra modal
+desactivarProducto()
+pide confirmación
+actualiza activo: false
+actualiza updatedAt
+refresca catálogo
+cierra modal
+
+Además, el sistema oculta el botón que no aplique:
+
+si el producto ya está activo, solo muestra “Desactivar”
+si está inactivo, solo muestra “Activar”
+
+Esto evita errores operativos y simplifica la interfaz.
+
+25. Eliminación física del producto
+
+La función eliminarFisicamente() ejecuta borrado real en Firestore mediante deleteDoc().
+
+Antes de hacerlo:
+
+pide una primera confirmación con datos del producto
+pide una segunda confirmación final
+
+Después:
+
+elimina el documento
+refresca catálogo
+cierra modal
+
+Esto es una eliminación definitiva, no lógica. Por tanto, sí borra físicamente el documento de la colección productos. Operativamente, esta acción es de alto riesgo y por eso el código mete doble confirmación.
+
+26. Eventos de interfaz
+
+El sistema enlaza varios eventos:
+
+En la búsqueda principal
+clic en botón Buscar
+Enter en el input principal
+En el botón Ver todos
+limpia texto
+reinicia selector a “todos”
+muestra catálogo completo
+En el modal de búsqueda
+input en tiempo real
+Escape para cerrar
+flechas arriba/abajo para navegar
+Enter para seleccionar
+En el modal editor
+botón guardar
+botón activar
+botón desactivar
+botón eliminar físicamente
+botón cerrar
+clic fuera del modal para cerrar
+
+Con esto la interfaz queda bastante completa para operación rápida.
+
+27. Seguridad y protección de interfaz
+
+El código incorpora varias medidas de protección operativa:
+
+Escapado HTML al renderizar datos del producto.
+Validación de JSON antes de guardar.
+Validación de números no negativos.
+Validación de duplicados en equivalentes y precios escalonados.
+Campos críticos bloqueados para edición (id, codigoBarra).
+Confirmaciones antes de cambios delicados.
+Estado visual de mensajes (ok, error, info) dentro del modal editor.
+
+No es seguridad de backend, pero sí una buena capa de seguridad a nivel frontend para evitar errores humanos.
+
+28. Fortalezas del código
+
+Este código tiene varias fortalezas claras:
+
+Buena separación entre estructura, estilo y lógica.
+Interfaz administrativa clara y usable.
+Búsqueda flexible con relevancia por score.
+Manejo correcto de foco y teclado.
+Editor dinámico escalable.
+Validaciones previas al guardado.
+Buen tratamiento de arreglos complejos.
+Confirmaciones para acciones destructivas.
+Diseño responsivo aceptable.
+Integración directa con Firestore sin depender de backend adicional.
+
+En resumen, no es solo una tabla editable; es un administrador de productos funcional y relativamente robusto.
+
+29. Observaciones técnicas de revisión
+
+Como revisión técnica, también se observan algunos puntos a considerar:
+
+1. Carga completa del catálogo
+
+Siempre consulta todos los productos con getDocs(collection(db, "productos")). Si la colección crece mucho, esto puede volverse pesado.
+
+2. Uso de onclick en HTML generado
+
+El botón de editar usa window.abrirEditor(...) incrustado en el HTML. Funciona, pero no es la forma más limpia comparado con delegación de eventos.
+
+3. Edición genérica de objetos y arrays
+
+Los campos tipo objeto o arreglo, salvo los especiales, se editan como JSON crudo. Esto da flexibilidad, pero puede causar errores si el usuario captura mal el formato.
+
+4. Eliminación física real
+
+No hay papelera ni soft delete. La eliminación es definitiva.
+
+5. No hay control de concurrencia
+
+Si dos personas editan el mismo producto al mismo tiempo, la última en guardar podría sobrescribir cambios previos.
+
+6. No hay auditoría interna en este archivo
+
+Se actualiza updatedAt, pero no se registra quién hizo el cambio ni qué cambió exactamente.
+
+Aun así, para un panel operativo interno, la base está bien construida.
+
+30. Conclusión de revisión
+
+Este código implementa un módulo administrativo de productos conectado a Firebase Firestore, diseñado para facilitar la gestión operativa del catálogo dentro de PROVSOFT. Su flujo principal combina:
+
+visualización general,
+búsqueda exacta,
+búsqueda avanzada con sugerencias,
+edición dinámica de atributos,
+mantenimiento de códigos equivalentes,
+administración de precios por cantidad,
+control de activación/inactivación,
+y eliminación definitiva.
+
+Desde el punto de vista funcional, el sistema está orientado a ser una herramienta de mantenimiento interno eficiente. Desde el punto de vista técnico, muestra una estructura razonablemente sólida, con buen manejo de interfaz y validaciones, aunque con áreas de mejora en rendimiento, auditoría y control de concurrencia.
