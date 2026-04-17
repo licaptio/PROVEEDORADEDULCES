@@ -118,6 +118,8 @@ async function login() {
   const emailEl = $id("email");
   const passEl = $id("password");
   const errorBox = $id("loginError");
+  const loginWrap = $id("loginWrap");
+  const loadingScreen = $id("loadingScreen");
 
   const email = emailEl ? emailEl.value.trim() : "";
   const password = passEl ? passEl.value : "";
@@ -127,6 +129,14 @@ async function login() {
   if (!email || !password) {
     if (errorBox) errorBox.innerText = "Escribe correo y contraseña.";
     return;
+  }
+
+  if (loadingScreen) {
+    loadingScreen.textContent = "Entrando...";
+    loadingScreen.style.display = "flex";
+  }
+  if (loginWrap) {
+    loginWrap.style.display = "none";
   }
 
   await persistReady;
@@ -148,6 +158,8 @@ async function login() {
       msg = err.message;
     }
 
+    if (loadingScreen) loadingScreen.style.display = "none";
+    if (loginWrap) loginWrap.style.display = "flex";
     if (errorBox) errorBox.innerText = msg;
   }
 }
@@ -213,9 +225,8 @@ function applyAuthUI(user) {
   const loadingScreen = $id("loadingScreen");
   const sessionUser = $id("sessionUser");
 
-  if (loadingScreen) loadingScreen.style.display = "none";
-
   if (user) {
+    if (loadingScreen) loadingScreen.style.display = "none";
     if (loginWrap) loginWrap.style.display = "none";
     if (appShell) appShell.style.display = "block";
     if (sessionUser) sessionUser.textContent = `Usuario: ${user.email || "sin correo"}`;
@@ -223,6 +234,7 @@ function applyAuthUI(user) {
     setLastActiveNow();
     resetInactivityTimer();
   } else {
+    if (loadingScreen) loadingScreen.style.display = "none";
     if (appShell) appShell.style.display = "none";
     if (loginWrap) loginWrap.style.display = "flex";
 
@@ -254,7 +266,6 @@ auth.onAuthStateChanged(user => {
   notifyAuthUIChanged();
 });
 
-/* respaldo extra */
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initAuthUI, { once: true });
 } else {
