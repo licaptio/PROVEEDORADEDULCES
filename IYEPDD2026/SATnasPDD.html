@@ -328,13 +328,7 @@
   }
 
   .loading-screen{
-    min-height:100%;
     display:none;
-    align-items:center;
-    justify-content:center;
-    font-size:15px;
-    color:var(--muted);
-    font-weight:bold;
   }
 
   @media (max-width: 1100px){
@@ -1007,15 +1001,15 @@
   }
 
   function showApp(user){
-    document.getElementById("loadingScreen").style.display = "none";
-    document.getElementById("loginWrap").style.display = "none";
     document.getElementById("appShell").style.display = "block";
+    document.getElementById("loginWrap").style.display = "none";
+    document.getElementById("loadingScreen").style.display = "none";
     document.getElementById("sessionUser").textContent = `Usuario: ${user?.email || "sin correo"}`;
   }
 
   function showLogin(message = ""){
-    document.getElementById("loadingScreen").style.display = "none";
     document.getElementById("appShell").style.display = "none";
+    document.getElementById("loadingScreen").style.display = "none";
     document.getElementById("loginWrap").style.display = "flex";
     document.getElementById("loginError").textContent = message;
   }
