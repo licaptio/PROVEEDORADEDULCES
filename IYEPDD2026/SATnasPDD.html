@@ -1,285 +1,816 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Ingresos SAT por Mes – PROVSOFT</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8" />
+<title>PROVSOFT – Auditoría SAT vs Ingresos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <style>
-body{font-family:Arial;background:#eef2f7;padding:20px}
-h2{margin-bottom:15px}
-table{width:100%;border-collapse:collapse;background:white}
-th,td{padding:10px;border-bottom:1px solid #e5e7eb;font-size:13px}
-th{background:#f3f6fb}
-.num{text-align:right}
-.global{
-  background:#fff3cd;
-  color:#92400e;
-  font-weight:bold;
-  padding:3px 8px;
-  border-radius:20px;
-}
-.individual{
-  background:#dbeafe;
-  color:#1e3a8a;
-  font-weight:bold;
-  padding:3px 8px;
-  border-radius:20px;
-}
-.totales{
-  margin-top:20px;
-  font-size:18px;
-  font-weight:bold;
-}
+  :root{
+    --bg:#eef2f7;
+    --panel:#ffffff;
+    --line:#d9e2ec;
+    --text:#1f2937;
+    --muted:#6b7280;
+    --brand:#0c6cbd;
+    --brand-dark:#00416a;
+    --ok-bg:#dcfce7;
+    --ok-tx:#166534;
+    --bad-bg:#fee2e2;
+    --bad-tx:#991b1b;
+    --warn-bg:#fef3c7;
+    --warn-tx:#92400e;
+    --info-bg:#dbeafe;
+    --info-tx:#1e3a8a;
+    --alert-bg:#f3e8ff;
+    --alert-tx:#6b21a8;
+    --shadow:0 10px 28px rgba(0,0,0,.07);
+    --radius:16px;
+    --sticky1:56px;
+    --sticky2:210px;
+    --sticky3:520px;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html, body{
+    height:100%;
+  }
+
+  body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:16px;
+  }
+
+  h1{
+    margin:0 0 6px;
+    font-size:24px;
+  }
+
+  .sub{
+    color:var(--muted);
+    margin-bottom:12px;
+    font-size:14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:14px;
+    margin-bottom:12px;
+  }
+
+  .topbar{
+    display:grid;
+    grid-template-columns: 170px 170px auto auto auto;
+    gap:10px;
+    align-items:end;
+  }
+
+  .campo{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  label{
+    font-size:13px;
+    color:var(--muted);
+    font-weight:bold;
+  }
+
+  select, button{
+    height:40px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    padding:0 12px;
+    font-size:14px;
+  }
+
+  button{
+    background:linear-gradient(90deg, var(--brand-dark), var(--brand));
+    color:white;
+    border:none;
+    cursor:pointer;
+    font-weight:bold;
+  }
+
+  button:hover{ opacity:.96; }
+
+  .btn-sec{
+    background:#e5e7eb;
+    color:#111827;
+  }
+
+  .resumen{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:12px;
+  }
+
+  .pill{
+    background:#f8fafc;
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:8px 12px;
+    font-size:13px;
+    font-weight:bold;
+  }
+
+  .bitacora{
+    margin-top:10px;
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  .tabla-wrap{
+    background:white;
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    border:1px solid var(--line);
+    overflow:auto;
+    height:82vh;
+  }
+
+  table{
+    width:max-content;
+    min-width:100%;
+    border-collapse:collapse;
+    background:white;
+  }
+
+  th, td{
+    padding:11px 13px;
+    border-bottom:1px solid #edf2f7;
+    font-size:14px;
+    vertical-align:middle;
+    white-space:nowrap;
+  }
+
+  th{
+    position:sticky;
+    top:0;
+    background:#f8fafc;
+    z-index:5;
+    text-align:left;
+    font-size:13px;
+  }
+
+  td.num, th.num{ text-align:right; }
+
+  tr:hover td{ background:#fafcff; }
+
+  .badge{
+    display:inline-block;
+    padding:4px 9px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:bold;
+    line-height:1.2;
+  }
+
+  .vigente{ background:var(--ok-bg); color:var(--ok-tx); }
+  .cancelado{ background:var(--bad-bg); color:var(--bad-tx); }
+  .sinmeta{ background:var(--warn-bg); color:var(--warn-tx); }
+  .global{ background:#fff3cd; color:#92400e; }
+  .individual{ background:var(--info-bg); color:var(--info-tx); }
+  .alerta{ background:var(--alert-bg); color:var(--alert-tx); }
+  .ok{ background:#ecfdf5; color:#065f46; }
+
+  .uuid{
+    font-family:Consolas, monospace;
+    font-size:12px;
+  }
+
+  .col-fecha{
+    min-width:154px;
+    max-width:154px;
+  }
+
+  .col-uuid{
+    min-width:310px;
+    max-width:310px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .col-receptor{
+    min-width:290px;
+    max-width:290px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .sticky-1, .sticky-2, .sticky-3{
+    position:sticky;
+    background:white;
+    z-index:3;
+  }
+
+  th.sticky-1, th.sticky-2, th.sticky-3{
+    background:#f8fafc;
+    z-index:6;
+  }
+
+  .sticky-1{ left:0; }
+  .sticky-2{ left:var(--sticky1); }
+  .sticky-3{ left:var(--sticky2); }
+
+  @media (max-width: 1100px){
+    .topbar{
+      grid-template-columns: 1fr 1fr;
+    }
+    .tabla-wrap{
+      height:78vh;
+    }
+  }
 </style>
 </head>
 <body>
 
-<h2>Ingresos SAT por Mes – PROVSOFT</h2>
-
-Año
-<select id="anio"></select>
-
-Mes
-<select id="mes">
-  <option value="01">Enero</option>
-  <option value="02">Febrero</option>
-  <option value="03">Marzo</option>
-  <option value="04">Abril</option>
-  <option value="05">Mayo</option>
-  <option value="06">Junio</option>
-  <option value="07">Julio</option>
-  <option value="08">Agosto</option>
-  <option value="09">Septiembre</option>
-  <option value="10">Octubre</option>
-  <option value="11">Noviembre</option>
-  <option value="12">Diciembre</option>
-</select>
-
-<button onclick="buscar()">Construir tabla</button>
-
-<br><br>
-
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Fecha Timbrado</th>
-      <th>UUID</th>
-      <th>Serie</th>
-      <th>Folio</th>
-      <th class="num">Subtotal</th>
-      <th class="num">IVA</th>
-      <th class="num">IEPS</th>
-      <th class="num">Total</th>
-      <th>Año Reportado</th>
-      <th>Mes Reportado</th>
-      <th>Clasificación</th>
-    </tr>
-  </thead>
-  <tbody id="tabla"></tbody>
-</table>
-
-<div class="totales">
-  Subtotal: <span id="t_subtotal">$0.00</span> |
-  IVA: <span id="t_iva">$0.00</span> |
-  IEPS: <span id="t_ieps">$0.00</span> |
-  Total: <span id="t_total">$0.00</span>
+<h1>PROVSOFT – Auditoría SAT vs Ingresos</h1>
+<div class="sub">
+  Reporte para detectar diferencias mensuales SAT: cruza metadata tipo I contra ingresos, identifica faltantes y marca globales desfasadas.
 </div>
 
-<script>
-const { createClient } = supabase;
+<div class="panel">
+  <div class="topbar">
+    <div class="campo">
+      <label for="anio">Año</label>
+      <select id="anio"></select>
+    </div>
 
-const db = createClient(
-'https://cvpbtjlupswbyxenugpz.supabase.co',
-'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
-)
+    <div class="campo">
+      <label for="mes">Mes</label>
+      <select id="mes">
+        <option value="01">Enero</option>
+        <option value="02">Febrero</option>
+        <option value="03">Marzo</option>
+        <option value="04">Abril</option>
+        <option value="05">Mayo</option>
+        <option value="06">Junio</option>
+        <option value="07">Julio</option>
+        <option value="08">Agosto</option>
+        <option value="09">Septiembre</option>
+        <option value="10">Octubre</option>
+        <option value="11">Noviembre</option>
+        <option value="12">Diciembre</option>
+      </select>
+    </div>
 
-function llenarAnios(){
-  const actual = new Date().getFullYear();
-  for(let y=actual+1; y>=2020; y--){
-    const op = document.createElement("option");
-    op.value = String(y);
-    op.text = String(y);
-    document.getElementById("anio").appendChild(op);
-  }
-  document.getElementById("anio").value = String(actual);
-}
-llenarAnios();
+    <button id="btnConstruir" type="button">Construir mes</button>
+    <button id="btnExportar" type="button">Exportar Excel</button>
+    <button id="btnLimpiar" type="button" class="btn-sec">Limpiar</button>
+  </div>
 
-function money(n){
-  return Number(n || 0).toLocaleString('es-MX', {
-    style:'currency',
-    currency:'MXN'
-  });
-}
+  <div class="resumen">
+    <span class="pill">Registros: <span id="r_registros">0</span></span>
+    <span class="pill">Subtotal: <span id="r_subtotal">$0.00</span></span>
+    <span class="pill">IVA: <span id="r_iva">$0.00</span></span>
+    <span class="pill">IEPS: <span id="r_ieps">$0.00</span></span>
+    <span class="pill">Total: <span id="r_total">$0.00</span></span>
+    <span class="pill">Solo metadata: <span id="r_solo_meta">0</span></span>
+    <span class="pill">Solo ingresos: <span id="r_solo_ing">0</span></span>
+    <span class="pill">Desfasadas: <span id="r_desfasadas">0</span></span>
+  </div>
 
-function fmtFecha(fechaIso){
-  if(!fechaIso) return '';
-  const d = new Date(fechaIso);
-  if (isNaN(d)) return fechaIso;
-  return d.toLocaleString('es-MX', {
-    year:'numeric',
-    month:'2-digit',
-    day:'2-digit',
-    hour:'2-digit',
-    minute:'2-digit',
-    second:'2-digit',
-    hour12:false
-  });
-}
+  <div class="bitacora" id="bitacora">Listo.</div>
+</div>
 
-function construirRangoMesMX(anio, mes){
-  const y = Number(anio);
-  const m = Number(mes);
-
-  const inicio = `${anio}-${String(m).padStart(2,'0')}-01T00:00:00-06:00`;
-
-  let nextY = y;
-  let nextM = m + 1;
-  if(nextM === 13){
-    nextM = 1;
-    nextY++;
-  }
-
-  const fin = `${nextY}-${String(nextM).padStart(2,'0')}-01T00:00:00-06:00`;
-
-  return { inicio, fin };
-}
-
-async function buscar(){
-  const anio = document.getElementById("anio").value;
-  const mes = document.getElementById("mes").value;
-  const { inicio, fin } = construirRangoMesMX(anio, mes);
-
-  const cols = `
-    id,
-    uuid_cfdi,
-    fecha,
-    periodo_mes,
-    periodo_anio,
-    tipo_factura,
-    serie,
-    folio,
-    subtotal,
-    total_iva,
-    total_ieps,
-    total
-  `;
-
-  const qGlobales = db
-    .from('ingresos_pdd')
-    .select(cols)
-    .eq('cancelado', false)
-    .eq('tipo_factura', 'GLOBAL')
-    .eq('periodo_anio', anio)
-    .eq('periodo_mes', mes);
-
-  const qIndividuales = db
-    .from('ingresos_pdd')
-    .select(cols)
-    .eq('cancelado', false)
-    .or('tipo_factura.neq.GLOBAL,tipo_factura.is.null')
-    .gte('fecha', inicio)
-    .lt('fecha', fin);
-
-  const [resGlobales, resIndividuales] = await Promise.all([qGlobales, qIndividuales]);
-
-  if(resGlobales.error || resIndividuales.error){
-    const err = resGlobales.error || resIndividuales.error;
-    console.error(err);
-    document.getElementById("tabla").innerHTML =
-      `<tr><td colspan="12">Error: ${err.message}</td></tr>`;
-    limpiarTotales();
-    return;
-  }
-
-  const globales = (resGlobales.data || []).map(r => ({
-    ...r,
-    anio_reportado: r.periodo_anio || '',
-    mes_reportado: String(r.periodo_mes || '').padStart(2, '0')
-  }));
-
-  const individuales = (resIndividuales.data || []).map(r => {
-    const d = new Date(r.fecha);
-    const anioRep = isNaN(d) ? '' : String(d.getFullYear());
-    const mesRep = isNaN(d) ? '' : String(d.getMonth() + 1).padStart(2, '0');
-
-    return {
-      ...r,
-      anio_reportado: anioRep,
-      mes_reportado: mesRep
-    };
-  });
-
-  const rows = [...globales, ...individuales].sort((a,b) => {
-    const fa = new Date(a.fecha).getTime() || 0;
-    const fb = new Date(b.fecha).getTime() || 0;
-    if (fa !== fb) return fa - fb;
-    return (a.id || 0) - (b.id || 0);
-  });
-
-  render(rows);
-  calcularTotales(rows);
-}
-
-function limpiarTotales(){
-  document.getElementById("t_subtotal").innerText = money(0);
-  document.getElementById("t_iva").innerText = money(0);
-  document.getElementById("t_ieps").innerText = money(0);
-  document.getElementById("t_total").innerText = money(0);
-}
-
-function calcularTotales(rows){
-  let subtotal = 0;
-  let iva = 0;
-  let ieps = 0;
-  let total = 0;
-
-  rows.forEach(r => {
-    subtotal += Number(r.subtotal || 0);
-    iva += Number(r.total_iva || 0);
-    ieps += Number(r.total_ieps || 0);
-    total += Number(r.total || 0);
-  });
-
-  document.getElementById("t_subtotal").innerText = money(subtotal);
-  document.getElementById("t_iva").innerText = money(iva);
-  document.getElementById("t_ieps").innerText = money(ieps);
-  document.getElementById("t_total").innerText = money(total);
-}
-
-function render(rows){
-  const tb = document.getElementById("tabla");
-
-  if(!rows.length){
-    tb.innerHTML = "<tr><td colspan='12'>Sin resultados</td></tr>";
-    return;
-  }
-
-  tb.innerHTML = rows.map((r, i) => {
-    const tipo = String(r.tipo_factura || '').toUpperCase() === 'GLOBAL'
-      ? `<span class="global">GLOBAL</span>`
-      : `<span class="individual">INDIVIDUAL</span>`;
-
-    return `
+<div class="tabla-wrap">
+  <table>
+    <thead>
       <tr>
-        <td>${i + 1}</td>
-        <td>${fmtFecha(r.fecha)}</td>
-        <td>${r.uuid_cfdi || ''}</td>
+        <th class="sticky-1">#</th>
+        <th class="sticky-2 col-fecha">Fecha</th>
+        <th class="sticky-3 col-uuid">UUID</th>
+        <th>Serie</th>
+        <th>Folio</th>
+        <th>Nombre Receptor</th>
+        <th class="num">Subtotal</th>
+        <th class="num">IVA</th>
+        <th class="num">IEPS</th>
+        <th class="num">Total</th>
+        <th>Método Pago</th>
+        <th>Tipo</th>
+        <th>Estado SAT</th>
+        <th>Origen</th>
+        <th>Observación</th>
+      </tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+  </table>
+</div>
+
+<script type="module">
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+  import { supabaseUrl, supabaseAnonKey } from "./config.js";
+
+  const db = createClient(supabaseUrl, supabaseAnonKey);
+  let rowsFinales = [];
+
+  function llenarAnios(){
+    const actual = new Date().getFullYear();
+    const sel = document.getElementById('anio');
+    sel.innerHTML = '';
+    for(let y = actual + 1; y >= 2020; y--){
+      const op = document.createElement('option');
+      op.value = String(y);
+      op.textContent = String(y);
+      sel.appendChild(op);
+    }
+    sel.value = String(actual);
+  }
+
+  function normalizarUUID(v){
+    return String(v || '').trim().toUpperCase();
+  }
+
+  function money(n){
+    return Number(n || 0).toLocaleString('es-MX', {
+      style:'currency',
+      currency:'MXN'
+    });
+  }
+
+  function fmtFecha(fechaIso){
+    if(!fechaIso) return '';
+    const d = new Date(fechaIso);
+    if(isNaN(d)) return String(fechaIso);
+    return d.toLocaleString('es-MX', {
+      year:'numeric',
+      month:'2-digit',
+      day:'2-digit',
+      hour:'2-digit',
+      minute:'2-digit',
+      second:'2-digit',
+      hour12:false
+    });
+  }
+
+  function setBitacora(msg){
+    document.getElementById('bitacora').textContent = msg;
+  }
+
+  function construirRangoMesMX(anio, mes){
+    const y = Number(anio);
+    const m = Number(mes);
+
+    const inicio = `${anio}-${String(m).padStart(2,'0')}-01T00:00:00-06:00`;
+
+    let nextY = y;
+    let nextM = m + 1;
+    if(nextM === 13){
+      nextM = 1;
+      nextY++;
+    }
+
+    const fin = `${nextY}-${String(nextM).padStart(2,'0')}-01T00:00:00-06:00`;
+    return { inicio, fin };
+  }
+
+  function chunkArray(arr, size){
+    const out = [];
+    for(let i = 0; i < arr.length; i += size){
+      out.push(arr.slice(i, i + size));
+    }
+    return out;
+  }
+
+  async function fetchAllPaged(baseQueryBuilder, pageSize = 1000){
+    let from = 0;
+    const all = [];
+
+    while(true){
+      const to = from + pageSize - 1;
+      const { data, error } = await baseQueryBuilder.range(from, to);
+      if(error) throw error;
+
+      const rows = data || [];
+      all.push(...rows);
+
+      if(rows.length < pageSize) break;
+      from += pageSize;
+    }
+
+    return all;
+  }
+
+  async function traerMetadataMes(anio, mes){
+    const cols = `
+      id,
+      uuid_cfdi,
+      rfc_receptor,
+      nombre_receptor,
+      fecha_emision,
+      fecha_cancelacion,
+      monto,
+      estatus,
+      efecto_comprobante,
+      periodo_anio,
+      periodo_mes
+    `;
+
+    const qMeta = db
+      .from('metadata_ingresos')
+      .select(cols)
+      .eq('periodo_anio', Number(anio))
+      .eq('periodo_mes', Number(mes))
+      .eq('efecto_comprobante', 'I')
+      .order('fecha_emision', { ascending: true })
+      .order('id', { ascending: true });
+
+    return await fetchAllPaged(qMeta);
+  }
+
+  async function traerIngresosMes(anio, mes){
+    const { inicio, fin } = construirRangoMesMX(anio, mes);
+
+    const cols = `
+      id,
+      uuid_cfdi,
+      fecha,
+      periodo_mes,
+      periodo_anio,
+      tipo_factura,
+      rfc_receptor,
+      razon_social_receptor,
+      folio,
+      serie,
+      subtotal,
+      total,
+      metodo_pago,
+      total_iva,
+      total_ieps
+    `;
+
+    const qGlobalesPeriodo = db
+      .from('ingresos_pdd')
+      .select(cols)
+      .eq('tipo_factura', 'GLOBAL')
+      .eq('periodo_anio', String(anio))
+      .eq('periodo_mes', String(mes).padStart(2, '0'))
+      .order('fecha', { ascending: true })
+      .order('id', { ascending: true });
+
+    const qPorFecha = db
+      .from('ingresos_pdd')
+      .select(cols)
+      .gte('fecha', inicio)
+      .lt('fecha', fin)
+      .order('fecha', { ascending: true })
+      .order('id', { ascending: true });
+
+    const [rowsGlobalesPeriodo, rowsPorFecha] = await Promise.all([
+      fetchAllPaged(qGlobalesPeriodo),
+      fetchAllPaged(qPorFecha)
+    ]);
+
+    const map = new Map();
+
+    [...rowsGlobalesPeriodo, ...rowsPorFecha].forEach(r => {
+      const uuid = normalizarUUID(r.uuid_cfdi);
+      if(!uuid) return;
+
+      const d = new Date(r.fecha);
+      const anioFecha = isNaN(d) ? '' : String(d.getFullYear());
+      const mesFecha = isNaN(d) ? '' : String(d.getMonth() + 1).padStart(2, '0');
+
+      const anioRep = r.periodo_anio || anioFecha;
+      const mesRep = r.periodo_mes ? String(r.periodo_mes).padStart(2, '0') : mesFecha;
+
+      let origen_orden = 3;
+      const tipo = String(r.tipo_factura || '').toUpperCase();
+
+      if(
+        tipo === 'GLOBAL' &&
+        String(r.periodo_anio || '') === String(anio) &&
+        String(r.periodo_mes || '').padStart(2, '0') === String(mes).padStart(2, '0')
+      ){
+        origen_orden = 1;
+      }else if(tipo === 'GLOBAL'){
+        origen_orden = 2;
+      }
+
+      const row = {
+        ...r,
+        anio_fecha: anioFecha,
+        mes_fecha: mesFecha,
+        anio_reportado: anioRep,
+        mes_reportado: mesRep,
+        origen_orden
+      };
+
+      const prev = map.get(uuid);
+      if(!prev || row.origen_orden < prev.origen_orden){
+        map.set(uuid, row);
+      }else if(prev && row.origen_orden === prev.origen_orden){
+        const fp = new Date(prev.fecha).getTime() || 0;
+        const fr = new Date(row.fecha).getTime() || 0;
+        if(fr < fp) map.set(uuid, row);
+      }
+    });
+
+    const rows = [...map.values()];
+
+    rows.sort((a, b) => {
+      if((a.origen_orden || 9) !== (b.origen_orden || 9)){
+        return (a.origen_orden || 9) - (b.origen_orden || 9);
+      }
+      const fa = new Date(a.fecha).getTime() || 0;
+      const fb = new Date(b.fecha).getTime() || 0;
+      if(fa !== fb) return fa - fb;
+      return (a.id || 0) - (b.id || 0);
+    });
+
+    return rows;
+  }
+
+  function estadoSATDesdeMetadata(meta){
+    if(!meta) return 'SIN METADATA';
+    if(meta.fecha_cancelacion) return 'CANCELADO';
+    return 'VIGENTE';
+  }
+
+  function badgeEstadoSAT(estado){
+    if(estado === 'CANCELADO') return `<span class="badge cancelado">CANCELADO</span>`;
+    if(estado === 'VIGENTE') return `<span class="badge vigente">VIGENTE</span>`;
+    return `<span class="badge sinmeta">SIN METADATA</span>`;
+  }
+
+  function badgeTipo(tipo){
+    if(String(tipo || '').toUpperCase() === 'GLOBAL'){
+      return `<span class="badge global">GLOBAL</span>`;
+    }
+    if(String(tipo || '').toUpperCase() === 'INDIVIDUAL'){
+      return `<span class="badge individual">INDIVIDUAL</span>`;
+    }
+    return `<span class="badge alerta">SIN INGRESO</span>`;
+  }
+
+  function badgeOrigen(origen){
+    if(origen === 'AMBOS') return `<span class="badge ok">AMBOS</span>`;
+    if(origen === 'SOLO METADATA') return `<span class="badge alerta">SOLO METADATA</span>`;
+    return `<span class="badge sinmeta">SOLO INGRESOS</span>`;
+  }
+
+  function badgeObs(obs){
+    if(obs === 'OK') return `<span class="badge ok">OK</span>`;
+    if(obs === 'GLOBAL DESFASADA') return `<span class="badge alerta">FECHA ≠ PERIODO</span>`;
+    return `<span class="badge alerta">${obs}</span>`;
+  }
+
+  function actualizarResumen(rows){
+    let subtotal = 0;
+    let iva = 0;
+    let ieps = 0;
+    let total = 0;
+    let soloMeta = 0;
+    let soloIng = 0;
+    let desfasadas = 0;
+
+    rows.forEach(r => {
+      subtotal += Number(r.subtotal || 0);
+      iva += Number(r.total_iva || 0);
+      ieps += Number(r.total_ieps || 0);
+      total += Number(r.total || 0);
+      if(r.origen === 'SOLO METADATA') soloMeta++;
+      if(r.origen === 'SOLO INGRESOS') soloIng++;
+      if(r.observacion === 'GLOBAL DESFASADA') desfasadas++;
+    });
+
+    document.getElementById('r_registros').textContent = rows.length;
+    document.getElementById('r_subtotal').textContent = money(subtotal);
+    document.getElementById('r_iva').textContent = money(iva);
+    document.getElementById('r_ieps').textContent = money(ieps);
+    document.getElementById('r_total').textContent = money(total);
+    document.getElementById('r_solo_meta').textContent = soloMeta;
+    document.getElementById('r_solo_ing').textContent = soloIng;
+    document.getElementById('r_desfasadas').textContent = desfasadas;
+  }
+
+  function render(rows){
+    const tb = document.getElementById('tabla');
+
+    if(!rows.length){
+      tb.innerHTML = `<tr><td colspan="15">Sin resultados</td></tr>`;
+      actualizarResumen([]);
+      return;
+    }
+
+    tb.innerHTML = rows.map((r, i) => `
+      <tr>
+        <td class="sticky-1">${i + 1}</td>
+        <td class="sticky-2 col-fecha">${fmtFecha(r.fecha)}</td>
+        <td class="sticky-3 col-uuid uuid" title="${r.uuid_cfdi || ''}">${r.uuid_cfdi || ''}</td>
         <td>${r.serie || ''}</td>
         <td>${r.folio || ''}</td>
+        <td class="col-receptor" title="${r.nombre_receptor || ''}">${r.nombre_receptor || ''}</td>
         <td class="num">${money(r.subtotal)}</td>
         <td class="num">${money(r.total_iva)}</td>
         <td class="num">${money(r.total_ieps)}</td>
         <td class="num"><b>${money(r.total)}</b></td>
-        <td>${r.anio_reportado || ''}</td>
-        <td>${r.mes_reportado || ''}</td>
-        <td>${tipo}</td>
+        <td>${r.metodo_pago || ''}</td>
+        <td>${badgeTipo(r.tipo_factura)}</td>
+        <td>${badgeEstadoSAT(r.estado_sat)}</td>
+        <td>${badgeOrigen(r.origen)}</td>
+        <td>${badgeObs(r.observacion)}</td>
       </tr>
-    `;
-  }).join('');
-}
+    `).join('');
+
+    actualizarResumen(rows);
+  }
+
+  function construirUniverso(metadataRows, ingresosRows, anio, mes){
+    const metaMap = new Map();
+    const ingMap = new Map();
+
+    metadataRows.forEach(m => metaMap.set(normalizarUUID(m.uuid_cfdi), m));
+    ingresosRows.forEach(i => ingMap.set(normalizarUUID(i.uuid_cfdi), i));
+
+    const uuids = new Set([...metaMap.keys(), ...ingMap.keys()]);
+    const rows = [];
+
+    for(const uuid of uuids){
+      const meta = metaMap.get(uuid);
+      const ing = ingMap.get(uuid);
+
+      const origen = meta && ing ? 'AMBOS' : meta ? 'SOLO METADATA' : 'SOLO INGRESOS';
+
+      const fechaBase = ing?.fecha || meta?.fecha_emision || null;
+      const nombreReceptor = ing?.razon_social_receptor || meta?.nombre_receptor || '';
+      const rfcReceptor = ing?.rfc_receptor || meta?.rfc_receptor || '';
+
+      const estado_sat = estadoSATDesdeMetadata(meta);
+
+      let observacion = 'OK';
+
+      if(origen === 'SOLO METADATA'){
+        observacion = 'EXISTE EN METADATA Y NO EN INGRESOS';
+      } else if(origen === 'SOLO INGRESOS'){
+        observacion = 'SIN METADATA (NO ES TIPO I O NO EXISTE EN METADATA)';
+      } else {
+        const tipo = String(ing?.tipo_factura || '').toUpperCase();
+        if(tipo === 'GLOBAL'){
+          const anioFecha = ing?.anio_fecha || '';
+          const mesFecha = ing?.mes_fecha || '';
+          const anioPeriodoRef = String(meta?.periodo_anio || ing?.periodo_anio || '');
+          const mesPeriodoRef = String(meta?.periodo_mes || ing?.periodo_mes || '').padStart(2, '0');
+
+          if(
+            anioFecha && mesFecha &&
+            anioPeriodoRef && mesPeriodoRef &&
+            (anioFecha !== anioPeriodoRef || mesFecha !== mesPeriodoRef)
+          ){
+            observacion = 'GLOBAL DESFASADA';
+          }
+        }
+      }
+
+      const orden_tipo =
+        String(ing?.tipo_factura || '').toUpperCase() === 'GLOBAL' ? 1 :
+        String(ing?.tipo_factura || '').toUpperCase() === 'INDIVIDUAL' ? 2 : 3;
+
+      rows.push({
+        uuid_cfdi: uuid,
+        fecha: fechaBase,
+        serie: ing?.serie || '',
+        folio: ing?.folio || '',
+        rfc_receptor: rfcReceptor,
+        nombre_receptor: nombreReceptor,
+        subtotal: Number(ing?.subtotal ?? meta?.monto ?? 0),
+        total_iva: Number(ing?.total_iva ?? 0),
+        total_ieps: Number(ing?.total_ieps ?? 0),
+        total: Number(ing?.total ?? meta?.monto ?? 0),
+        metodo_pago: ing?.metodo_pago || '',
+        tipo_factura: ing?.tipo_factura || 'SIN INGRESO',
+        estado_sat,
+        origen,
+        observacion,
+        anio_fecha: ing?.anio_fecha || '',
+        mes_fecha: ing?.mes_fecha || '',
+        anio_periodo_ref: String(meta?.periodo_anio || ing?.periodo_anio || ''),
+        mes_periodo_ref: String(meta?.periodo_mes || ing?.periodo_mes || '').padStart(2, '0'),
+        anio_reportado: String(meta?.periodo_anio || ing?.anio_reportado || anio),
+        mes_reportado: String(meta?.periodo_mes || ing?.mes_reportado || mes).padStart(2, '0'),
+        orden_tipo
+      });
+    }
+
+    rows.sort((a, b) => {
+      if((a.orden_tipo || 9) !== (b.orden_tipo || 9)){
+        return (a.orden_tipo || 9) - (b.orden_tipo || 9);
+      }
+      const fa = new Date(a.fecha).getTime() || 0;
+      const fb = new Date(b.fecha).getTime() || 0;
+      if(fa !== fb) return fa - fb;
+      return (a.uuid_cfdi || '').localeCompare(b.uuid_cfdi || '');
+    });
+
+    return rows;
+  }
+
+  async function buscar(){
+    const anio = document.getElementById('anio').value;
+    const mes = document.getElementById('mes').value;
+
+    try{
+      setBitacora('Consultando metadata tipo I...');
+      const metadataRows = await traerMetadataMes(anio, mes);
+
+      setBitacora('Consultando ingresos...');
+      const ingresosRows = await traerIngresosMes(anio, mes);
+
+      setBitacora(`Cruce de UUID. Metadata I: ${metadataRows.length}. Ingresos mes: ${ingresosRows.length}.`);
+
+      rowsFinales = construirUniverso(metadataRows, ingresosRows, anio, mes);
+
+      render(rowsFinales);
+      setBitacora(`Mes construido. Registros finales: ${rowsFinales.length}.`);
+    }catch(err){
+      console.error(err);
+      document.getElementById('tabla').innerHTML = `<tr><td colspan="15">Error: ${err.message}</td></tr>`;
+      actualizarResumen([]);
+      setBitacora('Error construyendo el mes.');
+    }
+  }
+
+  function exportarExcel(){
+    if(!rowsFinales.length){
+      alert('No hay datos para exportar.');
+      return;
+    }
+
+    const anio = document.getElementById('anio').value;
+    const mes = document.getElementById('mes').value;
+
+    const detalle = rowsFinales.map((r, i) => ({
+      '#': i + 1,
+      'Fecha': fmtFecha(r.fecha),
+      'UUID': r.uuid_cfdi || '',
+      'Serie': r.serie || '',
+      'Folio': r.folio || '',
+      'RFC Receptor': r.rfc_receptor || '',
+      'Nombre Receptor': r.nombre_receptor || '',
+      'Subtotal': Number(r.subtotal || 0),
+      'IVA': Number(r.total_iva || 0),
+      'IEPS': Number(r.total_ieps || 0),
+      'Total': Number(r.total || 0),
+      'Método Pago': r.metodo_pago || '',
+      'Tipo': r.tipo_factura || '',
+      'Estado SAT': r.estado_sat || '',
+      'Origen': r.origen || '',
+      'Observación': r.observacion || '',
+      'Año Fecha': r.anio_fecha || '',
+      'Mes Fecha': r.mes_fecha || '',
+      'Año Periodo Ref': r.anio_periodo_ref || '',
+      'Mes Periodo Ref': r.mes_periodo_ref || '',
+      'Año Reportado': r.anio_reportado || '',
+      'Mes Reportado': r.mes_reportado || ''
+    }));
+
+    const problemas = detalle.filter(r =>
+      r['Observación'] !== 'OK'
+    );
+
+    const resumen = [
+      ['Año', anio],
+      ['Mes', mes],
+      ['Registros', rowsFinales.length],
+      ['Solo metadata', rowsFinales.filter(r => r.origen === 'SOLO METADATA').length],
+      ['Solo ingresos', rowsFinales.filter(r => r.origen === 'SOLO INGRESOS').length],
+      ['Globales desfasadas', rowsFinales.filter(r => r.observacion === 'GLOBAL DESFASADA').length],
+      ['Subtotal', rowsFinales.reduce((a, r) => a + Number(r.subtotal || 0), 0)],
+      ['IVA', rowsFinales.reduce((a, r) => a + Number(r.total_iva || 0), 0)],
+      ['IEPS', rowsFinales.reduce((a, r) => a + Number(r.total_ieps || 0), 0)],
+      ['Total', rowsFinales.reduce((a, r) => a + Number(r.total || 0), 0)]
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(detalle), 'Detalle');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(problemas), 'Solo Problemas');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumen), 'Resumen');
+
+    XLSX.writeFile(wb, `auditoria_sat_ingresos_${anio}_${mes}.xlsx`);
+  }
+
+  function limpiar(){
+    rowsFinales = [];
+    document.getElementById('tabla').innerHTML = '';
+    actualizarResumen([]);
+    setBitacora('Listo.');
+  }
+
+  llenarAnios();
+  document.getElementById('btnConstruir').addEventListener('click', buscar);
+  document.getElementById('btnExportar').addEventListener('click', exportarExcel);
+  document.getElementById('btnLimpiar').addEventListener('click', limpiar);
 </script>
 
 </body>
