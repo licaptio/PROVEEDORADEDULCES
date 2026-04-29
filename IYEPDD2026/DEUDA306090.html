@@ -454,7 +454,32 @@ function descargarExcel() {
         <meta charset="UTF-8">
       </head>
       <body>
-        ${tabla.outerHTML}
+        const tablaClon = tabla.cloneNode(true);
+
+// Quitar TODOS los links (UUID, fotos, etc)
+tablaClon.querySelectorAll("a").forEach(a => {
+  const texto = a.textContent;
+  a.replaceWith(texto);
+});
+
+// Quitar botones (columna acción)
+tablaClon.querySelectorAll("button").forEach(b => b.remove());
+
+// Opcional: quitar emojis de fotos si quieres aún más limpio
+// tablaClon.querySelectorAll("td").forEach(td => {
+//   td.innerHTML = td.innerHTML.replace(/📷/g, "");
+// });
+
+const html = `
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    ${tablaClon.outerHTML}
+  </body>
+</html>
+`;
       </body>
     </html>
   `;
