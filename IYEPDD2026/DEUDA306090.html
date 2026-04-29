@@ -426,13 +426,6 @@ async function marcarPagada(uuid_cfdi, boton) {
     setTimeout(() => fila.remove(), 1200);
   }, 5000);
 }
-function formatearFecha(fecha) {
-  if (!fecha) return "";
-
-  // Si viene Date o string ISO, nos quedamos con YYYY-MM-DD
-  return fecha.toString().split("T")[0];
-}
-
 function formatearFecha(fechaStr) {
   if (!fechaStr) return "";
 
@@ -448,40 +441,28 @@ function descargarExcel() {
     return;
   }
 
+  // 🔧 CLONAR TABLA
+  const tablaClon = tabla.cloneNode(true);
+
+  // 🔧 QUITAR LINKS
+  tablaClon.querySelectorAll("a").forEach(a => {
+    const texto = a.textContent;
+    a.replaceWith(texto);
+  });
+
+  // 🔧 QUITAR BOTONES
+  tablaClon.querySelectorAll("button").forEach(b => b.remove());
+
+  // 🔧 GENERAR HTML FINAL (AQUÍ SÍ VA STRING)
   const html = `
-    <html>
-      <head>
-        <meta charset="UTF-8">
-      </head>
-      <body>
-        const tablaClon = tabla.cloneNode(true);
-
-// Quitar TODOS los links (UUID, fotos, etc)
-tablaClon.querySelectorAll("a").forEach(a => {
-  const texto = a.textContent;
-  a.replaceWith(texto);
-});
-
-// Quitar botones (columna acción)
-tablaClon.querySelectorAll("button").forEach(b => b.remove());
-
-// Opcional: quitar emojis de fotos si quieres aún más limpio
-// tablaClon.querySelectorAll("td").forEach(td => {
-//   td.innerHTML = td.innerHTML.replace(/📷/g, "");
-// });
-
-const html = `
-<html>
-  <head>
-    <meta charset="UTF-8">
-  </head>
-  <body>
-    ${tablaClon.outerHTML}
-  </body>
-</html>
-`;
-      </body>
-    </html>
+  <html>
+    <head>
+      <meta charset="UTF-8">
+    </head>
+    <body>
+      ${tablaClon.outerHTML}
+    </body>
+  </html>
   `;
 
   const blob = new Blob([html], {
