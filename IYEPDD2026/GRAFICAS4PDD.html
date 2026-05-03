@@ -88,6 +88,19 @@ const VISTA = "mv_ingresos_mensual_sucursal";
 const EJERCICIOS = [2026,2025,2024,2023];
 
 const MESES = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const SUCURSALES = {
+  LMN:'MATRIZ',
+  RM1:'RM1',
+  RM2:'RM2',
+  GM:'BODEGA 41',
+  SAN:'ALLENDE II',
+  AM:'ALLENDE I',
+  MM:'MONTEMORELOS',
+  LO:'OSITO',
+  LP:'CENTRAL',
+  RVN:'RIO VERDE',
+  LV:'PROVILEON'
+};
 
 function money(n){
   return Number(n||0).toLocaleString("es-MX",{style:"currency",currency:"MXN"});
