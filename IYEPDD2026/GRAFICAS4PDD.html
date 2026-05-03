@@ -20,7 +20,10 @@ body{
   padding:20px;
 }
 
-.app{max-width:1200px;margin:auto}
+.app{
+  max-width:1200px;
+  margin:auto;
+}
 
 .header{
   background:rgba(0,0,0,.6);
@@ -51,7 +54,86 @@ body{
   transition:width .4s;
 }
 
-.chartBox{height:350px}
+.chartBox{
+  height:350px;
+}
+
+select, button{
+  min-height:36px;
+  padding:6px 10px;
+  margin-right:6px;
+}
+
+button{
+  cursor:pointer;
+}
+
+@media print{
+
+  @page{
+    size: letter landscape;
+    margin: 8mm;
+  }
+
+  body{
+    background:white !important;
+    padding:0 !important;
+  }
+
+  .header,
+  .loading,
+  .app > .card:first-of-type{
+    display:none !important;
+  }
+
+  .app{
+    max-width:none !important;
+    width:100% !important;
+  }
+
+  #graficas{
+    display:block !important;
+  }
+
+  #graficas .card{
+    width:100% !important;
+    height:92mm !important;
+    page-break-inside:avoid !important;
+    break-inside:avoid !important;
+    border:1px solid #ddd !important;
+    box-shadow:none !important;
+    margin:0 0 6mm 0 !important;
+    padding:6px !important;
+    overflow:hidden !important;
+  }
+
+  #graficas .card:nth-child(2n){
+    page-break-after:always !important;
+    break-after:page !important;
+  }
+
+  #graficas .card:last-child{
+    page-break-after:auto !important;
+    break-after:auto !important;
+  }
+
+  #graficas h3{
+    font-size:13px !important;
+    margin:0 0 4px 0 !important;
+  }
+
+  .chartBox{
+    height:76mm !important;
+    width:100% !important;
+  }
+
+  canvas{
+    width:100% !important;
+    height:76mm !important;
+    max-height:76mm !important;
+  }
+}
+
 </style>
 </head>
 
@@ -61,6 +143,7 @@ body{
 
   <div class="header">
     <h2>Ingresos por Sucursal</h2>
+    <div>PROVSOFT · Venta antes de impuestos · 2026 / 2025 / 2024 / 2023</div>
   </div>
 
   <div class="loading" id="loading">
@@ -72,7 +155,8 @@ body{
 
   <div class="card">
     <select id="sucursalSelect"></select>
-    <button onclick="iniciarApp()">Actualizar</button>
+    <button id="btnActualizar" type="button">Actualizar</button>
+    <button id="btnImprimir" type="button">Imprimir</button>
   </div>
 
   <div id="graficas"></div>
@@ -84,111 +168,174 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { supabaseUrl, supabaseAnonKey } from "./config.js";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
-const VISTA = "mv_ingresos_mensual_sucursal";
-const EJERCICIOS = [2026,2025,2024,2023];
 
-const MESES = ["","Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const VISTA = "mv_ingresos_mensual_sucursal";
+const EJERCICIOS = [2026, 2025, 2024, 2023];
+
+const MESES = [
+  "",
+  "Ene","Feb","Mar","Abr","May","Jun",
+  "Jul","Ago","Sep","Oct","Nov","Dic"
+];
+
 const SUCURSALES = {
-  LMN:'MATRIZ',
-  RM1:'RM1',
-  RM2:'RM2',
-  GM:'BODEGA 41',
-  SAN:'ALLENDE II',
-  AM:'ALLENDE I',
-  MM:'MONTEMORELOS',
-  LO:'OSITO',
-  LP:'CENTRAL',
-  RVN:'RIO VERDE',
-  LV:'PROVILEON'
+  LMN:"MATRIZ",
+  RM1:"RM1",
+  RM2:"RM2",
+  GM:"BODEGA 41",
+  SAN:"ALLENDE II",
+  AM:"ALLENDE I",
+  MM:"MONTEMORELOS",
+  LO:"OSITO",
+  LP:"CENTRAL",
+  RVN:"RIO VERDE",
+  LV:"PROVILEON"
 };
 
+let charts = [];
+
+document.getElementById("btnActualizar").addEventListener("click", iniciarApp);
+document.getElementById("btnImprimir").addEventListener("click", imprimirSucursal);
+document.getElementById("sucursalSelect").addEventListener("change", cargarDatos);
+
+function nombreSucursal(code){
+  if(!code) return "";
+  return SUCURSALES[code] || code;
+}
+
+function etiquetaSucursal(code){
+  if(!code) return "";
+  return `${code} - ${nombreSucursal(code)}`;
+}
+
 function money(n){
-  return Number(n||0).toLocaleString("es-MX",{style:"currency",currency:"MXN"});
+  return Number(n || 0).toLocaleString("es-MX", {
+    style:"currency",
+    currency:"MXN"
+  });
+}
+
+function moneyCompact(n){
+  return "$" + Number(n || 0).toLocaleString("es-MX", {
+    maximumFractionDigits:0
+  });
 }
 
 function showLoading(v){
-  document.getElementById("loading").style.display = v?"block":"none";
+  document.getElementById("loading").style.display = v ? "block" : "none";
 }
 
-function setProgress(p,text){
-  document.getElementById("barra").style.width = p+"%";
+function setProgress(p, text){
+  document.getElementById("barra").style.width = p + "%";
   document.getElementById("loadingText").textContent = text;
 }
 
 async function refrescar(){
   showLoading(true);
-  setProgress(10,"Preparando...");
+  setProgress(10, "Preparando...");
 
-  await new Promise(r=>setTimeout(r,300));
+  await new Promise(r => setTimeout(r, 300));
 
-  setProgress(30,"Calculando ingresos...");
+  setProgress(30, "Calculando ingresos...");
 
-const { error } = await supabase.rpc("refrescar_mv_ingresos_mensual_sucursal");
+  const { error } = await supabase.rpc("refrescar_mv_ingresos_mensual_sucursal");
 
-if(error){
-  console.warn("No se pudo refrescar, continúo con datos existentes:", error.message);
-}
+  if(error){
+    console.warn("No se pudo refrescar, continúo con datos existentes:", error.message);
+  }
 
-
-  setProgress(60,"Resumen listo");
+  setProgress(60, "Resumen listo");
 }
 
 async function cargarSucursales(){
-  setProgress(75,"Cargando sucursales...");
+  setProgress(75, "Cargando sucursales...");
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from(VISTA)
     .select("sucursal")
     .order("sucursal");
 
-  const lista = [...new Set(data.map(x=>x.sucursal))];
+  if(error){
+    alert("Error cargando sucursales: " + error.message);
+    return;
+  }
+
+  const lista = [
+    ...new Set(
+      (data || [])
+        .map(x => (x.sucursal || "").trim())
+        .filter(Boolean)
+    )
+  ].sort();
 
   const sel = document.getElementById("sucursalSelect");
-  sel.innerHTML="";
+  const anterior = sel.value;
 
-  lista.forEach(s=>{
-    const o=document.createElement("option");
-    o.value=s;
-    o.textContent=s;
+  sel.innerHTML = "";
+
+  lista.forEach(s => {
+    const o = document.createElement("option");
+    o.value = s;
+    o.textContent = etiquetaSucursal(s);
     sel.appendChild(o);
   });
+
+  if(lista.includes(anterior)){
+    sel.value = anterior;
+  }
 }
 
 async function cargarDatos(){
   const suc = document.getElementById("sucursalSelect").value;
+  if(!suc) return;
 
-  setProgress(90,"Generando gráficas...");
+  setProgress(90, "Generando gráficas...");
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from(VISTA)
     .select("*")
-    .eq("sucursal",suc)
-    .in("ejercicio",EJERCICIOS)
-    .order("ejercicio",{ascending:false})
-    .order("mes");
+    .eq("sucursal", suc)
+    .in("ejercicio", EJERCICIOS)
+    .order("ejercicio", { ascending:false })
+    .order("mes", { ascending:true });
 
-  render(data,suc);
-
-  setProgress(100,"Listo");
-  setTimeout(()=>showLoading(false),400);
-}
-
-function normalizar(data,a){
-  const m={};
-  for(let i=1;i<=12;i++){
-    m[i]={mes:i,val:0};
+  if(error){
+    alert("Error cargando datos: " + error.message);
+    showLoading(false);
+    return;
   }
 
-  data.filter(x=>x.ejercicio==a).forEach(r=>{
-    m[r.mes]={mes:r.mes,val:r.venta_antes_impuestos};
-  });
+  render(data || [], suc);
+
+  setProgress(100, "Listo");
+  setTimeout(() => showLoading(false), 400);
+}
+
+function normalizar(data, anio){
+  const m = {};
+
+  for(let i = 1; i <= 12; i++){
+    m[i] = {
+      mes:i,
+      val:0
+    };
+  }
+
+  data
+    .filter(x => Number(x.ejercicio) === Number(anio))
+    .forEach(r => {
+      m[Number(r.mes)] = {
+        mes:Number(r.mes),
+        val:Number(r.venta_antes_impuestos || 0)
+      };
+    });
 
   return Object.values(m);
 }
 
 const pluginEtiquetas = {
-  id: 'pluginEtiquetas',
-  afterDatasetsDraw(chart) {
+  id:"pluginEtiquetas",
+  afterDatasetsDraw(chart){
     const { ctx } = chart;
 
     chart.data.datasets.forEach((dataset, i) => {
@@ -197,15 +344,15 @@ const pluginEtiquetas = {
       meta.data.forEach((bar, index) => {
         const value = dataset.data[index];
 
-        if (!value) return;
+        if(!value) return;
 
         ctx.save();
-ctx.fillStyle = "#1f2937";
-ctx.font = "bold 10px Arial";
+        ctx.fillStyle = "#1f2937";
+        ctx.font = "bold 10px Arial";
         ctx.textAlign = "center";
 
         ctx.fillText(
-          "$" + value.toLocaleString("es-MX"),
+          moneyCompact(value),
           bar.x,
           bar.y - 5
         );
@@ -216,52 +363,91 @@ ctx.font = "bold 10px Arial";
   }
 };
 
-function render(data,suc){
-  const cont=document.getElementById("graficas");
-  cont.innerHTML="";
+function render(data, suc){
+  charts.forEach(c => c.destroy());
+  charts = [];
 
-  EJERCICIOS.forEach(a=>{
-    const rows=normalizar(data,a);
-    const total=rows.reduce((s,x)=>s+x.val,0);
+  const cont = document.getElementById("graficas");
+  cont.innerHTML = "";
 
-    const div=document.createElement("div");
-    div.className="card";
+  EJERCICIOS.forEach(anio => {
+    const rows = normalizar(data, anio);
+    const total = rows.reduce((s, x) => s + x.val, 0);
 
-    div.innerHTML=`
-      <h3>${suc} - ${a} (${money(total)})</h3>
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <h3>${etiquetaSucursal(suc)} · ${anio} (${money(total)})</h3>
       <div class="chartBox">
-        <canvas id="c${a}"></canvas>
+        <canvas id="c${anio}"></canvas>
       </div>
     `;
 
     cont.appendChild(div);
 
-new Chart(document.getElementById("c"+a),{
-  type:"bar",
-  data:{
-    labels:rows.map(r=>MESES[r.mes]),
-datasets:[{
-  label:"Subtotal",
-  data:rows.map(r=>r.val),
-  backgroundColor:"#0c6cbd",
-  borderRadius:6
-}]
-  },
-  plugins:[pluginEtiquetas],
-  options:{
-    responsive:true,
-    maintainAspectRatio:false,
-    scales:{
-      y:{
-        ticks:{
-          callback:(v)=>"$"+v.toLocaleString("es-MX")
+    const chart = new Chart(document.getElementById("c" + anio), {
+      type:"bar",
+      data:{
+        labels:rows.map(r => MESES[r.mes]),
+        datasets:[{
+          label:"Subtotal",
+          data:rows.map(r => r.val),
+          backgroundColor:"#0c6cbd",
+          borderRadius:6
+        }]
+      },
+      plugins:[pluginEtiquetas],
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        layout:{
+          padding:{
+            top:28
+          }
+        },
+        plugins:{
+          tooltip:{
+            callbacks:{
+              label:function(context){
+                return "Subtotal: " + money(context.raw);
+              }
+            }
+          },
+          legend:{
+            display:false
+          },
+          title:{
+            display:true,
+            text:`${etiquetaSucursal(suc)} · ${anio}`
+          }
+        },
+        scales:{
+          y:{
+            beginAtZero:true,
+            ticks:{
+              callback:function(v){
+                return moneyCompact(v);
+              }
+            }
+          }
         }
       }
-    }
-  }
-});
+    });
 
+    charts.push(chart);
   });
+}
+
+function imprimirSucursal(){
+  const suc = document.getElementById("sucursalSelect").value;
+
+  if(!suc){
+    alert("Selecciona una sucursal antes de imprimir.");
+    return;
+  }
+
+  window.print();
 }
 
 async function iniciarApp(){
@@ -271,6 +457,7 @@ async function iniciarApp(){
     await cargarDatos();
   }catch(e){
     console.error(e);
+    showLoading(false);
   }
 }
 
