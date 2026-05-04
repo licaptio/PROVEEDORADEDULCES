@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Visor Bucket PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- SUPABASE UMD CORRECTO -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f9;
+  margin: 0;
+  padding: 20px;
+}
+
+h2 {
+  margin-bottom: 10px;
+}
+
+#ruta {
+  font-size: 14px;
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.item {
+  background: white;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.item:hover {
+  background: #e9f1ff;
+}
+
+.folder {
+  font-weight: bold;
+  color: #1a73e8;
+}
+
+.file {
+  color: #333;
+}
+
+.back {
+  margin-bottom: 15px;
+  cursor: pointer;
+  color: #d93025;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📂 Listas de Precios</h2>
+<div id="ruta"></div>
+<div id="backBtn"></div>
+<div id="contenido"></div>
+
+<script>
+
+const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
+const BUCKET = "listaspdd";
+
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let rutaActual = "";
+
+async function cargarContenido(path = "") {
+
+  rutaActual = path;
+
+  document.getElementById("contenido").innerHTML = "Cargando...";
+  document.getElementById("ruta").innerText = "Ruta: /" + (path || "");
+
+  const { data, error } = await client.storage
+    .from(BUCKET)
+    .list(path, {
+      sortBy: { column: "name", order: "asc" }
+    });
+
+  if (error) {
+    console.error(error);
+    document.getElementById("contenido").innerText = "Error: " + error.message;
+    return;
+  }
+
+  const contenedor = document.getElementById("contenido");
+  contenedor.innerHTML = "";
+
+  if (!data || data.length === 0) {
+    contenedor.innerHTML = "Sin archivos.";
+    return;
+  }
+
+  if (path !== "") {
+    document.getElementById("backBtn").innerHTML =
+      `<div class="back" onclick="regresar()">⬅ Regresar</div>`;
+  } else {
+    document.getElementById("backBtn").innerHTML = "";
+  }
+
+  data.forEach(item => {
+
+    const div = document.createElement("div");
+    div.classList.add("item");
+
+    if (!item.metadata) {
+      div.classList.add("folder");
+      div.innerText = "📁 " + item.name;
+      div.onclick = () => {
+        cargarContenido(path ? path + "/" + item.name : item.name);
+      };
+    } else {
+      div.classList.add("file");
+      div.innerText = "📄 " + item.name;
+      div.onclick = () => abrirArchivo(path, item.name);
+    }
+
+    contenedor.appendChild(div);
+  });
+}
+
+function regresar() {
+  const partes = rutaActual.split("/");
+  partes.pop();
+  cargarContenido(partes.join("/"));
+}
+
+function abrirArchivo(path, fileName) {
+
+  const fullPath = path ? path + "/" + fileName : fileName;
+
+  const { data } = client.storage
+    .from(BUCKET)
+    .getPublicUrl(fullPath);
+
+  window.open(data.publicUrl, "_blank");
+}
+
+cargarContenido();
+
+</script>
+
+</body>
+</html>
