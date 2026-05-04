@@ -64,7 +64,6 @@ h2 {
 <div id="contenido"></div>
 
 <script>
-
 const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
 const BUCKET = "EMPLEADOPDD";
@@ -74,57 +73,62 @@ const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let rutaActual = "";
 
 async function cargarContenido(path = "") {
-
   rutaActual = path;
 
-  document.getElementById("contenido").innerHTML = "Cargando...";
-  document.getElementById("ruta").innerText = "Ruta: /" + (path || "");
+  const contenido = document.getElementById("contenido");
+  const ruta = document.getElementById("ruta");
+  const backBtn = document.getElementById("backBtn");
+
+  contenido.innerHTML = "Cargando...";
+  ruta.innerText = "Ruta: /" + path;
 
   const { data, error } = await client.storage
     .from(BUCKET)
     .list(path, {
+      limit: 100,
+      offset: 0,
       sortBy: { column: "name", order: "asc" }
     });
 
+  console.log("PATH:", path);
+  console.log("DATA:", data);
+  console.log("ERROR:", error);
+
   if (error) {
-    console.error(error);
-    document.getElementById("contenido").innerText = "Error: " + error.message;
+    contenido.innerHTML = "Error: " + error.message;
     return;
   }
 
-  const contenedor = document.getElementById("contenido");
-  contenedor.innerHTML = "";
-
-  if (!data || data.length === 0) {
-    contenedor.innerHTML = "Sin archivos.";
-    return;
-  }
+  contenido.innerHTML = "";
 
   if (path !== "") {
-    document.getElementById("backBtn").innerHTML =
-      `<div class="back" onclick="regresar()">⬅ Regresar</div>`;
+    backBtn.innerHTML = `<div class="back" onclick="regresar()">⬅ Regresar</div>`;
   } else {
-    document.getElementById("backBtn").innerHTML = "";
+    backBtn.innerHTML = "";
+  }
+
+  if (!data || data.length === 0) {
+    contenido.innerHTML = "Sin archivos.";
+    return;
   }
 
   data.forEach(item => {
-
     const div = document.createElement("div");
     div.classList.add("item");
 
-    if (!item.metadata) {
+    const esCarpeta = item.id === null;
+
+    if (esCarpeta) {
       div.classList.add("folder");
       div.innerText = "📁 " + item.name;
-      div.onclick = () => {
-        cargarContenido(path ? path + "/" + item.name : item.name);
-      };
+      div.onclick = () => cargarContenido(path ? `${path}/${item.name}` : item.name);
     } else {
       div.classList.add("file");
       div.innerText = "📄 " + item.name;
       div.onclick = () => abrirArchivo(path, item.name);
     }
 
-    contenedor.appendChild(div);
+    contenido.appendChild(div);
   });
 }
 
@@ -135,8 +139,7 @@ function regresar() {
 }
 
 function abrirArchivo(path, fileName) {
-
-  const fullPath = path ? path + "/" + fileName : fileName;
+  const fullPath = path ? `${path}/${fileName}` : fileName;
 
   const { data } = client.storage
     .from(BUCKET)
@@ -146,8 +149,8 @@ function abrirArchivo(path, fileName) {
 }
 
 cargarContenido();
-
 </script>
+  
 
 </body>
 </html>
