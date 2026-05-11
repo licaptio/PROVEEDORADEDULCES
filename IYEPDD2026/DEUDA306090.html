@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Resumen Deudas No Pagadas</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
   <style>
     body {
       font-family: sans-serif;
@@ -12,27 +15,36 @@
       margin: 0;
       padding: 1rem;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       background: white;
     }
+
     th, td {
       padding: 8px;
       border: 1px solid #ccc;
       font-size: 0.9em;
     }
+
     th {
       background-color: #007bff;
       color: white;
       position: sticky;
       top: 0;
     }
+
     .vencida-30 { background: #fff8e1; }
     .vencida-60 { background: #ffe082; }
     .vencida-90 { background: #ffca28; }
     .vencida-mas { background: #ff7043; color: white; }
-    .proveedor-destacado { font-weight: bold; color: #2c3e50; }
+
+    .proveedor-destacado {
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
     button {
       margin: 1rem 0;
       padding: 10px 20px;
@@ -42,112 +54,121 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    button:hover { background: #218838; }
-    td.numero { text-align: right; }
-.proveedor-especial {
-  background-color: #d0ecff !important; /* azul claro */
-  animation: parpadeo 1.6s infinite;
-}
-@keyframes parpadeo {
-  0% { opacity: 1; }
-  50% { opacity: 0.4; }
-  100% { opacity: 1; }
-}
-.proveedor-especial-vencido {
-  background-color: #ede7f6 !important; /* Morado claro */
-  animation: parpadeo-morado 1.6s infinite;
-}
 
-@keyframes parpadeo-morado {
-  0% { opacity: 1; }
-  50% { opacity: 0.4; }
-  100% { opacity: 1; }
-}
-.proveedor-contado {
-  background-color: #d0f0ff !important; /* celeste claro */
-  animation: parpadeo-celeste 1.5s infinite;
-  color: #003344;
-  font-weight: bold;
-}
+    button:hover {
+      background: #218838;
+    }
 
-@keyframes parpadeo-celeste {
-  0% { opacity: 1; }
-  50% { opacity: 0.4; }
-  100% { opacity: 1; }
-}
-.dias-30-morado {
-  background-color: #ede7f6 !important; /* Morado claro */
-  animation: parpadeo-morado 1.6s infinite;
-  font-weight: bold;
-  color: #4a148c;
-}
-.desintegrando {
-  opacity: 0;
-  transition: opacity 1.2s ease;
-}
-.btn-pagar {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  background-color: #28a745; /* verde */
-  display: inline-block;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s;
-}
+    td.numero {
+      text-align: right;
+    }
 
-.btn-pagar:hover {
-  transform: scale(1.25);
-  box-shadow: 0 0 0 3px rgba(40,167,69,0.25);
-}
+    .proveedor-especial {
+      background-color: #d0ecff !important;
+      animation: parpadeo 1.6s infinite;
+    }
 
-.btn-pagar:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
+    @keyframes parpadeo {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
 
-.btn-pagar:hover {
-  transform: scale(1.15);
-  box-shadow: 0 0 0 4px rgba(40,167,69,0.25);
-}
+    .proveedor-especial-vencido {
+      background-color: #ede7f6 !important;
+      animation: parpadeo-morado 1.6s infinite;
+    }
 
-.btn-pagar:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.uuid-corto {
-  max-width: 180px;          /* ajusta a tu gusto */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: inline-block;
-  vertical-align: middle;
-}  
-.col-fecha {
-  white-space: nowrap;   /* ❌ no salto de línea */
-  font-size: 0.85em;     /* 👌 más compacta */
-  width: 90px;           /* ancho controlado */
-  max-width: 90px;
-  text-align: center;
-}
+    @keyframes parpadeo-morado {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
 
-    
-</style>
+    .proveedor-contado {
+      background-color: #d0f0ff !important;
+      animation: parpadeo-celeste 1.5s infinite;
+      color: #003344;
+      font-weight: bold;
+    }
+
+    @keyframes parpadeo-celeste {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    .dias-30-morado {
+      background-color: #ede7f6 !important;
+      animation: parpadeo-morado 1.6s infinite;
+      font-weight: bold;
+      color: #4a148c;
+    }
+
+    .desintegrando {
+      opacity: 0;
+      transition: opacity 1.2s ease;
+    }
+
+    .btn-pagar {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      background-color: #28a745;
+      display: inline-block;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s;
+      padding: 0;
+      margin: 0;
+    }
+
+    .btn-pagar:hover {
+      transform: scale(1.15);
+      box-shadow: 0 0 0 4px rgba(40,167,69,0.25);
+    }
+
+    .btn-pagar:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .uuid-corto {
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .col-fecha {
+      white-space: nowrap;
+      font-size: 0.85em;
+      width: 90px;
+      max-width: 90px;
+      text-align: center;
+    }
+  </style>
 </head>
+
 <body>
+
 <h2>📌 Facturas Pendientes</h2>
 
 <button onclick="descargarExcel()">
   📥 Descargar Excel
 </button>
 
+<div id="totalGlobal"></div>
 <div id="tabla"></div>
- 
-  <script>
+
+<script>
 const _supabase = window.supabase.createClient(
   'https://cvpbtjlupswbyxenugpz.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
 );
+
 const proveedoresEspeciales = {
   "ROBERTO CANTU OZUNA": 12,
   "DECASA DEL CENTRO": 20,
@@ -158,7 +179,7 @@ const proveedoresEspeciales = {
   "INOCENCIO DELGADO MARQUEZ": 15,
   "DUL-TAM PAVITO": 7,
   "LOCALIZACION ESPECIALIZADA GPS": 2,
-  "LUIS FERNANDO KARR GARCIA": 2, 
+  "LUIS FERNANDO KARR GARCIA": 2,
   "DISTRIBUIDORA DE PRODUCTOS DESHIDRATADOS": 28,
   "DETALLE Y DISTRIBUCIONES": 20,
   "PRODUCTOS VIGAR": 15,
@@ -169,6 +190,7 @@ const proveedoresEspeciales = {
   "GRUPO CHI-SO": 15,
   "ABARROTES": 25
 };
+
 const proveedoresContado = [
   "BBVA MEXICO, S.A., INSTITUCION DE BANCA MULTIPLE, GRUPO FINANCIERO BBVA MEXICO",
   "BANCO SANTANDER MEXICO S.A., INSTITUCION DE BANCA MULTIPLE, GRUPO FINANCIERO SANTANDER MEXICO",
@@ -178,8 +200,8 @@ const proveedoresContado = [
   "DISTRIBUIDORA ARCA CONTINENTAL",
   "WINETPC",
   "GASNGO MEXICO",
-  "RADIOMOVIL DIPSA",	
-  "SERVICIOS GASOLINEROS DE MEXICO",	
+  "RADIOMOVIL DIPSA",
+  "SERVICIOS GASOLINEROS DE MEXICO",
   "PEÑAFIEL BEBIDAS",
   "DELIA EUSTOLIA TORRES GARCIA",
   "BONAFONT",
@@ -191,201 +213,181 @@ const proveedoresContado = [
   "COMISION FEDERAL DE ELECTRICIDAD"
 ];
 
-    async function cargar() {
-const { data, error } = await _supabase
-  .from("v_deuda_proveedores")
-  .select("*")
-  .neq("factura_pagada", "SI");
-      if (error) return alert("Error cargando datos");
+let datosFinalesExcel = [];
 
-      //-------------------------------------------------------
-// 1) PÉGAS AQUÍ TU ARREGLO VIEJO (DE PRECIOS, FACTURAS, ETC.)
-//-------------------------------------------------------
-const datosViejos = [
-  // Ejemplo:
-  // {fecha:"2024-06-10", total:"1200", razon_social_emisor:"ALGO", uuid_cfdi:"---", ...}
-  // PÉGAME AQUÍ TODO TU ARREGLO VIEJO
-];
+async function cargar() {
+  const { data, error } = await _supabase
+    .from("v_deuda_proveedores")
+    .select("*")
+    .neq("factura_pagada", "SI");
 
+  if (error) {
+    console.error(error);
+    alert("Error cargando datos");
+    return;
+  }
 
-//-------------------------------------------------------
-// 2) NORMALIZADOR UNIVERSAL PARA UNIR VIEJO + NUEVO
-//-------------------------------------------------------
-function normalizarFactura(f) {
-  return {
-    uuid_cfdi: (f.uuid_cfdi || f.uuid || "").trim(),
-    fecha: f.fecha ? new Date(f.fecha) : null,
-    rfc_emisor: f.rfc_emisor || "",
-    razon_social_emisor: f.razon_social_emisor || "",
-    factura: f.factura || "",
-    serie: f.serie || "",
-    total: parseFloat(f.total || 0),
-    factura_pagada: (f.factura_pagada || "").toUpperCase().trim(),
-    factura_fisicamente: (f.factura_fisicamente || "").toUpperCase().trim(),
-    fotos: Array.isArray(f.fotos) ? f.fotos : [],
-    // mantener el resto sin afectar
-    ...f
-  };
+  const datosViejos = [];
+
+  function normalizarFactura(f) {
+    return {
+      ...f,
+      uuid_cfdi: (f.uuid_cfdi || f.uuid || "").trim(),
+      fecha: f.fecha || null,
+      rfc_emisor: f.rfc_emisor || "",
+      razon_social_emisor: f.razon_social_emisor || "",
+      factura: f.factura || "",
+      serie: f.serie || "",
+      total: parseFloat(f.total || 0),
+      factura_pagada: (f.factura_pagada || "").toUpperCase().trim(),
+      factura_fisicamente: (f.factura_fisicamente || "").toUpperCase().trim(),
+      fotos: Array.isArray(f.fotos) ? f.fotos : []
+    };
+  }
+
+  const noPagadasSupabase = data.filter(f =>
+    (f.factura_pagada || "NO").toUpperCase().trim() !== "SI"
+  );
+
+  const unidas = [
+    ...datosViejos.map(normalizarFactura),
+    ...noPagadasSupabase.map(normalizarFactura)
+  ];
+
+  const unicas = Object.values(
+    unidas.reduce((acc, f) => {
+      const key = f.uuid_cfdi || crypto.randomUUID();
+      if (!acc[key]) acc[key] = f;
+      return acc;
+    }, {})
+  );
+
+  const ordenadosFinal = unicas.sort((a, b) => {
+    const rfcA = (a.rfc_emisor || "").toLowerCase();
+    const rfcB = (b.rfc_emisor || "").toLowerCase();
+
+    if (rfcA !== rfcB) return rfcA.localeCompare(rfcB);
+
+    return new Date(a.fecha) - new Date(b.fecha);
+  });
+
+  datosFinalesExcel = ordenadosFinal;
+
+  mostrarTotalGlobal(ordenadosFinal);
+  mostrarTabla(ordenadosFinal);
 }
 
+function mostrarTotalGlobal(data) {
+  const sumaGlobal = data.reduce((acc, f) => acc + (parseFloat(f.total) || 0), 0);
 
-//-------------------------------------------------------
-// 3) FILTRO DE NO PAGADAS DEL SUPABASE (NUEVO)
-//-------------------------------------------------------
-const noPagadasSupabase = data.filter(f =>
-  (f.factura_pagada || "NO").toUpperCase().trim() !== "SI"
-);
-
-
-//-------------------------------------------------------
-// 4) UNIR AMBAS FUENTES (VIEJO + NUEVO) NORMALIZADAS
-//-------------------------------------------------------
-const unidas = [
-  ...datosViejos.map(normalizarFactura),
-  ...noPagadasSupabase.map(normalizarFactura)
-];
-
-
-//-------------------------------------------------------
-// 5) QUITAR DUPLICADOS POR uuid_cfdi
-//-------------------------------------------------------
-const unicas = Object.values(
-  unidas.reduce((acc, f) => {
-    const key = f.uuid_cfdi || crypto.randomUUID();
-    if (!acc[key]) acc[key] = f;
-    return acc;
-  }, {})
-);
-
-
-//-------------------------------------------------------
-// 6) ORDENAR POR RFC → FECHA
-//-------------------------------------------------------
-const ordenadosFinal = unicas.sort((a, b) => {
-  const rfcA = (a.rfc_emisor || "").toLowerCase();
-  const rfcB = (b.rfc_emisor || "").toLowerCase();
-  if (rfcA !== rfcB) return rfcA.localeCompare(rfcB);
-  return new Date(a.fecha) - new Date(b.fecha);
-});
-
-
-//-------------------------------------------------------
-// 7) YA PUEDES USAR ESTE: ordenadosFinal
-//-------------------------------------------------------
-mostrarTabla(ordenadosFinal);
-
-// SUMA GLOBAL FINAL
-const sumaGlobal = ordenadosFinal.reduce((acc, f) => acc + (parseFloat(f.total) || 0), 0);
-
-// Insertar el total arriba
-document.getElementById("tabla").insertAdjacentHTML("beforebegin", `
-  <div style="
-    background:#fff;
-    padding:15px;
-    margin-bottom:12px;
-    border-radius:8px;
-    box-shadow:0 2px 4px rgba(0,0,0,0.15);
-  ">
-    <strong style="font-size:1.1em;">💰 TOTAL GLOBAL PENDIENTE:</strong><br>
-    <span style="font-size:1.6em; font-weight:bold; color:#0a6c21;">
-      $${sumaGlobal.toLocaleString("es-MX",{ minimumFractionDigits:2 })}
-    </span>
-  </div>
-`);
-
-mostrarTabla(ordenadosFinal);
-
+  document.getElementById("totalGlobal").innerHTML = `
+    <div style="
+      background:#fff;
+      padding:15px;
+      margin-bottom:12px;
+      border-radius:8px;
+      box-shadow:0 2px 4px rgba(0,0,0,0.15);
+    ">
+      <strong style="font-size:1.1em;">💰 TOTAL GLOBAL PENDIENTE:</strong><br>
+      <span style="font-size:1.6em; font-weight:bold; color:#0a6c21;">
+        $${sumaGlobal.toLocaleString("es-MX", { minimumFractionDigits:2 })}
+      </span>
+    </div>
+  `;
 }
 
 function mostrarTabla(data) {
-
-let html = `<table><thead><tr>
-  <th>Fecha</th>
-  <th>Días</th>
-  <th>UUID</th>
-  <th>RFC</th>
-  <th>Proveedor</th>
-  <th>Serie/Folio</th>
-  <th>Total</th>
-  <th>Física</th>
-  <th>Fotos</th>
-  <th>Acción</th>
-</tr></thead><tbody>`;
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Días</th>
+          <th>UUID</th>
+          <th>RFC</th>
+          <th>Proveedor</th>
+          <th>Serie/Folio</th>
+          <th>Total</th>
+          <th>Física</th>
+          <th>Fotos</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
 
   for (const f of data) {
-
     const dias = calcularDias(f.fecha);
 
- // === PROVEEDOR REAL (v2) ===
-let proveedor =
-  (f.proveedor && f.proveedor.trim() !== "")
-    ? f.proveedor
-    : (f.razon_social_emisor && f.razon_social_emisor.trim() !== "")
-      ? f.razon_social_emisor
-      : f.rfc_emisor;
+    let proveedor =
+      (f.proveedor && f.proveedor.trim() !== "")
+        ? f.proveedor
+        : (f.razon_social_emisor && f.razon_social_emisor.trim() !== "")
+          ? f.razon_social_emisor
+          : f.rfc_emisor;
 
-
-    // === FOLIO REAL ===
     const folioFinal = f.serie_folio || "—";
+    const clase30 = dias >= 30 ? "dias-30-morado" : "";
 
-const clase30 = dias >= 30 ? "dias-30-morado" : "";
+    html += `
+      <tr class="${clase30}">
+        <td class="col-fecha">${formatearFecha(f.fecha)}</td>
+        <td>${dias}</td>
+        <td>
+          <a
+            href="detalle.html?uuid=${f.uuid_cfdi}"
+            target="_blank"
+            class="uuid-corto"
+            title="${f.uuid_cfdi}"
+          >
+            ${f.uuid_cfdi}
+          </a>
+        </td>
+        <td>${f.rfc_emisor}</td>
+        <td class="proveedor-destacado">${proveedor}</td>
+        <td>${folioFinal}</td>
+        <td class="numero">
+          ${Number(f.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+        </td>
+        <td style="text-align:center">
+          ${(f.factura_fisicamente || "") === "SI" ? "✅" : ""}
+        </td>
+        <td style="text-align:center">
+          ${
+            (f.fotos && f.fotos.length > 0)
+              ? f.fotos.map(url => `<a href="${url}" target="_blank">📷</a>`).join("")
+              : ""
+          }
+        </td>
+        <td style="text-align:center">
+          <button
+            class="btn-pagar"
+            title="Marcar como pagada"
+            onclick="marcarPagada('${f.uuid_cfdi}', this)">
+          </button>
+        </td>
+      </tr>
+    `;
+  }
 
-html += `
-<tr class="${clase30}">
-  <td class="col-fecha">${formatearFecha(f.fecha)}</td>
-  <td>${dias}</td>
-<td>
-  <a
-    href="detalle.html?uuid=${f.uuid_cfdi}"
-    target="_blank"
-    class="uuid-corto"
-    title="${f.uuid_cfdi}"
-  >
-    ${f.uuid_cfdi}
-  </a>
-</td>
-  <td>${f.rfc_emisor}</td>
-  <td class="proveedor-destacado">${proveedor}</td>
-  <td>${folioFinal}</td>
-  <td class="numero">
-    ${Number(f.total || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}
-  </td>
-  <td style="text-align:center">
-    ${(f.factura_fisicamente || "") === "SI" ? "✅" : ""}
-  </td>
-  <td style="text-align:center">
-    ${
-      (f.fotos && f.fotos.length > 0)
-        ? f.fotos.map(url => `<a href="${url}" target="_blank">📷</a>`).join("")
-        : ""
-    }
-  </td>
-  <td style="text-align:center">
-    <button
-      class="btn-pagar"
-      title="Marcar como pagada"
-      onclick="marcarPagada('${f.uuid_cfdi}', this)">
-    </button>
-  </td>
-</tr>
-`;
-}
+  html += `
+      </tbody>
+    </table>
+  `;
 
-  html += "</tbody></table>";
   document.getElementById("tabla").innerHTML = html;
 }
 
 function calcularDias(fechaStr) {
   const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0); // normalizar a medianoche local
+  hoy.setHours(0, 0, 0, 0);
 
   if (!fechaStr) return 0;
 
-  // Si Supabase manda "2024-12-08" o "2024-12-08T00:00:00+00:00"
-  const fechaLimpia = fechaStr.split("T")[0]; // nos quedamos solo con YYYY-MM-DD
+  const fechaTexto = String(fechaStr);
+  const fechaLimpia = fechaTexto.split("T")[0];
   const [y, m, d] = fechaLimpia.split("-").map(Number);
 
-  // Crear fecha EN HORA LOCAL (Linares, UTC-6)
   const f = new Date(y, m - 1, d);
   f.setHours(0, 0, 0, 0);
 
@@ -393,12 +395,12 @@ function calcularDias(fechaStr) {
   return Math.floor(diff / 86400000);
 }
 
-    function obtenerClaseVencimiento(d) {
-      if (d > 90) return "vencida-mas";
-      if (d > 60) return "vencida-90";
-      if (d > 30) return "vencida-60";
-      return "vencida-30";
-    }
+function obtenerClaseVencimiento(d) {
+  if (d > 90) return "vencida-mas";
+  if (d > 60) return "vencida-90";
+  if (d > 30) return "vencida-60";
+  return "vencida-30";
+}
 
 async function marcarPagada(uuid_cfdi, boton) {
   const fila = boton.closest("tr");
@@ -426,63 +428,128 @@ async function marcarPagada(uuid_cfdi, boton) {
     setTimeout(() => fila.remove(), 1200);
   }, 5000);
 }
+
 function formatearFecha(fechaStr) {
   if (!fechaStr) return "";
-
-  // Si viene tipo: 2026-01-06T21:11:20+00:00
-  return fechaStr.split("T")[0]; // → 2026-01-06
+  return String(fechaStr).split("T")[0];
 }
-    
-function descargarExcel() {
-  const tabla = document.querySelector("#tabla table");
 
-  if (!tabla) {
-    alert("No hay tabla para descargar");
+function crearFilasDeuda(data) {
+  const filas = [
+    [
+      "Fecha",
+      "Días",
+      "UUID",
+      "RFC",
+      "Proveedor",
+      "Serie/Folio",
+      "Total",
+      "Física",
+      "Fotos"
+    ]
+  ];
+
+  data.forEach(f => {
+    const dias = calcularDias(f.fecha);
+
+    const proveedor =
+      (f.proveedor && f.proveedor.trim() !== "")
+        ? f.proveedor
+        : (f.razon_social_emisor && f.razon_social_emisor.trim() !== "")
+          ? f.razon_social_emisor
+          : f.rfc_emisor;
+
+    const fotosTexto = Array.isArray(f.fotos)
+      ? f.fotos.join(" | ")
+      : "";
+
+    filas.push([
+      formatearFecha(f.fecha),
+      dias,
+      f.uuid_cfdi || "",
+      f.rfc_emisor || "",
+      proveedor || "",
+      f.serie_folio || "—",
+      Number(f.total || 0),
+      (f.factura_fisicamente || "") === "SI" ? "SI" : "NO",
+      fotosTexto
+    ]);
+  });
+
+  return filas;
+}
+
+function descargarExcel() {
+  if (!datosFinalesExcel || datosFinalesExcel.length === 0) {
+    alert("No hay datos para descargar");
     return;
   }
 
-  // 🔧 CLONAR TABLA
-  const tablaClon = tabla.cloneNode(true);
+  const hojaDeuda = crearFilasDeuda(datosFinalesExcel);
 
-  // 🔧 QUITAR LINKS
-  tablaClon.querySelectorAll("a").forEach(a => {
-    const texto = a.textContent;
-    a.replaceWith(texto);
+  const vencidas25 = datosFinalesExcel.filter(f => calcularDias(f.fecha) >= 25);
+  const hojaVencidas25 = crearFilasDeuda(vencidas25);
+
+  const hojaEspeciales = [
+    ["Proveedor", "Días crédito"]
+  ];
+
+  Object.entries(proveedoresEspeciales).forEach(([proveedor, dias]) => {
+    hojaEspeciales.push([proveedor, dias]);
   });
 
-  // 🔧 QUITAR BOTONES
-  tablaClon.querySelectorAll("button").forEach(b => b.remove());
+  const hojaContado = [
+    ["Proveedor contado"]
+  ];
 
-  // 🔧 GENERAR HTML FINAL (AQUÍ SÍ VA STRING)
-  const html = `
-  <html>
-    <head>
-      <meta charset="UTF-8">
-    </head>
-    <body>
-      ${tablaClon.outerHTML}
-    </body>
-  </html>
-  `;
-
-  const blob = new Blob([html], {
-    type: "application/vnd.ms-excel;charset=utf-8;"
+  proveedoresContado.forEach(proveedor => {
+    hojaContado.push([proveedor]);
   });
 
-  const url = URL.createObjectURL(blob);
+  const wb = XLSX.utils.book_new();
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `facturas_pendientes_${new Date().toISOString().slice(0,10)}.xls`;
+  const wsDeuda = XLSX.utils.aoa_to_sheet(hojaDeuda);
+  const wsVencidas25 = XLSX.utils.aoa_to_sheet(hojaVencidas25);
+  const wsEspeciales = XLSX.utils.aoa_to_sheet(hojaEspeciales);
+  const wsContado = XLSX.utils.aoa_to_sheet(hojaContado);
 
-  document.body.appendChild(a);
-  a.click();
+  const anchoDeuda = [
+    { wch: 12 },
+    { wch: 8 },
+    { wch: 38 },
+    { wch: 18 },
+    { wch: 45 },
+    { wch: 18 },
+    { wch: 15 },
+    { wch: 10 },
+    { wch: 30 }
+  ];
 
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  wsDeuda["!cols"] = anchoDeuda;
+  wsVencidas25["!cols"] = anchoDeuda;
+
+  wsEspeciales["!cols"] = [
+    { wch: 50 },
+    { wch: 15 }
+  ];
+
+  wsContado["!cols"] = [
+    { wch: 80 }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, wsDeuda, "Deuda");
+  XLSX.utils.book_append_sheet(wb, wsVencidas25, "Vencidas 25 dias");
+  XLSX.utils.book_append_sheet(wb, wsEspeciales, "Constante 1");
+  XLSX.utils.book_append_sheet(wb, wsContado, "Constante 2");
+
+  XLSX.writeFile(
+    wb,
+    `facturas_pendientes_${new Date().toISOString().slice(0,10)}.xlsx`
+  );
 }
 
-document.addEventListener("DOMContentLoaded", cargar);   
+document.addEventListener("DOMContentLoaded", cargar);
 </script>
+
 </body>
 </html>
