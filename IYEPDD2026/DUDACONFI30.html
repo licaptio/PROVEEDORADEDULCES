@@ -70,7 +70,7 @@ th{
 .numero{text-align:right;}
 .centro{text-align:center;}
 
-input,select{
+input{
   padding:9px;
   border:1px solid #bbb;
   border-radius:6px;
@@ -109,7 +109,7 @@ input,select{
 
 .layout-config{
   display:grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns:1fr 1fr;
   gap:15px;
 }
 
@@ -155,7 +155,7 @@ input,select{
       <div style="display:grid; gap:10px;">
         <input id="departamentoInput" placeholder="Departamento. Ej: Gasolina, Bancos, Dulcería">
         <input id="rfcInput" placeholder="RFC del proveedor">
-        <input id="proveedorInput" placeholder="Nombre proveedor opcional">
+        
 
         <button class="btn-verde" onclick="guardarDepartamentoRFC()">
           Guardar RFC
@@ -172,10 +172,16 @@ input,select{
 
 </section>
 
-<script>
+<script type="module">
+
+import {
+  supabaseUrl,
+  supabaseAnonKey
+} from "./config.js";
+
 const _supabase = window.supabase.createClient(
-  "https://cvpbtjlupswbyxenugpz.supabase.co",
-  "TU_ANON_KEY_AQUI"
+  supabaseUrl,
+  supabaseAnonKey
 );
 
 let datosFinalesExcel = [];
@@ -553,7 +559,7 @@ function pintarConfiguracion(){
 async function guardarDepartamentoRFC(){
   const departamento = document.getElementById("departamentoInput").value.trim();
   const rfc = normalizarTexto(document.getElementById("rfcInput").value);
-  const proveedor = document.getElementById("proveedorInput").value.trim();
+  
 
   if(!departamento || !rfc){
     alert("Captura departamento y RFC");
@@ -565,7 +571,7 @@ async function guardarDepartamentoRFC(){
     .upsert({
       departamento,
       rfc_emisor: rfc,
-      proveedor,
+      
       activo: true
     }, {
       onConflict: "departamento,rfc_emisor"
@@ -578,7 +584,7 @@ async function guardarDepartamentoRFC(){
   }
 
   document.getElementById("rfcInput").value = "";
-  document.getElementById("proveedorInput").value = "";
+  
 
   await cargarDepartamentos();
 }
@@ -600,7 +606,17 @@ async function desactivarConfig(id){
   await cargarDepartamentos();
 }
 
+window.cargar = cargar;
+window.descargarExcel = descargarExcel;
+window.mostrarConfiguracion = mostrarConfiguracion;
+window.volverPrincipal = volverPrincipal;
+window.cargarDepartamentos = cargarDepartamentos;
+window.guardarDepartamentoRFC = guardarDepartamentoRFC;
+window.desactivarConfig = desactivarConfig;
+window.marcarPagada = marcarPagada;
+
 document.addEventListener("DOMContentLoaded", cargar);
+
 </script>
 
 </body>
