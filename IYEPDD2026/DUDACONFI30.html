@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PROVSOFT - Deuda por Departamentos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  background:#f4f6f8;
+  margin:0;
+  padding:20px;
+}
+
+h2{
+  margin-top:0;
+}
+
+.barra{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:15px;
+}
+
+button{
+  padding:10px 16px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+.btn-verde{background:#28a745;color:white;}
+.btn-azul{background:#0c6cbd;color:white;}
+.btn-gris{background:#6c757d;color:white;}
+.btn-rojo{background:#dc3545;color:white;}
+
+.card{
+  background:white;
+  border-radius:10px;
+  padding:15px;
+  margin-bottom:15px;
+  box-shadow:0 2px 6px rgba(0,0,0,.12);
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+}
+
+th,td{
+  border:1px solid #ccc;
+  padding:8px;
+  font-size:13px;
+}
+
+th{
+  background:#0c6cbd;
+  color:white;
+  position:sticky;
+  top:0;
+}
+
+.numero{text-align:right;}
+.centro{text-align:center;}
+
+input,select{
+  padding:9px;
+  border:1px solid #bbb;
+  border-radius:6px;
+  font-size:14px;
+}
+
+.oculto{display:none;}
+
+.uuid-corto{
+  max-width:180px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  display:inline-block;
+}
+
+.dias-30-morado{
+  background:#ede7f6;
+  font-weight:bold;
+  color:#4a148c;
+}
+
+.desintegrando{
+  opacity:0;
+  transition:opacity 1.2s ease;
+}
+
+.btn-pagar{
+  width:17px;
+  height:17px;
+  border-radius:50%;
+  background:#28a745;
+  padding:0;
+  margin:0;
+}
+
+.layout-config{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:15px;
+}
+
+@media(max-width:800px){
+  .layout-config{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<section id="vistaPrincipal">
+
+  <h2>📌 Facturas Pendientes</h2>
+
+  <div class="barra">
+    <button class="btn-verde" onclick="descargarExcel()">📥 Generar Excel</button>
+    <button class="btn-azul" onclick="mostrarConfiguracion()">⚙️ Configuración</button>
+    <button class="btn-gris" onclick="cargar()">🔄 Recargar</button>
+  </div>
+
+  <div id="totalGlobal"></div>
+  <div id="tabla"></div>
+
+</section>
+
+<section id="vistaConfig" class="oculto">
+
+  <h2>⚙️ Configuración de Departamentos</h2>
+
+  <div class="barra">
+    <button class="btn-gris" onclick="volverPrincipal()">⬅️ Volver</button>
+    <button class="btn-azul" onclick="cargarDepartamentos()">🔄 Recargar Configuración</button>
+  </div>
+
+  <div class="layout-config">
+
+    <div class="card">
+      <h3>Agregar RFC a Departamento</h3>
+
+      <div style="display:grid; gap:10px;">
+        <input id="departamentoInput" placeholder="Departamento. Ej: Gasolina, Bancos, Dulcería">
+        <input id="rfcInput" placeholder="RFC del proveedor">
+        <input id="proveedorInput" placeholder="Nombre proveedor opcional">
+
+        <button class="btn-verde" onclick="guardarDepartamentoRFC()">
+          Guardar RFC
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Departamentos configurados</h3>
+      <div id="listaConfig"></div>
+    </div>
+
+  </div>
+
+</section>
+
+<script>
+const _supabase = window.supabase.createClient(
+  "https://cvpbtjlupswbyxenugpz.supabase.co",
+  "TU_ANON_KEY_AQUI"
+);
+
+let datosFinalesExcel = [];
+let configuracionDepartamentos = [];
+
+const anchoDeuda = [
+  { wch: 12 },
+  { wch: 8 },
+  { wch: 38 },
+  { wch: 18 },
+  { wch: 45 },
+  { wch: 18 },
+  { wch: 15 },
+  { wch: 10 },
+  { wch: 30 }
+];
+
+function normalizarTexto(txt){
+  return String(txt || "").trim().toUpperCase();
+}
+
+async function cargar(){
+  const { data, error } = await _supabase
+    .from("v_deuda_proveedores")
+    .select("*")
+    .neq("factura_pagada", "SI");
+
+  if(error){
+    console.error(error);
+    alert("Error cargando deuda");
+    return;
+  }
+
+  await cargarDepartamentos(false);
+
+  const datos = (data || []).map(normalizarFactura);
+
+  const unicas = Object.values(
+    datos.reduce((acc, f) => {
+      const key = f.uuid_cfdi || crypto.randomUUID();
+      if(!acc[key]) acc[key] = f;
+      return acc;
+    }, {})
+  );
+
+  datosFinalesExcel = unicas.sort((a,b) => {
+    const rfcA = normalizarTexto(a.rfc_emisor);
+    const rfcB = normalizarTexto(b.rfc_emisor);
+
+    if(rfcA !== rfcB) return rfcA.localeCompare(rfcB);
+
+    return new Date(a.fecha || "1900-01-01") - new Date(b.fecha || "1900-01-01");
+  });
+
+  mostrarTotalGlobal(datosFinalesExcel);
+  mostrarTabla(datosFinalesExcel);
+}
+
+function normalizarFactura(f){
+  return {
+    ...f,
+    uuid_cfdi: String(f.uuid_cfdi || f.uuid || "").trim(),
+    fecha: f.fecha || null,
+    rfc_emisor: normalizarTexto(f.rfc_emisor),
+    razon_social_emisor: f.razon_social_emisor || "",
+    proveedor: f.proveedor || f.razon_social_emisor || f.rfc_emisor || "",
+    serie_folio: f.serie_folio || f.factura || f.folio || "—",
+    total: Number(f.total || 0),
+    factura_pagada: normalizarTexto(f.factura_pagada || "NO"),
+    factura_fisicamente: normalizarTexto(f.factura_fisicamente || "NO"),
+    fotos: Array.isArray(f.fotos) ? f.fotos : []
+  };
+}
+
+function mostrarTotalGlobal(data){
+  const suma = data.reduce((acc,f) => acc + Number(f.total || 0), 0);
+
+  document.getElementById("totalGlobal").innerHTML = `
+    <div class="card">
+      <strong>💰 TOTAL GLOBAL PENDIENTE:</strong><br>
+      <span style="font-size:26px;font-weight:bold;color:#0a6c21;">
+        $${suma.toLocaleString("es-MX",{minimumFractionDigits:2})}
+      </span>
+    </div>
+  `;
+}
+
+function mostrarTabla(data){
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Días</th>
+          <th>UUID</th>
+          <th>RFC</th>
+          <th>Proveedor</th>
+          <th>Serie/Folio</th>
+          <th>Total</th>
+          <th>Física</th>
+          <th>Fotos</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  data.forEach(f => {
+    const dias = calcularDias(f.fecha);
+    const clase = dias >= 30 ? "dias-30-morado" : "";
+
+    html += `
+      <tr class="${clase}">
+        <td>${formatearFecha(f.fecha)}</td>
+        <td class="centro">${dias}</td>
+        <td>
+          <a href="detalle.html?uuid=${f.uuid_cfdi}" target="_blank" class="uuid-corto" title="${f.uuid_cfdi}">
+            ${f.uuid_cfdi}
+          </a>
+        </td>
+        <td>${f.rfc_emisor}</td>
+        <td><strong>${f.proveedor || f.razon_social_emisor || f.rfc_emisor}</strong></td>
+        <td>${f.serie_folio}</td>
+        <td class="numero">${Number(f.total || 0).toLocaleString("es-MX",{minimumFractionDigits:2})}</td>
+        <td class="centro">${f.factura_fisicamente === "SI" ? "✅" : ""}</td>
+        <td class="centro">
+          ${
+            f.fotos.length > 0
+            ? f.fotos.map(url => `<a href="${url}" target="_blank">📷</a>`).join("")
+            : ""
+          }
+        </td>
+        <td class="centro">
+          <button class="btn-pagar" title="Marcar como pagada" onclick="marcarPagada('${f.uuid_cfdi}', this)"></button>
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table>`;
+  document.getElementById("tabla").innerHTML = html;
+}
+
+async function marcarPagada(uuid_cfdi, boton){
+  const fila = boton.closest("tr");
+
+  boton.disabled = true;
+
+  const { error } = await _supabase
+    .from("deuda_limpia_pdd")
+    .update({ factura_pagada:"SI" })
+    .eq("uuid_cfdi", uuid_cfdi);
+
+  if(error){
+    console.error(error);
+    alert("Error al marcar como pagada");
+    boton.disabled = false;
+    return;
+  }
+
+  fila.style.background = "#e8f5e9";
+
+  setTimeout(() => {
+    fila.classList.add("desintegrando");
+    setTimeout(() => fila.remove(), 1200);
+  }, 800);
+}
+
+function calcularDias(fechaStr){
+  if(!fechaStr) return 0;
+
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  const fechaLimpia = String(fechaStr).split("T")[0];
+  const [y,m,d] = fechaLimpia.split("-").map(Number);
+
+  const fecha = new Date(y, m - 1, d);
+  fecha.setHours(0,0,0,0);
+
+  return Math.floor((hoy - fecha) / 86400000);
+}
+
+function formatearFecha(fechaStr){
+  if(!fechaStr) return "";
+  return String(fechaStr).split("T")[0];
+}
+
+function crearFilasDeuda(data){
+  const filas = [
+    ["Fecha","Días","UUID","RFC","Proveedor","Serie/Folio","Total","Física","Fotos"]
+  ];
+
+  data.forEach(f => {
+    filas.push([
+      formatearFecha(f.fecha),
+      calcularDias(f.fecha),
+      f.uuid_cfdi || "",
+      f.rfc_emisor || "",
+      f.proveedor || f.razon_social_emisor || "",
+      f.serie_folio || "—",
+      Number(f.total || 0),
+      f.factura_fisicamente === "SI" ? "SI" : "NO",
+      Array.isArray(f.fotos) ? f.fotos.join(" | ") : ""
+    ]);
+  });
+
+  return filas;
+}
+
+function crearHojaSinDeudaPorRFC(depto, rfcs){
+  const filas = [
+    ["Departamento", depto],
+    [],
+    ["RFC", "Estatus"]
+  ];
+
+  rfcs.forEach(rfc => {
+    filas.push([rfc, "Sin deuda activa"]);
+  });
+
+  return filas;
+}
+
+function agruparConfiguracionPorDepartamento(){
+  const agrupados = {};
+
+  configuracionDepartamentos
+    .filter(x => x.activo)
+    .forEach(x => {
+      const depto = String(x.departamento || "").trim();
+      const rfc = normalizarTexto(x.rfc_emisor);
+
+      if(!depto || !rfc) return;
+
+      if(!agrupados[depto]) agrupados[depto] = new Set();
+      agrupados[depto].add(rfc);
+    });
+
+  const salida = {};
+
+  Object.entries(agrupados).forEach(([depto, setRfcs]) => {
+    salida[depto] = Array.from(setRfcs);
+  });
+
+  return salida;
+}
+
+function limpiarNombreHoja(nombre){
+  return String(nombre || "Departamento")
+    .replace(/[\\\/\?\*\[\]:]/g, "-")
+    .substring(0,31);
+}
+
+async function descargarExcel(){
+  if(!datosFinalesExcel || datosFinalesExcel.length === 0){
+    alert("No hay datos para exportar");
+    return;
+  }
+
+  await cargarDepartamentos(false);
+
+  const wb = XLSX.utils.book_new();
+
+  const wsDeuda = XLSX.utils.aoa_to_sheet(crearFilasDeuda(datosFinalesExcel));
+  wsDeuda["!cols"] = anchoDeuda;
+  XLSX.utils.book_append_sheet(wb, wsDeuda, "Deuda");
+
+  const vencidas25 = datosFinalesExcel.filter(f => calcularDias(f.fecha) >= 25);
+  const wsVencidas = XLSX.utils.aoa_to_sheet(crearFilasDeuda(vencidas25));
+  wsVencidas["!cols"] = anchoDeuda;
+  XLSX.utils.book_append_sheet(wb, wsVencidas, "Vencidas 25 dias");
+
+  const agrupados = agruparConfiguracionPorDepartamento();
+
+  Object.entries(agrupados).forEach(([depto, rfcs]) => {
+    const datosDepto = datosFinalesExcel.filter(f =>
+      rfcs.includes(normalizarTexto(f.rfc_emisor))
+    );
+
+    let filas;
+
+    if(datosDepto.length > 0){
+      filas = crearFilasDeuda(datosDepto);
+    }else{
+      filas = crearHojaSinDeudaPorRFC(depto, rfcs);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(filas);
+    ws["!cols"] = anchoDeuda;
+
+    XLSX.utils.book_append_sheet(
+      wb,
+      ws,
+      limpiarNombreHoja(depto)
+    );
+  });
+
+  XLSX.writeFile(
+    wb,
+    `facturas_pendientes_${new Date().toISOString().slice(0,10)}.xlsx`
+  );
+}
+
+function mostrarConfiguracion(){
+  document.getElementById("vistaPrincipal").classList.add("oculto");
+  document.getElementById("vistaConfig").classList.remove("oculto");
+  cargarDepartamentos();
+}
+
+function volverPrincipal(){
+  document.getElementById("vistaConfig").classList.add("oculto");
+  document.getElementById("vistaPrincipal").classList.remove("oculto");
+}
+
+async function cargarDepartamentos(pintar = true){
+  const { data, error } = await _supabase
+    .from("proveedor_departamentos")
+    .select("*")
+    .order("departamento", { ascending:true })
+    .order("proveedor", { ascending:true });
+
+  if(error){
+    console.error(error);
+    alert("Error cargando configuración");
+    return;
+  }
+
+  configuracionDepartamentos = data || [];
+
+  if(pintar) pintarConfiguracion();
+}
+
+function pintarConfiguracion(){
+  if(configuracionDepartamentos.length === 0){
+    document.getElementById("listaConfig").innerHTML = `
+      <p>No hay departamentos configurados.</p>
+    `;
+    return;
+  }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Departamento</th>
+          <th>RFC</th>
+          <th>Proveedor</th>
+          <th>Activo</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  configuracionDepartamentos.forEach(x => {
+    html += `
+      <tr>
+        <td>${x.departamento || ""}</td>
+        <td>${x.rfc_emisor || ""}</td>
+        <td>${x.proveedor || ""}</td>
+        <td class="centro">${x.activo ? "✅" : "❌"}</td>
+        <td class="centro">
+          <button class="btn-rojo" onclick="desactivarConfig(${x.id})">Eliminar</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table>`;
+
+  document.getElementById("listaConfig").innerHTML = html;
+}
+
+async function guardarDepartamentoRFC(){
+  const departamento = document.getElementById("departamentoInput").value.trim();
+  const rfc = normalizarTexto(document.getElementById("rfcInput").value);
+  const proveedor = document.getElementById("proveedorInput").value.trim();
+
+  if(!departamento || !rfc){
+    alert("Captura departamento y RFC");
+    return;
+  }
+
+  const { error } = await _supabase
+    .from("proveedor_departamentos")
+    .upsert({
+      departamento,
+      rfc_emisor: rfc,
+      proveedor,
+      activo: true
+    }, {
+      onConflict: "departamento,rfc_emisor"
+    });
+
+  if(error){
+    console.error(error);
+    alert("Error guardando configuración");
+    return;
+  }
+
+  document.getElementById("rfcInput").value = "";
+  document.getElementById("proveedorInput").value = "";
+
+  await cargarDepartamentos();
+}
+
+async function desactivarConfig(id){
+  if(!confirm("¿Eliminar este RFC del departamento?")) return;
+
+  const { error } = await _supabase
+    .from("proveedor_departamentos")
+    .update({ activo:false })
+    .eq("id", id);
+
+  if(error){
+    console.error(error);
+    alert("Error eliminando configuración");
+    return;
+  }
+
+  await cargarDepartamentos();
+}
+
+document.addEventListener("DOMContentLoaded", cargar);
+</script>
+
+</body>
+</html>
