@@ -165,6 +165,89 @@
   background: white;
 }
 
+
+
+/* ==============================
+   PANTALLA DE CARGA INICIAL
+============================== */
+#pantallaCarga {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #00416A, #0c6cbd);
+  color: white;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.cargaCaja {
+  width: min(520px, 94vw);
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 18px 45px rgba(0,0,0,.28);
+  text-align: center;
+}
+
+.logoCarga {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  margin-bottom: 8px;
+}
+
+.subCarga {
+  font-size: 14px;
+  opacity: .95;
+  margin-bottom: 20px;
+}
+
+.barraCargaOuter {
+  height: 18px;
+  background: rgba(255,255,255,.22);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.22);
+}
+
+#barraCargaInner {
+  height: 100%;
+  width: 0%;
+  background: #ffffff;
+  border-radius: 999px;
+  transition: width .25s ease;
+}
+
+#textoCarga {
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#detalleCarga {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: .9;
+  min-height: 16px;
+}
+
+#appPrincipal {
+  display: none;
+}
+
+.estadoBusquedaFirebase {
+  background:#fff7ed;
+  color:#9a3412;
+  padding:8px 10px;
+  border-radius:8px;
+  margin:6px 0;
+  font-weight:700;
+  display:none;
+}
+
 /* ==============================
    MODO PC VIEJA – OPTIMIZACIÓN
 ============================== */
@@ -213,6 +296,32 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+
+function setCarga(porcentaje, texto, detalle = "") {
+  const barra = document.getElementById("barraCargaInner");
+  const t = document.getElementById("textoCarga");
+  const d = document.getElementById("detalleCarga");
+  if (barra) barra.style.width = `${Math.max(0, Math.min(100, porcentaje))}%`;
+  if (t) t.textContent = texto || "Cargando...";
+  if (d) d.textContent = detalle || "";
+}
+
+function mostrarApp() {
+  setCarga(100, "Sistema listo", "Entrando a transferencias...");
+  setTimeout(() => {
+    const carga = document.getElementById("pantallaCarga");
+    const app = document.getElementById("appPrincipal");
+    if (carga) carga.style.display = "none";
+    if (app) app.style.display = "block";
+    const buscador = document.getElementById("buscador");
+    if (buscador) buscador.focus();
+  }, 350);
+}
+
+function mostrarErrorCarga(msg) {
+  setCarga(100, "Error al cargar la aplicación", msg || "Revise conexión o permisos de Firebase.");
+}
+
 /* ==========================================================
    🟩 INDEXEDDB
 ========================================================== */
@@ -251,6 +360,15 @@ async function saveProductos(lista) {
   return new Promise(resolve => tx.oncomplete = resolve);
 }
 
+async function saveProductoIndividual(producto) {
+  if (!producto || !producto.codigoBarra) return;
+  const db = await openDB();
+  const tx = db.transaction("productos", "readwrite");
+  const store = tx.objectStore("productos");
+  store.put(producto);
+  return new Promise(resolve => tx.oncomplete = resolve);
+}
+
 async function getAllProductos() {
   const db = await openDB();
   return new Promise(resolve => {
@@ -263,15 +381,22 @@ async function getAllProductos() {
 
 async function syncProductos() {
   try {
+    setCarga(28, "Descargando catálogo activo...", "Consultando productos en Firebase");
     const q = query(collection(db, "productos"), where("activo", "==", true));
     const snap = await getDocs(q);
+
     if (!snap.empty) {
       const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setCarga(45, "Guardando catálogo local...", `${lista.length} productos activos`);
       await saveProductos(lista);
       console.log(`Catálogo actualizado: ${lista.length} productos`);
+      return lista.length;
     }
+
+    return 0;
   } catch (err) {
     console.warn("Error al sincronizar:", err.message);
+    return 0;
   }
 }
 
@@ -298,13 +423,62 @@ function normalizarCodigo(producto, codigoEscaneado) {
   return null;
 }
 
+
+async function buscarProductoEnFirebasePorCodigo(codigo) {
+  const codigoTxt = String(codigo || "").trim();
+  if (!codigoTxt) return null;
+
+  try {
+    const qPrincipal = query(
+      collection(db, "productos"),
+      where("activo", "==", true),
+      where("codigoBarra", "==", codigoTxt)
+    );
+
+    const snapPrincipal = await getDocs(qPrincipal);
+    if (!snapPrincipal.empty) {
+      const d = snapPrincipal.docs[0];
+      const producto = { id: d.id, ...d.data() };
+      await saveProductoIndividual(producto);
+      return producto;
+    }
+
+    const qEquivalente = query(
+      collection(db, "productos"),
+      where("activo", "==", true),
+      where("codigosEquivalentes", "array-contains", codigoTxt)
+    );
+
+    const snapEquivalente = await getDocs(qEquivalente);
+    if (!snapEquivalente.empty) {
+      const d = snapEquivalente.docs[0];
+      const producto = { id: d.id, ...d.data() };
+      await saveProductoIndividual(producto);
+      return producto;
+    }
+
+    return null;
+  } catch (err) {
+    console.warn("Error buscando producto puntual en Firebase:", err.message);
+    return null;
+  }
+}
+
+function mostrarEstadoBusqueda(msg, visible = true) {
+  const el = document.getElementById("estadoBusquedaFirebase");
+  if (!el) return;
+  el.textContent = msg || "";
+  el.style.display = visible ? "block" : "none";
+}
+
 /* ==========================================================
    🟧 BÚSQUEDA CÓDIGO / NOMBRE
 ========================================================== */
 async function buscarPorCodigo() {
-  let codigo = document.getElementById("buscador").value.trim();
-  if (!codigo) return;
+  let codigoOriginal = document.getElementById("buscador").value.trim();
+  if (!codigoOriginal) return;
 
+  let codigo = codigoOriginal;
   const bal = decodificarBalanza(codigo);
 
   if (bal.esBalanza) {
@@ -314,10 +488,24 @@ async function buscarPorCodigo() {
     window.pesoDetectado = null;
   }
 
-  const productos = await getAllProductos();
-  const encontrado = productos.find(p => normalizarCodigo(p, codigo));
-  if (!encontrado) return;
+  mostrarEstadoBusqueda("", false);
 
+  const productos = await getAllProductos();
+  let encontrado = productos.find(p => normalizarCodigo(p, codigo));
+
+  if (!encontrado) {
+    mostrarEstadoBusqueda("No está en catálogo local. Buscando en Firebase...");
+    encontrado = await buscarProductoEnFirebasePorCodigo(codigo);
+  }
+
+  if (!encontrado) {
+    mostrarEstadoBusqueda(`Artículo no encontrado: ${codigoOriginal}`);
+    document.getElementById("preview").innerText = "Artículo no encontrado";
+    document.getElementById("buscador").select();
+    return;
+  }
+
+  mostrarEstadoBusqueda("", false);
   seleccionarProducto(encontrado);
 
   agregarItem();
@@ -528,6 +716,9 @@ let firmaPaso2;
 
 document.addEventListener("DOMContentLoaded", async () => {
 
+try {
+  setCarga(8, "Iniciando PROVSOFT...", "Preparando módulo de traspasos");
+
 firmaPaso1 = crearFirmaPantallaCompleta(document.getElementById("canvasEntregaPaso1"));
 firmaPaso2 = crearFirmaPantallaCompleta(document.getElementById("canvasRecibePaso2"));
 
@@ -551,13 +742,24 @@ document.getElementById("nombreRecibePaso2").value =
 
   });
 
-  const ultimaSync = localStorage.getItem("ultima_sync_productos");
-  if (!ultimaSync || Date.now() - ultimaSync > 1000 * 60 * 60 * 12) {
-    await syncProductos();
-    localStorage.setItem("ultima_sync_productos", Date.now());
+  setCarga(18, "Abriendo catálogo local...", "Validando IndexedDB");
+  await openDB();
+
+  const productosLocales = await getAllProductos();
+  const ultimaSync = Number(localStorage.getItem("ultima_sync_productos") || 0);
+  const requiereSync = !ultimaSync || Date.now() - ultimaSync > 1000 * 60 * 60 * 12 || productosLocales.length === 0;
+
+  if (requiereSync) {
+    const totalSync = await syncProductos();
+    if (totalSync > 0) localStorage.setItem("ultima_sync_productos", String(Date.now()));
+  } else {
+    setCarga(45, "Catálogo local vigente", `${productosLocales.length} productos disponibles`);
   }
 
+  setCarga(62, "Cargando vendedores...", "Consultando usuarios activos");
   await cargarListaVendedores();
+
+  setCarga(78, "Restaurando sesión...", "Revisando traspaso pendiente");
 
   // Restaurar carrito
   const guardado = localStorage.getItem("carrito_traspaso");
@@ -764,6 +966,14 @@ div.innerHTML = `
   });
 });
 
+  setCarga(92, "Preparando interfaz...", "Listo para escanear");
+  mostrarApp();
+
+} catch (err) {
+  console.error(err);
+  mostrarErrorCarga(err.message || "No se pudo iniciar la aplicación.");
+}
+
 });
 
 async function guardarTraspasoFinal(nombreEntrega, nombreRecibe, firmaEntregaB64, firmaRecibeB64) {
@@ -831,6 +1041,20 @@ window.cerrarReimpresion = function() {
 </head>
 <body>
 
+<div id="pantallaCarga">
+  <div class="cargaCaja">
+    <div class="logoCarga">PROVSOFT</div>
+    <div class="subCarga">Traspaso entre Almacenes</div>
+    <div class="barraCargaOuter">
+      <div id="barraCargaInner"></div>
+    </div>
+    <div id="textoCarga">Iniciando...</div>
+    <div id="detalleCarga">Espere un momento</div>
+  </div>
+</div>
+
+<div id="appPrincipal">
+
 <h2>Traspaso entre Almacenes</h2>
 
 <div class="contenedor">
@@ -846,6 +1070,8 @@ window.cerrarReimpresion = function() {
     <input id="buscador" placeholder="Escanear código">
     <button id="btnBuscarNombre">Buscar Nombre</button>
   </div>
+
+  <div id="estadoBusquedaFirebase" class="estadoBusquedaFirebase"></div>
 
   <!-- PREVIEW -->
   <input id="codigoSel" hidden>
@@ -893,6 +1119,8 @@ window.cerrarReimpresion = function() {
 ">
   Reimpresión de Traspaso
 </button>
+
+</div>
 
 </div>
 
