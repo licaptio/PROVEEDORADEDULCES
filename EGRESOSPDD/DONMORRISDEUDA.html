@@ -1,0 +1,990 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Consulta de Facturas por RFC O NOMBRE PROVEEDOR</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      color: #1f2937;
+    }
+
+    .login-page {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      background: linear-gradient(135deg, #00416A, #0c6cbd);
+    }
+
+    .login-brand {
+      color: white;
+      padding: 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .login-brand h1 {
+      font-size: 42px;
+      margin: 0 0 12px;
+    }
+
+    .login-brand p {
+      font-size: 18px;
+      opacity: .9;
+      max-width: 520px;
+      line-height: 1.5;
+    }
+
+    .login-panel {
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 390px;
+      background: #fff;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 15px 40px rgba(0,0,0,.18);
+    }
+
+    .login-card h2 {
+      margin: 0 0 8px;
+      color: #00416A;
+    }
+
+    .login-card small {
+      display: block;
+      margin-bottom: 22px;
+      color: #64748b;
+    }
+
+    .login-card label {
+      display: block;
+      font-weight: bold;
+      margin-top: 14px;
+      margin-bottom: 6px;
+    }
+
+    .login-card input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      font-size: 15px;
+    }
+
+    .login-card button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #00416A;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .login-card button:hover {
+      background: #0c6cbd;
+    }
+
+    .login-error {
+      display: none;
+      margin-top: 14px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #fee2e2;
+      color: #991b1b;
+      font-size: 14px;
+      border: 1px solid #fecaca;
+    }
+
+    .app-page {
+      display: none;
+      padding: 1rem;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      background: white;
+      border-radius: 12px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    }
+
+    .usuario-info {
+      font-size: 14px;
+      color: #334155;
+    }
+
+    .btn-salir {
+      background: #dc2626;
+      padding: 9px 14px;
+      border-radius: 8px;
+      width: auto;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+
+    .filtros-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .campo-busqueda {
+      position: relative;
+      width: 420px;
+      max-width: 100%;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background: #218838;
+    }
+
+    .autocomplete-list {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 220px;
+      overflow-y: auto;
+      display: none;
+      border-radius: 8px;
+      z-index: 1000;
+      box-shadow: 0 6px 16px rgba(0,0,0,.12);
+    }
+
+    .autocomplete-list div {
+      padding: 9px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .autocomplete-list div:last-child {
+      border-bottom: none;
+    }
+
+    .autocomplete-list div:hover {
+      background: #007bff;
+      color: white;
+    }
+
+    #rfcFiltro,
+    #sugerenciasRFC {
+      display: none !important;
+    }
+
+    #resumenConteo {
+      margin-top: 1rem;
+      font-weight: bold;
+      white-space: pre-line;
+    }
+
+    .estado-carga {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #eef6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      display: none;
+    }
+
+    .tabla-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      font-size: 0.9em;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+
+    a {
+      word-break: break-word;
+    }
+
+    .paginacion {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .paginacion button {
+      padding: 8px 12px;
+      margin: 0;
+      background: #0f62fe;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .paginacion button:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .paginacion .info {
+      font-size: 14px;
+      font-weight: bold;
+      color: #334155;
+    }
+
+    .selector-pagina {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: white;
+    }
+
+    @media (max-width: 768px) {
+      .login-page {
+        grid-template-columns: 1fr;
+      }
+
+      .login-brand {
+        padding: 32px 24px;
+        min-height: 260px;
+      }
+
+      .login-brand h1 {
+        font-size: 32px;
+      }
+
+      .login-panel {
+        padding: 20px;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .btn-salir {
+        width: 100%;
+      }
+
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        margin-bottom: 18px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,.08);
+        padding: 12px 15px;
+        border: 1px solid #e0e0e0;
+      }
+
+      td {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        border: none;
+        border-bottom: 1px dashed #ddd;
+        padding: 10px 6px;
+        font-size: 0.95rem;
+        text-align: right;
+        position: relative;
+      }
+
+      td:last-child {
+        border-bottom: none;
+      }
+
+      td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        text-transform: capitalize;
+        color: #555;
+        flex-basis: 50%;
+        text-align: left;
+      }
+
+      .filtros-wrap {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .campo-busqueda {
+        width: 100%;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .paginacion {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .paginacion button,
+      .selector-pagina {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <section id="loginPage" class="login-page">
+    <div class="login-brand">
+      <h1>PROVSOFT</h1>
+      <p>Consulta segura de facturas por proveedor. Inicia sesión para acceder a la aplicación.</p>
+    </div>
+
+    <div class="login-panel">
+      <div class="login-card">
+        <h2>Iniciar sesión</h2>
+        <small>Usuario autorizado desde Firebase</small>
+
+        <label for="loginUsuario">Usuario</label>
+        <input type="text" id="loginUsuario" placeholder="Usuario" autocomplete="username">
+
+        <label for="loginPassword">Contraseña</label>
+        <input type="password" id="loginPassword" placeholder="Contraseña" autocomplete="current-password">
+
+        <button id="btnLogin">Entrar</button>
+
+        <div id="loginError" class="login-error"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="appPage" class="app-page">
+    <div class="topbar">
+      <div class="usuario-info" id="usuarioInfo">Sesión iniciada</div>
+      <button class="btn-salir" id="btnSalir">Cerrar sesión</button>
+    </div>
+
+    <h2>🔍 Consulta de Facturas por RFC O NOMBRE DE PROVEEDOR</h2>
+
+    <label><strong>RFC O NOMBRE:</strong></label>
+
+    <div class="filtros-wrap">
+      <input type="text" id="rfcFiltro" placeholder="Escribe RFC…" autocomplete="off">
+      <div id="sugerenciasRFC" class="autocomplete-list"></div>
+
+      <div class="campo-busqueda">
+        <input type="text" id="nombreFiltro" placeholder="Escribe Nombre…" autocomplete="off">
+        <div id="sugerenciasNombre" class="autocomplete-list"></div>
+      </div>
+
+      <button id="btnConsultar">🔎 Consultar</button>
+    </div>
+
+    <div id="estadoCarga" class="estado-carga"></div>
+    <div id="resumenConteo"></div>
+    <div id="tablaResultados"></div>
+  </section>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      where,
+      limit,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    import {
+      firebaseConfig,
+      supabaseUrl,
+      supabaseAnonKey
+    } from "./config.js";
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getFirestore(firebaseApp);
+
+    const supa = window.supabase.createClient(
+      supabaseUrl,
+      supabaseAnonKey
+    );
+
+    let datosCrudos = [];
+    let listaBusqueda = [];
+    let paginaActual = 1;
+    const filasPorPagina = 100;
+    window.rfcSeleccionado = null;
+
+    const loginPage = document.getElementById("loginPage");
+    const appPage = document.getElementById("appPage");
+    const loginUsuario = document.getElementById("loginUsuario");
+    const loginPassword = document.getElementById("loginPassword");
+    const btnLogin = document.getElementById("btnLogin");
+    const loginError = document.getElementById("loginError");
+    const usuarioInfo = document.getElementById("usuarioInfo");
+    const btnSalir = document.getElementById("btnSalir");
+
+    const nombreFiltro = document.getElementById("nombreFiltro");
+    const rfcFiltro = document.getElementById("rfcFiltro");
+    const sugerenciasNombre = document.getElementById("sugerenciasNombre");
+    const sugerenciasRFC = document.getElementById("sugerenciasRFC");
+    const resumenConteo = document.getElementById("resumenConteo");
+    const tablaResultados = document.getElementById("tablaResultados");
+    const estadoCarga = document.getElementById("estadoCarga");
+    const btnConsultar = document.getElementById("btnConsultar");
+
+    function mostrarLoginError(msg) {
+      loginError.textContent = msg || "";
+      loginError.style.display = msg ? "block" : "none";
+    }
+
+    function abrirAplicacion(usuarioData) {
+      loginPage.style.display = "none";
+      appPage.style.display = "block";
+
+      usuarioInfo.textContent =
+        `Sesión: ${usuarioData.nombre || usuarioData.usuario || "Usuario"} | Rol: ${usuarioData.rol || "—"}`;
+
+      cargarRFCs();
+    }
+
+    function cerrarSesion() {
+      sessionStorage.removeItem("PROVSOFT_USUARIO_ACTIVO");
+      location.reload();
+    }
+
+    async function validarLogin() {
+      mostrarLoginError("");
+
+      const usuario = loginUsuario.value.trim().toUpperCase();
+      const password = loginPassword.value.trim();
+
+      if (!usuario || !password) {
+        mostrarLoginError("Captura usuario y contraseña.");
+        return;
+      }
+
+      btnLogin.disabled = true;
+      btnLogin.textContent = "Validando...";
+
+      try {
+        const q = query(
+          collection(db, "usuarios_ruta"),
+          where("usuario", "==", usuario),
+          limit(1)
+        );
+
+        const snap = await getDocs(q);
+
+        if (snap.empty) {
+          mostrarLoginError("Usuario no encontrado.");
+          return;
+        }
+
+        const docUsuario = snap.docs[0];
+        const data = docUsuario.data();
+
+        if (data.activo !== true) {
+          mostrarLoginError("Usuario inactivo.");
+          return;
+        }
+
+        if (String(data.password || "") !== password) {
+          mostrarLoginError("Contraseña incorrecta.");
+          return;
+        }
+
+        const usuarioSeguro = {
+          id: docUsuario.id,
+          usuario: data.usuario || usuario,
+          nombre: data.nombre || "",
+          rol: data.rol || "",
+          rutaId: data.rutaId || ""
+        };
+
+        sessionStorage.setItem(
+          "PROVSOFT_USUARIO_ACTIVO",
+          JSON.stringify(usuarioSeguro)
+        );
+
+        abrirAplicacion(usuarioSeguro);
+
+      } catch (err) {
+        console.error("Error login:", err);
+        mostrarLoginError("Error al validar usuario en Firebase.");
+      } finally {
+        btnLogin.disabled = false;
+        btnLogin.textContent = "Entrar";
+      }
+    }
+
+    function revisarSesionLocal() {
+      const raw = sessionStorage.getItem("PROVSOFT_USUARIO_ACTIVO");
+
+      if (!raw) return;
+
+      try {
+        const usuario = JSON.parse(raw);
+        if (usuario && usuario.usuario) {
+          abrirAplicacion(usuario);
+        }
+      } catch {
+        sessionStorage.removeItem("PROVSOFT_USUARIO_ACTIVO");
+      }
+    }
+
+    function mostrarEstado(msg, visible = true) {
+      estadoCarga.textContent = msg || "";
+      estadoCarga.style.display = visible ? "block" : "none";
+    }
+
+    function normalizarTexto(txt) {
+      return (txt || "")
+        .toUpperCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ");
+    }
+
+    async function cargarRFCs() {
+      mostrarEstado("Cargando catálogo de proveedores...");
+
+      let todos = [];
+      let desde = 0;
+      let pagina = [];
+      const tamPagina = 1000;
+
+      do {
+        const { data, error } = await supa
+          .from("v_deuda_proveedores")
+          .select("rfc_emisor, razon_social_emisor, nombre_emisor")
+          .not("rfc_emisor", "is", null)
+          .order("rfc_emisor", { ascending: true })
+          .range(desde, desde + tamPagina - 1);
+
+        if (error) {
+          console.error("Error cargando proveedores:", error);
+          mostrarEstado("Error cargando proveedores");
+          return;
+        }
+
+        pagina = data || [];
+        todos = todos.concat(pagina);
+        desde += tamPagina;
+      } while (pagina.length === tamPagina);
+
+      const mapa = new Map();
+
+      todos.forEach(item => {
+        if (!item.rfc_emisor) return;
+
+        const rfc = String(item.rfc_emisor).toUpperCase().trim();
+
+        let nombre = "";
+        if (item.nombre_emisor?.trim()) nombre = item.nombre_emisor;
+        else if (item.razon_social_emisor?.trim()) nombre = item.razon_social_emisor;
+        else nombre = rfc;
+
+        mapa.set(rfc, nombre.toUpperCase().trim());
+      });
+
+      listaBusqueda = Array.from(mapa, ([rfc, nombre]) => ({ rfc, nombre }))
+        .sort((a, b) => a.rfc.localeCompare(b.rfc));
+
+      mostrarEstado(`Catálogo cargado: ${listaBusqueda.length} proveedores`);
+      setTimeout(() => mostrarEstado("", false), 1200);
+    }
+
+    function autocompleteNombre() {
+      const txt = normalizarTexto(nombreFiltro.value);
+      sugerenciasNombre.innerHTML = "";
+
+      if (txt.length < 1) {
+        sugerenciasNombre.style.display = "none";
+        window.rfcSeleccionado = null;
+        return;
+      }
+
+      const resultados = listaBusqueda.filter(x => {
+        const nom = normalizarTexto(x.nombre);
+        const rfc = (x.rfc || "").toUpperCase();
+        const txtSinEspacios = txt.replace(/\s+/g, "");
+        const nomSinEspacios = nom.replace(/\s+/g, "");
+
+        return (
+          nom.includes(txt) ||
+          nom.startsWith(txt) ||
+          rfc.includes(txt) ||
+          nomSinEspacios.includes(txtSinEspacios)
+        );
+      });
+
+      resultados.slice(0, 20).forEach(x => {
+        const div = document.createElement("div");
+        div.textContent = `${x.nombre} — ${x.rfc}`;
+
+        div.onclick = () => {
+          nombreFiltro.value = x.nombre;
+          rfcFiltro.value = x.rfc;
+          window.rfcSeleccionado = x.rfc;
+          sugerenciasNombre.style.display = "none";
+        };
+
+        sugerenciasNombre.appendChild(div);
+      });
+
+      sugerenciasNombre.style.display = resultados.length ? "block" : "none";
+    }
+
+    async function consultarPorRFC() {
+      let rfc = window.rfcSeleccionado;
+
+      if (!rfc) {
+        const txtOriginal = nombreFiltro.value.toUpperCase().trim();
+        const txtNormalizado = normalizarTexto(nombreFiltro.value);
+
+        const encontrado = listaBusqueda.find(x =>
+          x.rfc.includes(txtOriginal) ||
+          normalizarTexto(x.nombre).includes(txtNormalizado)
+        );
+
+        if (encontrado) rfc = encontrado.rfc;
+      }
+
+      if (!rfc) {
+        alert("Selecciona un proveedor válido de la lista");
+        return;
+      }
+
+      tablaResultados.innerHTML = "";
+      resumenConteo.innerText = "";
+      mostrarEstado("Consultando TODA la BD del proveedor...");
+
+      const { count, error: errorConteo } = await supa
+        .from("v_deuda_proveedores")
+        .select("*", { count: "exact", head: true })
+        .eq("rfc_emisor", rfc);
+
+      if (errorConteo) {
+        console.error("Error al contar registros:", errorConteo);
+        mostrarEstado("", false);
+        alert("Error al contar registros");
+        return;
+      }
+
+      const TAMANO_PAGINA_BD = 1000;
+      let desde = 0;
+      let todos = [];
+      let seguir = true;
+
+      while (seguir) {
+        const hasta = desde + TAMANO_PAGINA_BD - 1;
+
+        mostrarEstado(`Consultando BD ${desde + 1} a ${Math.min(hasta + 1, count || hasta + 1)}...`);
+
+        const { data, error } = await supa
+          .from("v_deuda_proveedores")
+          .select("*")
+          .eq("rfc_emisor", rfc)
+          .order("fecha", { ascending: false })
+          .range(desde, hasta);
+
+        if (error) {
+          console.error("Error al traer facturas:", error);
+          mostrarEstado("", false);
+          alert("Error al traer facturas");
+          return;
+        }
+
+        const bloque = data || [];
+        todos = todos.concat(bloque);
+
+        if (bloque.length < TAMANO_PAGINA_BD) {
+          seguir = false;
+        } else {
+          desde += TAMANO_PAGINA_BD;
+        }
+      }
+
+      datosCrudos = todos;
+      paginaActual = 1;
+
+      resumenConteo.innerText =
+        `🔢 Total BD: ${count}\n📄 Cargados: ${todos.length}\n⬇ Orden: más reciente primero`;
+
+      renderPagina();
+
+      mostrarEstado(`Consulta terminada. Facturas cargadas: ${todos.length}`);
+      setTimeout(() => mostrarEstado("", false), 1800);
+    }
+
+    function renderPagina() {
+      if (!datosCrudos || datosCrudos.length === 0) {
+        tablaResultados.innerHTML = `
+          <div style="margin-top:1rem; padding:12px; background:white; border-radius:8px; border:1px solid #ddd;">
+            No se encontraron facturas para ese proveedor.
+          </div>`;
+        return;
+      }
+
+      const totalPaginas = Math.ceil(datosCrudos.length / filasPorPagina);
+
+      if (paginaActual < 1) paginaActual = 1;
+      if (paginaActual > totalPaginas) paginaActual = totalPaginas;
+
+      const inicio = (paginaActual - 1) * filasPorPagina;
+      const fin = inicio + filasPorPagina;
+      const pagina = datosCrudos.slice(inicio, fin);
+
+      let html = `
+        <div class="tabla-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Días</th>
+                <th>UUID</th>
+                <th>RFC</th>
+                <th>Proveedor</th>
+                <th>Total</th>
+                <th>Serie/Folio</th>
+                <th>Folio Tecnopro</th>
+                <th>📷 Fotos</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      pagina.forEach(f => {
+        const uuid = f.uuid_cfdi || f.uuid || "—";
+
+        let proveedor = "";
+        if (f.nombre_emisor && String(f.nombre_emisor).trim() !== "") {
+          proveedor = f.nombre_emisor;
+        } else if (f.razon_social_emisor && String(f.razon_social_emisor).trim() !== "") {
+          proveedor = f.razon_social_emisor;
+        } else {
+          proveedor = f.rfc_emisor || "—";
+        }
+
+        html += `
+          <tr>
+            <td data-label="Fecha">${formatearFecha(f.fecha)}</td>
+            <td data-label="Días">${calcDiasDesdeHoy(f.fecha)}</td>
+            <td data-label="UUID">
+              <a href="detalle.html?uuid=${encodeURIComponent(uuid)}" target="_blank" style="color:#007bff;">
+                ${uuid}
+              </a>
+            </td>
+            <td data-label="RFC">${f.rfc_emisor || "—"}</td>
+            <td data-label="Proveedor">${proveedor}</td>
+            <td data-label="Total">${monedaMXN(f.total)}</td>
+            <td data-label="Serie/Folio">${f.serie_folio || "—"}</td>
+            <td data-label="Folio Tecnopro">${f.foliotecnopro || "—"}</td>
+            <td data-label="Fotos">
+              ${
+                (f.fotos && Array.isArray(f.fotos) && f.fotos.length > 0)
+                  ? f.fotos.map(url => `<a href="${url}" target="_blank">📷</a>`).join(" ")
+                  : "—"
+              }
+            </td>
+          </tr>
+        `;
+      });
+
+      html += `
+            </tbody>
+          </table>
+        </div>
+
+        <div class="paginacion">
+          <button onclick="irPrimeraPagina()" ${paginaActual === 1 ? "disabled" : ""}>⏮ Primera</button>
+          <button onclick="irPaginaAnterior()" ${paginaActual === 1 ? "disabled" : ""}>◀ Anterior</button>
+
+          <span class="info">Página ${paginaActual} de ${totalPaginas}</span>
+
+          <select class="selector-pagina" onchange="irPaginaNumero(this.value)">
+            ${Array.from({ length: totalPaginas }, (_, i) => {
+              const p = i + 1;
+              return `<option value="${p}" ${p === paginaActual ? "selected" : ""}>Ir a página ${p}</option>`;
+            }).join("")}
+          </select>
+
+          <button onclick="irPaginaSiguiente()" ${paginaActual === totalPaginas ? "disabled" : ""}>Siguiente ▶</button>
+          <button onclick="irUltimaPagina()" ${paginaActual === totalPaginas ? "disabled" : ""}>Última ⏭</button>
+        </div>
+      `;
+
+      tablaResultados.innerHTML = html;
+    }
+
+    function irPrimeraPagina() {
+      paginaActual = 1;
+      renderPagina();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function irPaginaAnterior() {
+      if (paginaActual > 1) {
+        paginaActual--;
+        renderPagina();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+
+    function irPaginaSiguiente() {
+      const totalPaginas = Math.ceil(datosCrudos.length / filasPorPagina);
+      if (paginaActual < totalPaginas) {
+        paginaActual++;
+        renderPagina();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+
+    function irUltimaPagina() {
+      paginaActual = Math.ceil(datosCrudos.length / filasPorPagina);
+      renderPagina();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function irPaginaNumero(valor) {
+      paginaActual = Number(valor);
+      renderPagina();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function calcDiasDesdeHoy(iso) {
+      if (!iso) return "—";
+
+      const soloFecha = String(iso).split("T")[0];
+      const [anio, mes, dia] = soloFecha.split("-").map(Number);
+
+      const fecha = new Date(anio, mes - 1, dia);
+      const hoy = new Date();
+
+      hoy.setHours(0, 0, 0, 0);
+      fecha.setHours(0, 0, 0, 0);
+
+      return Math.floor((hoy - fecha) / 86400000);
+    }
+
+    function formatearFecha(fechaISO) {
+      if (!fechaISO) return "—";
+
+      const fecha = new Date(fechaISO);
+      const dia = String(fecha.getDate()).padStart(2, "0");
+      const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+      const año = fecha.getFullYear();
+
+      return `${dia}/${mes}/${año}`;
+    }
+
+    function monedaMXN(valor) {
+      const numero = Number(valor || 0);
+
+      return numero.toLocaleString("es-MX", {
+        style: "currency",
+        currency: "MXN"
+      });
+    }
+
+    document.addEventListener("click", (e) => {
+      if (!sugerenciasNombre.contains(e.target) && e.target !== nombreFiltro) {
+        sugerenciasNombre.style.display = "none";
+      }
+    });
+
+    nombreFiltro.addEventListener("input", autocompleteNombre);
+
+    nombreFiltro.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") consultarPorRFC();
+    });
+
+    loginUsuario.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") loginPassword.focus();
+    });
+
+    loginPassword.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") validarLogin();
+    });
+
+    btnLogin.addEventListener("click", validarLogin);
+    btnSalir.addEventListener("click", cerrarSesion);
+    btnConsultar.addEventListener("click", consultarPorRFC);
+
+    window.irPrimeraPagina = irPrimeraPagina;
+    window.irPaginaAnterior = irPaginaAnterior;
+    window.irPaginaSiguiente = irPaginaSiguiente;
+    window.irUltimaPagina = irUltimaPagina;
+    window.irPaginaNumero = irPaginaNumero;
+
+    revisarSesionLocal();
+  </script>
+
+</body>
+</html>
