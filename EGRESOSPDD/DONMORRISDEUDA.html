@@ -1,10 +1,9 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Consulta de Facturas por RFC O NOMBRE PROVEEDOR</title>
+  <title>Consulta de Facturas por RFC O NOMBRE PROVEEDOR PROVEEDORA DE DULCES </title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
@@ -473,6 +472,10 @@
       supabaseAnonKey
     );
 
+    const CLAVE_SESION = "PROVSOFT_USUARIO_ACTIVO";
+    const TIEMPO_INACTIVIDAD = 10 * 60 * 1000;
+
+    let timerSesion = null;
     let datosCrudos = [];
     let listaBusqueda = [];
     let paginaActual = 1;
@@ -497,6 +500,64 @@
     const estadoCarga = document.getElementById("estadoCarga");
     const btnConsultar = document.getElementById("btnConsultar");
 
+    function guardarSesion(usuarioSeguro) {
+      const raw = JSON.stringify(usuarioSeguro);
+      sessionStorage.setItem(CLAVE_SESION, raw);
+      localStorage.setItem(CLAVE_SESION, raw);
+    }
+
+    function limpiarSesion() {
+      sessionStorage.removeItem(CLAVE_SESION);
+      localStorage.removeItem(CLAVE_SESION);
+    }
+
+    function obtenerSesion() {
+      const raw =
+        sessionStorage.getItem(CLAVE_SESION) ||
+        localStorage.getItem(CLAVE_SESION);
+
+      if (!raw) return null;
+
+      try {
+        const usuario = JSON.parse(raw);
+
+        if (!usuario || !usuario.usuario) {
+          limpiarSesion();
+          return null;
+        }
+
+        guardarSesion(usuario);
+        return usuario;
+
+      } catch {
+        limpiarSesion();
+        return null;
+      }
+    }
+
+    function cerrarSesionAutomatica() {
+      limpiarSesion();
+      alert("Sesión cerrada por inactividad.");
+      location.reload();
+    }
+
+    function reiniciarTimerSesion() {
+      if (!obtenerSesion()) return;
+
+      clearTimeout(timerSesion);
+      timerSesion = setTimeout(cerrarSesionAutomatica, TIEMPO_INACTIVIDAD);
+    }
+
+    [
+      "click",
+      "mousemove",
+      "keydown",
+      "scroll",
+      "touchstart"
+    ].forEach(evt => {
+      document.addEventListener(evt, reiniciarTimerSesion, true);
+    });
+
     function mostrarLoginError(msg) {
       loginError.textContent = msg || "";
       loginError.style.display = msg ? "block" : "none";
@@ -509,11 +570,12 @@
       usuarioInfo.textContent =
         `Sesión: ${usuarioData.nombre || usuarioData.usuario || "Usuario"} | Rol: ${usuarioData.rol || "—"}`;
 
+      reiniciarTimerSesion();
       cargarRFCs();
     }
 
     function cerrarSesion() {
-      sessionStorage.removeItem("PROVSOFT_USUARIO_ACTIVO");
+      limpiarSesion();
       location.reload();
     }
 
@@ -566,11 +628,7 @@
           rutaId: data.rutaId || ""
         };
 
-        sessionStorage.setItem(
-          "PROVSOFT_USUARIO_ACTIVO",
-          JSON.stringify(usuarioSeguro)
-        );
-
+        guardarSesion(usuarioSeguro);
         abrirAplicacion(usuarioSeguro);
 
       } catch (err) {
@@ -583,17 +641,10 @@
     }
 
     function revisarSesionLocal() {
-      const raw = sessionStorage.getItem("PROVSOFT_USUARIO_ACTIVO");
+      const usuario = obtenerSesion();
 
-      if (!raw) return;
-
-      try {
-        const usuario = JSON.parse(raw);
-        if (usuario && usuario.usuario) {
-          abrirAplicacion(usuario);
-        }
-      } catch {
-        sessionStorage.removeItem("PROVSOFT_USUARIO_ACTIVO");
+      if (usuario) {
+        abrirAplicacion(usuario);
       }
     }
 
@@ -837,7 +888,7 @@
             <td data-label="Fecha">${formatearFecha(f.fecha)}</td>
             <td data-label="Días">${calcDiasDesdeHoy(f.fecha)}</td>
             <td data-label="UUID">
-              <a href="detalle.html?uuid=${encodeURIComponent(uuid)}" target="_blank" style="color:#007bff;">
+              <a href="detalle_completo.html?uuid=${encodeURIComponent(uuid)}" target="_blank" rel="noopener" style="color:#007bff;">
                 ${uuid}
               </a>
             </td>
@@ -849,7 +900,7 @@
             <td data-label="Fotos">
               ${
                 (f.fotos && Array.isArray(f.fotos) && f.fotos.length > 0)
-                  ? f.fotos.map(url => `<a href="${url}" target="_blank">📷</a>`).join(" ")
+                  ? f.fotos.map(url => `<a href="${url}" target="_blank" rel="noopener">📷</a>`).join(" ")
                   : "—"
               }
             </td>
@@ -982,6 +1033,13 @@
     window.irPaginaSiguiente = irPaginaSiguiente;
     window.irUltimaPagina = irUltimaPagina;
     window.irPaginaNumero = irPaginaNumero;
+
+    window.addEventListener("storage", (e) => {
+      if (e.key === CLAVE_SESION && !e.newValue) {
+        sessionStorage.removeItem(CLAVE_SESION);
+        location.reload();
+      }
+    });
 
     revisarSesionLocal();
   </script>
