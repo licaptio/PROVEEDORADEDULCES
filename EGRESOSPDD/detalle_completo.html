@@ -1,3 +1,4 @@
+<!-- detalle_completo.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -7,11 +8,15 @@
 
   <script>
   (() => {
-    const sesion = sessionStorage.getItem("PROVSOFT_USUARIO_ACTIVO");
+    const CLAVE_SESION = "PROVSOFT_USUARIO_ACTIVO";
+
+    const sesion =
+      sessionStorage.getItem(CLAVE_SESION) ||
+      localStorage.getItem(CLAVE_SESION);
 
     if (!sesion) {
       alert("Debes iniciar sesión.");
-      window.location.replace("index.html");
+      window.location.replace("DONMORRISDEUDA.html");
       return;
     }
 
@@ -19,13 +24,19 @@
       const usuario = JSON.parse(sesion);
 
       if (!usuario || !usuario.usuario) {
-        sessionStorage.removeItem("PROVSOFT_USUARIO_ACTIVO");
-        window.location.replace("index.html");
+        sessionStorage.removeItem(CLAVE_SESION);
+        localStorage.removeItem(CLAVE_SESION);
+        window.location.replace("DONMORRISDEUDA.html");
         return;
       }
+
+      sessionStorage.setItem(CLAVE_SESION, JSON.stringify(usuario));
+      localStorage.setItem(CLAVE_SESION, JSON.stringify(usuario));
+
     } catch (e) {
-      sessionStorage.removeItem("PROVSOFT_USUARIO_ACTIVO");
-      window.location.replace("index.html");
+      sessionStorage.removeItem(CLAVE_SESION);
+      localStorage.removeItem(CLAVE_SESION);
+      window.location.replace("DONMORRISDEUDA.html");
       return;
     }
   })();
@@ -65,7 +76,7 @@ header {
   background: #fff;
   max-width: 900px;
   margin: auto;
-  padding: 12px 18px;   /* MENOS padding */
+  padding: 12px 18px;
   border-radius: 10px;
   box-shadow: 0 0 8px rgba(0,0,0,.08);
 }
@@ -84,7 +95,6 @@ table {
   min-width: 720px;
 }
 
-/* CABECERA */
 th {
   background: #dbe5f1;
   color: #00345a;
@@ -92,7 +102,6 @@ th {
   font-size: 14px;
 }
 
-/* CELDAS */
 td {
   border: 1px solid #ddd;
   padding: 6px;
@@ -100,13 +109,11 @@ td {
   font-size: 14px;
 }
 
-/* DESCUENTO AMARILLO */
 .descuento-cell {
   background: #fff7c2;
   font-weight: bold;
 }
 
-/* FOOTER */
 tfoot td {
   font-weight: bold;
   background: #eef0f4;
@@ -117,7 +124,6 @@ tfoot td.desc-total {
   color: #5b4500;
 }
 
-/* FOLIO */
 .folio-seccion {
   background: #f7faff;
   border: 1px solid #c8d8ee;
@@ -148,7 +154,6 @@ tfoot td.desc-total {
 }
 .folio-row button:hover { background: #004c8f; }
 
-/* FOTOS */
 .panel-fotos {
   max-width: 900px;
   margin: 30px auto;
@@ -190,7 +195,6 @@ tfoot td.desc-total {
   cursor: pointer;
 }
 
-/* TOAST */
 .toast {
   position: fixed;
   left: 50%;
@@ -207,11 +211,10 @@ tfoot td.desc-total {
 }
 .toast.show { opacity: 1; }
 
-/* GRID 2 COLUMNAS */
 .datos-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px;          /* MENOS espacio */
+  gap: 18px;
   margin-bottom: 15px;
 }
 
@@ -219,8 +222,8 @@ tfoot td.desc-total {
 .datos-box p { margin: 6px 0; font-size: 15px; }
 
 .seccion-seriefolio {
-  margin: 10px 0;       /* MENOS separación vertical */
-  padding: 12px;        /* MENOS padding */
+  margin: 10px 0;
+  padding: 12px;
   background: #f9f9f9;
   border-radius: 8px;
   border: 1px solid #c8d8ee;
@@ -228,7 +231,7 @@ tfoot td.desc-total {
 
 .seriefolio-grid {
   display: flex;
-  gap: 20px;       /* MENOS espacio entre Serie y Folio */
+  gap: 20px;
   padding-top: 5px;
 }
 
@@ -267,7 +270,6 @@ tfoot td.desc-total {
   cursor: pointer;
 }
 
-/* --- Caja compacta para Folio Tecnopro --- */
 .seccion-folio.compacto {
   margin-top: 5px;
   padding: 8px 0;
@@ -280,7 +282,7 @@ tfoot td.desc-total {
 }
 
 .folio-input {
-  width: 150px !important;   /* 🔥 Más chico, como lo quieres */
+  width: 150px !important;
   padding: 6px 10px;
   border: 1px solid #b2c4dd;
   border-radius: 6px;
@@ -301,7 +303,6 @@ tfoot td.desc-total {
   background: #004d99;
 }
 
-/* Quitamos espacio extra */
 .folio-hint {
   display: none !important;
 }
@@ -313,26 +314,22 @@ tfoot td.desc-total {
   margin: 15px 0;
 }
 
-/* ============================================
-   🔥 Sección Serie / Folio / UUID ULTRA COMPACTA
-   ============================================ */
-
 .seccion-seriefolio {
-  margin: 6px 0 !important;      /* menos separación */
-  padding: 8px 12px !important;  /* menos padding interno */
+  margin: 6px 0 !important;
+  padding: 8px 12px !important;
   background: #f3f5f8;
   border-radius: 8px;
   border: 1px solid #c8d8ee;
 }
 
 .seccion-seriefolio h3 {
-  margin: 0 0 6px 0 !important;   /* más pegado */
+  margin: 0 0 6px 0 !important;
   font-size: 17px;
 }
 
 .seriefolio-grid {
   display: flex;
-  gap: 12px !important;          /* antes 20–40px, ahora compacto */
+  gap: 12px !important;
   margin: 2px 0 !important;
   padding: 0 !important;
   align-items: center;
@@ -403,7 +400,7 @@ tfoot td.desc-total {
 .oculto {
   display: none;
 }
-/* Botón circular para capturar */
+
 .btn-capturar {
   width: 70px;
   height: 70px;
@@ -422,7 +419,6 @@ tfoot td.desc-total {
   height: 36px;
 }
 
-/* Botón upload estilo nube */
 .btn-upload {
   display: flex;
   align-items: center;
@@ -442,7 +438,6 @@ tfoot td.desc-total {
   width: 40px;
 }
 
-/* Contenedor de botones */
 .foto-botones {
   display: flex;
   align-items: center;
@@ -450,7 +445,6 @@ tfoot td.desc-total {
   margin: 20px 0;
 }
 
-/* Barra pequeña */
 #barraCargando {
   width: 100%;
   height: 4px;
@@ -473,9 +467,6 @@ tfoot td.desc-total {
   50% { width: 70%; }
   100% { width: 0%; }
 }
-/* ============================
-   BOTONES DE FOTOS
-   ============================ */
 
 .foto-botones {
   display: flex;
@@ -484,7 +475,6 @@ tfoot td.desc-total {
   margin-bottom: 12px;
 }
 
-/* Botón verde circular (cámara) */
 .btn-capturar {
   width: 60px;
   height: 60px;
@@ -501,7 +491,6 @@ tfoot td.desc-total {
   width: 30px;
 }
 
-/* Botón azul subir foto */
 .btn-upload {
   background: #0c6cbd;
   color: white;
@@ -518,7 +507,6 @@ tfoot td.desc-total {
   width: 22px;
 }
 
-/* Barra de carga */
 #barraCargando {
   margin-top: 10px;
   padding: 8px;
@@ -527,11 +515,11 @@ tfoot td.desc-total {
   border-radius: 6px;
   text-align: center;
 }
+
 .oculto {
   display: none;
 }
 
-/* Galería */
 .foto-item {
   display: flex;
   flex-direction: column;
@@ -551,39 +539,47 @@ tfoot td.desc-total {
   cursor: pointer;
 }
 
+@media (max-width: 768px) {
+  .datos-grid,
+  .seriefolio-grid-master,
+  .timbre-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .seriefolio-grid {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .foto-botones {
+    flex-wrap: wrap;
+  }
+}
   </style>
 
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 </head>
 <body>
 
-  <!-- CONTENEDOR PRINCIPAL -->
   <div id="contenedor" class="tarjeta-principal"></div>
 
   <section class="panel-fotos">
     <h3>Fotos de factura</h3>
 
     <div class="foto-botones">
-
-      <!-- BOTÓN DE CÁMARA VERDE CIRCULAR -->
       <button class="btn-capturar" id="btnCapturar">
         <img src="https://cdn-icons-png.flaticon.com/512/2920/2920156.png">
       </button>
 
-      <!-- BOTÓN AZUL DE SUBIR FOTO -->
       <button class="btn-upload" id="btnSubirFoto">
         <img src="https://cdn-icons-png.flaticon.com/512/724/724933.png">
         SUBIR FOTO
       </button>
 
-      <!-- INPUT OCULTO QUE ACTIVA LA CÁMARA -->
       <input type="file" id="fotoInput" accept="image/*" capture="environment" hidden>
-
     </div>
 
-    <!-- BARRA DE CARGA -->
     <div id="barraCargando" class="oculto">
       <span></span>
     </div>
@@ -591,26 +587,88 @@ tfoot td.desc-total {
     <div id="galeriaFotos"></div>
   </section>
 
-  <!-- TOAST -->
   <div id="toast" class="toast">Listo</div>
 
-  <!-- JS integrado -->
   <script type="module">
 import {
   supabaseUrl,
   supabaseAnonKey
 } from "./config.js";
 
-// ============================================================
-// CONFIG SUPABASE
-// ============================================================
+const CLAVE_SESION = "PROVSOFT_USUARIO_ACTIVO";
+const TIEMPO_INACTIVIDAD = 10 * 60 * 1000;
+let timerSesion = null;
+
+function limpiarSesion() {
+  sessionStorage.removeItem(CLAVE_SESION);
+  localStorage.removeItem(CLAVE_SESION);
+}
+
+function obtenerSesion() {
+  const raw =
+    sessionStorage.getItem(CLAVE_SESION) ||
+    localStorage.getItem(CLAVE_SESION);
+
+  if (!raw) return null;
+
+  try {
+    const usuario = JSON.parse(raw);
+
+    if (!usuario || !usuario.usuario) {
+      limpiarSesion();
+      return null;
+    }
+
+    sessionStorage.setItem(CLAVE_SESION, JSON.stringify(usuario));
+    localStorage.setItem(CLAVE_SESION, JSON.stringify(usuario));
+
+    return usuario;
+
+  } catch {
+    limpiarSesion();
+    return null;
+  }
+}
+
+function cerrarSesionAutomatica() {
+  limpiarSesion();
+  alert("Sesión cerrada por inactividad.");
+  window.location.replace("DONMORRISDEUDA.html");
+}
+
+function reiniciarTimerSesion() {
+  if (!obtenerSesion()) {
+    window.location.replace("DONMORRISDEUDA.html");
+    return;
+  }
+
+  clearTimeout(timerSesion);
+  timerSesion = setTimeout(cerrarSesionAutomatica, TIEMPO_INACTIVIDAD);
+}
+
+[
+  "click",
+  "mousemove",
+  "keydown",
+  "scroll",
+  "touchstart"
+].forEach(evt => {
+  document.addEventListener(evt, reiniciarTimerSesion, true);
+});
+
+window.addEventListener("storage", (e) => {
+  if (e.key === CLAVE_SESION && !e.newValue) {
+    sessionStorage.removeItem(CLAVE_SESION);
+    window.location.replace("DONMORRISDEUDA.html");
+  }
+});
+
+reiniciarTimerSesion();
+
 const SUPA_URL = supabaseUrl;
 const SUPA_KEY = supabaseAnonKey;
 const TABLA = "deuda_limpia_pdd";
 
-// ============================================================
-// UTILIDADES
-// ============================================================
 function $(id) { return document.getElementById(id); }
 
 function safe(v) {
@@ -656,13 +714,6 @@ function parseJSONMaybe(v) {
   return v;
 }
 
-function totalCFDI(f) {
-  return Number(f?.total || 0);
-}
-
-// ============================================================
-// UUID de la URL
-// ============================================================
 const params = new URLSearchParams(location.search);
 const uuid = params.get("uuid");
 
@@ -673,9 +724,6 @@ if (!uuid) {
   throw new Error("Falta UUID");
 }
 
-// ============================================================
-// CONSULTA PRINCIPAL A SUPABASE
-// ============================================================
 async function cargarCFDI() {
   const url = `${SUPA_URL}/rest/v1/${TABLA}?uuid_cfdi=eq.${encodeURIComponent(uuid)}&select=*`;
 
@@ -696,9 +744,6 @@ async function cargarCFDI() {
   renderFactura(json[0]);
 }
 
-// ============================================================
-// RENDER PRINCIPAL
-// ============================================================
 function renderFactura(f) {
   window.__FACTURA = f;
 
@@ -1023,9 +1068,6 @@ function renderFactura(f) {
   initFolioTecnopro(f.uuid_cfdi);
 }
 
-// ============================================================
-// GUARDAR FOLIO TECNOPRO
-// ============================================================
 function initFolioTecnopro(uuid_cfdi) {
   const input = document.querySelector('[data-folio-input]');
   const btn   = document.querySelector('[data-folio-btn]');
@@ -1069,9 +1111,6 @@ function initFolioTecnopro(uuid_cfdi) {
   });
 }
 
-// ============================================================
-// FOTOS — SUBIR
-// ============================================================
 const BUCKET = "fotos-facturas";
 const CARPETA = "clientes";
 
@@ -1122,9 +1161,6 @@ async function subirFoto() {
   setTimeout(() => location.reload(), 700);
 }
 
-// ============================================================
-// FOTOS — ELIMINAR
-// ============================================================
 async function eliminarFoto(url) {
   if (!confirm("¿Eliminar esta foto?")) return;
 
@@ -1170,9 +1206,6 @@ async function eliminarFoto(url) {
 
 window.eliminarFoto = eliminarFoto;
 
-// ============================================================
-// TOAST
-// ============================================================
 function showToast(msg, error = false) {
   let toast = $("toast");
   toast.textContent = msg;
@@ -1181,9 +1214,6 @@ function showToast(msg, error = false) {
   setTimeout(() => toast.classList.remove("show"), 2000);
 }
 
-// ============================================================
-// COPIAR UUID
-// ============================================================
 document.addEventListener("click", e => {
   if (e.target.id === "btnCopiarUUID") {
     const texto = document.getElementById("uuidText").textContent;
@@ -1194,9 +1224,6 @@ document.addEventListener("click", e => {
   }
 });
 
-// ============================================================
-// FOTOS — CONTROL CENTRAL
-// ============================================================
 document.addEventListener("DOMContentLoaded", () => {
   const btnCapturar = $("btnCapturar");
   const btnSubirFoto = $("btnSubirFoto");
@@ -1225,16 +1252,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 });
 
-// ============================================================
-// INICIO
-// ============================================================
 cargarCFDI();
 
   </script>
 
-  <!-- ===================== -->
-  <!--   FOOTER NUEVO        -->
-  <!-- ===================== -->
   <footer class="footer-regresar">
     <button class="btn-back" onclick="history.back()">⬅ Regresar</button>
     <h2>Detalle de Factura – PROVSOFT</h2>
