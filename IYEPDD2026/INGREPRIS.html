@@ -498,8 +498,15 @@ th:nth-child(13),td:nth-child(13){ width:120px; text-align:center; }
    CONFIG
 ========================= */
 const SUPABASE_URL = 'https://cvpbtjlupswbyxenugpz.supabase.co';
-const SUPABASE_ANON_KEY =
-  'sb_publishable_SQ7Q5LFJqlxVzwNTxcIyzQ_8F1bqyiX';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+    }
+  }
+});
+
 const TABLE = 'ingresos_pdd';
 const CLIENTS_VIEW = 'clientes_unicos';
 const PAGE_SIZE = 50;
