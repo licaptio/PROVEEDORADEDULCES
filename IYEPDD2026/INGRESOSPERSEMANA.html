@@ -417,9 +417,8 @@ async function cargar(){
         `Cargando filas ${desde + 1} a ${desde + paso}…`;
 
       const { data, error } = await sb
-        .from("ingresos_pdd")
-        .select("id, serie, fecha, total")
-        .eq("cancelado", false)
+.from("v_ingresos_pdd_netos")
+.select("id, serie, fecha, total_neto")
         .gte("fecha", inicioStr)
         .lt("fecha", finStrEx)
         .order("id", { ascending:true })
@@ -483,7 +482,8 @@ function construirTabla(rows, semanas){
   rows.forEach(r => {
 
     if(!r.fecha) return;
-    if(r.total == null) return;
+    if(r.total_neto == null) return;
+    
 
     const codigo = r.serie || "PP";
 
@@ -514,7 +514,7 @@ function construirTabla(rows, semanas){
       mapa[label][key] = 0;
     }
 
-    mapa[label][key] += Number(r.total);
+    mapa[label][key] += Number(r.total_neto);
   });
 
   const todasSeries =
