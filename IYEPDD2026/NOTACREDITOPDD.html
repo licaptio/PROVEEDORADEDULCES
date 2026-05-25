@@ -30,24 +30,32 @@
 <pre id="bitacora"></pre>
 
 <script type="module">
+
 import {
-  SUPABASE_URL,
-  SUPABASE_KEY
+  supabaseUrl as SUPABASE_URL,
+  supabaseAnonKey as SUPABASE_KEY
 } from "./config.js";
 
 let archivosDatos = [];
 
 document.getElementById("xmlInput").addEventListener("change", async function () {
+
   const lista = document.getElementById("archivoList");
   const bar = document.getElementById("progreso");
 
   lista.innerHTML = "";
   bar.style.width = "0%";
+
   archivosDatos = [];
 
   for (const file of this.files) {
+
     try {
-      const xml = new DOMParser().parseFromString(await file.text(), "application/xml");
+
+      const xml = new DOMParser().parseFromString(
+        await file.text(),
+        "application/xml"
+      );
 
       if (xml.getElementsByTagName("parsererror").length) {
         throw new Error("XML mal formado");
@@ -55,19 +63,38 @@ document.getElementById("xmlInput").addEventListener("change", async function ()
 
       const nodos = [...xml.getElementsByTagName("*")];
 
+      // ===============================
+      // PARSEO DE IMPUESTOS
+      // ===============================
+
       let totalIVA = 0;
       let totalIEPS = 0;
       let impuestosDetalle = [];
 
-      const traslados = nodos.filter(n => n.localName === "Traslado");
+      const traslados = nodos.filter(
+        n => n.localName === "Traslado"
+      );
 
       for (const tImp of traslados) {
-        const impuesto = tImp.getAttribute("Impuesto");
-        const importe = parseFloat(tImp.getAttribute("Importe") || 0);
-        const tasa = tImp.getAttribute("TasaOCuota");
 
-        if (impuesto === "002") totalIVA += importe;
-        if (impuesto === "003") totalIEPS += importe;
+        const impuesto =
+          tImp.getAttribute("Impuesto");
+
+        const importe =
+          parseFloat(
+            tImp.getAttribute("Importe") || 0
+          );
+
+        const tasa =
+          tImp.getAttribute("TasaOCuota");
+
+        if (impuesto === "002") {
+          totalIVA += importe;
+        }
+
+        if (impuesto === "003") {
+          totalIEPS += importe;
+        }
 
         impuestosDetalle.push({
           impuesto,
@@ -76,157 +103,320 @@ document.getElementById("xmlInput").addEventListener("change", async function ()
         });
       }
 
-      const c = nodos.find(n => n.localName === "Comprobante");
+      const c =
+        nodos.find(n =>
+          n.localName === "Comprobante"
+        );
 
-      const nodoImpuestos = nodos.find(n => n.localName === "Impuestos");
+      const nodoImpuestos =
+        nodos.find(n =>
+          n.localName === "Impuestos"
+        );
 
       let totalImpuestosSAT = 0;
+
       if (nodoImpuestos) {
         totalImpuestosSAT = parseFloat(
-          nodoImpuestos.getAttribute("TotalImpuestosTrasladados") || 0
+          nodoImpuestos.getAttribute(
+            "TotalImpuestosTrasladados"
+          ) || 0
         );
       }
 
-      const e = nodos.find(n => n.localName === "Emisor");
-      const r = nodos.find(n => n.localName === "Receptor");
-      const t = nodos.find(n => n.localName === "TimbreFiscalDigital");
-      const rel = nodos.find(n => n.localName === "CfdiRelacionado");
-      const uuidRelacionado = rel ? rel.getAttribute("UUID") : null;
+      const e =
+        nodos.find(n =>
+          n.localName === "Emisor"
+        );
+
+      const r =
+        nodos.find(n =>
+          n.localName === "Receptor"
+        );
+
+      const t =
+        nodos.find(n =>
+          n.localName === "TimbreFiscalDigital"
+        );
+
+      const rel =
+        nodos.find(n =>
+          n.localName === "CfdiRelacionado"
+        );
+
+      const uuidRelacionado =
+        rel
+          ? rel.getAttribute("UUID")
+          : null;
 
       if (!c || !e || !t) {
         throw new Error("CFDI incompleto");
       }
 
-      if (c.getAttribute("TipoDeComprobante") !== "E") {
-        throw new Error("No es Nota de Crédito");
+      if (
+        c.getAttribute("TipoDeComprobante") !== "E"
+      ) {
+        throw new Error(
+          "No es Nota de Crédito"
+        );
       }
-
-      const fecha = new Date(c.getAttribute("Fecha"));
 
       if (!uuidRelacionado) {
-        throw new Error("NC sin CFDI de ingreso relacionado");
+        throw new Error(
+          "NC sin CFDI relacionado"
+        );
       }
 
-      archivosDatos.push({
-        uuid_cfdi: t.getAttribute("UUID"),
-        uuid_ingreso_relacionado: uuidRelacionado,
+      const fecha = new Date(
+        c.getAttribute("Fecha")
+      );
 
-        fecha_emision: c.getAttribute("Fecha"),
-        fecha_certificacion: t.getAttribute("FechaTimbrado"),
+      archivosDatos.push({
+
+        uuid_cfdi:
+          t.getAttribute("UUID"),
+
+        uuid_ingreso_relacionado:
+          uuidRelacionado,
+
+        fecha_emision:
+          c.getAttribute("Fecha"),
+
+        fecha_certificacion:
+          t.getAttribute("FechaTimbrado"),
+
         fecha_cancelacion: null,
 
-        subtotal: parseFloat(c.getAttribute("SubTotal")),
-        total_iva: totalIVA,
-        total_ieps: totalImpuestosSAT,
-        monto_total: parseFloat(c.getAttribute("Total")),
+        subtotal:
+          parseFloat(
+            c.getAttribute("SubTotal")
+          ),
 
-        impuestos_json: impuestosDetalle,
+        total_iva:
+          totalIVA,
 
-        moneda: c.getAttribute("Moneda"),
+        total_ieps:
+          totalImpuestosSAT,
+
+        monto_total:
+          parseFloat(
+            c.getAttribute("Total")
+          ),
+
+        impuestos_json:
+          impuestosDetalle,
+
+        moneda:
+          c.getAttribute("Moneda"),
+
         tipo_comprobante: "E",
+
         estatus: 1,
 
-        periodo_anio: fecha.getFullYear(),
-        periodo_mes: fecha.getMonth() + 1,
+        periodo_anio:
+          fecha.getFullYear(),
 
-        rfc_emisor: e.getAttribute("Rfc"),
-        rfc_receptor: r ? r.getAttribute("Rfc") : null,
+        periodo_mes:
+          fecha.getMonth() + 1,
 
-        archivo_xml: file.name
+        rfc_emisor:
+          e.getAttribute("Rfc"),
+
+        rfc_receptor:
+          r
+            ? r.getAttribute("Rfc")
+            : null,
+
+        archivo_xml:
+          file.name
       });
 
-      const li = document.createElement("li");
-      li.dataset.uuid = t.getAttribute("UUID");
-      li.innerHTML = `<b>${t.getAttribute("UUID")}</b> <span class="pending">→ Lista</span>`;
+      const li =
+        document.createElement("li");
+
+      li.dataset.uuid =
+        t.getAttribute("UUID");
+
+      li.innerHTML =
+        `<b>${t.getAttribute("UUID")}</b> <span class="pending">→ Lista</span>`;
+
       lista.appendChild(li);
 
     } catch (err) {
+
       console.error(file.name, err);
-      lista.innerHTML += `<li class="err">${file.name} → ${err.message}</li>`;
+
+      lista.innerHTML +=
+        `<li class="err">${file.name} → ${err.message}</li>`;
     }
   }
 });
 
-document.getElementById("btnProcesar").addEventListener("click", procesarArchivos);
+document
+  .getElementById("btnProcesar")
+  .addEventListener(
+    "click",
+    procesarArchivos
+  );
 
 async function procesarArchivos() {
-  const bar = document.getElementById("progreso");
-  const total = archivosDatos.length;
+
+  const bar =
+    document.getElementById("progreso");
+
+  const total =
+    archivosDatos.length;
+
   const LOTE = 5;
+
   let procesados = 0;
 
   if (!total) {
-    alert("No hay archivos válidos para procesar.");
+
+    alert(
+      "No hay archivos válidos."
+    );
+
     return;
   }
 
-  for (let i = 0; i < total; i += LOTE) {
-    const bloque = archivosDatos.slice(i, i + LOTE);
+  for (
+    let i = 0;
+    i < total;
+    i += LOTE
+  ) {
 
-    await new Promise(r => setTimeout(r, 0));
+    const bloque =
+      archivosDatos.slice(
+        i,
+        i + LOTE
+      );
+
+    await new Promise(
+      r => setTimeout(r, 0)
+    );
 
     await Promise.all(
-      bloque.map(async d => {
-        const li = document.querySelector(`li[data-uuid="${d.uuid_cfdi}"]`);
-        const span = li.querySelector("span");
 
-        span.textContent = "⏳ Subiendo...";
-        span.className = "pending";
+      bloque.map(async d => {
+
+        const li =
+          document.querySelector(
+            `li[data-uuid="${d.uuid_cfdi}"]`
+          );
+
+        const span =
+          li.querySelector("span");
+
+        span.textContent =
+          "⏳ Subiendo...";
+
+        span.className =
+          "pending";
 
         try {
+
           const r = await fetch(
+
             `${SUPABASE_URL}/rest/v1/notas_credito_pdd_v2?on_conflict=uuid_cfdi`,
+
             {
               method: "POST",
+
               headers: {
-                apikey: SUPABASE_KEY,
-                Authorization: `Bearer ${SUPABASE_KEY}`,
-                "Content-Type": "application/json",
-                "Prefer": "resolution=merge-duplicates"
+
+                apikey:
+                  SUPABASE_KEY,
+
+                Authorization:
+                  `Bearer ${SUPABASE_KEY}`,
+
+                "Content-Type":
+                  "application/json",
+
+                "Prefer":
+                  "resolution=merge-duplicates"
               },
-              body: JSON.stringify(d)
+
+              body:
+                JSON.stringify(d)
             }
           );
 
           if (r.status === 201) {
-            span.textContent = "✅ Insertado";
-            span.className = "ok";
 
-          } else if (r.status === 204) {
-            span.textContent = "✔ Ya existía";
-            span.className = "warn";
+            span.textContent =
+              "✅ Insertado";
 
-          } else if (r.status === 200) {
-            span.textContent = "✔ Procesado";
-            span.className = "ok";
+            span.className =
+              "ok";
+
+          } else if (
+            r.status === 204
+          ) {
+
+            span.textContent =
+              "✔ Ya existía";
+
+            span.className =
+              "warn";
+
+          } else if (
+            r.status === 200
+          ) {
+
+            span.textContent =
+              "✔ Procesado";
+
+            span.className =
+              "ok";
 
           } else {
-            span.textContent = `❌ Error (${r.status})`;
-            span.className = "err";
 
-            const errorTexto = await r.text();
-            document.getElementById("bitacora").textContent +=
+            span.textContent =
+              `❌ Error (${r.status})`;
+
+            span.className =
+              "err";
+
+            const errorTexto =
+              await r.text();
+
+            document.getElementById(
+              "bitacora"
+            ).textContent +=
+
               `\n${d.uuid_cfdi} → ERROR ${r.status}\n${errorTexto}\n`;
           }
 
         } catch (e) {
-          span.textContent = "❌ Red";
-          span.className = "err";
 
-          document.getElementById("bitacora").textContent +=
-            `\n${d.uuid_cfdi} → ERROR DE RED\n${e.message}\n`;
+          span.textContent =
+            "❌ Red";
+
+          span.className =
+            "err";
+
+          document.getElementById(
+            "bitacora"
+          ).textContent +=
+
+            `\n${d.uuid_cfdi} → ERROR RED\n${e.message}\n`;
         }
 
         procesados++;
-        bar.style.width = Math.round((procesados / total) * 100) + "%";
+
+        bar.style.width =
+          Math.round(
+            (procesados / total) * 100
+          ) + "%";
       })
     );
   }
 
   bar.style.width = "100%";
 }
-</script>
 
+</script>
 <footer style="margin-top:40px;padding:10px;text-align:center;font-size:13px;color:#555;border-top:1px solid #ccc;">
   ⚙️ POWERED BY <b>PROVSOFT</b> · 2026 250526 · Sistema de integración CFDI 4.0
 </footer>
