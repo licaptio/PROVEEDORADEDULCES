@@ -3,391 +3,1006 @@
 <head>
   <meta charset="UTF-8">
   <title>Carga de XML – Ingresos PDD (Depurado)</title>
+
   <style>
-    body { font-family: Arial; padding: 20px; background: #f9f9f9; color:#111; }
-    h2 { color: #00416A; }
-    ul { padding: 0; list-style: none; }
-    li { margin-bottom: 6px; font-size: 14px; }
-    .ok { color: green; }
-    .warn { color: orange; }
-    .err { color: red; }
-    .pending { color: blue; }
-    pre { background:#eee; padding:10px; max-height:240px; overflow:auto; font-size:13px; }
-    .progress-bar { width:100%; background:#ddd; border-radius:4px; overflow:hidden; height:16px; margin-top:6px; }
-    .progress-bar div { height:100%; width:0%; background:#0c6cbd; transition:width 0.3s ease; }
+    body{
+      font-family:Arial;
+      padding:20px;
+      background:#f9f9f9;
+      color:#111;
+    }
+
+    h2{
+      color:#00416A;
+    }
+
+    ul{
+      padding:0;
+      list-style:none;
+    }
+
+    li{
+      margin-bottom:6px;
+      font-size:14px;
+    }
+
+    .ok{
+      color:green;
+    }
+
+    .warn{
+      color:orange;
+    }
+
+    .err{
+      color:red;
+    }
+
+    .pending{
+      color:blue;
+    }
+
+    pre{
+      background:#eee;
+      padding:10px;
+      max-height:240px;
+      overflow:auto;
+      font-size:13px;
+    }
+
+    .progress-bar{
+      width:100%;
+      background:#ddd;
+      border-radius:4px;
+      overflow:hidden;
+      height:16px;
+      margin-top:6px;
+    }
+
+    .progress-bar div{
+      height:100%;
+      width:0%;
+      background:#0c6cbd;
+      transition:width 0.3s ease;
+    }
   </style>
 </head>
+
 <body>
-  <h2>Subir CFDI válidos (tipo I, emisor PDD031204KL5, sin nómina/egreso/carta porte/pago)</h2>
-  <input type="file" id="xmlInput" accept=".xml" multiple>
-  <button onclick="procesarArchivos()">Procesar y Subir</button>
 
-  <div class="progress-bar"><div id="progreso"></div></div>
-  <h3>Archivos</h3>
-  <ul id="archivoList"></ul>
-  <h3>Bitácora</h3>
-  <pre id="bitacora"></pre>
+<h2>
+  Subir CFDI válidos
+  (tipo I, emisor PDD031204KL5,
+  sin nómina/egreso/carta porte/pago)
+</h2>
 
-  <script>
-    const SUPABASE_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
-    const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
-    let archivosDatos = [];
+<input type="file" id="xmlInput" accept=".xml" multiple>
+<button onclick="procesarArchivos()">
+  Procesar y Subir
+</button>
 
-    document.getElementById("xmlInput").addEventListener("change", async function () {
-      const lista = document.getElementById("archivoList");
-      lista.innerHTML = "";
-      archivosDatos = [];
+<div class="progress-bar">
+  <div id="progreso"></div>
+</div>
 
-      for (const file of this.files) {
-        try {
-          const text = await file.text();
-          const parser = new DOMParser();
-          const xml = parser.parseFromString(text, "application/xml");
-          const parserError = xml.getElementsByTagName("parsererror");
-if (parserError.length > 0) {
-  throw new Error("XML inválido o corrupto");
-}
-          const cfdiNS = "http://www.sat.gob.mx/cfd/4";
-          const comprobante = xml.getElementsByTagNameNS(cfdiNS, "Comprobante")[0];
-          const emisor = xml.getElementsByTagNameNS(cfdiNS, "Emisor")[0];
-          const receptor = xml.getElementsByTagNameNS(cfdiNS, "Receptor")[0];
+<h3>Archivos</h3>
+<ul id="archivoList"></ul>
 
-          // Timbre Fiscal Digital
-          let timbre = null;
-          for (const node of xml.getElementsByTagName("*")) {
-            if (node.localName === "TimbreFiscalDigital") {
-              timbre = node;
-              break;
-            }
+<h3>Bitácora</h3>
+<pre id="bitacora"></pre>
+
+
+<script type="module">
+
+// ======================================
+// IMPORTAR CONFIG EXTERNA
+// ======================================
+
+import {
+  firebaseConfig,
+  SUPABASE_CONFIG
+} from "./config.js";
+
+
+// ======================================
+// FIREBASE
+// ======================================
+
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getFirestore
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+// ======================================
+// SUPABASE CONFIG
+// ======================================
+
+const SUPABASE_URL = SUPABASE_CONFIG.url;
+const API_KEY = SUPABASE_CONFIG.anonKey;
+
+
+// ======================================
+// VARIABLES
+// ======================================
+
+let archivosDatos = [];
+
+
+// ======================================
+// CARGA DE XML
+// ======================================
+
+document.getElementById("xmlInput")
+.addEventListener("change", async function () {
+
+  const lista = document.getElementById("archivoList");
+
+  lista.innerHTML = "";
+
+  archivosDatos = [];
+
+  for (const file of this.files) {
+
+    try {
+
+      const text = await file.text();
+
+      const parser = new DOMParser();
+
+      const xml = parser.parseFromString(
+        text,
+        "application/xml"
+      );
+
+      const parserError =
+        xml.getElementsByTagName("parsererror");
+
+      if (parserError.length > 0) {
+        throw new Error("XML inválido o corrupto");
+      }
+
+      const cfdiNS =
+        "http://www.sat.gob.mx/cfd/4";
+
+      const comprobante =
+        xml.getElementsByTagNameNS(
+          cfdiNS,
+          "Comprobante"
+        )[0];
+
+      const emisor =
+        xml.getElementsByTagNameNS(
+          cfdiNS,
+          "Emisor"
+        )[0];
+
+      const receptor =
+        xml.getElementsByTagNameNS(
+          cfdiNS,
+          "Receptor"
+        )[0];
+
+
+
+      // ======================================
+      // TIMBRE
+      // ======================================
+
+      let timbre = null;
+
+      for (const node of xml.getElementsByTagName("*")) {
+
+        if (node.localName === "TimbreFiscalDigital") {
+          timbre = node;
+          break;
+        }
+
+      }
+
+
+      const uuid =
+        timbre?.getAttribute("UUID")
+        ?.toUpperCase()
+        .trim() || "";
+
+      const tipo =
+        comprobante?.getAttribute(
+          "TipoDeComprobante"
+        )?.trim() || "";
+
+      const emisorRFC =
+        emisor?.getAttribute("Rfc")
+        ?.toUpperCase()
+        .trim() || "";
+
+
+      // ======================================
+      // VALIDAR COMPLEMENTOS
+      // ======================================
+
+      let tieneExcluido = false;
+
+      const complementos =
+        xml.getElementsByTagNameNS(
+          cfdiNS,
+          "Complemento"
+        );
+
+      if (complementos.length > 0) {
+
+        const hijos = complementos[0].children;
+
+        for (const h of hijos) {
+
+          const nombre =
+            h.localName.toUpperCase();
+
+          if (
+            nombre.includes("NOMINA") ||
+            nombre.includes("CARTAPORTE") ||
+            nombre.includes("PAGOS")
+          ) {
+            tieneExcluido = true;
+            break;
           }
-
-          const uuid = timbre?.getAttribute("UUID")?.toUpperCase().trim() || "";
-          const tipo = comprobante?.getAttribute("TipoDeComprobante")?.trim() || "";
-          const emisorRFC = emisor?.getAttribute("Rfc")?.toUpperCase().trim() || "";
-
-          // Validar complementos
-          let tieneExcluido = false;
-          const complementos = xml.getElementsByTagNameNS(cfdiNS, "Complemento");
-          if (complementos.length > 0) {
-            const hijos = complementos[0].children;
-            for (const h of hijos) {
-              const nombre = h.localName.toUpperCase();
-              if (nombre.includes("NOMINA") || nombre.includes("CARTAPORTE") || nombre.includes("PAGOS")) {
-                tieneExcluido = true;
-                break;
-              }
-            }
-          }
-
-          // Validaciones
-          let valido = true, motivo = "";
-          if (!uuid || uuid.length < 10) { valido = false; motivo = "sin UUID"; }
-          else if (archivosDatos.some(a => a.uuid === uuid)) { valido = false; motivo = "duplicado en lote"; }
-          else if (tipo !== "I") { valido = false; motivo = `tipo ${tipo}`; }
-          else if (emisorRFC !== "PDD031204KL5") { valido = false; motivo = `emisor ${emisorRFC}`; }
-          else if (tieneExcluido) { valido = false; motivo = "complemento o tipo excluido"; }
-
-          if (!valido) {
-            const li = document.createElement("li");
-            li.dataset.uuid = uuid;
-            li.innerHTML = `❌ <b>${file.name}</b> <span class="err">→ Rechazado (${motivo})</span>`;
-            lista.appendChild(li);
-            continue;
-          }
-
-          // Datos base CFDI
-          const receptorRFC = receptor?.getAttribute("Rfc")?.toUpperCase().trim() || "";
-          const receptorNombre = receptor?.getAttribute("Nombre") || "";
-          const razonSocial = emisor?.getAttribute("Nombre") || "";
-          const folio = comprobante?.getAttribute("Folio") || "";
-          const serie = comprobante?.getAttribute("Serie") || "";
-          const total = parseFloat(comprobante?.getAttribute("Total")) || 0;
-          const subtotal = parseFloat(comprobante?.getAttribute("SubTotal")) || 0;
-          const descuento = parseFloat(comprobante?.getAttribute("Descuento")) || 0;
-          const moneda = comprobante?.getAttribute("Moneda") || "";
-          const formaPago = comprobante?.getAttribute("FormaPago") || "";
-          const metodoPago = comprobante?.getAttribute("MetodoPago") || "";
-          const usoCFDI = receptor?.getAttribute("UsoCFDI") || "";
-          const fecha = comprobante?.getAttribute("Fecha") || "";
-          const fechaTimbrado = timbre?.getAttribute("FechaTimbrado") || "";
-          const selloSAT = timbre?.getAttribute("SelloSAT") || "";
-          const noCertificadoSAT = timbre?.getAttribute("NoCertificadoSAT") || "";
-
-// Identificar tipo de factura SOLO por InformacionGlobal
-const infoGlobal = xml.getElementsByTagNameNS(cfdiNS, "InformacionGlobal")[0];
-
-let tipoFactura = "INDIVIDUAL";
-let periodoMes = null;
-let periodoAnio = null;
-
-if (infoGlobal) {
-  tipoFactura = "GLOBAL";
-
-  periodoMes =
-    infoGlobal.getAttribute("Meses") ||
-    infoGlobal.getAttribute("meses") ||
-    infoGlobal.getAttribute("Mes") ||
-    infoGlobal.getAttribute("mes") ||
-    null;
-
-  periodoAnio =
-    infoGlobal.getAttribute("Año") ||
-    infoGlobal.getAttribute("Anio") ||
-    infoGlobal.getAttribute("Ano") ||
-    infoGlobal.getAttribute("ANO") ||
-    infoGlobal.getAttribute("anio") ||
-    infoGlobal.getAttribute("año") ||
-    null;
-}
- 
-  if (tipoFactura === "GLOBAL" && (!periodoMes || !periodoAnio)) {
-  valido = false;
-  motivo = "GLOBAL sin InformacionGlobal completa (Mes/Año)";
-}         
-if (!valido) {
-  const li = document.createElement("li");
-  li.dataset.uuid = uuid;
-  li.innerHTML = `❌ <b>${file.name}</b> <span class="err">→ Rechazado (${motivo})</span>`;
-  lista.appendChild(li);
-  continue;
-}
-          
-           // Conceptos e impuestos
-          const conceptos = [];
-          const ivaDetalle = [];
-          const iepsDetalle = [];
-          let totalIVA = 0, totalIEPS = 0;
-
-          for (const c of xml.getElementsByTagNameNS(cfdiNS, "Concepto")) {
-            const cantidad = parseFloat(c.getAttribute("Cantidad")) || 0;
-            const descripcion = c.getAttribute("Descripcion") || "";
-            const claveProdServ = c.getAttribute("ClaveProdServ") || "";
-            const valorUnitario = parseFloat(c.getAttribute("ValorUnitario")) || 0;
-            const importe = parseFloat(c.getAttribute("Importe")) || 0;
-
-            const impuestos = [];
-            for (const t of c.getElementsByTagNameNS(cfdiNS, "Traslado")) {
-              const imp = {
-                impuesto: t.getAttribute("Impuesto"),
-                tipoFactor: t.getAttribute("TipoFactor"),
-                tasaOCuota: parseFloat(t.getAttribute("TasaOCuota")) || 0,
-                importe: parseFloat(t.getAttribute("Importe")) || 0,
-              };
-              impuestos.push(imp);
-              if (imp.impuesto === "002") { ivaDetalle.push(imp); totalIVA += imp.importe; }
-              if (imp.impuesto === "003") { iepsDetalle.push(imp); totalIEPS += imp.importe; }
-            }
-
-            conceptos.push({ cantidad, descripcion, claveProdServ, valorUnitario, importe, impuestos });
-          }
-
-          archivosDatos.push({
-            uuid,
-            fecha,
-            periodoMes,
-            periodoAnio,
-            tipoFactura,
-            emisorRFC,
-            razonSocial,
-            receptorRFC,
-            receptorNombre,
-            folio,
-            serie,
-            subtotal,
-            descuento,
-            total,
-            moneda,
-            formaPago,
-            metodoPago,
-            usoCFDI,
-            selloSAT,
-            noCertificadoSAT,
-            fecha_certificacion: fechaTimbrado,
-            totalIVA,
-            totalIEPS,
-            ivaDetalle,
-            iepsDetalle,
-            conceptos
-          });
-
-          const li = document.createElement("li");
-          li.dataset.uuid = uuid;
-          li.innerHTML = `📄 <b>${uuid}</b> <span class="pending">→ Precargado (${tipoFactura})</span>`;
-          lista.appendChild(li);
-
-        } catch (err) {
-          const li = document.createElement("li");
-          li.innerHTML = `❌ <b>${file.name}</b> <span class="err">→ Error al leer (${err.message})</span>`;
-          lista.appendChild(li);
         }
       }
-    });
-async function insertarCFDIConReintento(data, reintentos = 2) {
+
+
+      // ======================================
+      // VALIDACIONES
+      // ======================================
+
+      let valido = true;
+      let motivo = "";
+
+      if (!uuid || uuid.length < 10) {
+        valido = false;
+        motivo = "sin UUID";
+      }
+
+      else if (
+        archivosDatos.some(a => a.uuid === uuid)
+      ) {
+        valido = false;
+        motivo = "duplicado en lote";
+      }
+
+      else if (tipo !== "I") {
+        valido = false;
+        motivo = `tipo ${tipo}`;
+      }
+
+      else if (
+        emisorRFC !== "PDD031204KL5"
+      ) {
+        valido = false;
+        motivo = `emisor ${emisorRFC}`;
+      }
+
+      else if (tieneExcluido) {
+        valido = false;
+        motivo = "complemento excluido";
+      }
+
+
+      if (!valido) {
+
+        const li = document.createElement("li");
+
+        li.dataset.uuid = uuid;
+
+        li.innerHTML =
+          `❌ <b>${file.name}</b>
+          <span class="err">
+          → Rechazado (${motivo})
+          </span>`;
+
+        lista.appendChild(li);
+
+        continue;
+      }
+
+
+      // ======================================
+      // DATOS CFDI
+      // ======================================
+
+      const receptorRFC =
+        receptor?.getAttribute("Rfc")
+        ?.toUpperCase()
+        .trim() || "";
+
+      const receptorNombre =
+        receptor?.getAttribute("Nombre") || "";
+
+      const razonSocial =
+        emisor?.getAttribute("Nombre") || "";
+
+      const folio =
+        comprobante?.getAttribute("Folio") || "";
+
+      const serie =
+        comprobante?.getAttribute("Serie") || "";
+
+      const total =
+        parseFloat(
+          comprobante?.getAttribute("Total")
+        ) || 0;
+
+      const subtotal =
+        parseFloat(
+          comprobante?.getAttribute("SubTotal")
+        ) || 0;
+
+      const descuento =
+        parseFloat(
+          comprobante?.getAttribute("Descuento")
+        ) || 0;
+
+      const moneda =
+        comprobante?.getAttribute("Moneda") || "";
+
+      const formaPago =
+        comprobante?.getAttribute("FormaPago") || "";
+
+      const metodoPago =
+        comprobante?.getAttribute("MetodoPago") || "";
+
+      const usoCFDI =
+        receptor?.getAttribute("UsoCFDI") || "";
+
+      const fecha =
+        comprobante?.getAttribute("Fecha") || "";
+
+      const fechaTimbrado =
+        timbre?.getAttribute("FechaTimbrado") || "";
+
+      const selloSAT =
+        timbre?.getAttribute("SelloSAT") || "";
+
+      const noCertificadoSAT =
+        timbre?.getAttribute(
+          "NoCertificadoSAT"
+        ) || "";
+
+
+      // ======================================
+      // FACTURA GLOBAL
+      // ======================================
+
+      const infoGlobal =
+        xml.getElementsByTagNameNS(
+          cfdiNS,
+          "InformacionGlobal"
+        )[0];
+
+      let tipoFactura = "INDIVIDUAL";
+
+      let periodoMes = null;
+
+      let periodoAnio = null;
+
+      if (infoGlobal) {
+
+        tipoFactura = "GLOBAL";
+
+        periodoMes =
+          infoGlobal.getAttribute("Meses") ||
+          infoGlobal.getAttribute("meses") ||
+          infoGlobal.getAttribute("Mes") ||
+          infoGlobal.getAttribute("mes") ||
+          null;
+
+        periodoAnio =
+          infoGlobal.getAttribute("Año") ||
+          infoGlobal.getAttribute("Anio") ||
+          infoGlobal.getAttribute("Ano") ||
+          infoGlobal.getAttribute("anio") ||
+          null;
+      }
+
+      if (
+        tipoFactura === "GLOBAL" &&
+        (!periodoMes || !periodoAnio)
+      ) {
+
+        valido = false;
+
+        motivo =
+          "GLOBAL sin InformacionGlobal";
+      }
+
+
+      if (!valido) {
+
+        const li = document.createElement("li");
+
+        li.dataset.uuid = uuid;
+
+        li.innerHTML =
+          `❌ <b>${file.name}</b>
+          <span class="err">
+          → Rechazado (${motivo})
+          </span>`;
+
+        lista.appendChild(li);
+
+        continue;
+      }
+
+
+      // ======================================
+      // CONCEPTOS
+      // ======================================
+
+      const conceptos = [];
+
+      const ivaDetalle = [];
+
+      const iepsDetalle = [];
+
+      let totalIVA = 0;
+
+      let totalIEPS = 0;
+
+
+      for (
+        const c of
+        xml.getElementsByTagNameNS(
+          cfdiNS,
+          "Concepto"
+        )
+      ) {
+
+        const cantidad =
+          parseFloat(
+            c.getAttribute("Cantidad")
+          ) || 0;
+
+        const descripcion =
+          c.getAttribute("Descripcion") || "";
+
+        const claveProdServ =
+          c.getAttribute("ClaveProdServ") || "";
+
+        const valorUnitario =
+          parseFloat(
+            c.getAttribute("ValorUnitario")
+          ) || 0;
+
+        const importe =
+          parseFloat(
+            c.getAttribute("Importe")
+          ) || 0;
+
+
+        const impuestos = [];
+
+        for (
+          const t of
+          c.getElementsByTagNameNS(
+            cfdiNS,
+            "Traslado"
+          )
+        ) {
+
+          const imp = {
+
+            impuesto:
+              t.getAttribute("Impuesto"),
+
+            tipoFactor:
+              t.getAttribute("TipoFactor"),
+
+            tasaOCuota:
+              parseFloat(
+                t.getAttribute("TasaOCuota")
+              ) || 0,
+
+            importe:
+              parseFloat(
+                t.getAttribute("Importe")
+              ) || 0
+          };
+
+          impuestos.push(imp);
+
+          if (imp.impuesto === "002") {
+            ivaDetalle.push(imp);
+            totalIVA += imp.importe;
+          }
+
+          if (imp.impuesto === "003") {
+            iepsDetalle.push(imp);
+            totalIEPS += imp.importe;
+          }
+        }
+
+
+        conceptos.push({
+          cantidad,
+          descripcion,
+          claveProdServ,
+          valorUnitario,
+          importe,
+          impuestos
+        });
+      }
+
+
+      // ======================================
+      // AGREGAR AL LOTE
+      // ======================================
+
+      archivosDatos.push({
+
+        uuid,
+        fecha,
+
+        periodoMes,
+        periodoAnio,
+
+        tipoFactura,
+
+        emisorRFC,
+
+        razonSocial,
+
+        receptorRFC,
+        receptorNombre,
+
+        folio,
+        serie,
+
+        subtotal,
+        descuento,
+        total,
+
+        moneda,
+
+        formaPago,
+        metodoPago,
+        usoCFDI,
+
+        selloSAT,
+        noCertificadoSAT,
+
+        fecha_certificacion:
+          fechaTimbrado,
+
+        totalIVA,
+        totalIEPS,
+
+        ivaDetalle,
+        iepsDetalle,
+
+        conceptos
+      });
+
+
+      const li =
+        document.createElement("li");
+
+      li.dataset.uuid = uuid;
+
+      li.innerHTML =
+        `📄 <b>${uuid}</b>
+        <span class="pending">
+        → Precargado (${tipoFactura})
+        </span>`;
+
+      lista.appendChild(li);
+
+    }
+
+    catch (err) {
+
+      const li =
+        document.createElement("li");
+
+      li.innerHTML =
+        `❌ <b>${file.name}</b>
+        <span class="err">
+        → Error al leer (${err.message})
+        </span>`;
+
+      lista.appendChild(li);
+    }
+  }
+});
+
+
+// ======================================
+// INSERTAR CFDI
+// ======================================
+
+async function insertarCFDIConReintento(
+  data,
+  reintentos = 2
+) {
+
   let ultimoError = null;
 
-  for (let intento = 1; intento <= reintentos; intento++) {
+  for (
+    let intento = 1;
+    intento <= reintentos;
+    intento++
+  ) {
+
     try {
-      const resp = await fetch(`${SUPABASE_URL}/rest/v1/ingresos_pdd`, {
-        method: "POST",
-        headers: {
-          apikey: API_KEY,
-          Authorization: `Bearer ${API_KEY}`,
-          "Content-Type": "application/json",
-          "Prefer": "return=minimal"
-        },
-        body: JSON.stringify({
-          uuid_cfdi: data.uuid,
-          fecha: data.fecha,
-          periodo_mes: data.periodoMes,
-          periodo_anio: data.periodoAnio,
-          tipo_factura: data.tipoFactura,
-          rfc_emisor: data.emisorRFC,
-          razon_social_emisor: data.razonSocial,
-          rfc_receptor: data.receptorRFC,
-          razon_social_receptor: data.receptorNombre,
-          folio: data.folio,
-          serie: data.serie,
-          subtotal: data.subtotal,
-          descuento: data.descuento,
-          total: data.total,
-          moneda: data.moneda,
-          forma_pago: data.formaPago,
-          metodo_pago: data.metodoPago,
-          uso_cfdi: data.usoCFDI,
-          sello_sat: data.selloSAT,
-          no_certificado_sat: data.noCertificadoSAT,
-          fecha_certificacion: data.fecha_certificacion,
-          total_iva: data.totalIVA,
-          total_ieps: data.totalIEPS,
-          iva_detalle: data.ivaDetalle,
-          ieps_detalle: data.iepsDetalle,
-          conceptos: data.conceptos
-        })
-      });
+
+      const resp = await fetch(
+        `${SUPABASE_URL}/rest/v1/ingresos_pdd`,
+        {
+
+          method: "POST",
+
+          headers: {
+
+            apikey: API_KEY,
+
+            Authorization:
+              `Bearer ${API_KEY}`,
+
+            "Content-Type":
+              "application/json",
+
+            Prefer:
+              "return=minimal"
+          },
+
+          body: JSON.stringify({
+
+            uuid_cfdi: data.uuid,
+
+            fecha: data.fecha,
+
+            periodo_mes:
+              data.periodoMes,
+
+            periodo_anio:
+              data.periodoAnio,
+
+            tipo_factura:
+              data.tipoFactura,
+
+            rfc_emisor:
+              data.emisorRFC,
+
+            razon_social_emisor:
+              data.razonSocial,
+
+            rfc_receptor:
+              data.receptorRFC,
+
+            razon_social_receptor:
+              data.receptorNombre,
+
+            folio:
+              data.folio,
+
+            serie:
+              data.serie,
+
+            subtotal:
+              data.subtotal,
+
+            descuento:
+              data.descuento,
+
+            total:
+              data.total,
+
+            moneda:
+              data.moneda,
+
+            forma_pago:
+              data.formaPago,
+
+            metodo_pago:
+              data.metodoPago,
+
+            uso_cfdi:
+              data.usoCFDI,
+
+            sello_sat:
+              data.selloSAT,
+
+            no_certificado_sat:
+              data.noCertificadoSAT,
+
+            fecha_certificacion:
+              data.fecha_certificacion,
+
+            total_iva:
+              data.totalIVA,
+
+            total_ieps:
+              data.totalIEPS,
+
+            iva_detalle:
+              data.ivaDetalle,
+
+            ieps_detalle:
+              data.iepsDetalle,
+
+            conceptos:
+              data.conceptos
+          })
+        }
+      );
 
       if (resp.ok) {
         return { ok: true };
       }
 
-      const errText = await resp.text();
+      const errText =
+        await resp.text();
+
       ultimoError = errText;
 
-      if (
-        errText.includes("57014") ||
-        errText.toLowerCase().includes("statement timeout")
-      ) {
-        await new Promise(r => setTimeout(r, 2500 * intento));
-        continue;
-      }
+      return {
+        ok: false,
+        error: errText
+      };
 
-      return { ok: false, error: errText };
+    }
 
-    } catch (error) {
-      ultimoError = error.message;
-      await new Promise(r => setTimeout(r, 2000 * intento));
+    catch (error) {
+
+      ultimoError =
+        error.message;
+
+      await new Promise(
+        r => setTimeout(r, 2000)
+      );
     }
   }
 
-  return { ok: false, error: ultimoError || "Error desconocido al insertar" };
+  return {
+    ok: false,
+    error: ultimoError
+  };
 }
+
+
+// ======================================
+// PROCESAR ARCHIVOS
+// ======================================
+
 async function procesarArchivos() {
-  const progreso = document.getElementById("progreso");
-  const totalArchivos = archivosDatos.length;
-  const loteTamaño = 10;           // ✅ tamaño del lote
-  const pausaEntreArchivos = 900;  // 0.5 s entre cada XML
-  const pausaEntreLotes = 3500;    // 2 s entre lotes
 
-  logBitacora(`🚀 Iniciando carga de ${totalArchivos} CFDI en lotes de ${loteTamaño}...`);
+  const progreso =
+    document.getElementById(
+      "progreso"
+    );
 
-  for (let inicio = 0; inicio < archivosDatos.length; inicio += loteTamaño) {
-    const lote = archivosDatos.slice(inicio, inicio + loteTamaño);
-    const numLote = Math.floor(inicio / loteTamaño) + 1;
-    const totalLotes = Math.ceil(totalArchivos / loteTamaño);
+  const totalArchivos =
+    archivosDatos.length;
 
-    logBitacora(`📦 Procesando lote ${numLote} de ${totalLotes} (${lote.length} archivos)...`);
+  const loteTamaño = 10;
+
+  const pausaEntreArchivos = 900;
+
+  const pausaEntreLotes = 3500;
+
+
+  logBitacora(
+    `🚀 Iniciando carga de ${totalArchivos} CFDI`
+  );
+
+
+  for (
+    let inicio = 0;
+    inicio < archivosDatos.length;
+    inicio += loteTamaño
+  ) {
+
+    const lote =
+      archivosDatos.slice(
+        inicio,
+        inicio + loteTamaño
+      );
+
 
     for (let i = 0; i < lote.length; i++) {
+
       const index = inicio + i;
+
       const data = lote[i];
-      const item = document.querySelector(`#archivoList li[data-uuid="${data.uuid}"]`);
+
+      const item =
+        document.querySelector(
+          `#archivoList li[data-uuid="${data.uuid}"]`
+        );
+
       if (!item) {
-        logBitacora(`⚠️ No se encontró elemento visual para UUID: ${data.uuid}`);
         continue;
       }
 
-      const avance = ((index + 1) / totalArchivos) * 100;
-      progreso.style.width = `${avance}%`;
-      logBitacora(`📄 Subiendo ${index + 1}/${totalArchivos} → UUID: ${data.uuid}`);
+      const avance =
+        ((index + 1) / totalArchivos)
+        * 100;
 
-try {
-// Verificar si ya existe el registro
-const existeResp = await fetch(
-  `${SUPABASE_URL}/rest/v1/ingresos_pdd?select=uuid_cfdi&uuid_cfdi=eq.${data.uuid}`,
-  {
-    headers: {
-      apikey: API_KEY,
-      Authorization: `Bearer ${API_KEY}`
-    }
-  }
-);
+      progreso.style.width =
+        `${avance}%`;
 
-if (!existeResp.ok) {
-  const err = await existeResp.text();
-  throw new Error(`Error verificando existencia: ${err}`);
-}
+      try {
 
-const yaExiste = await existeResp.json();
+        const existeResp =
+          await fetch(
 
-if (yaExiste.length > 0) {
-  item.querySelector("span").textContent = `⚠️ Ya existe`;
-  item.querySelector("span").className = "warn";
-  logBitacora(`⚠️ Ya existía: ${data.uuid}`);
-  continue;
-}        
-  
-// Insertar nuevo registro con reintento
-const resultadoInsert = await insertarCFDIConReintento(data, 2);
+          `${SUPABASE_URL}/rest/v1/ingresos_pdd?select=uuid_cfdi&uuid_cfdi=eq.${encodeURIComponent(data.uuid)}`,
 
-if (resultadoInsert.ok) {
-  item.querySelector("span").textContent = `✅ Subido`;
-  item.querySelector("span").className = "ok";
-  logBitacora(`✔️ Subida exitosa`);
-} else {
-  item.querySelector("span").textContent = `❌ Error: ${resultadoInsert.error}`;
-  item.querySelector("span").className = "err";
-  logBitacora(`❌ Error al subir: ${resultadoInsert.error}`);
-}
+          {
 
-      } catch (error) {
-        item.querySelector("span").textContent = `❌ Error de red`;
-        item.querySelector("span").className = "err";
-        logBitacora(`❌ Error de red: ${error.message}`);
+            headers: {
+
+              apikey: API_KEY,
+
+              Authorization:
+                `Bearer ${API_KEY}`
+            }
+          }
+        );
+
+
+        if (!existeResp.ok) {
+
+          const err =
+            await existeResp.text();
+
+          throw new Error(err);
+        }
+
+
+        const yaExiste =
+          await existeResp.json();
+
+
+        if (yaExiste.length > 0) {
+
+          item.querySelector("span")
+          .textContent =
+            `⚠️ Ya existe`;
+
+          item.querySelector("span")
+          .className = "warn";
+
+          continue;
+        }
+
+
+        const resultadoInsert =
+          await insertarCFDIConReintento(
+            data,
+            2
+          );
+
+
+        if (resultadoInsert.ok) {
+
+          item.querySelector("span")
+          .textContent =
+            `✅ Subido`;
+
+          item.querySelector("span")
+          .className = "ok";
+
+          logBitacora(
+            `✔️ ${data.uuid}`
+          );
+        }
+
+        else {
+
+          item.querySelector("span")
+          .textContent =
+            `❌ ${resultadoInsert.error}`;
+
+          item.querySelector("span")
+          .className = "err";
+
+          logBitacora(
+            `❌ ${resultadoInsert.error}`
+          );
+        }
+
       }
 
-      // ⏱️ pequeña pausa entre cada XML
-      await new Promise(r => setTimeout(r, pausaEntreArchivos));
+      catch (error) {
+
+        item.querySelector("span")
+        .textContent =
+          `❌ Error de red`;
+
+        item.querySelector("span")
+        .className = "err";
+
+        logBitacora(
+          `❌ ${error.message}`
+        );
+      }
+
+
+      await new Promise(
+        r => setTimeout(
+          r,
+          pausaEntreArchivos
+        )
+      );
     }
 
-    // 🕒 pausa entre lotes
-    if (inicio + loteTamaño < totalArchivos) {
-      logBitacora(`🕒 Esperando ${pausaEntreLotes / 1000} s antes del siguiente lote...`);
-      await new Promise(r => setTimeout(r, pausaEntreLotes));
+
+    if (
+      inicio + loteTamaño <
+      archivosDatos.length
+    ) {
+
+      await new Promise(
+        r => setTimeout(
+          r,
+          pausaEntreLotes
+        )
+      );
     }
   }
 
   progreso.style.width = `100%`;
-  logBitacora("✅ Proceso de carga terminado.");
+
+  logBitacora(
+    "✅ Proceso terminado"
+  );
 }
 
-    function logBitacora(mensaje) {
-      const log = document.getElementById("bitacora");
-      log.textContent += mensaje + "\n";
-      log.scrollTop = log.scrollHeight;
-    }
-  </script>
 
-  <footer style="margin-top:40px;padding:10px;text-align:center;font-size:13px;color:#555;border-top:1px solid #ccc;">
-    ⚙️ POWERED BY <b>PROVSOFT</b> · 2025 · Sistema de integración CFDI 4.0
-  </footer>
+// ======================================
+// BITÁCORA
+// ======================================
+
+function logBitacora(mensaje) {
+
+  const log =
+    document.getElementById(
+      "bitacora"
+    );
+
+  log.textContent +=
+    mensaje + "\n";
+
+  log.scrollTop =
+    log.scrollHeight;
+}
+
+window.procesarArchivos =
+  procesarArchivos;
+
+</script>
+
+
+<footer
+style="
+margin-top:40px;
+padding:10px;
+text-align:center;
+font-size:13px;
+color:#555;
+border-top:1px solid #ccc;
+">
+
+⚙️ POWERED BY
+<b>PROVSOFT</b>
+· 2025 · Sistema CFDI 4.0
+
+</footer>
+
 </body>
 </html>
