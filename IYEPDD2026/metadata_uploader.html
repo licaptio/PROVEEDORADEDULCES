@@ -48,9 +48,8 @@ button{
 
   <input type="file" id="fileInput" accept=".txt" multiple><br><br>
 
-  <button onclick="procesarArchivos()">Procesar archivos</button>
+  <button id="btnProcesar">Procesar archivos</button>
 
-  <!-- 🔵 BARRA DE PROGRESO -->
   <div style="margin-top:15px;">
     <div style="background:#ddd; border-radius:8px; overflow:hidden; height:18px;">
       <div id="progressBar"
@@ -66,15 +65,24 @@ button{
   <div id="log"></div>
 </div>
 
-<script>
+<script type="module">
+
+import {
+  supabaseUrl,
+  supabaseAnonKey
+} from "./config.js";
+
 // ================= CONFIG =================
 const SUPABASE_URL =
-  "https://cvpbtjlupswbyxenugpz.supabase.co/rest/v1/metadata_ingresos";
-const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY";
+  `${supabaseUrl}/rest/v1/metadata_ingresos`;
 
-// batch size ajustado para evitar timeout
+const ANON_KEY = supabaseAnonKey;
+
 const BATCH_SIZE = 150;
 // =========================================
+
+const btnProcesar = document.getElementById("btnProcesar");
+btnProcesar.addEventListener("click", procesarArchivos);
 
 function log(msg){
   document.getElementById("log").textContent += msg + "\n";
@@ -87,7 +95,6 @@ function setProgress(actual, total, extra=""){
     `${extra} ${actual}/${total} (${percent}%)`;
 }
 
-// 🔵 ENVÍO POR LOTE
 async function enviarLote(batch){
   const res = await fetch(
     SUPABASE_URL + "?on_conflict=uuid_cfdi",
@@ -109,9 +116,9 @@ async function enviarLote(batch){
   }
 }
 
-// 🔵 PROCESO PRINCIPAL
 async function procesarArchivos(){
   const input = document.getElementById("fileInput");
+
   if(!input.files.length){
     alert("Selecciona uno o más archivos TXT");
     return;
@@ -139,41 +146,37 @@ async function procesarArchivos(){
       const c = linea.split("~");
       if (c.length < 12) continue;
 
-const row = {
-  uuid_cfdi: c[0],
-  rfc_emisor: c[1],
-  nombre_emisor: c[2],
-  rfc_receptor: c[3],
-  nombre_receptor: c[4],
-  rfc_pac: c[5],
+      const row = {
+        uuid_cfdi: c[0],
+        rfc_emisor: c[1],
+        nombre_emisor: c[2],
+        rfc_receptor: c[3],
+        nombre_receptor: c[4],
+        rfc_pac: c[5],
 
-  fecha_emision: c[6] || null,
-  fecha_certificacion: c[7] || null,
-  fecha_cancelacion: c[11] || null,
+        fecha_emision: c[6] || null,
+        fecha_certificacion: c[7] || null,
+        fecha_cancelacion: c[11] || null,
 
-  monto: parseFloat(c[8] || "0"),
-  efecto_comprobante: c[9],
-  estatus: Number(c[10]),
+        monto: parseFloat(c[8] || "0"),
+        efecto_comprobante: c[9],
+        estatus: Number(c[10]),
 
-  periodo_anio: c[6] ? new Date(c[6]).getFullYear() : null,
-  periodo_mes: c[6] ? new Date(c[6]).getMonth() + 1 : null,
+        periodo_anio: null,
+        periodo_mes: null,
 
-  fuente: file.name,
-  cargado_en: new Date().toISOString(),
-  raw_line: linea
-};
-
+        fuente: file.name,
+        cargado_en: new Date().toISOString(),
+        raw_line: linea
+      };
 
       if (c[6]) {
-        row.fecha_emision = c[6];
         const d = new Date(c[6]);
         if (!isNaN(d)) {
           row.periodo_anio = d.getFullYear();
           row.periodo_mes = d.getMonth() + 1;
         }
       }
-      if (c[7]) row.fecha_certificacion = c[7];
-      if (c[11]) row.fecha_cancelacion = c[11];
 
       batch.push(row);
 
@@ -185,7 +188,6 @@ const row = {
       }
     }
 
-    // ✅ ENVIAR SOBRANTES (AQUÍ ES DONDE VA)
     if (batch.length){
       await enviarLote(batch);
       procesadas += batch.length;
