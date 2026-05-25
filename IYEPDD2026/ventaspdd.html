@@ -121,8 +121,8 @@ async function cargarDatos(){
     estado.innerText = `Cargando filas ${desde + 1} a ${desde + paso}…`;
 
     const { data, error } = await sb
-      .from("ingresos_pdd")
-      .select("id, serie, fecha, total")
+.from("v_ingresos_pdd_netos")
+.select("id, serie, fecha, total_neto")
       .eq("cancelado", false)
       .order("id", { ascending: true })
       .range(desde, desde + paso - 1);
@@ -180,7 +180,7 @@ function construirTabla(rows){
       mapa[serie][periodo] = 0;
     }
 
-    mapa[serie][periodo] += Number(r.total);
+    mapa[serie][periodo] += Number(r.total_neto);
   });
 
   const periodosOrdenados = Array.from(periodos).sort();
