@@ -13,7 +13,10 @@
     background:#f4f6f8;
     padding:20px;
   }
-  h2{ margin-bottom:10px; }
+
+  h2{
+    margin-bottom:10px;
+  }
 
   #estado{
     margin-bottom:10px;
@@ -26,12 +29,14 @@
     background:#fff;
     font-size:14px;
   }
+
   th, td{
     border:1px solid #ccc;
     padding:6px 8px;
     text-align:right;
     white-space: nowrap;
   }
+
   th{
     background:#0c6cbd;
     color:#fff;
@@ -39,6 +44,7 @@
     top: 0;
     z-index: 2;
   }
+
   th:first-child,
   td:first-child{
     text-align:left;
@@ -62,90 +68,117 @@
   <tbody></tbody>
 </table>
 
-<script>
+<script type="module">
+
+import {
+  supabaseUrl as SUPABASE_URL,
+  supabaseAnonKey as SUPABASE_KEY
+} from "./config.js";
+
 // ===============================
 // 🔹 CLIENTE SUPABASE
 // ===============================
+
 const sb = window.supabase.createClient(
-  'https://cvpbtjlupswbyxenugpz.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY'
+  SUPABASE_URL,
+  SUPABASE_KEY
 );
 
 // ===============================
 // 🔹 HARDCODE SERIES (PROVSOFT)
 // ===============================
+
 const SERIES = {
-  AM:  'ALLENDE I',
-  SAN: 'ALLENDE II',
-  GM:  'BODEGA 41',
-  LMN: 'MATRIZ',
-  LO:  'OSITO',
-  LP:  'CENTRAL',
-  LV:  'PROVILEON',
-  MM:  'MONTEMORELOS',
-  RVN: 'RIO VERDE',
-  PP:  'NO DEFINIDO',
-  RM1: 'RUTA MOVIL 1',
-  RM2: 'RUTA MOVIL 2'
+  AM:  "ALLENDE I",
+  SAN: "ALLENDE II",
+  GM:  "BODEGA 41",
+  LMN: "MATRIZ",
+  LO:  "OSITO",
+  LP:  "CENTRAL",
+  LV:  "PROVILEON",
+  MM:  "MONTEMORELOS",
+  RVN: "RIO VERDE",
+  PP:  "NO DEFINIDO",
+  RM1: "RUTA MOVIL 1",
+  RM2: "RUTA MOVIL 2"
 };
+
 // ===============================
 // 🔹 CARGA PAGINADA
 // ===============================
+
 async function cargarDatos(){
-  const estado = document.getElementById('estado');
+
+  const estado = document.getElementById("estado");
+
   let todos = [];
   let desde = 0;
+
   const paso = 1000;
 
   while (true) {
+
     estado.innerText = `Cargando filas ${desde + 1} a ${desde + paso}…`;
 
     const { data, error } = await sb
-.from('ingresos_pdd')
-.select('id, serie, fecha, total')
-.eq('cancelado', false)
-.order('id', { ascending: true })
-.range(desde, desde + paso - 1);
+      .from("ingresos_pdd")
+      .select("id, serie, fecha, total")
+      .eq("cancelado", false)
+      .order("id", { ascending: true })
+      .range(desde, desde + paso - 1);
 
     if (error) {
       console.error(error);
-      estado.innerText = '❌ Error cargando datos';
+      estado.innerText = "❌ Error cargando datos";
       return;
     }
 
-    if (!data || data.length === 0) break;
+    if (!data || data.length === 0) {
+      break;
+    }
 
     todos = todos.concat(data);
     desde += paso;
   }
 
   estado.innerText = `Procesando ${todos.length.toLocaleString()} registros…`;
+
   construirTabla(todos);
+
   estado.innerText = `Listo (${todos.length.toLocaleString()} registros)`;
 }
 
 // ===============================
 // 🔹 CONSTRUCCIÓN TABLA + TOTAL
 // ===============================
+
 function construirTabla(rows){
+
   const mapa = {};
   const periodos = new Set();
 
-  rows.forEach(r=>{
-    if(!r.fecha) return;
-    if(r.total == null) return;
+  rows.forEach(r => {
 
-    const codigoSerie = r.serie || 'PP';
-const serie = SERIES[codigoSerie] 
-  ? `${codigoSerie} - ${SERIES[codigoSerie]}`
-  : `${codigoSerie} - (NO DEFINIDA)`;
+    if (!r.fecha) return;
+    if (r.total == null) return;
 
-    const periodo = String(r.fecha).slice(0,7);
+    const codigoSerie = r.serie || "PP";
+
+    const serie = SERIES[codigoSerie]
+      ? `${codigoSerie} - ${SERIES[codigoSerie]}`
+      : `${codigoSerie} - (NO DEFINIDA)`;
+
+    const periodo = String(r.fecha).slice(0, 7);
 
     periodos.add(periodo);
 
-    if(!mapa[serie]) mapa[serie] = {};
-    if(!mapa[serie][periodo]) mapa[serie][periodo] = 0;
+    if (!mapa[serie]) {
+      mapa[serie] = {};
+    }
+
+    if (!mapa[serie][periodo]) {
+      mapa[serie][periodo] = 0;
+    }
 
     mapa[serie][periodo] += Number(r.total);
   });
@@ -153,59 +186,84 @@ const serie = SERIES[codigoSerie]
   const periodosOrdenados = Array.from(periodos).sort();
   const series = Object.keys(mapa).sort();
 
-  const thead = document.querySelector('#tabla thead');
-  const tbody = document.querySelector('#tabla tbody');
+  const thead = document.querySelector("#tabla thead");
+  const tbody = document.querySelector("#tabla tbody");
 
   thead.innerHTML =
     `<tr><th>serie</th>` +
-    periodosOrdenados.map(p=>`<th>${p}</th>`).join('') +
+    periodosOrdenados.map(p => `<th>${p}</th>`).join("") +
     `</tr>`;
 
-  tbody.innerHTML = '';
+  tbody.innerHTML = "";
 
   const totalesPorPeriodo = {};
 
-  // 🔹 Filas por serie
-  series.forEach(serie=>{
+  series.forEach(serie => {
+
     let fila = `<tr><td>${serie}</td>`;
-    periodosOrdenados.forEach(p=>{
+
+    periodosOrdenados.forEach(p => {
+
       const val = mapa[serie][p] || 0;
 
-      if(!totalesPorPeriodo[p]) totalesPorPeriodo[p] = 0;
+      if (!totalesPorPeriodo[p]) {
+        totalesPorPeriodo[p] = 0;
+      }
+
       totalesPorPeriodo[p] += val;
 
-      fila += `<td>${val ? formato(val) : ''}</td>`;
+      fila += `<td>${val ? formato(val) : ""}</td>`;
     });
+
     fila += `</tr>`;
-    tbody.insertAdjacentHTML('beforeend', fila);
+
+    tbody.insertAdjacentHTML("beforeend", fila);
   });
 
-  // 🔹 FILA TOTAL INGRESOS
-  let filaTotal = `<tr style="font-weight:bold;background:#dfe9f7;">
-    <td>TOTAL INGRESOS</td>`;
+  let filaTotal = `
+    <tr style="font-weight:bold;background:#dfe9f7;">
+      <td>TOTAL INGRESOS</td>
+  `;
 
-  periodosOrdenados.forEach(p=>{
+  periodosOrdenados.forEach(p => {
     filaTotal += `<td>${formato(totalesPorPeriodo[p] || 0)}</td>`;
   });
 
   filaTotal += `</tr>`;
-  tbody.insertAdjacentHTML('beforeend', filaTotal);
+
+  tbody.insertAdjacentHTML("beforeend", filaTotal);
 }
 
 // ===============================
 // 🔹 FORMATO MONEDA
 // ===============================
+
 function formato(n){
-  return n.toLocaleString('es-MX',{
-    minimumFractionDigits:2,
-    maximumFractionDigits:2
+
+  return n.toLocaleString("es-MX", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   });
 }
 
 // ===============================
-cargarDatos();
+// 🔹 INICIAR
 // ===============================
-</script>
 
+cargarDatos();
+
+</script>
+<footer style="
+  margin-top:40px;
+  padding:14px;
+  text-align:center;
+  font-size:13px;
+  color:#555;
+  border-top:1px solid #ccc;
+  background:#fff;
+  border-radius:10px;
+">
+  ⚙️ POWERED BY <b>PROVSOFT</b> · 2026 · Sistema de análisis histórico CFDI 4.0
+</footer>
 </body>
 </html>
