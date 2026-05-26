@@ -7,9 +7,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script src="./js/runtime.js"></script>
-<script src="./js/client.js"></script>
-
 <style>
 body{
   font-family: Arial, sans-serif;
@@ -69,28 +66,28 @@ button.nav{
   color:#fff;
   cursor:pointer;
 }
+
 table{
   width:100%;
   border-collapse:collapse;
   background:#fff;
   table-layout:fixed;
 }
-th:nth-child(1), td:nth-child(1){ width:70px; }   /* Fecha */
-th:nth-child(2), td:nth-child(2){ width:140px; }  /* UUID */
-th:nth-child(3), td:nth-child(3){ width:120px; }  /* RFC */
-th:nth-child(4), td:nth-child(4){ width:220px; }  /* Proveedor */
-th:nth-child(5), td:nth-child(5){ width:110px; }  /* Factura */
 
-/* 🔴 FIX CLAVE — TOTAL */
+th:nth-child(1), td:nth-child(1){ width:70px; }
+th:nth-child(2), td:nth-child(2){ width:140px; }
+th:nth-child(3), td:nth-child(3){ width:120px; }
+th:nth-child(4), td:nth-child(4){ width:220px; }
+th:nth-child(5), td:nth-child(5){ width:110px; }
+
 th:nth-child(6),
 td:nth-child(6){
-  width:120px;            /* ← SIN ESTO NO FUNCIONA */
+  width:120px;
   text-align:right;
   padding-right:6px;
   padding-left:2px;
 }
 
-/* Estilo del número */
 td.total-mx{
   font-size:135%;
   font-weight:600;
@@ -98,9 +95,9 @@ td.total-mx{
   font-variant-numeric:tabular-nums;
 }
 
-th:nth-child(7), td:nth-child(7){ width:80px; }   /* Física */
-th:nth-child(8), td:nth-child(8){ width:80px; }   /* Pagada */
-th:nth-child(9), td:nth-child(9){ width:50px; }   /* Foto */
+th:nth-child(7), td:nth-child(7){ width:80px; }
+th:nth-child(8), td:nth-child(8){ width:80px; }
+th:nth-child(9), td:nth-child(9){ width:50px; }
 
 tbody tr:hover{
   background:#f3f6fb;
@@ -134,15 +131,58 @@ tbody tr:hover{
 
 <div id="paginacionBottom" class="paginacion"></div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* =========================
+   CONFIGURACIÓN
+   ========================= */
+
+// 🔥 Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+// 🟢 Supabase
+const supabaseUrl =
+  "https://cvpbtjlupswbyxenugpz.supabase.co";
+
+const supabaseAnonKey =
+  "sb_publishable_SQ7Q5LFJqlxVzwNTxcIyzQ_8F1bqyiX";
+
+// ✅ Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+const firestoreDb = getFirestore(app);
+
+// ✅ Inicializar Supabase
+const db = supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+// ✅ Exponer por compatibilidad
+window.firebaseApp = app;
+window.firestoreDb = firestoreDb;
+window.db = db;
+
+/* =========================
+   APP
+   ========================= */
+
 const tabla = document.getElementById('tabla');
-const db = window.db;
-if (!db) {
-  tabla.innerHTML = '<tr><td colspan="9">No cargó db (runtime.js/client.js). Revisa rutas /js/</td></tr>';
-  throw new Error('db no inicializada: runtime.js/client.js no cargaron');
-}
 const pagTop = document.getElementById('paginacionTop');
 const pagBottom = document.getElementById('paginacionBottom');
+const rangoLbl = document.getElementById('rangoActual');
+
+let page = 0;
+const limit = 100;
+
+const hoy = new Date();
+const desde = new Date();
+desde.setDate(hoy.getDate() - 60);
 
 function renderPaginacion(){
   const html = `
@@ -154,45 +194,31 @@ function renderPaginacion(){
   pagBottom.innerHTML = html;
 }
 
-
-// ⚙️ CONFIG
-let page = 0;
-const limit = 100;
-
-const hoy = new Date();
-const desde = new Date();
-desde.setDate(hoy.getDate() - 60);
-
-
-
-const rangoLbl = document.getElementById('rangoActual');
-
-// 📥 CARGA PRINCIPAL
 async function load(){
   tabla.innerHTML = '<tr><td colspan="9">Cargando…</td></tr>';
   renderPaginacion();
 
-const { data, error } = await db
-  .from('deuda_limpia_pdd')
-  .select(`
-    id,
-    fecha,
-    uuid_cfdi,
-    rfc_emisor,
-    razon_social_emisor,
-    serie,
-    folio,
-    total,
-    factura_fisicamente,
-    factura_pagada,
-    fotos
-  `)
-  .gte('fecha', desde.toISOString())
-  .lte('fecha', hoy.toISOString())
-  .order('razon_social_emisor', { ascending: true })
-  .order('fecha', { ascending: true })
-  .order('id', { ascending: true })
-  .range(page * limit, page * limit + limit - 1);  // ← ESTO FALTABA
+  const { data, error } = await db
+    .from('deuda_limpia_pdd')
+    .select(`
+      id,
+      fecha,
+      uuid_cfdi,
+      rfc_emisor,
+      razon_social_emisor,
+      serie,
+      folio,
+      total,
+      factura_fisicamente,
+      factura_pagada,
+      fotos
+    `)
+    .gte('fecha', desde.toISOString())
+    .lte('fecha', hoy.toISOString())
+    .order('razon_social_emisor', { ascending: true })
+    .order('fecha', { ascending: true })
+    .order('id', { ascending: true })
+    .range(page * limit, page * limit + limit - 1);
 
   if(error){
     tabla.innerHTML = '<tr><td colspan="9">Error al cargar</td></tr>';
@@ -200,19 +226,16 @@ const { data, error } = await db
     return;
   }
 
-render(data || []);
-
+  render(data || []);
 }
 
-// 🖨️ RENDER
 function render(rows){
   tabla.innerHTML = '';
 
-  // 🔠 letras visibles reales
   const letrasSet = new Set();
 
   rows.forEach(r=>{
-const prov = (r.razon_social_emisor || '').trim();
+    const prov = (r.razon_social_emisor || '').trim();
 
     if(prov){
       let l = prov.charAt(0).toUpperCase();
@@ -222,112 +245,121 @@ const prov = (r.razon_social_emisor || '').trim();
   });
 
   const letras = Array.from(letrasSet).sort();
+
   rangoLbl.textContent = letras.length
     ? `ESTÁS EN: ${letras.join(' ')}`
     : '';
 
-  // 🧾 filas
+  if(!rows.length){
+    tabla.innerHTML = '<tr><td colspan="9">Sin registros</td></tr>';
+    return;
+  }
+
   rows.forEach(r=>{
-const provCompleto =
-  r.razon_social_emisor || 'SIN PROVEEDOR';
+    const provCompleto =
+      r.razon_social_emisor || 'SIN PROVEEDOR';
 
     const provCorto = cortarTexto(provCompleto, 25);
 
     const tr = document.createElement('tr');
+
     tr.innerHTML = `
-<td>${fmtFecha(r.fecha)}</td>
-<td>
-  ${r.uuid_cfdi ? `
-    <a
-      href="./detalle.html?uuid=${r.uuid_cfdi}"
-      target="_blank"
-      style="
-        color:#0c6cbd;
-        font-weight:bold;
-        text-decoration:none;
-      "
-      title="Ver factura CFDI"
-    >
-      ${r.uuid_cfdi.slice(0,18)}
-    </a>
-  ` : ''}
-</td>
+      <td>${fmtFecha(r.fecha)}</td>
 
-<td>${r.rfc_emisor || ''}</td>
-<td title="${escapeHtml(provCompleto)}">${provCorto}</td>
-<td>${(r.serie || '')}-${(r.folio || '')}</td>
-<td class="total-mx">${fmtMXN(r.total)}</td>
-
-<td>
-  <button class="btn ${r.factura_fisicamente === 'SI' ? 'verde' : 'rojo'}"
-    onclick="toggle(this,'${r.id}','factura_fisicamente')">
-    ${r.factura_fisicamente || 'NO'}
-  </button>
-</td>
-
-<td>
-  <button class="btn ${r.factura_pagada === 'SI' ? 'verde' : 'rojo'}"
-    onclick="toggle(this,'${r.id}','factura_pagada')">
-    ${r.factura_pagada || 'NO'}
-  </button>
-</td>
-
-<td class="fotos">
-  ${
-    Array.isArray(r.fotos) && r.fotos.length
-      ? r.fotos.map((url, i) => `
+      <td>
+        ${r.uuid_cfdi ? `
           <a
-            href="${url}"
+            href="./detalle_completo.html?uuid=${encodeURIComponent(r.uuid_cfdi)}"
             target="_blank"
-            title="Foto ${i + 1}"
-            style="margin-right:4px;text-decoration:none;"
-          >📷</a>
-        `).join('')
-      : ''
-  }
-</td>
+            style="
+              color:#0c6cbd;
+              font-weight:bold;
+              text-decoration:none;
+            "
+            title="Ver factura CFDI"
+          >
+            ${r.uuid_cfdi.slice(0,18)}
+          </a>
+        ` : ''}
+      </td>
 
-`;
+      <td>${r.rfc_emisor || ''}</td>
+      <td title="${escapeHtml(provCompleto)}">${escapeHtml(provCorto)}</td>
+      <td>${escapeHtml(`${r.serie || ''}-${r.folio || ''}`)}</td>
+      <td class="total-mx">${fmtMXN(r.total)}</td>
+
+      <td>
+        <button class="btn ${r.factura_fisicamente === 'SI' ? 'verde' : 'rojo'}"
+          onclick="toggle(this,'${r.id}','factura_fisicamente')">
+          ${r.factura_fisicamente || 'NO'}
+        </button>
+      </td>
+
+      <td>
+        <button class="btn ${r.factura_pagada === 'SI' ? 'verde' : 'rojo'}"
+          onclick="toggle(this,'${r.id}','factura_pagada')">
+          ${r.factura_pagada || 'NO'}
+        </button>
+      </td>
+
+      <td class="fotos">
+        ${
+          Array.isArray(r.fotos) && r.fotos.length
+            ? r.fotos.map((url, i) => `
+                <a
+                  href="${escapeHtml(url)}"
+                  target="_blank"
+                  title="Foto ${i + 1}"
+                  style="margin-right:4px;text-decoration:none;"
+                >📷</a>
+              `).join('')
+            : ''
+        }
+      </td>
+    `;
+
     tabla.appendChild(tr);
   });
 }
 
-// 🔁 TOGGLE SI / NO
 async function toggle(btn, id, col){
   const actual = btn.textContent.trim();
   const nuevo = actual === 'SI' ? 'NO' : 'SI';
 
-  // 🔁 UX inmediata (optimista)
   btn.textContent = nuevo;
   btn.classList.toggle('verde', nuevo === 'SI');
   btn.classList.toggle('rojo', nuevo === 'NO');
 
-  // 🧠 Persistencia
   const { error } = await db
     .from('deuda_limpia_pdd')
     .update({ [col]: nuevo })
     .eq('id', id);
 
-  // 🔴 rollback si falla
   if(error){
     console.error(error);
+
     btn.textContent = actual;
     btn.classList.toggle('verde', actual === 'SI');
     btn.classList.toggle('rojo', actual === 'NO');
+
     alert('Error al actualizar');
   }
 }
 
-
-// 📆 HELPERS
 function fmtFecha(f){
+  if(!f) return '';
+
   const d = new Date(f);
+
+  if(Number.isNaN(d.getTime())) return '';
+
   return d.toLocaleDateString('es-MX', {
     day:'2-digit',
     month:'2-digit',
     year:'2-digit'
   });
 }
+
 function fmtMXN(valor){
   return Number(valor || 0).toLocaleString('es-MX', {
     style: 'currency',
@@ -342,9 +374,8 @@ function cortarTexto(txt, max){
   return txt.length > max ? txt.slice(0, max - 1) + '…' : txt;
 }
 
-// evitar romper HTML en title
 function escapeHtml(str){
-  return str.replace(/[&<>"']/g, m => ({
+  return String(str || '').replace(/[&<>"']/g, m => ({
     '&':'&amp;',
     '<':'&lt;',
     '>':'&gt;',
@@ -353,10 +384,22 @@ function escapeHtml(str){
   })[m]);
 }
 
-function next(){ page++; load(); }
-function prev(){ if(page > 0){ page--; load(); } }
+function next(){
+  page++;
+  load();
+}
 
-// 🚀 INIT
+function prev(){
+  if(page > 0){
+    page--;
+    load();
+  }
+}
+
+window.toggle = toggle;
+window.next = next;
+window.prev = prev;
+
 load();
 </script>
 
