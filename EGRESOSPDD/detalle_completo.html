@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Detalle CFDI – PROVSOFT</title>
+  <title>Detalle CFDI – PROVEEDORA DE DULCES Y DESECHABLES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script>
@@ -596,8 +596,6 @@ import {
 } from "./config.js";
 
 const CLAVE_SESION = "PROVSOFT_USUARIO_ACTIVO";
-const TIEMPO_INACTIVIDAD = 10 * 60 * 1000;
-let timerSesion = null;
 
 function limpiarSesion() {
   sessionStorage.removeItem(CLAVE_SESION);
@@ -630,40 +628,12 @@ function obtenerSesion() {
   }
 }
 
-function cerrarSesionAutomatica() {
-  limpiarSesion();
-  alert("Sesión cerrada por inactividad.");
-  window.location.replace("DONMORRISDEUDA.html");
-}
-
-function reiniciarTimerSesion() {
-  if (!obtenerSesion()) {
-    window.location.replace("DONMORRISDEUDA.html");
-    return;
-  }
-
-  clearTimeout(timerSesion);
-  timerSesion = setTimeout(cerrarSesionAutomatica, TIEMPO_INACTIVIDAD);
-}
-
-[
-  "click",
-  "mousemove",
-  "keydown",
-  "scroll",
-  "touchstart"
-].forEach(evt => {
-  document.addEventListener(evt, reiniciarTimerSesion, true);
-});
-
 window.addEventListener("storage", (e) => {
   if (e.key === CLAVE_SESION && !e.newValue) {
     sessionStorage.removeItem(CLAVE_SESION);
     window.location.replace("DONMORRISDEUDA.html");
   }
 });
-
-reiniciarTimerSesion();
 
 const SUPA_URL = supabaseUrl;
 const SUPA_KEY = supabaseAnonKey;
