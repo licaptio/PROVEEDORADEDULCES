@@ -3,104 +3,172 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Consulta de Facturas por RFC O NOMBRE PROVEEDOR PROVEEDORA DE DULCES </title>
+  <title>PROVEEDORA | Control de Egresos CFDI</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <style>
     * { box-sizing: border-box; }
 
+    :root {
+      --amarillo: #ffd21f;
+      --amarillo-fuerte: #f5b800;
+      --amarillo-suave: #fff7d1;
+      --blanco: #ffffff;
+      --rojo: #d71920;
+      --rojo-oscuro: #a80f16;
+      --texto: #1f2937;
+      --gris: #64748b;
+      --borde: #ead58a;
+      --sombra: 0 16px 40px rgba(80, 55, 0, .18);
+    }
+
     body {
-      font-family: sans-serif;
-      background: #f4f4f4;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #fffdf4;
       margin: 0;
-      color: #1f2937;
+      color: var(--texto);
     }
 
     .login-page {
       min-height: 100vh;
       display: grid;
       grid-template-columns: 1.1fr .9fr;
-      background: linear-gradient(135deg, #00416A, #0c6cbd);
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,.95), transparent 32%),
+        linear-gradient(135deg, #fff8d8 0%, #ffd21f 48%, #ffffff 100%);
     }
 
     .login-brand {
-      color: white;
+      color: #3a2600;
       padding: 50px;
       display: flex;
       flex-direction: column;
       justify-content: center;
     }
 
+    .brand-logo-box {
+      background: var(--blanco);
+      border: 3px solid var(--rojo);
+      border-radius: 22px;
+      padding: 18px;
+      width: min(520px, 100%);
+      box-shadow: var(--sombra);
+      margin-bottom: 28px;
+    }
+
+    .brand-logo-box img {
+      width: 100%;
+      max-height: 150px;
+      object-fit: contain;
+      display: block;
+    }
+
     .login-brand h1 {
-      font-size: 42px;
-      margin: 0 0 12px;
+      font-size: 38px;
+      margin: 0 0 8px;
+      color: var(--rojo);
+      line-height: 1.08;
+      font-weight: 900;
+      letter-spacing: .4px;
+    }
+
+    .login-brand h3 {
+      margin: 0 0 16px;
+      color: #3a2600;
+      font-size: 24px;
+      font-weight: 800;
     }
 
     .login-brand p {
       font-size: 18px;
-      opacity: .9;
-      max-width: 520px;
+      opacity: .95;
+      max-width: 560px;
       line-height: 1.5;
+      color: #3f3f46;
     }
 
     .login-panel {
-      background: #ffffff;
+      background: rgba(255,255,255,.78);
+      backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 30px;
+      border-left: 1px solid rgba(215,25,32,.15);
     }
 
     .login-card {
       width: 100%;
-      max-width: 390px;
+      max-width: 410px;
       background: #fff;
-      border-radius: 18px;
-      padding: 28px;
-      box-shadow: 0 15px 40px rgba(0,0,0,.18);
+      border-radius: 22px;
+      padding: 30px;
+      box-shadow: var(--sombra);
+      border: 1px solid var(--borde);
+    }
+
+    .login-card .mini-logo {
+      width: 210px;
+      max-width: 100%;
+      display: block;
+      margin: 0 auto 18px;
     }
 
     .login-card h2 {
       margin: 0 0 8px;
-      color: #00416A;
+      color: var(--rojo);
+      text-align: center;
+      font-size: 28px;
     }
 
     .login-card small {
       display: block;
       margin-bottom: 22px;
-      color: #64748b;
+      color: var(--gris);
+      text-align: center;
     }
 
     .login-card label {
       display: block;
-      font-weight: bold;
+      font-weight: 800;
       margin-top: 14px;
       margin-bottom: 6px;
+      color: #3a2600;
     }
 
     .login-card input {
       width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid #cbd5e1;
+      padding: 13px;
+      border-radius: 12px;
+      border: 1px solid var(--borde);
       font-size: 15px;
+      background: #fffdf3;
+      outline: none;
+    }
+
+    .login-card input:focus {
+      border-color: var(--rojo);
+      box-shadow: 0 0 0 3px rgba(215,25,32,.12);
+      background: #fff;
     }
 
     .login-card button {
       width: 100%;
-      margin-top: 20px;
-      padding: 12px;
+      margin-top: 22px;
+      padding: 13px;
       border: none;
-      border-radius: 10px;
-      background: #00416A;
+      border-radius: 12px;
+      background: var(--rojo);
       color: white;
-      font-weight: bold;
+      font-weight: 900;
       cursor: pointer;
+      font-size: 15px;
+      box-shadow: 0 8px 18px rgba(215,25,32,.25);
     }
 
     .login-card button:hover {
-      background: #0c6cbd;
+      background: var(--rojo-oscuro);
     }
 
     .login-error {
@@ -117,6 +185,8 @@
     .app-page {
       display: none;
       padding: 1rem;
+      background: #fffdf4;
+      min-height: 100vh;
     }
 
     .topbar {
@@ -124,28 +194,73 @@
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       background: white;
-      border-radius: 12px;
+      border-radius: 16px;
       padding: 12px 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,.08);
+      box-shadow: 0 6px 18px rgba(80,55,0,.12);
+      border: 1px solid var(--borde);
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar-brand img {
+      width: 160px;
+      max-height: 62px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+    }
+
+    .topbar-title strong {
+      display: block;
+      color: var(--rojo);
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .topbar-title span {
+      display: block;
+      color: #3a2600;
+      font-size: 13px;
+      font-weight: 800;
+      margin-top: 3px;
     }
 
     .usuario-info {
       font-size: 14px;
       color: #334155;
+      text-align: right;
+      font-weight: 600;
     }
 
     .btn-salir {
-      background: #dc2626;
+      background: var(--rojo);
       padding: 9px 14px;
-      border-radius: 8px;
+      border-radius: 9px;
       width: auto;
+    }
+
+    .btn-salir:hover {
+      background: var(--rojo-oscuro);
+    }
+
+    .main-card {
+      background: #fff;
+      border: 1px solid var(--borde);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 6px 18px rgba(80,55,0,.08);
     }
 
     h2 {
       margin-top: 0;
       margin-bottom: 1rem;
+      color: var(--rojo);
     }
 
     .filtros-wrap {
@@ -164,25 +279,32 @@
 
     input[type="text"] {
       width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
+      padding: 11px 12px;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
       font-size: 14px;
-      background: white;
+      background: #fffdf3;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--rojo);
+      box-shadow: 0 0 0 3px rgba(215,25,32,.10);
+      background: #fff;
     }
 
     button {
-      padding: 10px 20px;
-      background: #28a745;
+      padding: 11px 20px;
+      background: var(--rojo);
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
-      font-weight: bold;
+      font-weight: 900;
     }
 
     button:hover {
-      background: #218838;
+      background: var(--rojo-oscuro);
     }
 
     .autocomplete-list {
@@ -191,20 +313,20 @@
       left: 0;
       right: 0;
       background: white;
-      border: 1px solid #ccc;
+      border: 1px solid var(--borde);
       max-height: 220px;
       overflow-y: auto;
       display: none;
-      border-radius: 8px;
+      border-radius: 10px;
       z-index: 1000;
-      box-shadow: 0 6px 16px rgba(0,0,0,.12);
+      box-shadow: 0 8px 20px rgba(80,55,0,.16);
     }
 
     .autocomplete-list div {
-      padding: 9px 10px;
+      padding: 10px 12px;
       cursor: pointer;
       font-size: 14px;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid #fff1b8;
     }
 
     .autocomplete-list div:last-child {
@@ -212,8 +334,9 @@
     }
 
     .autocomplete-list div:hover {
-      background: #007bff;
-      color: white;
+      background: var(--amarillo-suave);
+      color: var(--rojo);
+      font-weight: 800;
     }
 
     #rfcFiltro,
@@ -225,22 +348,26 @@
       margin-top: 1rem;
       font-weight: bold;
       white-space: pre-line;
+      color: #3a2600;
     }
 
     .estado-carga {
       margin-top: 12px;
       padding: 10px 12px;
-      border-radius: 8px;
-      background: #eef6ff;
-      color: #1d4ed8;
-      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      background: var(--amarillo-suave);
+      color: #6b4b00;
+      border: 1px solid var(--borde);
       display: none;
+      font-weight: 700;
     }
 
     .tabla-wrap {
       width: 100%;
       overflow-x: auto;
       margin-top: 1rem;
+      border-radius: 14px;
+      border: 1px solid var(--borde);
     }
 
     table {
@@ -250,20 +377,26 @@
     }
 
     th, td {
-      padding: 8px;
-      border: 1px solid #ccc;
+      padding: 9px;
+      border: 1px solid #f0df9d;
       font-size: 0.9em;
       text-align: left;
       vertical-align: top;
     }
 
     th {
-      background-color: #007bff;
+      background-color: var(--rojo);
       color: white;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fffaf0;
     }
 
     a {
       word-break: break-word;
+      color: var(--rojo);
+      font-weight: 800;
     }
 
     .paginacion {
@@ -277,26 +410,26 @@
     .paginacion button {
       padding: 8px 12px;
       margin: 0;
-      background: #0f62fe;
-      border-radius: 6px;
+      background: var(--rojo);
+      border-radius: 8px;
       font-size: 13px;
     }
 
     .paginacion button:disabled {
-      background: #94a3b8;
+      background: #d6c589;
       cursor: not-allowed;
     }
 
     .paginacion .info {
       font-size: 14px;
-      font-weight: bold;
-      color: #334155;
+      font-weight: 900;
+      color: #3a2600;
     }
 
     .selector-pagina {
       padding: 8px 10px;
-      border-radius: 6px;
-      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      border: 1px solid var(--borde);
       background: white;
     }
 
@@ -306,12 +439,16 @@
       }
 
       .login-brand {
-        padding: 32px 24px;
-        min-height: 260px;
+        padding: 28px 22px;
+        min-height: 300px;
       }
 
       .login-brand h1 {
-        font-size: 32px;
+        font-size: 30px;
+      }
+
+      .login-brand h3 {
+        font-size: 20px;
       }
 
       .login-panel {
@@ -321,6 +458,15 @@
       .topbar {
         flex-direction: column;
         align-items: stretch;
+      }
+
+      .topbar-brand {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .usuario-info {
+        text-align: center;
       }
 
       .btn-salir {
@@ -339,9 +485,9 @@
         margin-bottom: 18px;
         background: #fff;
         border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0,0,0,.08);
+        box-shadow: 0 4px 10px rgba(80,55,0,.12);
         padding: 12px 15px;
-        border: 1px solid #e0e0e0;
+        border: 1px solid var(--borde);
       }
 
       td {
@@ -349,7 +495,7 @@
         justify-content: space-between;
         gap: 10px;
         border: none;
-        border-bottom: 1px dashed #ddd;
+        border-bottom: 1px dashed #ead58a;
         padding: 10px 6px;
         font-size: 0.95rem;
         text-align: right;
@@ -364,7 +510,7 @@
         content: attr(data-label);
         font-weight: bold;
         text-transform: capitalize;
-        color: #555;
+        color: var(--rojo);
         flex-basis: 50%;
         text-align: left;
       }
@@ -398,14 +544,21 @@
 
   <section id="loginPage" class="login-page">
     <div class="login-brand">
-      <h1>PROVSOFT</h1>
-      <p>Consulta segura de facturas por proveedor. Inicia sesión para acceder a la aplicación.</p>
+      <div class="brand-logo-box">
+        <img src="logo.jfif" alt="PROVEEDORA DE DULCES Y DESECHABLES" onerror="this.style.display='none'">
+      </div>
+
+      <h1>PROVEEDORA DE DULCES Y DESECHABLES</h1>
+      <h3>CONTROL DE EGRESOS CFDI</h3>
+      <p>Consulta segura de facturas por proveedor. Ingresa con tu usuario autorizado para acceder al control de egresos.</p>
     </div>
 
     <div class="login-panel">
       <div class="login-card">
+        <img class="mini-logo" src="logo.jfif" alt="PROVEEDORA" onerror="this.style.display='none'">
+
         <h2>Iniciar sesión</h2>
-        <small>Usuario autorizado desde Firebase</small>
+        <small>Acceso autorizado desde Firebase</small>
 
         <label for="loginUsuario">Usuario</label>
         <input type="text" id="loginUsuario" placeholder="Usuario" autocomplete="username">
@@ -413,7 +566,7 @@
         <label for="loginPassword">Contraseña</label>
         <input type="password" id="loginPassword" placeholder="Contraseña" autocomplete="current-password">
 
-        <button id="btnLogin">Entrar</button>
+        <button id="btnLogin">Entrar al sistema</button>
 
         <div id="loginError" class="login-error"></div>
       </div>
@@ -422,29 +575,41 @@
 
   <section id="appPage" class="app-page">
     <div class="topbar">
-      <div class="usuario-info" id="usuarioInfo">Sesión iniciada</div>
-      <button class="btn-salir" id="btnSalir">Cerrar sesión</button>
-    </div>
-
-    <h2>🔍 Consulta de Facturas por RFC O NOMBRE DE PROVEEDOR</h2>
-
-    <label><strong>RFC O NOMBRE:</strong></label>
-
-    <div class="filtros-wrap">
-      <input type="text" id="rfcFiltro" placeholder="Escribe RFC…" autocomplete="off">
-      <div id="sugerenciasRFC" class="autocomplete-list"></div>
-
-      <div class="campo-busqueda">
-        <input type="text" id="nombreFiltro" placeholder="Escribe Nombre…" autocomplete="off">
-        <div id="sugerenciasNombre" class="autocomplete-list"></div>
+      <div class="topbar-brand">
+        <img src="logo.jfif" alt="PROVEEDORA" onerror="this.style.display='none'">
+        <div class="topbar-title">
+          <strong>PROVEEDORA DE DULCES Y DESECHABLES</strong>
+          <span>CONTROL DE EGRESOS CFDI</span>
+        </div>
       </div>
 
-      <button id="btnConsultar">🔎 Consultar</button>
+      <div>
+        <div class="usuario-info" id="usuarioInfo">Sesión iniciada</div>
+        <button class="btn-salir" id="btnSalir">Cerrar sesión</button>
+      </div>
     </div>
 
-    <div id="estadoCarga" class="estado-carga"></div>
-    <div id="resumenConteo"></div>
-    <div id="tablaResultados"></div>
+    <div class="main-card">
+      <h2>🔍 Consulta de Facturas por Proveedor</h2>
+
+      <label><strong>RFC o nombre del proveedor:</strong></label>
+
+      <div class="filtros-wrap">
+        <input type="text" id="rfcFiltro" placeholder="Escribe RFC…" autocomplete="off">
+        <div id="sugerenciasRFC" class="autocomplete-list"></div>
+
+        <div class="campo-busqueda">
+          <input type="text" id="nombreFiltro" placeholder="Escribe nombre o RFC del proveedor…" autocomplete="off">
+          <div id="sugerenciasNombre" class="autocomplete-list"></div>
+        </div>
+
+        <button id="btnConsultar">🔎 Consultar</button>
+      </div>
+
+      <div id="estadoCarga" class="estado-carga"></div>
+      <div id="resumenConteo"></div>
+      <div id="tablaResultados"></div>
+    </div>
   </section>
 
   <script type="module">
@@ -636,7 +801,7 @@
         mostrarLoginError("Error al validar usuario en Firebase.");
       } finally {
         btnLogin.disabled = false;
-        btnLogin.textContent = "Entrar";
+        btnLogin.textContent = "Entrar al sistema";
       }
     }
 
@@ -837,7 +1002,7 @@
     function renderPagina() {
       if (!datosCrudos || datosCrudos.length === 0) {
         tablaResultados.innerHTML = `
-          <div style="margin-top:1rem; padding:12px; background:white; border-radius:8px; border:1px solid #ddd;">
+          <div style="margin-top:1rem; padding:12px; background:white; border-radius:8px; border:1px solid #ead58a;">
             No se encontraron facturas para ese proveedor.
           </div>`;
         return;
@@ -888,7 +1053,7 @@
             <td data-label="Fecha">${formatearFecha(f.fecha)}</td>
             <td data-label="Días">${calcDiasDesdeHoy(f.fecha)}</td>
             <td data-label="UUID">
-              <a href="detalle_completo.html?uuid=${encodeURIComponent(uuid)}" target="_blank" rel="noopener" style="color:#007bff;">
+              <a href="detalle_completo.html?uuid=${encodeURIComponent(uuid)}" target="_blank" rel="noopener">
                 ${uuid}
               </a>
             </td>
