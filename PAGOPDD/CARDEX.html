@@ -12,24 +12,26 @@
 <style>
 :root{
   --amarillo:#F4C400;
-  --amarillo2:#FFD94D;
-  --amarillo3:#FFF4BF;
+  --amarillo-oscuro:#b88600;
+  --amarillo-claro:#fff7cc;
 
-  --blanco:#ffffff;
-  --bg:#f5f5f0;
+  --bg:#f4f4ef;
+  --card:#ffffff;
 
-  --texto:#2b2b2b;
+  --texto:#222222;
   --muted:#6b7280;
 
-  --line:#ece7c9;
-
-  --head:#fff8d9;
+  --line:#e7dfb2;
+  --head:#fff6cf;
 
   --shadow:0 8px 24px rgba(0,0,0,.10);
 
   --r:14px;
 }
-*{box-sizing:border-box}
+
+*{
+  box-sizing:border-box;
+}
 
 html,body{
   margin:0;
@@ -43,12 +45,16 @@ body{
   min-height:100vh;
 }
 
+/* =========================
+   HEADER FIJO
+========================= */
+
 .app-header{
   position:sticky;
   top:0;
   z-index:50;
-  background:#fff;
-  border-bottom:4px solid var(--rojo);
+  background:#ffffff;
+  border-bottom:5px solid var(--amarillo);
   box-shadow:0 4px 18px rgba(0,0,0,.12);
 }
 
@@ -65,6 +71,7 @@ body{
   width:120px;
   min-width:120px;
   height:64px;
+
   display:flex;
   align-items:center;
   justify-content:center;
@@ -83,28 +90,39 @@ body{
 .empresa{
   font-size:13px;
   font-weight:800;
-  color:var(--rojo);
+  color:var(--amarillo-oscuro);
   letter-spacing:.06em;
   text-transform:uppercase;
 }
 
 .title-box h1{
   margin:2px 0 0;
+
   font-size:clamp(1.25rem,2vw,2rem);
-  color:var(--azul);
+
+  color:#4d3c00;
   line-height:1.1;
 }
 
 .estado{
-  background:#dcfce7;
-  color:#166534;
-  border:1px solid #bbf7d0;
+  background:var(--amarillo-claro);
+  color:#6d5200;
+
+  border:1px solid #f0d64d;
+
   border-radius:999px;
+
   padding:8px 14px;
+
   font-size:12px;
   font-weight:800;
+
   white-space:nowrap;
 }
+
+/* =========================
+   CONTENIDO
+========================= */
 
 .page{
   max-width:1450px;
@@ -124,9 +142,13 @@ body{
 .pago-id{
   background:#fff;
   border:1px solid var(--line);
+
   border-radius:12px;
+
   padding:10px 14px;
+
   box-shadow:var(--shadow);
+
   font-size:13px;
 }
 
@@ -140,6 +162,10 @@ body{
   font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
 }
 
+/* =========================
+   BOTONES
+========================= */
+
 .actions{
   display:flex;
   gap:10px;
@@ -148,37 +174,64 @@ body{
 
 button{
   border:none;
+
   border-radius:12px;
+
   padding:11px 16px;
+
   font-family:'Poppins',Arial,sans-serif;
   font-weight:800;
+
   cursor:pointer;
+
+  transition:.18s ease;
+
   box-shadow:var(--shadow);
+}
+
+button:hover{
+  transform:translateY(-1px);
 }
 
 .btn-print{
-  background:var(--rojo);
-  color:#fff;
+  background:var(--amarillo);
+  color:#222;
 }
 
 .btn-reload{
-  background:#111827;
+  background:#2f2f2f;
   color:#fff;
 }
 
+/* =========================
+   TARJETAS
+========================= */
+
 .card{
   background:var(--card);
+
   border:1px solid var(--line);
+
   border-radius:var(--r);
+
   box-shadow:var(--shadow);
+
   margin-bottom:18px;
+
   overflow:hidden;
 }
 
 .card-title{
   padding:14px 18px;
-  background:linear-gradient(90deg,#ffffff,#f8fafc);
+
+  background:linear-gradient(
+    90deg,
+    #ffffff,
+    #fff9de
+  );
+
   border-bottom:1px solid var(--line);
+
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -187,48 +240,74 @@ button{
 
 .card-title h2{
   margin:0;
+
   font-size:17px;
-  color:var(--azul);
+
+  color:#5f4700;
 }
 
 .card-body{
   padding:18px;
 }
 
+/* =========================
+   GRID GENERAL
+========================= */
+
 .grid{
   display:grid;
-  grid-template-columns:repeat(4,minmax(180px,1fr));
+
+  grid-template-columns:
+    repeat(4,minmax(180px,1fr));
+
   gap:14px;
 }
 
 .info{
-  background:#f9fafb;
-  border:1px solid #e5e7eb;
+  background:#fffdf2;
+
+  border:1px solid #efe3a7;
+
   border-radius:12px;
+
   padding:12px;
+
   min-height:72px;
 }
 
 .label{
   font-size:11px;
+
   color:var(--muted);
+
   text-transform:uppercase;
+
   font-weight:700;
+
   letter-spacing:.04em;
+
   margin-bottom:5px;
 }
 
 .value{
   font-size:15px;
+
   font-weight:800;
+
   color:#111827;
+
   word-break:break-word;
 }
 
 .value.total{
   font-size:24px;
-  color:var(--rojo);
+
+  color:var(--amarillo-oscuro);
 }
+
+/* =========================
+   TABLA
+========================= */
 
 .table-wrap{
   width:100%;
@@ -238,8 +317,11 @@ button{
 
 table{
   width:100%;
+
   border-collapse:collapse;
+
   min-width:1050px;
+
   font-size:13px;
 }
 
@@ -247,40 +329,57 @@ thead th{
   position:sticky;
   top:93px;
   z-index:20;
+
   background:var(--head);
-  color:#111827;
+
+  color:#5b4300;
+
   font-size:12px;
+
   text-transform:uppercase;
+
   letter-spacing:.03em;
-  border-bottom:2px solid #cbd5e1;
+
+  border-bottom:2px solid #e6cf72;
   border-right:1px solid var(--line);
+
   padding:11px 10px;
+
   text-align:left;
+
   white-space:nowrap;
 }
 
 tbody td{
   border-bottom:1px solid var(--line);
   border-right:1px solid var(--line);
+
   padding:9px 10px;
+
   background:#fff;
+
   vertical-align:top;
 }
 
 tbody tr:nth-child(even) td{
-  background:#fbfdff;
+  background:#fffdf6;
 }
 
 tbody tr:hover td{
-  background:#fff7ed;
+  background:#fff7d1;
 }
 
 tfoot td{
-  background:#111827;
+  background:#383838;
+
   color:#fff;
-  border-right:1px solid #374151;
+
+  border-right:1px solid #555;
+
   padding:12px 10px;
+
   font-weight:800;
+
   position:sticky;
   bottom:0;
   z-index:10;
@@ -291,8 +390,16 @@ tfoot td{
 }
 
 .uuid{
-  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Monaco,
+    Consolas,
+    monospace;
+
   font-size:12px;
+
   word-break:break-all;
 }
 
@@ -308,25 +415,42 @@ tfoot td{
 
 .empty{
   text-align:center;
-  padding:28px;
-  color:var(--muted);
-}
 
-.footer{
-  text-align:center;
-  color:#6b7280;
-  font-size:11px;
-  padding:20px 0 28px;
+  padding:28px;
+
+  color:var(--muted);
 }
 
 .loading{
   padding:30px;
+
   text-align:center;
+
   font-weight:800;
+
   color:var(--muted);
 }
 
+/* =========================
+   FOOTER
+========================= */
+
+.footer{
+  text-align:center;
+
+  color:#777;
+
+  font-size:11px;
+
+  padding:20px 0 28px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
 @media(max-width:1000px){
+
   .grid{
     grid-template-columns:1fr 1fr;
   }
@@ -346,6 +470,7 @@ tfoot td{
 }
 
 @media(max-width:640px){
+
   .page{
     padding:12px;
   }
@@ -396,7 +521,12 @@ tfoot td{
   }
 }
 
+/* =========================
+   IMPRESION
+========================= */
+
 @media print{
+
   body{
     background:#fff;
   }
@@ -418,6 +548,7 @@ tfoot td{
   .card{
     box-shadow:none;
     border:1px solid #999;
+
     page-break-inside:avoid;
   }
 
