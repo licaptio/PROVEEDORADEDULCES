@@ -2,7 +2,7 @@
 // CONFIG SUPABASE
 // ============================================================
 const SUPA_URL = "https://cvpbtjlupswbyxenugpz.supabase.co";
-const SUPA_KEY = "'sb_publishable_SQ7Q5LFJqlxVzwNTxcIyzQ_8F1bqyiX'";
+const SUPA_KEY = "sb_publishable_SQ7Q5LFJqlxVzwNTxcIyzQ_8F1bqyiX";
 const TABLA = "deuda_limpia_pdd";
 function formatFechaBonita(fechaRaw) {
   if (!fechaRaw) return "";
