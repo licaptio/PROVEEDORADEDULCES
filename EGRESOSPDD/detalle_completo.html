@@ -6,41 +6,6 @@
   <title>Detalle CFDI – PROVEEDORA DE DULCES Y DESECHABLES</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <script>
-  (() => {
-    const CLAVE_SESION = "PROVSOFT_USUARIO_ACTIVO";
-
-    const sesion =
-      sessionStorage.getItem(CLAVE_SESION) ||
-      localStorage.getItem(CLAVE_SESION);
-
-    if (!sesion) {
-      alert("Debes iniciar sesión.");
-      window.location.replace("DONMORRISDEUDA.html");
-      return;
-    }
-
-    try {
-      const usuario = JSON.parse(sesion);
-
-      if (!usuario || !usuario.usuario) {
-        sessionStorage.removeItem(CLAVE_SESION);
-        localStorage.removeItem(CLAVE_SESION);
-        window.location.replace("DONMORRISDEUDA.html");
-        return;
-      }
-
-      sessionStorage.setItem(CLAVE_SESION, JSON.stringify(usuario));
-      localStorage.setItem(CLAVE_SESION, JSON.stringify(usuario));
-
-    } catch (e) {
-      sessionStorage.removeItem(CLAVE_SESION);
-      localStorage.removeItem(CLAVE_SESION);
-      window.location.replace("DONMORRISDEUDA.html");
-      return;
-    }
-  })();
-  </script>
 
   <style>
 body {
@@ -628,13 +593,7 @@ function obtenerSesion() {
   }
 }
 
-window.addEventListener("storage", (e) => {
-  if (e.key === CLAVE_SESION && !e.newValue) {
-    sessionStorage.removeItem(CLAVE_SESION);
-    window.location.replace("DONMORRISDEUDA.html");
-  }
-});
-
+  
 const SUPA_URL = supabaseUrl;
 const SUPA_KEY = supabaseAnonKey;
 const TABLA = "deuda_limpia_pdd";
