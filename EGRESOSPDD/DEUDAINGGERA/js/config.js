@@ -6,7 +6,6 @@ export const firebaseConfig = {
   messagingSenderId: "96242533231",
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
-
 export const supabaseUrl = "https://cvpbtjlupswbyxenugpz.supabase.co";
 
 export const supabaseAnonKey =
