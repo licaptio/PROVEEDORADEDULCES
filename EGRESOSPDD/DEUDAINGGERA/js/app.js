@@ -371,10 +371,7 @@ function generarExcelObservadas() {
   const datos = observadas.map(f => ({
     Fecha: (f.fecha || "").substring(0, 10),
 
-    "Días Transcurridos": Math.max(
-      0,
-      Math.floor((new Date() - new Date(f.observacion_fecha || f.fecha)) / 86400000)
-    ),
+"Días Transcurridos": Math.max(
 
     UUID: f.uuid_cfdi || "",
     RFC: f.rfc_emisor || "",
@@ -401,3 +398,23 @@ function generarExcelObservadas() {
   XLSX.utils.book_append_sheet(wb, ws, "FACTURAS_OBSERVADAS");
   XLSX.writeFile(wb, "FACTURAS_OBSERVADAS.xlsx");
 }
+
+function calcularDiasDesdeFecha(fecha) {
+  if (!fecha) return 0;
+
+  const fechaTexto = String(fecha).substring(0, 10);
+  const fechaBase = new Date(fechaTexto + "T00:00:00");
+
+  const hoy = new Date();
+  const hoyBase = new Date(
+    hoy.getFullYear(),
+    hoy.getMonth(),
+    hoy.getDate()
+  );
+
+  return Math.max(
+    0,
+    Math.floor((hoyBase - fechaBase) / 86400000)
+  );
+}
+
