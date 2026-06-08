@@ -370,9 +370,7 @@ async function hacerLogin() {
 function generarExcelObservadas() {
   const datos = observadas.map(f => ({
     Fecha: (f.fecha || "").substring(0, 10),
-
-"Días Transcurridos": Math.max(
-
+    "Días Transcurridos": calcularDiasDesdeFecha(f.fecha),
     UUID: f.uuid_cfdi || "",
     RFC: f.rfc_emisor || "",
     "Nombre Proveedor": f.razon_social_emisor || "",
