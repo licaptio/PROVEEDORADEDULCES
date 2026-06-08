@@ -1,4 +1,10 @@
 import {
+  observarSesion,
+  login,
+  logout
+} from "./auth.js";
+
+import {
   buscarFacturaPorUUID,
   cargarHistorial,
   insertarHistorial,
@@ -36,7 +42,7 @@ const vistas = {
   reporte: document.getElementById("vistaReporte")
 };
 
-document.addEventListener("DOMContentLoaded", iniciarApp);
+document.addEventListener("DOMContentLoaded", prepararAuth);
 
 async function iniciarApp() {
   await pausa(700);
@@ -310,4 +316,48 @@ function mostrarToast(texto) {
 
 function pausa(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+const loginView = document.getElementById("loginView");
+
+function prepararAuth() {
+  observarSesion(async user => {
+    if (!user) {
+      loader.classList.add("oculto");
+      app.classList.add("oculto");
+      loginView.classList.remove("oculto");
+      return;
+    }
+
+    loginView.classList.add("oculto");
+    loader.classList.remove("oculto");
+    await iniciarApp();
+  });
+
+  document.getElementById("btnLogin").addEventListener("click", hacerLogin);
+
+  document.getElementById("loginPassword").addEventListener("keydown", async e => {
+    if (e.key === "Enter") await hacerLogin();
+  });
+
+  document.getElementById("btnLogout").addEventListener("click", async () => {
+    await logout();
+    location.reload();
+  });
+}
+
+async function hacerLogin() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value.trim();
+
+  if (!email || !password) {
+    mostrarToast("Coloca correo y contraseña.");
+    return;
+  }
+
+  try {
+    await login(email, password);
+  } catch (err) {
+    console.error(err);
+    mostrarToast("Acceso no autorizado o contraseña incorrecta.");
+  }
 }
