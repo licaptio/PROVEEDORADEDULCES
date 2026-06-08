@@ -497,3 +497,8 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
