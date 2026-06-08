@@ -370,25 +370,17 @@ async function hacerLogin() {
 function generarExcelObservadas() {
   const datos = observadas.map(f => ({
     Fecha: (f.fecha || "").substring(0, 10),
-    function generarExcelObservadas() {
-  const datos = observadas.map(f => ({
-    Fecha: (f.fecha || "").substring(0, 10),
 
     "Días Transcurridos": Math.max(
       0,
-      Math.floor((new Date() - new Date(f.fecha)) / 86400000)
+      Math.floor((new Date() - new Date(f.observacion_fecha || f.fecha)) / 86400000)
     ),
 
     UUID: f.uuid_cfdi || "",
-
     RFC: f.rfc_emisor || "",
-
     "Nombre Proveedor": f.razon_social_emisor || "",
-
     "Serie-Folio": [f.serie, f.folio].filter(Boolean).join("-"),
-
     Importe: Number(f.total || 0),
-
     "Físicamente": f.factura_fisicamente || "NO"
   }));
 
@@ -409,30 +401,3 @@ function generarExcelObservadas() {
   XLSX.utils.book_append_sheet(wb, ws, "FACTURAS_OBSERVADAS");
   XLSX.writeFile(wb, "FACTURAS_OBSERVADAS.xlsx");
 }
-    
-UUID: f.uuid_cfdi || "",
-RFC: f.rfc_emisor || "",
-    "Nombre Proveedor": f.razon_social_emisor || "",
-    "Serie-Folio": [f.serie, f.folio].filter(Boolean).join("-"),
-    Importe: Number(f.total || 0),
-    "Físicamente": f.factura_fisicamente || "NO"
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(datos);
-
-  ws["!cols"] = [
-    { wch: 14 },
-    { wch: 18 },
-    { wch: 20 },
-    { wch: 18 },
-    { wch: 45 },
-    { wch: 25 },
-    { wch: 15 },
-    { wch: 12 }
-  ];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "FACTURAS_OBSERVADAS");
-  XLSX.writeFile(wb, "FACTURAS_OBSERVADAS.xlsx");
-}
-
