@@ -497,8 +497,77 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
-.top-actions{
-  display:flex;
-  align-items:center;
-  gap:12px;
+/* =========================
+   TOPBAR
+   ========================= */
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
+
+#btnLogout {
+  margin-top: 0;
+  width: auto;
+  min-width: 110px;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+/* =========================
+   LOGIN
+   ========================= */
+
+.login-view {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #111827, #7f1d1d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.login-card {
+  width: 420px;
+  max-width: 92vw;
+  background: #fff;
+  border-radius: 22px;
+  padding: 34px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,.35);
+}
+
+.login-logo {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
+.login-card h1 {
+  margin: 0 0 8px;
+  color: var(--rojo);
+}
+
+.login-card p {
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+.login-card small {
+  display: block;
+  margin-top: 15px;
+  color: var(--muted);
+}
+
+.login-card input {
+  margin-top: 12px;
+}
+
+.login-card button {
+  width: 100%;
+}
+
+
