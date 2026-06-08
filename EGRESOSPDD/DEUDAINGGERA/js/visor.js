@@ -210,24 +210,27 @@ export function calcularStats(lista) {
 }
 
 export function renderReporte(lista) {
-  const stats = calcularStats(lista);
-
   return `
-    <div class="cards-3">
-      <div class="stat-card">
-        <span>Facturas observadas</span>
-        <strong>${stats.total}</strong>
-      </div>
-      <div class="stat-card">
-        <span>Monto observado</span>
-        <strong>${formatoMoneda(stats.monto)}</strong>
-      </div>
-      <div class="stat-card">
-        <span>Más antigua</span>
-        <strong>${stats.maxDias} días</strong>
-      </div>
-    </div>
+    <div class="panel">
 
-    ${renderObservadas(lista)}
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:20px;
+      ">
+        <h2>Facturas en observación</h2>
+
+        <button
+          id="btnExcelObservadas"
+          class="btn success">
+          Exportar Excel
+        </button>
+      </div>
+
+      ${renderObservadas(lista)}
+
+    </div>
   `;
 }
+ 
