@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>PROVSOFT - DEUDA INGE GERA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="./logo-proveedora.jfif" type="image/jpeg">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+
+<header class="encabezado-app">
+  <div class="marca-app">
+    <img src="./logo-proveedora.jfif" alt="Proveedora" class="logo-app">
+    <div class="titulo-app">
+      <h2>📌 DEUDA INGE GERA</h2>
+      <p>PROVSOFT · Control de CxP</p>
+    </div>
+  </div>
+</header>
+
+<section id="vistaPrincipal">
+  <div class="barra">
+    <button class="btn-verde" onclick="descargarExcel()">📥 Generar Excel</button>
+    <button class="btn-azul" onclick="mostrarConfiguracion()">⚙️ Configuración</button>
+    <button class="btn-gris" onclick="cargar()">🔄 Recargar</button>
+  </div>
+
+  <div id="totalGlobal"></div>
+  <div id="tabla"></div>
+
+</section>
+
+<section id="vistaConfig" class="oculto">
+
+  <h2>⚙️ Configuración de Departamentos</h2>
+
+  <div class="barra">
+    <button class="btn-gris" onclick="volverPrincipal()">⬅️ Volver</button>
+    <button class="btn-azul" onclick="cargarDepartamentos()">🔄 Recargar Configuración</button>
+  </div>
+
+  <div class="layout-config">
+
+    <div class="card">
+      <h3>Agregar RFC a Departamento</h3>
+
+      <div style="display:grid; gap:10px;">
+        <input id="departamentoInput" placeholder="Departamento. Ej: Gasolina, Bancos, Dulcería">
+        <input id="rfcInput" placeholder="RFC del proveedor">
+        
+
+        <button class="btn-verde" onclick="guardarDepartamentoRFC()">
+          Guardar RFC
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Departamentos configurados</h3>
+      <div id="listaConfig"></div>
+    </div>
+
+  </div>
+
+</section>
+
+<script type="module">
+
+import {
+  supabaseUrl,
+  supabaseAnonKey
+} from "./config.js";
+
+const _supabase = window.supabase.createClient(
+  supabaseUrl,
+  supabaseAnonKey
+);
+
+let datosFinalesExcel = [];
+let configuracionDepartamentos = [];
+
+const anchoDeuda = [
+  { wch: 12 },
+  { wch: 8 },
+  { wch: 38 },
+  { wch: 18 },
+  { wch: 45 },
+  { wch: 18 },
+  { wch: 15 },
+  { wch: 10 },
+  { wch: 30 }
+];
+
+function normalizarTexto(txt){
+  return String(txt || "").trim().toUpperCase();
+}
+
+async function cargar(){
+const { data, error } = await _supabase
+  .from("appinggeracxp")
+  .select("*")
+  .order("fecha", { ascending: true });
+  
+  if(error){
+    console.error(error);
+    alert("Error cargando deuda");
+    return;
+  }
+
+  await cargarDepartamentos(false);
+
+  const datos = (data || []).map(normalizarFactura);
+
+  const unicas = Object.values(
+    datos.reduce((acc, f) => {
+      const key = f.uuid_cfdi || crypto.randomUUID();
+      if(!acc[key]) acc[key] = f;
+      return acc;
+    }, {})
+  );
+
+  datosFinalesExcel = unicas.sort((a,b) => {
+    const rfcA = normalizarTexto(a.rfc_emisor);
+    const rfcB = normalizarTexto(b.rfc_emisor);
+
+    if(rfcA !== rfcB) return rfcA.localeCompare(rfcB);
+
+    return new Date(a.fecha || "1900-01-01") - new Date(b.fecha || "1900-01-01");
+  });
+
+  mostrarTotalGlobal(datosFinalesExcel);
+  mostrarTabla(datosFinalesExcel);
+}
+
+function normalizarFactura(f){
+  return {
+    ...f,
+    uuid_cfdi: String(f.uuid_cfdi || f.uuid || "").trim(),
+    fecha: f.fecha || null,
+    rfc_emisor: normalizarTexto(f.rfc_emisor),
+    razon_social_emisor: f.razon_social_emisor || "",
+    proveedor: f.proveedor || f.razon_social_emisor || f.rfc_emisor || "",
+    serie_folio: f.serie_folio || f.factura || f.folio || "—",
+    total: Number(f.total || 0),
+    factura_pagada: normalizarTexto(f.factura_pagada || "NO"),
+    factura_fisicamente: normalizarTexto(f.factura_fisicamente || "NO"),
+    fotos: Array.isArray(f.fotos) ? f.fotos : []
+  };
+}
+
+function mostrarTotalGlobal(data){
+  const suma = data.reduce((acc,f) => acc + Number(f.total || 0), 0);
+
+  document.getElementById("totalGlobal").innerHTML = `
+    <div class="card">
+      <strong>💰 TOTAL GLOBAL PENDIENTE:</strong><br>
+      <span class="total-monto">
+        $${suma.toLocaleString("es-MX",{minimumFractionDigits:2})}
+      </span>
+    </div>
+  `;
+}
+
+function mostrarTabla(data){
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Días</th>
+          <th>UUID</th>
+          <th>RFC</th>
+          <th>Proveedor</th>
+          <th>Serie/Folio</th>
+          <th>Total</th>
+          <th>Física</th>
+          <th>Fotos</th>
+          
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  data.forEach(f => {
+    const dias = calcularDias(f.fecha);
+    const clase = dias >= 30 ? "dias-30-morado" : "";
+
+    html += `
+      <tr class="${clase}">
+        <td>${formatearFecha(f.fecha)}</td>
+        <td class="centro">${dias}</td>
+        <td>
+          <a href="detalle.html?uuid=${f.uuid_cfdi}" target="_blank" class="uuid-corto" title="${f.uuid_cfdi}">
+            ${f.uuid_cfdi}
+          </a>
+        </td>
+        <td>${f.rfc_emisor}</td>
+        <td><strong>${f.proveedor || f.razon_social_emisor || f.rfc_emisor}</strong></td>
+        <td>${f.serie_folio}</td>
+        <td class="numero">${Number(f.total || 0).toLocaleString("es-MX",{minimumFractionDigits:2})}</td>
+        <td class="centro">${f.factura_fisicamente === "SI" ? "✅" : ""}</td>
+        <td class="centro">
+          ${
+            f.fotos.length > 0
+            ? f.fotos.map(url => `<a href="${url}" target="_blank">📷</a>`).join("")
+            : ""
+          }
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table>`;
+  document.getElementById("tabla").innerHTML = `<div class="table-wrap">${html}</div>`;
+}
+
+
+function calcularDias(fechaStr){
+  if(!fechaStr) return 0;
+
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  const fechaLimpia = String(fechaStr).split("T")[0];
+  const [y,m,d] = fechaLimpia.split("-").map(Number);
+
+  const fecha = new Date(y, m - 1, d);
+  fecha.setHours(0,0,0,0);
+
+  return Math.floor((hoy - fecha) / 86400000);
+}
+
+function formatearFecha(fechaStr){
+  if(!fechaStr) return "";
+  return String(fechaStr).split("T")[0];
+}
+
+function crearFilasDeuda(data){
+  const filas = [
+    ["Fecha","Días","UUID","RFC","Proveedor","Serie/Folio","Total","Física","Fotos"]
+  ];
+
+  data.forEach(f => {
+    filas.push([
+      formatearFecha(f.fecha),
+      calcularDias(f.fecha),
+      f.uuid_cfdi || "",
+      f.rfc_emisor || "",
+      f.proveedor || f.razon_social_emisor || "",
+      f.serie_folio || "—",
+      Number(f.total || 0),
+      f.factura_fisicamente === "SI" ? "SI" : "NO",
+      Array.isArray(f.fotos) ? f.fotos.join(" | ") : ""
+    ]);
+  });
+
+  return filas;
+}
+
+function crearHojaSinDeudaPorRFC(depto, rfcs){
+  const filas = [
+    ["Departamento", depto],
+    [],
+    ["RFC", "Estatus"]
+  ];
+
+  rfcs.forEach(rfc => {
+    filas.push([rfc, "Sin deuda activa"]);
+  });
+
+  return filas;
+}
+
+function agruparConfiguracionPorDepartamento(){
+  const agrupados = {};
+
+  configuracionDepartamentos
+    .filter(x => x.activo)
+    .forEach(x => {
+      const depto = String(x.departamento || "").trim();
+      const rfc = normalizarTexto(x.rfc_emisor);
+
+      if(!depto || !rfc) return;
+
+      if(!agrupados[depto]) agrupados[depto] = new Set();
+      agrupados[depto].add(rfc);
+    });
+
+  const salida = {};
+
+  Object.entries(agrupados).forEach(([depto, setRfcs]) => {
+    salida[depto] = Array.from(setRfcs);
+  });
+
+  return salida;
+}
+
+function limpiarNombreHoja(nombre){
+  return String(nombre || "Departamento")
+    .replace(/[\\\/\?\*\[\]:]/g, "-")
+    .substring(0,31);
+}
+
+async function descargarExcel(){
+  if(!datosFinalesExcel || datosFinalesExcel.length === 0){
+    alert("No hay datos para exportar");
+    return;
+  }
+
+  await cargarDepartamentos(false);
+
+  const wb = XLSX.utils.book_new();
+
+  const wsDeuda = XLSX.utils.aoa_to_sheet(crearFilasDeuda(datosFinalesExcel));
+  wsDeuda["!cols"] = anchoDeuda;
+  XLSX.utils.book_append_sheet(wb, wsDeuda, "Deuda");
+
+  const vencidas25 = datosFinalesExcel.filter(f => calcularDias(f.fecha) >= 25);
+  const wsVencidas = XLSX.utils.aoa_to_sheet(crearFilasDeuda(vencidas25));
+  wsVencidas["!cols"] = anchoDeuda;
+  XLSX.utils.book_append_sheet(wb, wsVencidas, "Vencidas 25 dias");
+
+  const agrupados = agruparConfiguracionPorDepartamento();
+
+  Object.entries(agrupados).forEach(([depto, rfcs]) => {
+    const datosDepto = datosFinalesExcel.filter(f =>
+      rfcs.includes(normalizarTexto(f.rfc_emisor))
+    );
+
+    let filas;
+
+    if(datosDepto.length > 0){
+      filas = crearFilasDeuda(datosDepto);
+    }else{
+      filas = crearHojaSinDeudaPorRFC(depto, rfcs);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(filas);
+    ws["!cols"] = anchoDeuda;
+
+    XLSX.utils.book_append_sheet(
+      wb,
+      ws,
+      limpiarNombreHoja(depto)
+    );
+  });
+
+  XLSX.writeFile(
+    wb,
+    `facturas_pendientes_${new Date().toISOString().slice(0,10)}.xlsx`
+  );
+}
+
+function mostrarConfiguracion(){
+  document.getElementById("vistaPrincipal").classList.add("oculto");
+  document.getElementById("vistaConfig").classList.remove("oculto");
+  cargarDepartamentos();
+}
+
+function volverPrincipal(){
+  document.getElementById("vistaConfig").classList.add("oculto");
+  document.getElementById("vistaPrincipal").classList.remove("oculto");
+}
+
+async function cargarDepartamentos(pintar = true){
+  const { data, error } = await _supabase
+    .from("proveedor_departamentos")
+    .select("*")
+    .order("departamento", { ascending:true })
+    .order("proveedor", { ascending:true });
+
+  if(error){
+    console.error(error);
+    alert("Error cargando configuración");
+    return;
+  }
+
+  configuracionDepartamentos = data || [];
+
+  if(pintar) pintarConfiguracion();
+}
+
+function pintarConfiguracion(){
+  if(configuracionDepartamentos.length === 0){
+    document.getElementById("listaConfig").innerHTML = `
+      <p>No hay departamentos configurados.</p>
+    `;
+    return;
+  }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Departamento</th>
+          <th>RFC</th>
+          <th>Proveedor</th>
+          <th>Activo</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  configuracionDepartamentos.forEach(x => {
+    html += `
+      <tr>
+        <td>${x.departamento || ""}</td>
+        <td>${x.rfc_emisor || ""}</td>
+        <td>${x.proveedor || ""}</td>
+        <td class="centro">${x.activo ? "✅" : "❌"}</td>
+        <td class="centro">
+          <button class="btn-rojo" onclick="desactivarConfig(${x.id})">Eliminar</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `</tbody></table>`;
+
+  document.getElementById("listaConfig").innerHTML = `<div class="table-wrap">${html}</div>`;
+}
+
+async function guardarDepartamentoRFC(){
+  const departamento = document.getElementById("departamentoInput").value.trim();
+  const rfc = normalizarTexto(document.getElementById("rfcInput").value);
+  
+
+  if(!departamento || !rfc){
+    alert("Captura departamento y RFC");
+    return;
+  }
+
+  const { error } = await _supabase
+    .from("proveedor_departamentos")
+    .upsert({
+      departamento,
+      rfc_emisor: rfc,
+      
+      activo: true
+    }, {
+      onConflict: "departamento,rfc_emisor"
+    });
+
+  if(error){
+    console.error(error);
+    alert("Error guardando configuración");
+    return;
+  }
+
+  document.getElementById("rfcInput").value = "";
+  
+
+  await cargarDepartamentos();
+}
+
+async function desactivarConfig(id){
+  if(!confirm("¿Eliminar este RFC del departamento?")) return;
+
+  const { error } = await _supabase
+    .from("proveedor_departamentos")
+    .update({ activo:false })
+    .eq("id", id);
+
+  if(error){
+    console.error(error);
+    alert("Error eliminando configuración");
+    return;
+  }
+
+  await cargarDepartamentos();
+}
+
+window.cargar = cargar;
+window.descargarExcel = descargarExcel;
+window.mostrarConfiguracion = mostrarConfiguracion;
+window.volverPrincipal = volverPrincipal;
+window.cargarDepartamentos = cargarDepartamentos;
+window.guardarDepartamentoRFC = guardarDepartamentoRFC;
+window.desactivarConfig = desactivarConfig;
+
+
+document.addEventListener("DOMContentLoaded", cargar);
+
+</script>
+
+</body>
+</html>
