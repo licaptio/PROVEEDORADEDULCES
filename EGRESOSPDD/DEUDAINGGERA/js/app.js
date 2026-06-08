@@ -27,7 +27,7 @@ import {
 let facturaActual = null;
 let historialActual = [];
 let observadas = [];
-
+window.generarExcelObservadas = generarExcelObservadas;
 const loader = document.getElementById("loader");
 const app = document.getElementById("app");
 const toast = document.getElementById("toast");
@@ -66,27 +66,32 @@ function enlazarEventosGlobales() {
 
   document.getElementById("cerrarModal").addEventListener("click", cerrarModal);
 
-  document.body.addEventListener("click", async e => {
-    if (e.target.id === "btnBuscarUUID") await buscarUUID();
+document.body.addEventListener("click", async e => {
+  if (e.target.id === "btnBuscarUUID") await buscarUUID();
 
-    if (e.target.id === "btnAbrirFactura") {
-      cerrarModal();
-      await abrirFacturaActual();
-    }
+  if (e.target.id === "btnAbrirFactura") {
+    cerrarModal();
+    await abrirFacturaActual();
+  }
 
-    if (e.target.id === "btnMarcar") await accionMarcar();
-    if (e.target.id === "btnNota") await accionNota();
-    if (e.target.id === "btnDesmarcar") await accionDesmarcar();
+  if (e.target.id === "btnMarcar") await accionMarcar();
+  if (e.target.id === "btnNota") await accionNota();
+  if (e.target.id === "btnDesmarcar") await accionDesmarcar();
 
-    if (e.target.classList.contains("chip")) {
-      document.getElementById("notaInput").value = e.target.dataset.motivo;
-    }
+  if (e.target.id === "btnExcelObservadas") {
+    generarExcelObservadas();
+  }
 
-    const row = e.target.closest(".tabla-row");
-    if (row) {
-      await buscarYEditar(row.dataset.uuid);
-    }
-  });
+  if (e.target.classList.contains("chip")) {
+    document.getElementById("notaInput").value = e.target.dataset.motivo;
+  }
+
+  const row = e.target.closest(".tabla-row");
+  if (row) {
+    await buscarYEditar(row.dataset.uuid);
+  }
+});
+  
 
   document.body.addEventListener("keydown", async e => {
     if (e.key === "Enter" && e.target.id === "uuidInput") {
