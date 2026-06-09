@@ -33,12 +33,37 @@ function abrirDetallePago(id){
     html+=`<h3>Concepto / notas</h3><div class="bloque-notas">${escapeHtml(p.concepto_manual || p.notas || '')}</div>`;
   }else{
     html+=`<h3>Facturas pagadas</h3><div class="tabla-wrap"><table class="tabla"><thead><tr><th>Fecha factura</th><th>UUID / UDI</th><th>Serie</th><th>Folio</th><th>Total</th><th>Descuento</th><th>Neto</th></tr></thead><tbody>`;
-    html+=facturas.map(f=>{
-      const uuid=f.uuid_cfdi||f.uuid||f.udi||f.UUID||'';
-      const total=Number(f.total||f.importe_total||f.monto||0);
-      const desc=buscarDescuentoFactura(uuid,f,ajustes);
-      return `<tr><td>${fechaMx(f.fecha||f.fecha_factura||f.fecha_emision)}</td><td>${escapeHtml(uuid)}</td><td>${escapeHtml(f.serie||'')}</td><td>${escapeHtml(f.folio||'')}</td><td class="texto-derecha">${dinero(total)}</td><td class="texto-derecha">${dinero(desc)}</td><td class="texto-derecha">${dinero(total-desc)}</td></tr>`;
-    }).join('');
+html+=facturas.map(f=>{
+
+  const uuid =
+    f.uuid_cfdi ||
+    f.uuid ||
+    f.udi ||
+    f.UUID ||
+    '';
+
+  const total =
+    Number(f.importe_original || 0);
+
+  const desc =
+    Number(f?.descuento?.monto || 0);
+
+  const neto =
+    Number(f.importe_final || (total - desc));
+
+  return `
+    <tr>
+      <td>${fechaMx(f.fecha)}</td>
+      <td>${escapeHtml(uuid)}</td>
+      <td>${escapeHtml(f.serie || '')}</td>
+      <td>${escapeHtml(f.folio || '')}</td>
+      <td class="texto-derecha">${dinero(total)}</td>
+      <td class="texto-derecha">${dinero(desc)}</td>
+      <td class="texto-derecha">${dinero(neto)}</td>
+    </tr>
+  `;
+
+}).join('');
     html+=`</tbody></table></div>`;
   }
   html+=`<h3>Comprobante / referencia</h3><div class="bloque-notas">${escapeHtml(p.comprobante_raw||'')}</div>`;
