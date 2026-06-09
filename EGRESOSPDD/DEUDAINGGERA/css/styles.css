@@ -427,39 +427,6 @@ textarea {
   position: relative;
   box-shadow: 0 20px 50px rgba(0,0,0,.25);
 }
-#formPagoManual {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px 12px;
-}
-
-#formPagoManual label {
-  font-size: 13px;
-  font-weight: bold;
-}
-
-#formPagoManual input,
-#formPagoManual textarea {
-  margin-top: 5px;
-  padding: 10px;
-}
-
-#formPagoManual textarea {
-  min-height: 58px;
-  max-height: 70px;
-  resize: none;
-}
-
-#formPagoManual .full {
-  grid-column: 1 / -1;
-}
-
-#formPagoManual .actions-row {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
 
 .modal-close {
   position: absolute;
@@ -502,6 +469,109 @@ textarea {
   font-weight: bold;
 }
 
+/* =========================
+   MODAL PAGO MANUAL
+   ========================= */
+
+#modalPagoManual {
+  align-items: center;
+  justify-content: center;
+}
+
+#modalPagoManual .modal-card {
+  width: min(980px, 96vw);
+  height: auto;
+  max-height: 92vh;
+  overflow: hidden !important;
+  padding: 18px 22px 18px;
+}
+
+#modalPagoManual h2 {
+  margin: 0 48px 14px 0;
+  color: var(--rojo2);
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+#formPagoManual {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 14px;
+  overflow: hidden;
+}
+
+#formPagoManual label {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 1.15;
+}
+
+#formPagoManual input,
+#formPagoManual textarea {
+  width: 100%;
+  margin-top: 5px;
+  padding: 9px 12px;
+  min-height: 42px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+#formPagoManual textarea {
+  min-height: 52px !important;
+  max-height: 52px !important;
+  resize: none !important;
+  overflow: hidden;
+}
+
+#formPagoManual .full {
+  grid-column: 1 / -1;
+}
+
+#formPagoManual .actions-row,
+#formPagoManual .form-actions,
+#formPagoManual .modal-actions {
+  grid-column: 1 / -1;
+  display: flex !important;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 0;
+}
+
+#formPagoManual .btn {
+  margin-top: 0;
+  padding: 11px 16px;
+}
+
+@media (max-height: 760px) {
+  #modalPagoManual .modal-card {
+    max-height: 96vh;
+    padding: 14px 18px;
+  }
+
+  #modalPagoManual h2 {
+    font-size: 26px;
+    margin-bottom: 10px;
+  }
+
+  #formPagoManual {
+    gap: 8px 12px;
+  }
+
+  #formPagoManual input,
+  #formPagoManual textarea {
+    min-height: 38px;
+    padding: 8px 10px;
+  }
+
+  #formPagoManual textarea {
+    min-height: 44px !important;
+    max-height: 44px !important;
+  }
+}
+
 @media (max-width: 900px) {
   .app {
     flex-direction: column;
@@ -530,6 +600,44 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 700px) {
+  #modalPagoManual .modal-card {
+    width: 96vw;
+    max-height: 96vh;
+    padding: 14px;
+  }
+
+  #modalPagoManual h2 {
+    font-size: 24px;
+  }
+
+  #formPagoManual {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  #formPagoManual .full {
+    grid-column: 1;
+  }
+
+  #formPagoManual label {
+    font-size: 12px;
+  }
+
+  #formPagoManual input,
+  #formPagoManual textarea {
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  #formPagoManual textarea {
+    min-height: 42px !important;
+    max-height: 42px !important;
+  }
+}
+
 /* =========================
    TOPBAR
    ========================= */
@@ -602,5 +710,3 @@ textarea {
 .login-card button {
   width: 100%;
 }
-
-
