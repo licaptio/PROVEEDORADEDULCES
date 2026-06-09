@@ -105,42 +105,57 @@
     </div>
   </div>
 
-  <div id="modalPagoManual" class="modal oculto">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2>Agregar pago manual</h2>
-        <button class="btn-cerrar" data-cerrar="modalPagoManual">×</button>
-      </div>
-      <form id="formPagoManual" class="form-grid modal-body">
-        <label>Fecha pago</label>
-        <input id="manualFechaPago" class="input" type="date" required />
-
-        <label>Banco</label>
-        <input id="manualBanco" class="input" placeholder="BBVA, HEY BANCO, Santander..." required />
-
-        <label>Proveedor / concepto principal</label>
-        <input id="manualProveedor" class="input" placeholder="Nómina semanal, Coca-Cola, renta unidad..." required />
-
-        <label>RFC emisor</label>
-        <input id="manualRfc" class="input" placeholder="SIN_RFC o RFC del proveedor" value="SIN_RFC" required />
-
-        <label>Importe pagado</label>
-        <input id="manualImporte" class="input" type="number" step="0.01" min="0" required />
-
-        <label>Notas / concepto</label>
-        <textarea id="manualNotas" class="input" rows="4" placeholder="Pago por nómina semana..., arrendamiento..., renta de unidad financiada..."></textarea>
-
-        <label>Comprobante / referencia</label>
-        <textarea id="manualComprobante" class="input" rows="3" placeholder="Referencia bancaria, folio SPEI o texto del comprobante"></textarea>
-
-        <div class="form-actions">
-          <button type="button" class="btn secundario" data-cerrar="modalPagoManual">Cancelar</button>
-          <button type="submit" class="btn primario">Guardar pago manual</button>
-        </div>
-      </form>
+<div id="modalPagoManual" class="modal oculto">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h2>Agregar pago manual</h2>
+      <button class="btn-cerrar" data-cerrar="modalPagoManual">×</button>
     </div>
-  </div>
 
+    <form id="formPagoManual" class="modal-body">
+      <label>
+        Fecha pago
+        <input id="manualFechaPago" class="input" type="date" required />
+      </label>
+
+      <label>
+        Banco
+        <input id="manualBanco" class="input" placeholder="BBVA, HEY BANCO, Santander..." required />
+      </label>
+
+      <label>
+        Proveedor / concepto principal
+        <input id="manualProveedor" class="input" placeholder="Nómina semanal, Coca-Cola, renta unidad..." required />
+      </label>
+
+      <label>
+        RFC emisor
+        <input id="manualRfc" class="input" placeholder="SIN_RFC o RFC del proveedor" value="SIN_RFC" required />
+      </label>
+
+      <label>
+        Importe pagado
+        <input id="manualImporte" class="input" type="number" step="0.01" min="0" required />
+      </label>
+
+      <label>
+        Comprobante / referencia
+        <textarea id="manualComprobante" class="input" rows="2" placeholder="Referencia bancaria, folio SPEI o texto del comprobante"></textarea>
+      </label>
+
+      <label class="full">
+        Notas / concepto
+        <textarea id="manualNotas" class="input" rows="2" placeholder="Pago por nómina semana..., arrendamiento..., renta de unidad financiada..."></textarea>
+      </label>
+
+      <div class="form-actions">
+        <button type="button" class="btn secundario" data-cerrar="modalPagoManual">Cancelar</button>
+        <button type="submit" class="btn primario">Guardar pago manual</button>
+      </div>
+    </form>
+  </div>
+</div>
+  
   <div id="toast" class="toast oculto"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
