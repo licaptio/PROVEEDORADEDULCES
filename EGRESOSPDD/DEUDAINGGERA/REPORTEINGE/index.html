@@ -447,6 +447,7 @@ function aplicarFormatoINGXLS(ws, filas){
 }
 
 async function descargarINGXLS(){
+
   if(!datosFinalesExcel || datosFinalesExcel.length === 0){
     alert("No hay datos para exportar");
     return;
@@ -454,26 +455,89 @@ async function descargarINGXLS(){
 
   const wb = XLSX.utils.book_new();
 
+  const filas = [];
+
   const grupos = agruparPorProveedor(datosFinalesExcel);
 
   grupos.forEach(grupo => {
-    const filas = crearFilasINGXLSProveedor(grupo.facturas);
-    const ws = XLSX.utils.aoa_to_sheet(filas);
 
-    aplicarFormatoINGXLS(ws, filas);
+    const proveedor = grupo.proveedor || grupo.rfc || "SIN PROVEEDOR";
 
-    const nombreHojaBase = grupo.proveedor || grupo.rfc || "Proveedor";
-    const nombreHoja = limpiarNombreHoja(nombreHojaBase);
+    filas.push([proveedor]);
+    filas.push([]);
 
-    XLSX.utils.book_append_sheet(wb, ws, nombreHoja);
+    filas.push([
+      "Fecha",
+      "UUID",
+      "RFC",
+      "Proveedor",
+      "Serie/Folio",
+      "Total"
+    ]);
+
+    const ordenadas = [...grupo.facturas].sort((a,b)=>{
+      return new Date(a.fecha || "1900-01-01")
+           - new Date(b.fecha || "1900-01-01");
+    });
+
+    let totalProveedor = 0;
+
+    ordenadas.forEach(f=>{
+
+      totalProveedor += Number(f.total || 0);
+
+      filas.push([
+        formatearFecha(f.fecha),
+        f.uuid_cfdi || "",
+        f.rfc_emisor || "",
+        f.proveedor || "",
+        f.serie_folio || "",
+        Number(f.total || 0)
+      ]);
+
+    });
+
+    filas.push([]);
+
+    filas.push([
+      "",
+      "",
+      "",
+      "TOTAL PROVEEDOR",
+      "",
+      totalProveedor
+    ]);
+
+    filas.push([]);
+    filas.push([]);
+    filas.push([]);
+
   });
+
+  const ws = XLSX.utils.aoa_to_sheet(filas);
+
+  ws["!cols"] = [
+    { wch: 12 },
+    { wch: 40 },
+    { wch: 18 },
+    { wch: 45 },
+    { wch: 18 },
+    { wch: 16 }
+  ];
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    ws,
+    "INGXLS"
+  );
 
   XLSX.writeFile(
     wb,
     `INGXLS_${new Date().toISOString().slice(0,10)}.xlsx`
   );
-}
 
+}
+  
 function mostrarConfiguracion(){
   document.getElementById("vistaPrincipal").classList.add("oculto");
   document.getElementById("vistaConfig").classList.remove("oculto");
