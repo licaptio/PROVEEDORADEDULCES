@@ -534,39 +534,75 @@ async function recalcular(){
 
   document.getElementById("importePago").value = (isFinite(totalFinal) ? totalFinal : 0).toFixed(2);
 }
+function normalizarBusqueda(txt){
+  return String(txt || "")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
+function scoreLista(row, busqueda){
+  const q = normalizarBusqueda(busqueda);
+  if(!q) return 1;
+
+  const tokens = q.split(" ").filter(Boolean);
+
+  const texto = normalizarBusqueda([
+    row.descripcion,
+    row.descripcion_cfdi
+  ].join(" "));
+
+  let score = 0;
+
+  tokens.forEach(t=>{
+    if(texto.includes(t)) score += 100;
+    if(texto.split(" ").includes(t)) score += 50;
+  });
+
+  // exige que encuentre TODOS los tokens escritos
+  const todos = tokens.every(t => texto.includes(t));
+  if(!todos) return 0;
+
+  return score;
+}
+  
 /*** MODAL: search + resumen + preselect + edit ***/
 function renderMatchOptions(filterText){
   const sel = document.getElementById("matchSelect");
   const summary = document.getElementById("matchSummary");
-  const q = String(filterText||"").trim();
+  const q = String(filterText || "").trim();
 
   const filtered = !q
-    ? lista
-    : lista.filter(r => includesCI(r.descripcion, q) || includesCI(r.descripcion_cfdi, q));
+    ? lista.map(r => ({ ...r, _score: 1 }))
+    : lista
+        .map(r => ({ ...r, _score: scoreLista(r, q) }))
+        .filter(r => r._score > 0)
+        .sort((a,b) => b._score - a._score);
 
-  // resumen: count + min/max
   let min = null, max = null, sum = 0;
   filtered.forEach(r=>{
-    const c = Number(r.costo_neto||0);
+    const c = Number(r.costo_neto || 0);
     if (min === null || c < min) min = c;
     if (max === null || c > max) max = c;
     sum += c;
   });
 
   summary.textContent = `Mostrando ${filtered.length} de ${lista.length}. ` +
-    (filtered.length ? `Min ${money(min)} · Max ${money(max)} · Prom ${money(sum/filtered.length)}` : "");
+    (filtered.length ? `Min ${money(min)} · Max ${money(max)} · Prom ${money(sum / filtered.length)}` : "");
 
   sel.innerHTML = "";
+
   filtered.slice(0, 500).forEach(r=>{
     const label = `${r.descripcion}  —  ${money(r.costo_neto)}${r.descripcion_cfdi ? "  (ya enlazado)" : ""}`;
     sel.innerHTML += `<option value="${r.id}">${label}</option>`;
   });
 
-  // refrescar costo
   sel.dispatchEvent(new Event("change"));
 }
-
+  
 function abrirModal(idx){
   if(!listaFechaActual){
     alert("Selecciona la fecha de lista primero.");
