@@ -35,35 +35,28 @@ function abrirDetallePago(id){
     html+=`<h3>Facturas pagadas</h3><div class="tabla-wrap"><table class="tabla"><thead><tr><th>Fecha factura</th><th>UUID / UDI</th><th>Serie</th><th>Folio</th><th>Total</th><th>Descuento</th><th>Neto</th></tr></thead><tbody>`;
 html+=facturas.map(f=>{
 
-  const uuid =
-    f.uuid_cfdi ||
-    f.uuid ||
-    f.udi ||
-    f.UUID ||
-    '';
+  const uuid = f.uuid_cfdi || f.uuid || f.udi || f.UUID || "";
 
-  const total =
-    Number(f.importe_original || 0);
+  const total = Number(f.importe_original || 0);
 
-  const desc =
-    Number(f?.descuento?.monto || 0);
+  const descuentoFactura = Number(f?.descuento?.monto || 0);
 
-  const neto =
-    Number(f.importe_final || (total - desc));
+  const neto = Number(f.importe_final || (total - descuentoFactura));
 
   return `
     <tr>
       <td>${fechaMx(f.fecha)}</td>
       <td>${escapeHtml(uuid)}</td>
-      <td>${escapeHtml(f.serie || '')}</td>
-      <td>${escapeHtml(f.folio || '')}</td>
+      <td>${escapeHtml(f.serie || "")}</td>
+      <td>${escapeHtml(f.folio || "")}</td>
       <td class="texto-derecha">${dinero(total)}</td>
-      <td class="texto-derecha">${dinero(desc)}</td>
+      <td class="texto-derecha">${dinero(descuentoFactura)}</td>
       <td class="texto-derecha">${dinero(neto)}</td>
     </tr>
   `;
 
-}).join('');
+}).join("");
+    
     html+=`</tbody></table></div>`;
   }
   html+=`<h3>Comprobante / referencia</h3><div class="bloque-notas">${escapeHtml(p.comprobante_raw||'')}</div>`;
