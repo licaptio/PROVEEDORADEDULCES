@@ -27,13 +27,13 @@
 <section id="vistaPrincipal">
   <div class="barra">
     <button class="btn-verde" onclick="descargarExcel()">📥 Generar Excel</button>
+    <button class="btn-verde" onclick="descargarINGXLS()">📥 INGXLS</button>
     <button class="btn-azul" onclick="mostrarConfiguracion()">⚙️ Configuración</button>
     <button class="btn-gris" onclick="cargar()">🔄 Recargar</button>
   </div>
 
   <div id="totalGlobal"></div>
   <div id="tabla"></div>
-
 </section>
 
 <section id="vistaConfig" class="oculto">
@@ -53,7 +53,6 @@
       <div style="display:grid; gap:10px;">
         <input id="departamentoInput" placeholder="Departamento. Ej: Gasolina, Bancos, Dulcería">
         <input id="rfcInput" placeholder="RFC del proveedor">
-        
 
         <button class="btn-verde" onclick="guardarDepartamentoRFC()">
           Guardar RFC
@@ -97,16 +96,25 @@ const anchoDeuda = [
   { wch: 30 }
 ];
 
+const anchoINGXLS = [
+  { wch: 12 },
+  { wch: 40 },
+  { wch: 18 },
+  { wch: 45 },
+  { wch: 18 },
+  { wch: 16 }
+];
+
 function normalizarTexto(txt){
   return String(txt || "").trim().toUpperCase();
 }
 
 async function cargar(){
-const { data, error } = await _supabase
-  .from("appinggeracxp")
-  .select("*")
-  .order("fecha", { ascending: true });
-  
+  const { data, error } = await _supabase
+    .from("appinggeracxp")
+    .select("*")
+    .order("fecha", { ascending: true });
+
   if(error){
     console.error(error);
     alert("Error cargando deuda");
@@ -181,7 +189,6 @@ function mostrarTabla(data){
           <th>Total</th>
           <th>Física</th>
           <th>Fotos</th>
-          
         </tr>
       </thead>
       <tbody>
@@ -219,7 +226,6 @@ function mostrarTabla(data){
   html += `</tbody></table>`;
   document.getElementById("tabla").innerHTML = `<div class="table-wrap">${html}</div>`;
 }
-
 
 function calcularDias(fechaStr){
   if(!fechaStr) return 0;
@@ -357,6 +363,117 @@ async function descargarExcel(){
   );
 }
 
+function agruparPorProveedor(data){
+  const grupos = {};
+
+  data.forEach(f => {
+    const proveedor = String(f.proveedor || f.razon_social_emisor || f.rfc_emisor || "SIN PROVEEDOR").trim();
+    const rfc = normalizarTexto(f.rfc_emisor || "");
+    const key = `${proveedor}__${rfc}`;
+
+    if(!grupos[key]){
+      grupos[key] = {
+        proveedor,
+        rfc,
+        facturas: []
+      };
+    }
+
+    grupos[key].facturas.push(f);
+  });
+
+  return Object.values(grupos).sort((a,b) => {
+    const provA = normalizarTexto(a.proveedor);
+    const provB = normalizarTexto(b.proveedor);
+
+    if(provA !== provB) return provA.localeCompare(provB);
+
+    return normalizarTexto(a.rfc).localeCompare(normalizarTexto(b.rfc));
+  });
+}
+
+function crearFilasINGXLSProveedor(facturas){
+  const filas = [
+    ["Fecha","UUID","RFC","Proveedor","Serie/Folio","Total"]
+  ];
+
+  const ordenadas = [...facturas].sort((a,b) => {
+    return new Date(a.fecha || "1900-01-01") - new Date(b.fecha || "1900-01-01");
+  });
+
+  ordenadas.forEach(f => {
+    filas.push([
+      formatearFecha(f.fecha),
+      f.uuid_cfdi || "",
+      f.rfc_emisor || "",
+      f.proveedor || f.razon_social_emisor || f.rfc_emisor || "",
+      f.serie_folio || "—",
+      Number(f.total || 0)
+    ]);
+  });
+
+  const totalProveedor = ordenadas.reduce((acc,f) => acc + Number(f.total || 0), 0);
+
+  filas.push([]);
+  filas.push(["","","","TOTAL PROVEEDOR","",totalProveedor]);
+
+  return filas;
+}
+
+function aplicarFormatoINGXLS(ws, filas){
+  ws["!cols"] = anchoINGXLS;
+
+  const rango = XLSX.utils.decode_range(ws["!ref"]);
+
+  for(let R = rango.s.r; R <= rango.e.r; R++){
+    const cellTotal = ws[XLSX.utils.encode_cell({ r:R, c:5 })];
+
+    if(cellTotal && typeof cellTotal.v === "number"){
+      cellTotal.t = "n";
+      cellTotal.z = '#,##0.00';
+    }
+  }
+
+  const ultimaFila = filas.length - 1;
+
+  for(let C = 0; C <= 5; C++){
+    const celda = ws[XLSX.utils.encode_cell({ r:ultimaFila, c:C })];
+    if(celda){
+      celda.s = {
+        font: { bold: true }
+      };
+    }
+  }
+}
+
+async function descargarINGXLS(){
+  if(!datosFinalesExcel || datosFinalesExcel.length === 0){
+    alert("No hay datos para exportar");
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  const grupos = agruparPorProveedor(datosFinalesExcel);
+
+  grupos.forEach(grupo => {
+    const filas = crearFilasINGXLSProveedor(grupo.facturas);
+    const ws = XLSX.utils.aoa_to_sheet(filas);
+
+    aplicarFormatoINGXLS(ws, filas);
+
+    const nombreHojaBase = grupo.proveedor || grupo.rfc || "Proveedor";
+    const nombreHoja = limpiarNombreHoja(nombreHojaBase);
+
+    XLSX.utils.book_append_sheet(wb, ws, nombreHoja);
+  });
+
+  XLSX.writeFile(
+    wb,
+    `INGXLS_${new Date().toISOString().slice(0,10)}.xlsx`
+  );
+}
+
 function mostrarConfiguracion(){
   document.getElementById("vistaPrincipal").classList.add("oculto");
   document.getElementById("vistaConfig").classList.remove("oculto");
@@ -430,7 +547,6 @@ function pintarConfiguracion(){
 async function guardarDepartamentoRFC(){
   const departamento = document.getElementById("departamentoInput").value.trim();
   const rfc = normalizarTexto(document.getElementById("rfcInput").value);
-  
 
   if(!departamento || !rfc){
     alert("Captura departamento y RFC");
@@ -442,7 +558,6 @@ async function guardarDepartamentoRFC(){
     .upsert({
       departamento,
       rfc_emisor: rfc,
-      
       activo: true
     }, {
       onConflict: "departamento,rfc_emisor"
@@ -455,7 +570,6 @@ async function guardarDepartamentoRFC(){
   }
 
   document.getElementById("rfcInput").value = "";
-  
 
   await cargarDepartamentos();
 }
@@ -479,12 +593,12 @@ async function desactivarConfig(id){
 
 window.cargar = cargar;
 window.descargarExcel = descargarExcel;
+window.descargarINGXLS = descargarINGXLS;
 window.mostrarConfiguracion = mostrarConfiguracion;
 window.volverPrincipal = volverPrincipal;
 window.cargarDepartamentos = cargarDepartamentos;
 window.guardarDepartamentoRFC = guardarDepartamentoRFC;
 window.desactivarConfig = desactivarConfig;
-
 
 document.addEventListener("DOMContentLoaded", cargar);
 
