@@ -645,6 +645,12 @@ function abrirModal(idx){
   }
 
   document.getElementById("modal").style.display = "block";
+
+setTimeout(() => {
+  const inp = document.getElementById("matchSearch");
+  inp.focus();
+  inp.select();
+}, 50);
 }
 
 function cerrarModal(){
