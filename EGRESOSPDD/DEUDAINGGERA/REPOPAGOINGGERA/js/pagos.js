@@ -59,6 +59,31 @@ html+=facturas.map(f=>{
     
     html+=`</tbody></table></div>`;
   }
+ const subtotalFacturas = facturas.reduce((s, f) => {
+  return s + Number(f.importe_original || 0);
+}, 0);
+
+const descuentosFactura = facturas.reduce((s, f) => {
+  return s + Number(f?.descuento?.monto || 0);
+}, 0);
+
+const netoFacturas = facturas.reduce((s, f) => {
+  return s + Number(f.importe_final || 0);
+}, 0);
+
+const ajusteGlobal = Number(p.total_ajustes || 0);
+
+html += `
+  <div class="resumen-detalle-pago">
+    <div><span>Subtotal facturas</span><strong>${dinero(subtotalFacturas)}</strong></div>
+    <div><span>Descuentos por factura</span><strong>${dinero(descuentosFactura)}</strong></div>
+    <div><span>Neto facturas</span><strong>${dinero(netoFacturas)}</strong></div>
+    <div><span>Descuento / ajuste global</span><strong>${dinero(ajusteGlobal)}</strong></div>
+    <div class="total"><span>Total pagado</span><strong>${dinero(p.importe_pagado)}</strong></div>
+  </div>
+`;
+  
+  
   html+=`<h3>Comprobante / referencia</h3><div class="bloque-notas">${escapeHtml(p.comprobante_raw||'')}</div>`;
   if(p.notas && !manual) html+=`<h3>Notas</h3><div class="bloque-notas">${escapeHtml(p.notas)}</div>`;
   document.getElementById('detallePagoContenido').innerHTML=html;
