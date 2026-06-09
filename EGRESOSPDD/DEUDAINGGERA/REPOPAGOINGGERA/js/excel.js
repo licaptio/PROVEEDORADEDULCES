@@ -5,53 +5,118 @@ function filasFacturasExcel(pagos){
     const facturas=asegurarArray(p.facturas_info);
     const ajustes=asegurarArray(p.ajustes);
 
-    facturas.forEach(f=>{
-      const uuid=f.uuid_cfdi||f.uuid||f.udi||f.UUID||'';
+    filas.push({
+      Banco:p.banco,
+      'Fecha pago':p.fecha_pago,
+      Proveedor:p.proveedor_nombre,
+      RFC:p.rfc_emisor,
+      'Fecha factura':'',
+      'UUID / UDI':'',
+      Serie:'',
+      Folio:'',
+      Total:'',
+      'Desc. factura':'',
+      'Neto factura':'',
+      'Concepto':'ENCABEZADO PAGO',
+      Importe:Number(p.importe_pagado||0)
+    });
 
+    facturas.forEach(f=>{
       const total=Number(f.importe_original||0);
-      const descuentoFactura=Number(f?.descuento?.monto||0);
-      const netoFactura=Number(f.importe_final||(total-descuentoFactura));
+      const desc=Number(f?.descuento?.monto||0);
+      const neto=Number(f.importe_final||(total-desc));
 
       filas.push({
-        Banco:p.banco,
-        'Fecha pago':p.fecha_pago,
-        Proveedor:p.proveedor_nombre,
-        RFC:p.rfc_emisor,
+        Banco:'',
+        'Fecha pago':'',
+        Proveedor:'',
+        RFC:'',
         'Fecha factura':f.fecha||'',
-        'UUID / UDI':uuid,
+        'UUID / UDI':f.uuid_cfdi||'',
         Serie:f.serie||'',
         Folio:f.folio||'',
-        'Importe original factura':total,
-        'Descuento por factura':descuentoFactura,
-        'Neto factura':netoFactura,
-        'Descuento global del pago':Number(p.total_ajustes||0),
-        'Total pagado del pago':Number(p.importe_pagado||0),
-        'Comprobante':p.comprobante_raw||'',
-        'Notas pago':p.notas||''
+        Total:total,
+        'Desc. factura':desc,
+        'Neto factura':neto,
+        'Concepto':'FACTURA',
+        Importe:''
       });
+    });
+
+    const subtotalFacturas=facturas.reduce((s,f)=>s+Number(f.importe_original||0),0);
+    const descuentosFactura=facturas.reduce((s,f)=>s+Number(f?.descuento?.monto||0),0);
+    const netoFacturas=facturas.reduce((s,f)=>s+Number(f.importe_final||0),0);
+    const ajusteGlobal=Number(p.total_ajustes||0);
+
+    filas.push({
+      Banco:'',
+      'Fecha pago':'',
+      Proveedor:'',
+      RFC:'',
+      'Fecha factura':'',
+      'UUID / UDI':'',
+      Serie:'',
+      Folio:'',
+      Total:subtotalFacturas,
+      'Desc. factura':descuentosFactura,
+      'Neto factura':netoFacturas,
+      'Concepto':'SUBTOTAL FACTURAS',
+      Importe:''
+    });
+
+    filas.push({
+      Banco:'',
+      'Fecha pago':'',
+      Proveedor:'',
+      RFC:'',
+      'Fecha factura':'',
+      'UUID / UDI':'',
+      Serie:'',
+      Folio:'',
+      Total:'',
+      'Desc. factura':'',
+      'Neto factura':'',
+      'Concepto':'DESCUENTO / AJUSTE GLOBAL',
+      Importe:ajusteGlobal
     });
 
     if(ajustes.length){
       ajustes.forEach(a=>{
         filas.push({
-          Banco:p.banco,
-          'Fecha pago':p.fecha_pago,
-          Proveedor:p.proveedor_nombre,
-          RFC:p.rfc_emisor,
+          Banco:'',
+          'Fecha pago':'',
+          Proveedor:'',
+          RFC:'',
           'Fecha factura':'',
-          'UUID / UDI':'AJUSTE GLOBAL',
+          'UUID / UDI':'',
           Serie:'',
           Folio:'',
-          'Importe original factura':0,
-          'Descuento por factura':0,
-          'Neto factura':0,
-          'Descuento global del pago':Number(a.monto||0),
-          'Total pagado del pago':Number(p.importe_pagado||0),
-          'Comprobante':p.comprobante_raw||'',
-          'Notas pago':a.nota||p.notas||''
+          Total:'',
+          'Desc. factura':'',
+          'Neto factura':'',
+          'Concepto':a.tipo||'AJUSTE GLOBAL',
+          Importe:Number(a.monto||0)
         });
       });
     }
+
+    filas.push({
+      Banco:'',
+      'Fecha pago':'',
+      Proveedor:'',
+      RFC:'',
+      'Fecha factura':'',
+      'UUID / UDI':'',
+      Serie:'',
+      Folio:'',
+      Total:'',
+      'Desc. factura':'',
+      'Neto factura':'',
+      'Concepto':'TOTAL PAGADO',
+      Importe:Number(p.importe_pagado||0)
+    });
+
+    filas.push({});
   });
 
   return filas;
@@ -77,23 +142,7 @@ function exportarExcel(){
   const totalFacturas=PAGOS_SEMANA.reduce((s,p)=>s+Number(p.total_facturas||0),0);
   const totalAjustes=PAGOS_SEMANA.reduce((s,p)=>s+Number(p.total_ajustes||0),0);
 
-  const resumen=[{
-    Reporte: localStorage.getItem('provsoft_nombre_reporte') || window.PROVSOFT_CONFIG.NOMBRE_REPORTE,
-    'Fecha inicio':inicio,
-    'Fecha fin':fin,
-    'Total pagado':totalPagado,
-    'Total facturas':totalFacturas,
-    'Total descuentos/ajustes':totalAjustes,
-    'Número de pagos':PAGOS_SEMANA.length
-  }];
-
   const wb=XLSX.utils.book_new();
-
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.json_to_sheet(resumen),
-    'Resumen'
-  );
 
   XLSX.utils.book_append_sheet(
     wb,
