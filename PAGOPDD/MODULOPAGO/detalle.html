@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Detalle CFDI – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/detalleFactura.css">
+</head>
+<body>
+  <header class="detalle-header">
+    <div>
+      <span class="eyebrow">PROVSOFT · Pago a proveedores</span>
+      <h1>Detalle CFDI</h1>
+      <p id="subtituloDetalle">Cargando factura...</p>
+    </div>
+    <button id="btnRegresar" class="btn-back" type="button">← Regresar</button>
+  </header>
+
+  <main class="detalle-shell">
+    <section id="estadoCarga" class="card estado-carga">Cargando información...</section>
+    <section id="contenedorDetalle" class="oculto"></section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <script type="module" src="js/detalleFactura.js"></script>
+</body>
+</html>
