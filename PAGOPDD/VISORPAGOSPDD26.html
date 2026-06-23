@@ -26,7 +26,7 @@ h2{margin-bottom:15px}
   gap:12px;
   flex-wrap:wrap;
 }
-input,select,button{
+input,button{
   padding:8px;
   border-radius:6px;
   border:1px solid #ccc;
@@ -54,9 +54,39 @@ th{background:#f3f4f6}
 }
 td:last-child, th:last-child{
   text-align:right;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric:tabular-nums;
 }
-
+.buscador-box{
+  position:relative;
+  width:360px;
+}
+.sugerencias{
+  position:absolute;
+  top:62px;
+  left:0;
+  right:0;
+  background:white;
+  border:1px solid #ccc;
+  border-radius:8px;
+  box-shadow:0 6px 14px rgba(0,0,0,.18);
+  max-height:260px;
+  overflow-y:auto;
+  z-index:999;
+  display:none;
+}
+.sugerencia-item{
+  padding:9px 10px;
+  cursor:pointer;
+  font-size:14px;
+}
+.sugerencia-item:hover{
+  background:#f3f4f6;
+}
+.mensaje{
+  color:#777;
+  font-size:14px;
+  padding:8px 0;
+}
 </style>
 </head>
 
@@ -66,32 +96,23 @@ td:last-child, th:last-child{
 
 <div class="card">
   <div class="row">
-<div>
-  Día<br>
-  <input type="date" id="dia">
-</div>
 
-    <div>
-      Banco<br>
-      <select id="banco">
-        <option value="">Todos</option>
-        <option>BBVA</option>
-        <option>BANORTE</option>
-        <option>BANREGIO</option>
-        <option>OTRO</option>
-      </select>
-    </div>
-    <div>
+    <div class="buscador-box">
       Proveedor<br>
-      <input id="proveedor" placeholder="Nombre o RFC">
+      <input id="proveedor" placeholder="Escribe nombre del proveedor" autocomplete="off" style="width:100%">
+      <div id="sugerencias" class="sugerencias"></div>
     </div>
+
     <div style="align-self:flex-end">
       <button onclick="buscar()">🔍 Buscar</button>
     </div>
+
   </div>
 </div>
 
 <div class="card">
+  <div id="mensaje" class="mensaje">Escribe un proveedor para consultar sus últimos 30 pagos.</div>
+
   <table>
     <thead>
       <tr>
@@ -114,63 +135,147 @@ const sb = supabase.createClient(
   "https://cvpbtjlupswbyxenugpz.supabase.co",
   "sb_publishable_SQ7Q5LFJqlxVzwNTxcIyzQ_8F1bqyiX"
 );
-  
-  /* 👉 AGREGA ESTO */
+
 const formatoMXN = new Intl.NumberFormat('es-MX', {
   style: 'currency',
   currency: 'MXN',
   minimumFractionDigits: 2
 });
-async function buscar(){
-  let q = sb
-    .from('pagos_proveedor')
-    .select('id,fecha_pago,banco,proveedor_nombre,importe_pagado')
-    .order('fecha_pago',{ascending:true});
 
-  const banco = document.getElementById('banco').value;
-  const proveedor = document.getElementById('proveedor').value.trim();
-  const dia = document.getElementById('dia').value;
+const inputProveedor = document.getElementById('proveedor');
+const boxSugerencias = document.getElementById('sugerencias');
+const tbody = document.getElementById('tbody');
+const totalSpan = document.getElementById('total');
+const mensaje = document.getElementById('mensaje');
 
-if(dia){
-  q = q.eq('fecha_pago', dia);
-}
-  if(banco) q = q.eq('banco', banco);
-  if(proveedor) q = q.ilike('proveedor_nombre', `%${proveedor}%`);
+let timerBusqueda = null;
 
-  const { data, error } = await q;
-  if(error){
-    alert(error.message);
+inputProveedor.addEventListener('input', () => {
+  clearTimeout(timerBusqueda);
+
+  const texto = inputProveedor.value.trim();
+
+  if(texto.length < 2){
+    boxSugerencias.style.display = 'none';
+    boxSugerencias.innerHTML = '';
     return;
   }
 
-  const tbody = document.getElementById('tbody');
+  timerBusqueda = setTimeout(() => {
+    cargarSugerencias(texto);
+  }, 250);
+});
+
+inputProveedor.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){
+    buscar();
+    boxSugerencias.style.display = 'none';
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('.buscador-box')){
+    boxSugerencias.style.display = 'none';
+  }
+});
+
+async function cargarSugerencias(texto){
+  const { data, error } = await sb
+    .from('pagos_proveedor')
+    .select('proveedor_nombre')
+    .ilike('proveedor_nombre', `%${texto}%`)
+    .not('proveedor_nombre', 'is', null)
+    .order('proveedor_nombre', { ascending:true })
+    .limit(50);
+
+  if(error){
+    console.error(error.message);
+    return;
+  }
+
+  const nombresUnicos = [...new Set(
+    data.map(x => x.proveedor_nombre).filter(Boolean)
+  )].slice(0, 20);
+
+  boxSugerencias.innerHTML = '';
+
+  if(nombresUnicos.length === 0){
+    boxSugerencias.innerHTML = `<div class="sugerencia-item">Sin resultados</div>`;
+    boxSugerencias.style.display = 'block';
+    return;
+  }
+
+  nombresUnicos.forEach(nombre => {
+    const div = document.createElement('div');
+    div.className = 'sugerencia-item';
+    div.textContent = nombre;
+
+    div.onclick = () => {
+      inputProveedor.value = nombre;
+      boxSugerencias.style.display = 'none';
+      buscar();
+    };
+
+    boxSugerencias.appendChild(div);
+  });
+
+  boxSugerencias.style.display = 'block';
+}
+
+async function buscar(){
+  const proveedor = inputProveedor.value.trim();
+
+  if(!proveedor){
+    alert('Escribe el nombre del proveedor');
+    return;
+  }
+
+  mensaje.textContent = 'Buscando últimos 30 pagos...';
   tbody.innerHTML = '';
+  totalSpan.innerText = formatoMXN.format(0);
+
+  const { data, error } = await sb
+    .from('pagos_proveedor')
+    .select('id,fecha_pago,banco,proveedor_nombre,importe_pagado')
+    .ilike('proveedor_nombre', `%${proveedor}%`)
+    .order('fecha_pago', { ascending:false })
+    .limit(30);
+
+  if(error){
+    alert(error.message);
+    mensaje.textContent = 'Error al consultar pagos.';
+    return;
+  }
+
+  if(!data || data.length === 0){
+    mensaje.textContent = 'No se encontraron pagos para ese proveedor.';
+    return;
+  }
 
   let total = 0;
 
-  data.forEach(p=>{
-    total += Number(p.importe_pagado||0);
+  data.forEach(p => {
+    total += Number(p.importe_pagado || 0);
+
     tbody.innerHTML += `
       <tr>
         <td class="id">
-  <a href="CARDEX.html?id=${p.id}" target="_blank">
-    ${p.id}
-  </a>
-</td>
-        <td>${p.fecha_pago}</td>
-        <td>${p.banco}</td>
-        <td>${p.proveedor_nombre}</td>
+          <a href="CARDEX.html?id=${p.id}" target="_blank">
+            ${p.id}
+          </a>
+        </td>
+        <td>${p.fecha_pago || ''}</td>
+        <td>${p.banco || ''}</td>
+        <td>${p.proveedor_nombre || ''}</td>
         <td>${formatoMXN.format(p.importe_pagado || 0)}</td>
       </tr>
     `;
   });
 
-  document.getElementById('total').innerText = formatoMXN.format(total);
-
+  totalSpan.innerText = formatoMXN.format(total);
+  mensaje.textContent = `Mostrando ${data.length} pagos más recientes de: ${proveedor}`;
 }
-
 </script>
 
 </body>
 </html>
-
