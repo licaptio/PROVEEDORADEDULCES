@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pago a Proveedores – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/loader.css">
+  <link rel="stylesheet" href="css/modal.css">
+  <link rel="stylesheet" href="css/tablas.css">
+  <link rel="stylesheet" href="css/pagos.css">
+</head>
+<body>
+
+  <section id="loader" class="loader-screen activo">
+    <div class="loader-card">
+      <img src="assets/logo_proveedora.svg" alt="Proveedora" class="loader-logo">
+      <h1>Proveedora de Dulces y Desechables</h1>
+      <p>Módulo de pago a proveedores</p>
+      <div class="progress"><span></span></div>
+      <div id="loaderTexto" class="loader-texto">Cargando datos...</div>
+    </div>
+  </section>
+
+  <main id="app" class="app oculto">
+    <header class="app-header">
+      <div class="brand">
+        <img src="assets/logo_proveedora.svg" alt="Proveedora" class="brand-logo">
+        <div>
+          <h1>Pago a Proveedores</h1>
+          <p>PROVSOFT · Proveedora de Dulces y Desechables</p>
+        </div>
+      </div>
+      <div class="header-status" id="headerStatus">Listo</div>
+    </header>
+
+    <section id="pantallaInicio" class="pantalla activa">
+      <div class="inicio-pago card-xl">
+        <div class="inicio-contenido">
+          <h2>Pago a Proveedores</h2>
+          <p>PROVSOFT · Proveedora de Dulces y Desechables</p>
+          <img src="assets/logo_proveedora.svg" alt="Proveedora" class="inicio-logo-fondo">
+          <button class="btn btn-main" type="button" onclick="abrirModalProveedor()">➕ Agregar pago</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="pantallaFacturas" class="pantalla">
+      <div class="topbar">
+        <button class="btn-outline" type="button" onclick="volverInicioDesdeFacturas()">← Atrás</button>
+        <div>
+          <h2>Facturas pendientes</h2>
+          <p id="proveedorSeleccionadoLabel" class="muted"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <button class="btn-outline btn-mini" type="button" onclick="seleccionarTodasFacturas(true)">Seleccionar todas</button>
+          <button class="btn-outline btn-mini" type="button" onclick="seleccionarTodasFacturas(false)">Limpiar selección</button>
+          <div class="toolbar-total">Total seleccionado: <b id="totalSeleccionadoFacturas">$0.00</b></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Fecha</th>
+                <th>Folio</th>
+                <th>Física</th>
+                <th>Fotos</th>
+                <th style="text-align:right">Nota</th>
+                <th style="text-align:right">Total</th>
+                <th>Detalle</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyFacturas"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="footer-actions">
+        <button class="btn" type="button" onclick="irADescuentos()">Siguiente: ajustes →</button>
+      </div>
+    </section>
+
+    <section id="pantallaAjustes" class="pantalla">
+      <div class="topbar">
+        <button class="btn-outline" type="button" onclick="mostrarPantalla('pantallaFacturas')">← Atrás</button>
+        <div>
+          <h2>Ajustes y modificaciones</h2>
+          <p class="muted">Aplica devoluciones, bonificaciones puntuales o un descuento global.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>UUID</th>
+                <th>Proveedor</th>
+                <th>Serie / Folio</th>
+                <th style="text-align:right">Importe</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyCalculo"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="footer-actions">
+        <button class="btn" type="button" onclick="irADatosPago()">Siguiente: datos del pago →</button>
+      </div>
+    </section>
+
+    <section id="pantallaPago" class="pantalla">
+      <div class="topbar">
+        <button class="btn-outline" type="button" onclick="mostrarPantalla('pantallaAjustes')">← Atrás</button>
+        <div>
+          <h2>Datos del pago</h2>
+          <p class="muted">El importe se llena con el total calculado. Se puede ajustar si es necesario.</p>
+        </div>
+      </div>
+
+      <div class="grid-final">
+        <div class="card resumen-final resumen-final-detalle">
+          <div class="proveedor-resumen-final">
+            <div class="proveedor-label">PROVEEDOR</div>
+            <div id="nombreProveedorResumen" class="proveedor-nombre">Proveedor no seleccionado</div>
+            <div id="rfcProveedorResumen" class="proveedor-rfc"></div>
+          </div>
+
+          <div class="resumen-total-final">
+            <h3>Total a pagar</h3>
+            <div id="totalFinalPago" class="total-grande">$0.00</div>
+            <div id="resumenFinalPago" class="muted"></div>
+          </div>
+
+          <div class="resumen-facturas-final">
+            <h4>Facturas incluidas</h4>
+            <div id="detalleFacturasPago" class="facturas-final-scroll"></div>
+          </div>
+
+          <div class="totales-finales-pago">
+            <div class="linea-total-final">
+              <span>Total facturas neto</span>
+              <strong id="lblTotalFacturasFinal">$0.00</strong>
+            </div>
+            <div class="linea-total-final">
+              <span>Ajuste global</span>
+              <strong id="lblAjusteGlobalFinal">$0.00</strong>
+            </div>
+            <div class="linea-total-final total-general-final">
+              <span>Total a pagar</span>
+              <strong id="lblTotalPagarFinal">$0.00</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <label>Banco</label>
+          <select id="banco">
+            <option>BBVA</option><option>BANORTE</option><option>BANREGIO</option><option>OTRO</option>
+          </select>
+
+          <label>Fecha pago</label>
+          <input type="date" id="fechaPago">
+
+          <label>Importe</label>
+          <input type="number" id="importePago" step="0.01">
+          <div class="small">Debe coincidir con el total calculado, salvo diferencia autorizada.</div>
+        </div>
+      </div>
+
+      <div class="footer-actions">
+        <button id="btnGuardar" class="btn btn-main" type="button" onclick="confirmarNotasAntesDeGuardar()">💾 Registrar pago</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="modalProveedor" class="modal-overlay" onclick="if(event.target.id==='modalProveedor') cerrarModalProveedor();">
+    <div class="modal modal-lg" onclick="event.stopPropagation()">
+      <h3>Seleccionar proveedor</h3>
+      <input id="buscarProveedor" placeholder="Buscar por proveedor o RFC..." oninput="filtrarProveedores()">
+      <div id="listaProveedores" class="lista-proveedores"></div>
+      <div class="actions"><button class="btn-outline" type="button" onclick="cerrarModalProveedor()">Cancelar</button></div>
+    </div>
+  </div>
+
+  <div id="modalDescOverlay" class="modal-overlay" onclick="if(event.target.id==='modalDescOverlay') cerrarDesc();">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>💸 Ajuste por factura</h3>
+      <div id="descFacturaPill" class="pill">—</div>
+      <div class="grid-2">
+        <div><label>Importe original</label><input id="descImporteOriginal" type="text" disabled></div>
+        <div><label>Monto del ajuste</label><input id="descMonto" type="number" step="0.01" placeholder="0.00"></div>
+      </div>
+      <label>Nota del ajuste</label>
+      <textarea id="descNota" rows="3" placeholder="Ej: devolución, bonificación o merma"></textarea>
+      <div class="muted" id="descHint"></div>
+      <div class="actions">
+        <button class="btn-outline btn-mini" type="button" onclick="quitarDescuentoFactura()">Quitar ajuste</button>
+        <button class="btn-outline btn-mini" type="button" onclick="cerrarDesc()">Cancelar</button>
+        <button class="btn btn-mini" type="button" onclick="aplicarDescuento()">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalNotas" class="modal-overlay" onclick="if(event.target.id==='modalNotas') cerrarModalNotas();">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>Notas adicionales</h3>
+      <p class="muted">Antes de registrar, puedes agregar una nota general del pago.</p>
+      <textarea id="notasPago" rows="5" placeholder="Notas opcionales..."></textarea>
+      <div class="actions">
+        <button class="btn-outline" type="button" onclick="cerrarModalNotas()">Cancelar</button>
+        <button class="btn" type="button" onclick="guardarPagoDesdeModal()">Confirmar y guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

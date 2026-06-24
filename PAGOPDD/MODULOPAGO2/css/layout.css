@@ -1,0 +1,491 @@
+/* Layout tipo ventana: la página NO hace scroll; solo el panel interno */
+.app{
+  height:100dvh;
+  width:100%;
+  max-width:none;
+  margin:0;
+  padding:14px 16px;
+  display:grid;
+  grid-template-rows:96px minmax(0,1fr);
+  gap:12px;
+  overflow:hidden;
+}
+
+.app-header{
+  grid-row:1;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  padding:14px 18px;
+  background:#fff;
+  border:4px solid transparent;
+  border-radius:20px;
+  box-shadow:var(--shadow);
+  min-height:0;
+}
+
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.brand-logo{width:54px;height:54px;flex:0 0 auto}
+.brand h1{margin:0;color:var(--orange-dark);font-size:25px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand p{margin:5px 0 0;color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-status{background:#fff;border:1px solid var(--border);border-radius:999px;padding:8px 12px;font-size:12px;color:var(--muted);white-space:nowrap}
+
+.pantalla{
+  display:none;
+  grid-row:2;
+  min-height:0;
+  overflow:hidden;
+}
+.pantalla.activa{
+  display:grid;
+  grid-template-rows:74px minmax(0,1fr) 58px;
+  gap:10px;
+}
+
+/* Inicio usa todo el panel */
+#pantallaInicio.activa{grid-template-rows:minmax(0,1fr)}
+
+.card,.card-xl{
+  background:var(--card);
+  border-radius:18px;
+  padding:18px 20px;
+  box-shadow:var(--shadow);
+  border-top:6px solid var(--orange);
+  min-height:0;
+}
+
+.hero{
+  height:100%;
+  display:grid;
+  grid-template-columns:1.5fr .8fr;
+  gap:22px;
+  align-items:center;
+  overflow:hidden;
+}
+.hero h2{font-size:38px;margin:6px 0 10px}.hero p{color:var(--muted);max-width:680px}.eyebrow{color:var(--orange-dark);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.08em}.hero-panel{display:grid;gap:12px}.metric{background:var(--orange-soft);border:1px solid #ffd7b3;border-radius:14px;padding:16px}.metric span{font-size:26px;font-weight:800;display:block;color:#5d4037}.metric small{color:#6b4b3c}
+
+/* bloque superior fijo, como tu dibujo */
+.topbar{
+  grid-row:1;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:14px 18px;
+  background:#fff;
+  border:4px solid transparent;
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  min-height:0;
+  overflow:hidden;
+}
+.topbar h2{margin:0;color:var(--orange-dark);line-height:1.05}.topbar p{margin:5px 0 0}
+
+/* ventana interna con scroll propio */
+#pantallaFacturas>.card,
+#pantallaAjustes>.card,
+#pantallaPago>.grid-final{
+  grid-row:2;
+  min-height:0;
+  overflow:hidden;
+}
+
+#pantallaFacturas>.card,#pantallaAjustes>.card{
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  gap:10px;
+  margin:0;
+}
+
+.table-wrap{
+  min-height:0;
+  height:100%;
+  overflow:auto;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#fff;
+  scrollbar-gutter:stable;
+}
+
+/* Scroll interno visible y limpio */
+.table-wrap::-webkit-scrollbar,.grid-final::-webkit-scrollbar{width:13px;height:13px}
+.table-wrap::-webkit-scrollbar-track,.grid-final::-webkit-scrollbar-track{background:#f3f4f6;border-radius:999px}
+.table-wrap::-webkit-scrollbar-thumb,.grid-final::-webkit-scrollbar-thumb{background:#c7cdd6;border-radius:999px;border:3px solid #f3f4f6}
+.table-wrap::-webkit-scrollbar-thumb:hover,.grid-final::-webkit-scrollbar-thumb:hover{background:#9ca3af}
+
+.footer-actions{
+  grid-row:3;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+  min-height:0;
+}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-height:0}.toolbar-total{margin-left:auto;color:var(--muted)}
+
+.grid-final{
+  display:grid;
+  grid-template-columns:.9fr 1.1fr;
+  gap:18px;
+  overflow:auto;
+  padding-right:4px;
+}
+.total-grande{font-size:42px;font-weight:900;color:var(--orange-dark)}
+
+@media(max-width:800px){
+  .app{padding:10px;grid-template-rows:88px minmax(0,1fr)}
+  .app-header,.topbar{align-items:center;padding:10px 12px}
+  .brand h1{font-size:19px}.brand p{font-size:11px}.brand-logo{width:44px;height:44px}
+  .pantalla.activa{grid-template-rows:70px minmax(0,1fr) 56px}
+  .hero,.grid-final{grid-template-columns:1fr}.hero h2{font-size:28px}.toolbar-total{margin-left:0;width:100%}
+}
+
+
+/* Pantalla inicial Pago a Proveedores */
+#pantallaInicio.activa{
+  grid-template-rows:minmax(0,1fr);
+}
+
+.inicio-pago{
+  height:100%;
+  display:grid;
+  place-items:center;
+  text-align:center;
+  overflow:hidden;
+  position:relative;
+}
+
+.inicio-contenido{
+  position:relative;
+  width:min(100%,980px);
+  min-height:430px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+}
+
+.inicio-contenido h2{
+  margin:0;
+  color:var(--orange-dark);
+  font-size:28px;
+  line-height:1.1;
+  font-weight:800;
+  z-index:2;
+}
+
+.inicio-contenido p{
+  margin:0 0 220px;
+  color:var(--muted);
+  font-size:13px;
+  z-index:2;
+}
+
+.inicio-logo-fondo{
+  position:absolute;
+  left:50%;
+  top:53%;
+  transform:translate(-50%,-50%);
+  width:min(72vw,1020px);
+  max-height:190px;
+  object-fit:contain;
+  opacity:.18;
+  filter:saturate(1.6);
+  pointer-events:none;
+  z-index:1;
+}
+
+.inicio-contenido .btn{
+  position:relative;
+  z-index:2;
+  margin-top:0;
+}
+
+
+/* INICIO CORPORATIVO */
+.inicio-pago{
+  height:100%;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.inicio-logo-fondo{
+  position:absolute;
+  width:900px;
+  max-width:75%;
+  opacity:.05;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+}
+
+.inicio-contenido{
+  position:relative;
+  z-index:2;
+  text-align:center;
+}
+
+.inicio-contenido h2{
+  margin:0;
+  font-size:42px;
+  color:var(--orange-dark);
+}
+
+.inicio-contenido p{
+  margin:8px 0 30px;
+  color:var(--muted);
+  font-size:15px;
+}
+
+.app-header{
+  display:none;
+}
+
+
+/* Resumen final con revisión de facturas */
+.grid-final{
+  grid-template-columns:1.15fr .85fr;
+}
+
+.resumen-final-detalle{
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  gap:16px;
+  align-content:start;
+}
+
+.resumen-final-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:14px;
+}
+
+.resumen-facturas-final{
+  min-height:0;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  gap:8px;
+}
+
+.resumen-facturas-final h4{
+  margin:0;
+  color:var(--text);
+  font-size:15px;
+}
+
+.table-wrap-final{
+  max-height:100%;
+  min-height:180px;
+}
+
+.tabla-final-pago{
+  font-size:13px;
+}
+
+.tabla-final-pago th,
+.tabla-final-pago td{
+  padding:9px 8px;
+}
+
+.uuid-final{
+  font-family:Consolas, Monaco, monospace;
+  font-size:12px;
+  white-space:nowrap;
+}
+
+.folio-final{
+  font-weight:800;
+  white-space:nowrap;
+}
+
+@media(max-width:800px){
+  .grid-final{grid-template-columns:1fr}
+}
+
+/* FINAL DE PAGO: proveedor normal + facturas verticales con scroll */
+#pantallaPago .grid-final{
+  grid-template-columns:1.15fr .85fr;
+  align-items:stretch;
+}
+
+.resumen-final-detalle{
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+  gap:14px;
+  min-height:0;
+  overflow:hidden;
+}
+
+.proveedor-resumen-final{
+  padding-bottom:10px;
+  border-bottom:1px solid var(--border);
+}
+
+.proveedor-label{
+  font-size:12px;
+  font-weight:800;
+  color:var(--muted);
+  letter-spacing:.08em;
+}
+
+.proveedor-nombre{
+  margin-top:3px;
+  font-size:22px;
+  line-height:1.15;
+  font-weight:800;
+  color:var(--text);
+}
+
+.proveedor-rfc{
+  margin-top:3px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.resumen-total-final h3{
+  margin:0 0 6px;
+  color:var(--text);
+  font-size:17px;
+}
+
+.resumen-facturas-final{
+  min-height:0;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  gap:8px;
+}
+
+.facturas-final-scroll{
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#fff;
+  padding:10px;
+  scrollbar-gutter:stable;
+}
+
+.facturas-final-scroll::-webkit-scrollbar{width:12px}
+.facturas-final-scroll::-webkit-scrollbar-track{background:#f3f4f6;border-radius:999px}
+.facturas-final-scroll::-webkit-scrollbar-thumb{background:#c7cdd6;border-radius:999px;border:3px solid #f3f4f6}
+.facturas-final-scroll::-webkit-scrollbar-thumb:hover{background:#9ca3af}
+
+.factura-final-card{
+  padding:12px;
+  border:1px solid #eceff3;
+  border-radius:12px;
+  background:#fff;
+  margin-bottom:10px;
+}
+
+.factura-final-card:last-child{margin-bottom:0}
+
+.factura-final-top{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.factura-final-label{
+  font-size:11px;
+  font-weight:800;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+
+.factura-final-folio{
+  font-size:17px;
+  font-weight:900;
+  color:var(--text);
+}
+
+.factura-final-neto{
+  font-size:18px;
+  font-weight:900;
+  color:var(--orange-dark);
+  white-space:nowrap;
+}
+
+.factura-final-uuid{
+  display:inline-block;
+  margin:6px 0 10px;
+  font-family:Consolas, Monaco, monospace;
+  font-size:12px;
+  word-break:break-all;
+}
+
+.factura-final-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+
+.factura-final-grid div{
+  background:#fafafa;
+  border:1px solid #eef0f3;
+  border-radius:10px;
+  padding:8px;
+}
+
+.factura-final-grid span{
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.factura-final-grid strong{
+  display:block;
+  margin-top:2px;
+  font-size:14px;
+  color:var(--text);
+}
+
+.factura-final-nota{
+  margin-top:8px;
+  padding:8px;
+  border-radius:10px;
+  background:#fff7ed;
+  color:#7c2d12;
+  font-size:12px;
+}
+
+.totales-finales-pago{
+  border-top:2px solid var(--border);
+  padding-top:12px;
+}
+
+.linea-total-final{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  margin-bottom:7px;
+  font-size:14px;
+}
+
+.linea-total-final strong{
+  white-space:nowrap;
+}
+
+.total-general-final{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid var(--border);
+  font-size:18px;
+  font-weight:900;
+  color:var(--orange-dark);
+}
+
+@media(max-width:800px){
+  #pantallaPago .grid-final{grid-template-columns:1fr}
+  .proveedor-nombre{font-size:18px}
+  .factura-final-grid{grid-template-columns:1fr}
+}
