@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
@@ -14,25 +13,17 @@
   --amarillo:#F4C400;
   --amarillo-oscuro:#b88600;
   --amarillo-claro:#fff7cc;
-
   --bg:#f4f4ef;
   --card:#ffffff;
-
   --texto:#222222;
   --muted:#6b7280;
-
   --line:#e7dfb2;
   --head:#fff6cf;
-
   --shadow:0 8px 24px rgba(0,0,0,.10);
-
   --r:14px;
 }
 
-*{
-  box-sizing:border-box;
-}
-
+*{ box-sizing:border-box; }
 html,body{
   margin:0;
   padding:0;
@@ -40,14 +31,7 @@ html,body{
   background:var(--bg);
   color:var(--texto);
 }
-
-body{
-  min-height:100vh;
-}
-
-/* =========================
-   HEADER FIJO
-========================= */
+body{ min-height:100vh; }
 
 .app-header{
   position:sticky;
@@ -57,640 +41,385 @@ body{
   border-bottom:5px solid var(--amarillo);
   box-shadow:0 4px 18px rgba(0,0,0,.12);
 }
-
 .header-inner{
   max-width:1450px;
   margin:0 auto;
-  padding:14px 22px;
+  padding:10px 18px;
   display:flex;
   align-items:center;
-  gap:18px;
+  gap:14px;
 }
-
 .logo-box{
-  width:120px;
-  min-width:120px;
-  height:64px;
-
+  width:90px;
+  min-width:90px;
+  height:48px;
   display:flex;
   align-items:center;
   justify-content:center;
 }
-
-.logo-box img{
-  max-width:100%;
-  max-height:64px;
-  object-fit:contain;
-}
-
-.title-box{
-  flex:1;
-}
-
+.logo-box img{ max-width:100%; max-height:48px; object-fit:contain; }
+.title-box{ flex:1; }
 .empresa{
-  font-size:13px;
+  font-size:11px;
   font-weight:800;
   color:var(--amarillo-oscuro);
   letter-spacing:.06em;
   text-transform:uppercase;
 }
-
 .title-box h1{
-  margin:2px 0 0;
-
-  font-size:clamp(1.25rem,2vw,2rem);
-
+  margin:1px 0 0;
+  font-size:clamp(1.05rem,1.6vw,1.55rem);
   color:#4d3c00;
   line-height:1.1;
 }
-
 .estado{
   background:var(--amarillo-claro);
   color:#6d5200;
-
   border:1px solid #f0d64d;
-
   border-radius:999px;
-
-  padding:8px 14px;
-
-  font-size:12px;
+  padding:7px 12px;
+  font-size:11px;
   font-weight:800;
-
   white-space:nowrap;
 }
-
-/* =========================
-   CONTENIDO
-========================= */
 
 .page{
   max-width:1450px;
   margin:0 auto;
-  padding:22px;
+  padding:16px 18px;
 }
 
 .toolbar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  margin-bottom:16px;
-  flex-wrap:wrap;
+  display:grid;
+  grid-template-columns:360px 1fr;
+  align-items:start;
+  gap:14px;
+  margin-bottom:14px;
 }
-
-.pago-id{
+.pago-mini{
   background:#fff;
   border:1px solid var(--line);
-
   border-radius:12px;
-
-  padding:10px 14px;
-
   box-shadow:var(--shadow);
-
-  font-size:13px;
+  padding:10px 12px;
 }
-
-.pago-id span{
-  color:var(--muted);
-  font-size:12px;
+.pago-mini .label{
+  margin:0 0 4px;
+}
+.pago-mini strong{
   display:block;
-}
-
-.pago-id strong{
+  font-size:11px;
   font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  word-break:break-all;
 }
-
-/* =========================
-   BOTONES
-========================= */
-
 .actions{
   display:flex;
+  justify-content:flex-end;
   gap:10px;
   flex-wrap:wrap;
 }
-
 button{
   border:none;
-
   border-radius:12px;
-
-  padding:11px 16px;
-
+  padding:10px 15px;
   font-family:'Poppins',Arial,sans-serif;
   font-weight:800;
-
   cursor:pointer;
-
   transition:.18s ease;
-
   box-shadow:var(--shadow);
 }
+button:hover{ transform:translateY(-1px); }
+.btn-print{ background:var(--amarillo); color:#222; }
+.btn-reload{ background:#2f2f2f; color:#fff; }
 
-button:hover{
-  transform:translateY(-1px);
+.layout{
+  display:grid;
+  grid-template-columns:360px 1fr;
+  gap:14px;
+  align-items:start;
 }
-
-.btn-print{
-  background:var(--amarillo);
-  color:#222;
-}
-
-.btn-reload{
-  background:#2f2f2f;
-  color:#fff;
-}
-
-/* =========================
-   TARJETAS
-========================= */
 
 .card{
   background:var(--card);
-
   border:1px solid var(--line);
-
   border-radius:var(--r);
-
   box-shadow:var(--shadow);
-
-  margin-bottom:18px;
-
+  margin-bottom:14px;
   overflow:hidden;
 }
-
 .card-title{
-  padding:14px 18px;
-
-  background:linear-gradient(
-    90deg,
-    #ffffff,
-    #fff9de
-  );
-
+  padding:10px 14px;
+  background:linear-gradient(90deg,#ffffff,#fff9de);
   border-bottom:1px solid var(--line);
-
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:10px;
 }
-
 .card-title h2{
   margin:0;
-
-  font-size:17px;
-
+  font-size:15px;
   color:#5f4700;
 }
+.card-body{ padding:12px; }
 
-.card-body{
-  padding:18px;
-}
-
-/* =========================
-   GRID GENERAL
-========================= */
-
-.grid{
+.grid-datos{
   display:grid;
-
-  grid-template-columns:
-    repeat(4,minmax(180px,1fr));
-
-  gap:14px;
+  grid-template-columns:1fr;
+  gap:9px;
 }
-
 .info{
   background:#fffdf2;
-
   border:1px solid #efe3a7;
-
-  border-radius:12px;
-
-  padding:12px;
-
-  min-height:72px;
+  border-radius:10px;
+  padding:9px 10px;
+  min-height:52px;
 }
-
 .label{
-  font-size:11px;
-
+  font-size:10px;
   color:var(--muted);
-
   text-transform:uppercase;
-
-  font-weight:700;
-
-  letter-spacing:.04em;
-
-  margin-bottom:5px;
-}
-
-.value{
-  font-size:15px;
-
   font-weight:800;
-
+  letter-spacing:.04em;
+  margin-bottom:3px;
+}
+.value{
+  font-size:13px;
+  font-weight:800;
   color:#111827;
-
   word-break:break-word;
 }
-
 .value.total{
-  font-size:24px;
-
+  font-size:22px;
   color:var(--amarillo-oscuro);
 }
+.neg{ color:#b91c1c; font-weight:800; }
+.ok{ color:#166534; font-weight:800; }
 
-/* =========================
-   TABLA
-========================= */
+.resumen-pago{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(120px,1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+.resumen-pago .info{ min-height:58px; }
 
 .table-wrap{
   width:100%;
   overflow:auto;
   border-radius:0 0 var(--r) var(--r);
 }
-
 table{
   width:100%;
-
   border-collapse:collapse;
-
-  min-width:1050px;
-
-  font-size:13px;
+  min-width:1120px;
+  font-size:12px;
 }
-
 thead th{
   position:sticky;
-  top:93px;
+  top:73px;
   z-index:20;
-
   background:var(--head);
-
   color:#5b4300;
-
-  font-size:12px;
-
+  font-size:11px;
   text-transform:uppercase;
-
   letter-spacing:.03em;
-
   border-bottom:2px solid #e6cf72;
   border-right:1px solid var(--line);
-
-  padding:11px 10px;
-
+  padding:9px 9px;
   text-align:left;
-
   white-space:nowrap;
 }
-
 tbody td{
   border-bottom:1px solid var(--line);
   border-right:1px solid var(--line);
-
-  padding:9px 10px;
-
+  padding:8px 9px;
   background:#fff;
-
   vertical-align:top;
 }
-
-tbody tr:nth-child(even) td{
-  background:#fffdf6;
-}
-
-tbody tr:hover td{
-  background:#fff7d1;
-}
-
+tbody tr:nth-child(even) td{ background:#fffdf6; }
+tbody tr:hover td{ background:#fff7d1; }
 tfoot td{
   background:#383838;
-
   color:#fff;
-
   border-right:1px solid #555;
-
-  padding:12px 10px;
-
+  padding:10px 9px;
   font-weight:800;
-
   position:sticky;
   bottom:0;
   z-index:10;
 }
-
-.t-right{
-  text-align:right;
-}
-
+.t-right{ text-align:right; }
 .uuid{
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
-
-  font-size:12px;
-
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-size:11px;
   word-break:break-all;
 }
+.empty,.loading{
+  text-align:center;
+  padding:26px;
+  color:var(--muted);
+  font-weight:700;
+}
 
-.neg{
+.desc-box{
+  margin-top:5px;
+  font-size:11px;
+  line-height:1.35;
+  color:#374151;
+}
+.desc-line{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  border-top:1px dashed #eadb92;
+  padding-top:3px;
+  margin-top:3px;
+}
+.desc-line span:last-child{
+  font-weight:800;
   color:#b91c1c;
+  white-space:nowrap;
+}
+
+.ajuste-pill{
+  display:inline-block;
+  padding:2px 7px;
+  border-radius:999px;
+  background:#fff3c4;
+  border:1px solid #e2c75d;
+  font-size:10px;
   font-weight:800;
+  color:#654b00;
+  margin-bottom:3px;
 }
-
-.ok{
-  color:#166534;
-  font-weight:800;
-}
-
-.empty{
-  text-align:center;
-
-  padding:28px;
-
-  color:var(--muted);
-}
-
-.loading{
-  padding:30px;
-
-  text-align:center;
-
-  font-weight:800;
-
-  color:var(--muted);
-}
-
-/* =========================
-   FOOTER
-========================= */
 
 .footer{
   text-align:center;
-
   color:#777;
-
   font-size:11px;
-
-  padding:20px 0 28px;
+  padding:16px 0 24px;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
-
-@media(max-width:1000px){
-
-  .grid{
-    grid-template-columns:1fr 1fr;
-  }
-
-  .header-inner{
-    padding:12px;
-  }
-
-  .logo-box{
-    width:90px;
-    min-width:90px;
-  }
-
-  thead th{
-    top:89px;
-  }
+@media(max-width:1100px){
+  .toolbar,.layout{ grid-template-columns:1fr; }
+  .actions{ justify-content:flex-start; }
+  .resumen-pago{ grid-template-columns:1fr 1fr; }
+  thead th{ top:69px; }
 }
-
 @media(max-width:640px){
-
-  .page{
-    padding:12px;
-  }
-
-  .header-inner{
-    align-items:flex-start;
-    gap:10px;
-  }
-
-  .estado{
-    display:none;
-  }
-
-  .logo-box{
-    width:78px;
-    min-width:78px;
-    height:54px;
-  }
-
-  .logo-box img{
-    max-height:54px;
-  }
-
-  .empresa{
-    font-size:11px;
-  }
-
-  .title-box h1{
-    font-size:1.05rem;
-  }
-
-  .grid{
-    grid-template-columns:1fr;
-  }
-
-  .toolbar{
-    align-items:stretch;
-  }
-
-  .actions,
-  .actions button,
-  .pago-id{
-    width:100%;
-  }
-
-  thead th{
-    top:82px;
-  }
+  .page{ padding:10px; }
+  .header-inner{ padding:9px 10px; align-items:flex-start; gap:10px; }
+  .estado{ display:none; }
+  .logo-box{ width:72px; min-width:72px; height:44px; }
+  .logo-box img{ max-height:44px; }
+  .empresa{ font-size:10px; }
+  .title-box h1{ font-size:1rem; }
+  .resumen-pago{ grid-template-columns:1fr; }
+  .actions, .actions button{ width:100%; }
+  thead th{ top:66px; }
 }
-
-/* =========================
-   IMPRESION
-========================= */
 
 @media print{
-
-  body{
-    background:#fff;
-  }
-
-  .app-header{
-    position:relative;
-    box-shadow:none;
-  }
-
-  .toolbar{
-    display:none;
-  }
-
-  .page{
-    max-width:none;
-    padding:10px;
-  }
-
-  .card{
-    box-shadow:none;
-    border:1px solid #999;
-
-    page-break-inside:avoid;
-  }
-
-  thead th,
-  tfoot td{
-    position:static;
-  }
-
-  table{
-    font-size:11px;
-    min-width:0;
-  }
-
-  th,td{
-    padding:6px !important;
-  }
+  body{ background:#fff; }
+  .app-header{ position:relative; box-shadow:none; }
+  .toolbar{ display:none; }
+  .page{ max-width:none; padding:8px; }
+  .layout{ display:block; }
+  .card{ box-shadow:none; border:1px solid #999; page-break-inside:avoid; }
+  .grid-datos{ grid-template-columns:repeat(4,1fr); }
+  .resumen-pago{ grid-template-columns:repeat(4,1fr); }
+  thead th,tfoot td{ position:static; }
+  table{ font-size:10px; min-width:0; }
+  th,td{ padding:5px !important; }
 }
 </style>
 </head>
 
 <body>
-
 <header class="app-header">
   <div class="header-inner">
-    <div class="logo-box">
-      <img src="proveedora_logo.jpg" alt="La Proveedora">
-    </div>
-
+    <div class="logo-box"><img src="proveedora_logo.jpg" alt="La Proveedora"></div>
     <div class="title-box">
       <div class="empresa">Proveedora de Dulces y Desechables</div>
       <h1>Comprobante de Pago a Proveedor</h1>
     </div>
-
     <div class="estado">PAGO REGISTRADO</div>
   </div>
 </header>
 
 <main class="page">
-
   <div class="toolbar">
-    <div class="pago-id">
-      <span>ID DEL PAGO</span>
+    <div class="pago-mini">
+      <div class="label">ID del pago</div>
       <strong id="pagoId">—</strong>
     </div>
-
     <div class="actions">
       <button class="btn-reload" onclick="cargarPago()">↻ Recargar</button>
       <button class="btn-print" onclick="window.print()">🖨️ Imprimir comprobante</button>
     </div>
   </div>
 
-  <section class="card">
-    <div class="card-title">
-      <h2>Datos generales del pago</h2>
-    </div>
-
-    <div class="card-body">
-      <div class="grid">
-        <div class="info">
-          <div class="label">Proveedor pagado</div>
-          <div class="value" id="proveedor">—</div>
+  <div class="layout">
+    <aside>
+      <section class="card">
+        <div class="card-title"><h2>Datos del pago</h2></div>
+        <div class="card-body">
+          <div class="grid-datos">
+            <div class="info"><div class="label">Proveedor pagado</div><div class="value" id="proveedor">—</div></div>
+            <div class="info"><div class="label">RFC proveedor</div><div class="value" id="rfc">—</div></div>
+            <div class="info"><div class="label">Banco de pago</div><div class="value" id="banco">—</div></div>
+            <div class="info"><div class="label">Fecha de pago</div><div class="value" id="fecha">—</div></div>
+            <div class="info"><div class="label">Tipo de pago</div><div class="value" id="tipoPago">—</div></div>
+            <div class="info"><div class="label">Notas</div><div class="value" id="notas">—</div></div>
+          </div>
         </div>
+      </section>
+    </aside>
 
-        <div class="info">
-          <div class="label">RFC proveedor</div>
-          <div class="value" id="rfc">—</div>
-        </div>
-
-        <div class="info">
-          <div class="label">Banco de pago</div>
-          <div class="value" id="banco">—</div>
-        </div>
-
-        <div class="info">
-          <div class="label">Fecha de pago</div>
-          <div class="value" id="fecha">—</div>
-        </div>
-
-        <div class="info">
-          <div class="label">Importe pagado</div>
-          <div class="value total" id="importe">—</div>
-        </div>
-
-        <div class="info">
-          <div class="label">Total facturas original</div>
-          <div class="value" id="totalFacturasOriginal">—</div>
-        </div>
-
-        <div class="info">
-          <div class="label">Descuentos aplicados</div>
-          <div class="value neg" id="totalDescFacturas">—</div>
-        </div>
-
-        <div class="info">
-          <div class="label">Total final facturas</div>
-          <div class="value ok" id="totalFacturas">—</div>
-        </div>
+    <section>
+      <div class="resumen-pago">
+        <div class="info"><div class="label">Importe pagado</div><div class="value total" id="importe">—</div></div>
+        <div class="info"><div class="label">Total facturas original</div><div class="value" id="totalFacturasOriginal">—</div></div>
+        <div class="info"><div class="label">Descuentos aplicados</div><div class="value neg" id="totalDescFacturas">—</div></div>
+        <div class="info"><div class="label">Total final facturas</div><div class="value ok" id="totalFacturas">—</div></div>
       </div>
-    </div>
-  </section>
 
-  <section class="card">
-    <div class="card-title">
-      <h2>Desglose de facturas pagadas</h2>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:110px;">Fecha</th>
-            <th style="width:120px;">Serie</th>
-            <th style="width:130px;">Folio</th>
-            <th>UUID / UDI</th>
-            <th class="t-right" style="width:160px;">Importe original</th>
-            <th class="t-right" style="width:150px;">Descuento</th>
-            <th class="t-right" style="width:160px;">Importe final</th>
-          </tr>
-        </thead>
-
-        <tbody id="facturas">
-          <tr>
-            <td colspan="7" class="loading">Cargando comprobante...</td>
-          </tr>
-        </tbody>
-
-        <tfoot>
-          <tr>
-            <td colspan="4">TOTALES</td>
-            <td class="t-right" id="sumOriginalTabla">—</td>
-            <td class="t-right" id="sumDescuentoTabla">—</td>
-            <td class="t-right" id="sumFinalTabla">—</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  </section>
-
-  <div class="footer">
-    Documento generado por PROVSOFT · Comprobante informativo de pago
+      <section class="card">
+        <div class="card-title"><h2>Facturas pagadas y descuentos desglosados</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:105px;">Fecha</th>
+                <th style="width:100px;">Serie</th>
+                <th style="width:110px;">Folio</th>
+                <th>UUID / UDI</th>
+                <th class="t-right" style="width:145px;">Importe original</th>
+                <th style="width:260px;">Descuentos aplicados</th>
+                <th class="t-right" style="width:145px;">Total descuento</th>
+                <th class="t-right" style="width:145px;">Importe final</th>
+              </tr>
+            </thead>
+            <tbody id="facturas">
+              <tr><td colspan="8" class="loading">Cargando comprobante...</td></tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4">TOTALES</td>
+                <td class="t-right" id="sumOriginalTabla">—</td>
+                <td></td>
+                <td class="t-right" id="sumDescuentoTabla">—</td>
+                <td class="t-right" id="sumFinalTabla">—</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </section>
   </div>
 
+  <div class="footer">Documento generado por PROVSOFT · Comprobante informativo de pago</div>
 </main>
 
 <script>
@@ -703,83 +432,103 @@ const params = new URLSearchParams(window.location.search);
 const pagoId = params.get('id');
 
 function mxn(n){
-  return new Intl.NumberFormat('es-MX',{
-    style:'currency',
-    currency:'MXN'
-  }).format(Number(n || 0));
+  return new Intl.NumberFormat('es-MX',{ style:'currency', currency:'MXN' }).format(Number(n || 0));
 }
 
 function fechaMx(v){
   if(!v) return '—';
   const d = new Date(v);
   if(isNaN(d.getTime())) return String(v);
-  return d.toLocaleDateString('es-MX',{
-    year:'numeric',
-    month:'2-digit',
-    day:'2-digit'
-  });
+  return d.toLocaleDateString('es-MX',{ year:'numeric', month:'2-digit', day:'2-digit' });
 }
 
 function num(v){
   if(v === null || v === undefined || v === '') return 0;
   if(typeof v === 'number') return isFinite(v) ? v : 0;
-
   let s = String(v).trim();
   if(!s) return 0;
-
-  s = s
-    .replace(/\$/g,'')
-    .replace(/,/g,'')
-    .replace(/\s+/g,'');
-
+  s = s.replace(/\$/g,'').replace(/,/g,'').replace(/\s+/g,'');
   const n = Number(s);
   return isNaN(n) ? 0 : n;
 }
 
 function parseMaybeJson(v, fallback){
   if(Array.isArray(v)) return v;
-  if(v && typeof v === 'object') return v;
-
+  if(v && typeof v === 'object'){
+    if(Array.isArray(v.facturas)) return v.facturas;
+    return v;
+  }
   if(typeof v === 'string'){
-    const s = v.trim();
+    let s = v.trim();
     if(!s) return fallback;
-
     try{
-      return JSON.parse(s);
+      let parsed = JSON.parse(s);
+      if(typeof parsed === 'string') parsed = JSON.parse(parsed);
+      if(parsed && typeof parsed === 'object' && Array.isArray(parsed.facturas)) return parsed.facturas;
+      return parsed;
     }catch(err){
       console.error('Error al parsear JSON:', err, v);
       return fallback;
     }
   }
-
   return fallback;
 }
 
+function normalizarListaFacturas(v){
+  let x = parseMaybeJson(v, []);
+  if(Array.isArray(x)) return x;
+  if(x && typeof x === 'object'){
+    if(Array.isArray(x.facturas_info)) return x.facturas_info;
+    if(Array.isArray(x.facturas)) return x.facturas;
+    if(Array.isArray(x.items)) return x.items;
+    if(Array.isArray(x.detalle)) return x.detalle;
+  }
+  return [];
+}
+
+function normalizarDescuentos(f){
+  const lista = [];
+
+  function pushDesc(nombre, monto){
+    const m = num(monto);
+    if(m > 0){
+      lista.push({ nombre: nombre || 'Descuento', monto: Number(m.toFixed(2)) });
+    }
+  }
+
+  const d = f.descuento;
+
+  if(Array.isArray(d)){
+    d.forEach((x,i) => pushDesc(x.concepto || x.nombre || x.tipo || ('Descuento ' + (i+1)), x.monto ?? x.importe ?? x.valor));
+  }else if(d && typeof d === 'object'){
+    if(Array.isArray(d.detalle)){
+      d.detalle.forEach((x,i) => pushDesc(x.concepto || x.nombre || x.tipo || ('Descuento ' + (i+1)), x.monto ?? x.importe ?? x.valor));
+    }else{
+      pushDesc(d.concepto || d.nombre || d.tipo || 'Descuento', d.monto ?? d.importe ?? d.valor ?? d.total);
+    }
+  }else{
+    pushDesc('Descuento', d);
+  }
+
+  pushDesc('Descuento factura', f.descuento_factura);
+  pushDesc('Descuento monto', f.descuento_monto);
+  pushDesc('Bonificación', f.bonificacion);
+  pushDesc('Ajuste', f.ajuste);
+
+  return lista;
+}
+
 function getImportesFactura(f){
-  const orig = num(
-    f.importe_original ??
-    f.total_factura ??
-    f.importe ??
-    f.total ??
-    0
-  );
-
-  const desc = num(
-    f?.descuento?.monto ??
-    f.descuento_factura ??
-    f.descuento_monto ??
-    0
-  );
-
-  const netoBase = f.importe_final ?? f.total_neto;
-  const neto = netoBase !== undefined && netoBase !== null && netoBase !== ''
-    ? num(netoBase)
-    : orig - desc;
-
+  const orig = num(f.importe_original ?? f.total_factura ?? f.importe ?? f.total ?? 0);
+  const descuentos = normalizarDescuentos(f);
+  const desc = descuentos.reduce((a,x) => a + num(x.monto), 0);
+  const netoBase = f.importe_final ?? f.total_neto ?? f.neto;
+  const neto = netoBase !== undefined && netoBase !== null && netoBase !== '' ? num(netoBase) : orig - desc;
   return {
     orig: Number(orig.toFixed(2)),
     desc: Number(desc.toFixed(2)),
-    neto: Number(neto.toFixed(2))
+    neto: Number(neto.toFixed(2)),
+    descuentos
   };
 }
 
@@ -788,27 +537,36 @@ function limpiarTexto(v){
   return String(v);
 }
 
+function htmlEscape(v){
+  return limpiarTexto(v)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+function pintarDescuentos(descuentos){
+  if(!descuentos.length) return '<span class="ok">Sin descuento</span>';
+  return '<div class="desc-box">' + descuentos.map(d => `
+    <div class="desc-line">
+      <span>${htmlEscape(d.nombre)}</span>
+      <span>-${mxn(d.monto)}</span>
+    </div>
+  `).join('') + '</div>';
+}
+
 async function cargarPago(){
   const tbody = document.getElementById('facturas');
 
+  document.getElementById('pagoId').innerText = pagoId || '—';
+
   if(!pagoId){
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="empty">
-          Falta parámetro ?id= en la URL.
-        </td>
-      </tr>
-    `;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">Falta parámetro ?id= en la URL.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="7" class="loading">Cargando comprobante...</td>
-    </tr>
-  `;
-
-  document.getElementById('pagoId').innerText = pagoId;
+  tbody.innerHTML = `<tr><td colspan="8" class="loading">Cargando comprobante...</td></tr>`;
 
   const { data, error } = await sb
     .from('pagos_proveedor')
@@ -818,80 +576,70 @@ async function cargarPago(){
 
   if(error){
     console.error(error);
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="empty">
-          Error al cargar el pago: ${error.message}
-        </td>
-      </tr>
-    `;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">Error al cargar el pago: ${htmlEscape(error.message)}</td></tr>`;
     return;
   }
 
-  const factList = parseMaybeJson(data.facturas_info, []);
+  const factList = normalizarListaFacturas(data.facturas_info);
+  console.log('PAGO CARGADO:', data);
+  console.log('FACTURAS PARSEADAS:', factList);
 
   let sumOrig = 0;
   let sumDesc = 0;
   let sumNeto = 0;
 
   factList.forEach(f => {
-    const imp = getImportesFactura(f);
+    const imp = getImportesFactura(f || {});
     sumOrig += imp.orig;
     sumDesc += imp.desc;
     sumNeto += imp.neto;
   });
+
+  const totalFacturasOriginal = sumOrig || num(data.total_facturas);
+  const totalFinal = sumNeto || num(data.total_facturas);
+  const totalDescuentos = sumDesc || Math.max(0, totalFacturasOriginal - totalFinal);
 
   document.getElementById('pagoId').innerText = data.id ?? pagoId;
   document.getElementById('proveedor').innerText = limpiarTexto(data.proveedor_nombre);
   document.getElementById('rfc').innerText = limpiarTexto(data.rfc_emisor);
   document.getElementById('banco').innerText = limpiarTexto(data.banco);
   document.getElementById('fecha').innerText = fechaMx(data.fecha_pago);
+  document.getElementById('tipoPago').innerText = limpiarTexto(data.tipo_pago);
+  document.getElementById('notas').innerText = limpiarTexto(data.notas || data.concepto_manual);
   document.getElementById('importe').innerText = mxn(data.importe_pagado);
-
-  document.getElementById('totalFacturasOriginal').innerText = mxn(sumOrig);
-  document.getElementById('totalDescFacturas').innerText = sumDesc > 0 ? '-' + mxn(sumDesc) : mxn(0);
-  document.getElementById('totalFacturas').innerText = mxn(sumNeto);
-
-  document.getElementById('sumOriginalTabla').innerText = mxn(sumOrig);
-  document.getElementById('sumDescuentoTabla').innerText = sumDesc > 0 ? '-' + mxn(sumDesc) : mxn(0);
-  document.getElementById('sumFinalTabla').innerText = mxn(sumNeto);
+  document.getElementById('totalFacturasOriginal').innerText = mxn(totalFacturasOriginal);
+  document.getElementById('totalDescFacturas').innerText = totalDescuentos > 0 ? '-' + mxn(totalDescuentos) : mxn(0);
+  document.getElementById('totalFacturas').innerText = mxn(totalFinal);
+  document.getElementById('sumOriginalTabla').innerText = mxn(totalFacturasOriginal);
+  document.getElementById('sumDescuentoTabla').innerText = totalDescuentos > 0 ? '-' + mxn(totalDescuentos) : mxn(0);
+  document.getElementById('sumFinalTabla').innerText = mxn(totalFinal);
 
   tbody.innerHTML = '';
 
   if(!factList.length){
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="7" class="empty">
-          No se encontró detalle de facturas en este pago.
-        </td>
-      </tr>
-    `;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty">No se encontró detalle de facturas en este pago.</td></tr>`;
     return;
   }
 
   factList.forEach(f => {
-    const { orig, desc, neto } = getImportesFactura(f);
-
+    f = f || {};
+    const { orig, desc, neto, descuentos } = getImportesFactura(f);
     const tr = document.createElement('tr');
-
     tr.innerHTML = `
-      <td>${fechaMx(f.fecha)}</td>
-      <td>${limpiarTexto(f.serie)}</td>
-      <td>${limpiarTexto(f.folio)}</td>
-      <td class="uuid">${limpiarTexto(f.uuid_cfdi || f.uuid || f.udi)}</td>
+      <td>${fechaMx(f.fecha ?? f.fecha_factura)}</td>
+      <td>${htmlEscape(f.serie)}</td>
+      <td>${htmlEscape(f.folio)}</td>
+      <td class="uuid">${htmlEscape(f.uuid_cfdi || f.uuid || f.udi || f.UUID)}</td>
       <td class="t-right">${mxn(orig)}</td>
-      <td class="t-right ${desc > 0 ? 'neg' : ''}">
-        ${desc > 0 ? '-' + mxn(desc) : mxn(0)}
-      </td>
+      <td>${pintarDescuentos(descuentos)}</td>
+      <td class="t-right ${desc > 0 ? 'neg' : ''}">${desc > 0 ? '-' + mxn(desc) : mxn(0)}</td>
       <td class="t-right ok">${mxn(neto)}</td>
     `;
-
     tbody.appendChild(tr);
   });
 }
 
 cargarPago();
 </script>
-
 </body>
 </html>
