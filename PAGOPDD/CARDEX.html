@@ -212,13 +212,14 @@ button:hover{ transform:translateY(-1px); }
 table{
   width:100%;
   border-collapse:collapse;
-  min-width:1120px;
+  min-width:1050px;
   font-size:12px;
+  table-layout:fixed;
 }
 thead th{
-  position:sticky;
-  top:73px;
-  z-index:20;
+  position:static;
+  top:auto;
+  z-index:auto;
   background:var(--head);
   color:#5b4300;
   font-size:11px;
@@ -235,7 +236,8 @@ tbody td{
   border-right:1px solid var(--line);
   padding:8px 9px;
   background:#fff;
-  vertical-align:top;
+  vertical-align:middle;
+  line-height:1.25;
 }
 tbody tr:nth-child(even) td{ background:#fffdf6; }
 tbody tr:hover td{ background:#fff7d1; }
@@ -245,15 +247,17 @@ tfoot td{
   border-right:1px solid #555;
   padding:10px 9px;
   font-weight:800;
-  position:sticky;
-  bottom:0;
-  z-index:10;
+  position:static;
+  bottom:auto;
+  z-index:auto;
 }
 .t-right{ text-align:right; }
 .uuid{
   font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
-  font-size:11px;
-  word-break:break-all;
+  font-size:10.5px;
+  word-break:break-word;
+  overflow-wrap:anywhere;
+  line-height:1.25;
 }
 .empty,.loading{
   text-align:center;
@@ -305,7 +309,6 @@ tfoot td{
   .toolbar,.layout{ grid-template-columns:1fr; }
   .actions{ justify-content:flex-start; }
   .resumen-pago{ grid-template-columns:1fr 1fr; }
-  thead th{ top:69px; }
 }
 @media(max-width:640px){
   .page{ padding:10px; }
@@ -317,7 +320,6 @@ tfoot td{
   .title-box h1{ font-size:1rem; }
   .resumen-pago{ grid-template-columns:1fr; }
   .actions, .actions button{ width:100%; }
-  thead th{ top:66px; }
 }
 
 @media print{
@@ -391,14 +393,14 @@ tfoot td{
           <table>
             <thead>
               <tr>
-                <th style="width:105px;">Fecha</th>
-                <th style="width:100px;">Serie</th>
-                <th style="width:110px;">Folio</th>
-                <th>UUID / UDI</th>
-                <th class="t-right" style="width:145px;">Importe original</th>
-                <th style="width:260px;">Descuentos aplicados</th>
-                <th class="t-right" style="width:145px;">Total descuento</th>
-                <th class="t-right" style="width:145px;">Importe final</th>
+                <th style="width:100px;">Fecha</th>
+                <th style="width:85px;">Serie</th>
+                <th style="width:95px;">Folio</th>
+                <th style="width:245px;">UUID / UDI</th>
+                <th class="t-right" style="width:135px;">Importe original</th>
+                <th style="width:230px;">Descuentos aplicados</th>
+                <th class="t-right" style="width:130px;">Total descuento</th>
+                <th class="t-right" style="width:130px;">Importe final</th>
               </tr>
             </thead>
             <tbody id="facturas">
