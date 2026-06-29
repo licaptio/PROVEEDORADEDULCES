@@ -921,7 +921,10 @@ async function consultarPorRFC() {
   const textoCapturado = nombreFiltro.value.trim();
 
   // BUSQUEDA DIRECTA POR FOLIO TECNOPRO
-  if (/^[0-9]{1,7}$/.test(textoCapturado)) {
+  const textoCapturado = nombreFiltro.value.trim().toUpperCase();
+
+if (/^\d{1,7}$/.test(textoCapturado)) {
+  
     const folioTecno = textoCapturado.padStart(7, "0");
 
     tablaResultados.innerHTML = "";
