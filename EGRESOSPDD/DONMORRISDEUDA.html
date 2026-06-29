@@ -599,7 +599,7 @@
         <div id="sugerenciasRFC" class="autocomplete-list"></div>
 
         <div class="campo-busqueda">
-          <input type="text" id="nombreFiltro" placeholder="Escribe nombre o RFC del proveedor…" autocomplete="off">
+          <input type="text" id="nombreFiltro" placeholder="Escribe nombre RFC o folio TECNOPRO…" autocomplete="off">
           <div id="sugerenciasNombre" class="autocomplete-list"></div>
         </div>
 
@@ -917,88 +917,159 @@
       sugerenciasNombre.style.display = resultados.length ? "block" : "none";
     }
 
-    async function consultarPorRFC() {
-      let rfc = window.rfcSeleccionado;
+async function consultarPorRFC() {
+  const textoCapturado = nombreFiltro.value.trim();
 
-      if (!rfc) {
-        const txtOriginal = nombreFiltro.value.toUpperCase().trim();
-        const txtNormalizado = normalizarTexto(nombreFiltro.value);
+  // BUSQUEDA DIRECTA POR FOLIO TECNOPRO
+  if (/^[0-9]{1,7}$/.test(textoCapturado)) {
+    const folioTecno = textoCapturado.padStart(7, "0");
 
-        const encontrado = listaBusqueda.find(x =>
-          x.rfc.includes(txtOriginal) ||
-          normalizarTexto(x.nombre).includes(txtNormalizado)
-        );
+    tablaResultados.innerHTML = "";
+    resumenConteo.innerText = "";
+    mostrarEstado(`Buscando Folio Tecnopro ${folioTecno}...`);
 
-        if (encontrado) rfc = encontrado.rfc;
-      }
+    const { data, error } = await supa
+      .from("deuda_limpia_pdd")
+      .select("*")
+      .eq("foliotecnopro", folioTecno)
+      .limit(1);
 
-      if (!rfc) {
-        alert("Selecciona un proveedor válido de la lista");
-        return;
-      }
-
-      tablaResultados.innerHTML = "";
-      resumenConteo.innerText = "";
-      mostrarEstado("Consultando TODA la BD del proveedor...");
-
-      const { count, error: errorConteo } = await supa
-        .from("v_deuda_proveedores")
-        .select("*", { count: "exact", head: true })
-        .eq("rfc_emisor", rfc);
-
-      if (errorConteo) {
-        console.error("Error al contar registros:", errorConteo);
-        mostrarEstado("", false);
-        alert("Error al contar registros");
-        return;
-      }
-
-      const TAMANO_PAGINA_BD = 1000;
-      let desde = 0;
-      let todos = [];
-      let seguir = true;
-
-      while (seguir) {
-        const hasta = desde + TAMANO_PAGINA_BD - 1;
-
-        mostrarEstado(`Consultando BD ${desde + 1} a ${Math.min(hasta + 1, count || hasta + 1)}...`);
-
-        const { data, error } = await supa
-          .from("v_deuda_proveedores")
-          .select("*")
-          .eq("rfc_emisor", rfc)
-          .order("fecha", { ascending: false })
-          .range(desde, hasta);
-
-        if (error) {
-          console.error("Error al traer facturas:", error);
-          mostrarEstado("", false);
-          alert("Error al traer facturas");
-          return;
-        }
-
-        const bloque = data || [];
-        todos = todos.concat(bloque);
-
-        if (bloque.length < TAMANO_PAGINA_BD) {
-          seguir = false;
-        } else {
-          desde += TAMANO_PAGINA_BD;
-        }
-      }
-
-      datosCrudos = todos;
-      paginaActual = 1;
-
-      resumenConteo.innerText =
-        `🔢 Total BD: ${count}\n📄 Cargados: ${todos.length}\n⬇ Orden: más reciente primero`;
-
-      renderPagina();
-
-      mostrarEstado(`Consulta terminada. Facturas cargadas: ${todos.length}`);
-      setTimeout(() => mostrarEstado("", false), 1800);
+    if (error) {
+      console.error("Error buscando Folio Tecnopro:", error);
+      mostrarEstado("", false);
+      alert("Error al buscar Folio Tecnopro");
+      return;
     }
 
+    datosCrudos = data || [];
+    paginaActual = 1;
+
+    resumenConteo.innerText =
+      `🔎 Folio Tecnopro: ${folioTecno}\n📄 Encontrados: ${datosCrudos.length}`;
+
+    renderPagina();
+
+    mostrarEstado("", false);
+    return;
+  }
+
+  let rfc = window.rfcSeleccionado;
+
+  if (!rfc) {
+    const txtOriginal = nombreFiltro.value.toUpperCase().trim();
+    const txtNormalizado = normalizarTexto(nombreFiltro.value);
+
+    const encontrado = listaBusqueda.find(x =>
+      x.rfc.includes(txtOriginal) ||
+      normalizarTexto(x.nombre).includes(txtNormalizado)
+    );
+
+    if (encontrado) rfc = encontrado.rfc;
+  }
+
+  if (!rfc) {
+    alert("Selecciona un proveedor válido de la lista o captura un Folio Tecnopro");
+    return;
+  }
+
+  tablaResultados.innerHTML = "";
+  resumenConteo.innerText = "";
+  mostrarEstado("Consultando TODA la BD del proveedor...");
+
+  const { count, error: errorConteo } = await supa
+    .from("v_deuda_proveedores")
+    .select("*", { count: "exact", head: true })
+    .eq("rfc_emisor", rfc);
+
+  if (errorConteo) {
+    console.error("Error al contar registros:", errorConteo);
+    mostrarEstado("", false);
+    alert("Error al contar registros");
+    return;
+  }
+
+  const TAMANO_PAGINA_BD = 1000;
+  let desde = 0;
+  let todos = [];
+  let seguir = true;
+
+  while (seguir) {
+    const hasta = desde + TAMANO_PAGINA_BD - 1;
+
+    mostrarEstado(`Consultando BD ${desde + 1} a ${Math.min(hasta + 1, count || hasta + 1)}...`);
+
+    const { data, error } = await supa
+      .from("v_deuda_proveedores")
+      .select("*")
+      .eq("rfc_emisor", rfc)
+      .order("fecha", { ascending: false })
+      .range(desde, hasta);
+
+    if (error) {
+      console.error("Error al traer facturas:", error);
+      mostrarEstado("", false);
+      alert("Error al traer facturas");
+      return;
+    }
+
+    const bloque = data || [];
+    todos = todos.concat(bloque);
+
+    if (bloque.length < TAMANO_PAGINA_BD) {
+      seguir = false;
+    } else {
+      desde += TAMANO_PAGINA_BD;
+    }
+  }
+
+  datosCrudos = todos;
+  paginaActual = 1;
+
+  resumenConteo.innerText =
+    `🔢 Total BD: ${count}\n📄 Cargados: ${todos.length}\n⬇ Orden: más reciente primero`;
+
+  renderPagina();
+
+  mostrarEstado(`Consulta terminada. Facturas cargadas: ${todos.length}`);
+  setTimeout(() => mostrarEstado("", false), 1800);
+}
+
+    async function consultarPorFolioTecnopro(folio) {
+  folio = String(folio || "").trim().padStart(7, "0");
+
+  if (!/^[0-9]{7}$/.test(folio)) {
+    alert("El Folio Tecnopro debe tener 7 números.");
+    return;
+  }
+
+  tablaResultados.innerHTML = "";
+  resumenConteo.innerText = "";
+  mostrarEstado(`Buscando Folio Tecnopro ${folio}...`);
+
+  const { data, error } = await supa
+    .from("deuda_limpia_pdd")
+    .select("*")
+    .eq("foliotecnopro", folio)
+    .limit(1);
+
+  if (error) {
+    console.error("Error buscando folio Tecnopro:", error);
+    mostrarEstado("", false);
+    alert("Error al buscar Folio Tecnopro");
+    return;
+  }
+
+  datosCrudos = data || [];
+  paginaActual = 1;
+
+  resumenConteo.innerText =
+    `🔎 Búsqueda por Folio Tecnopro: ${folio}\n📄 Registros encontrados: ${datosCrudos.length}`;
+
+  renderPagina();
+
+  mostrarEstado("", false);
+}
+    
     function renderPagina() {
       if (!datosCrudos || datosCrudos.length === 0) {
         tablaResultados.innerHTML = `
