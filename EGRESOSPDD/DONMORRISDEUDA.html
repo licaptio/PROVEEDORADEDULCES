@@ -1034,41 +1034,6 @@ async function consultarPorRFC() {
   setTimeout(() => mostrarEstado("", false), 1800);
 }
 
-    async function consultarPorFolioTecnopro(folio) {
-  folio = String(folio || "").trim().padStart(7, "0");
-
-  if (!/^[0-9]{7}$/.test(folio)) {
-    alert("El Folio Tecnopro debe tener 7 números.");
-    return;
-  }
-
-  tablaResultados.innerHTML = "";
-  resumenConteo.innerText = "";
-  mostrarEstado(`Buscando Folio Tecnopro ${folio}...`);
-
-  const { data, error } = await supa
-    .from("deuda_limpia_pdd")
-    .select("*")
-    .eq("foliotecnopro", folio)
-    .limit(1);
-
-  if (error) {
-    console.error("Error buscando folio Tecnopro:", error);
-    mostrarEstado("", false);
-    alert("Error al buscar Folio Tecnopro");
-    return;
-  }
-
-  datosCrudos = data || [];
-  paginaActual = 1;
-
-  resumenConteo.innerText =
-    `🔎 Búsqueda por Folio Tecnopro: ${folio}\n📄 Registros encontrados: ${datosCrudos.length}`;
-
-  renderPagina();
-
-  mostrarEstado("", false);
-}
     
     function renderPagina() {
       if (!datosCrudos || datosCrudos.length === 0) {
