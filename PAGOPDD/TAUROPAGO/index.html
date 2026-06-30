@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>PAGOS Y DIFERENCIAS DE TAURO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <h2>📊 PAGOS Y DIFERENCIAS DE TAURO</h2>
+
+  <div class="card nav-secciones">
+    <button class="tab activo" data-section="seleccion">1 Seleccionar facturas</button>
+    <button class="tab" data-section="revision">2 Revisión / enlaces</button>
+    <button class="tab" data-section="pago">3 Aplicación de pago</button>
+  </div>
+
+  <section id="section-seleccion" class="app-section activo">
+    <div class="card">
+      <div class="row">
+        <div style="min-width:260px; flex:1">
+          <label>Lista de precios (fecha)</label><br>
+          <select id="listaFecha"></select>
+          <div class="small">Selecciona la fecha de lista antes de calcular.</div>
+        </div>
+        <div style="min-width:180px">
+          <label>IVA</label><br>
+          <input id="ivaRate" type="number" step="0.01" value="0.16">
+          <div class="small">Convierte CFDI sin IVA a precio con IVA.</div>
+        </div>
+        <div style="min-width:280px; flex:1">
+          <div class="small" id="diag"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>Facturas pendientes (Tauro)</h3>
+        <button class="btn" id="btnIrRevision">Siguiente: revisión</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Selector</th>
+            <th>Fecha factura</th>
+            <th>Serie/Folio</th>
+            <th>UUID</th>
+            <th class="monto">Total</th>
+            <th>Fotos</th>
+            <th>Físico</th>
+          </tr>
+        </thead>
+        <tbody id="facturasBody"></tbody>
+      </table>
+      <div class="small">Marca facturas para bajar conceptos. Fotos y físico salen de deuda_limpia_pdd.fotos y factura_fisicamente.</div>
+    </div>
+  </section>
+
+  <section id="section-revision" class="app-section">
+    <div class="card">
+      <div class="card-head">
+        <h3>Detalle artículos / revisión de enlaces</h3>
+        <button class="btn" id="btnIrPago">Siguiente: aplicación de pago</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Factura</th>
+            <th>Concepto CFDI</th>
+            <th>Cant</th>
+            <th class="monto">Fact U. sin IVA</th>
+            <th class="monto">Fact U. con IVA</th>
+            <th class="monto">Lista U. neto</th>
+            <th class="monto">Dif U.</th>
+            <th class="monto">Dif total</th>
+            <th class="monto">Desc aplicado</th>
+            <th>Estado</th>
+            <th>Enlace</th>
+          </tr>
+        </thead>
+        <tbody id="articulosBody"></tbody>
+      </table>
+      <div class="small">El descuento se aplica solo si Factura con IVA es mayor que Lista.</div>
+    </div>
+  </section>
+
+  <section id="section-pago" class="app-section">
+    <div class="card">
+      <h3>Resumen</h3>
+      <div>Subtotal facturas: <span class="kpi" id="subTotal">$0.00</span></div>
+      <div>Descuentos por diferencias: <span class="kpi" id="totalDesc">$0.00</span></div>
+      <div><b>Total a pagar: <span class="kpi" id="totalFinal">$0.00</span></b></div>
+    </div>
+
+    <div class="card">
+      <h3>Aplicación de pago</h3>
+      <div class="row">
+        <div style="min-width:180px">
+          <label>Banco</label><br>
+          <select id="banco">
+            <option>BBVA</option>
+            <option>BANORTE</option>
+            <option>BANREGIO</option>
+            <option>OTRO</option>
+          </select>
+        </div>
+        <div style="min-width:180px">
+          <label>Fecha pago</label><br>
+          <input type="date" id="fechaPago">
+        </div>
+        <div style="min-width:220px">
+          <label>Importe pagado</label><br>
+          <input type="number" step="0.01" id="importePago">
+          <div class="small">Se llena con el total a pagar, editable.</div>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label>Comprobante bancario</label><br>
+        <textarea id="comprobante" rows="5" placeholder="Pega aquí el comprobante..."></textarea>
+      </div>
+      <div style="margin-top:10px">
+        <label>Notas</label><br>
+        <textarea id="notas" rows="3"></textarea>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btnGuardarPago">💾 Registrar pago</button>
+      </div>
+      <div class="small" id="msg"></div>
+    </div>
+  </section>
+
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <h3>🔗 Enlazar / editar match</h3>
+      <div class="small">Guarda lista_precios_proveedor.descripcion_cfdi con la descripción exacta del CFDI.</div>
+      <hr>
+      <div class="small"><b>Concepto CFDI:</b></div>
+      <div id="conceptoTxt" class="concepto-box"></div>
+      <div class="row">
+        <div style="flex:1; min-width:420px">
+          <label>Buscar en lista</label><br>
+          <input id="matchSearch" placeholder="Ej: charola / 855 / 9h ..." style="width:100%">
+          <div class="small" id="matchSummary"></div>
+        </div>
+        <div style="min-width:220px">
+          <label>Costo neto</label><br>
+          <input id="matchCosto" disabled>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label>Resultados</label><br>
+        <select id="matchSelect" size="12" style="width:100%"></select>
+      </div>
+      <div class="actions">
+        <button class="btn-outline" id="btnQuitarEnlace">Quitar enlace</button>
+        <button class="btn-outline" id="btnCerrarModal">Cancelar</button>
+        <button class="btn" id="btnConfirmarMatch">Guardar enlace</button>
+      </div>
+      <div class="small" id="modalMsg"></div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
