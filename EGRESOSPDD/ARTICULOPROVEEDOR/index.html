@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PROVEEDORA DE DULCES Y DESECHABLES · Buscador</title>
+  <link rel="icon" href="./assets/img/logo.jfif">
+  <link rel="stylesheet" href="./assets/css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <main class="app">
+
+    <header class="app-header">
+      <div class="brand-box">
+        <img src="./assets/img/logo.jfif" alt="Logo" class="app-logo">
+        <div>
+          <h1>PROVEEDORA DE DULCES Y DESECHABLES</h1>
+          <p>BUSCADOR DE ARTÍCULOS PROVEEDORES</p>
+        </div>
+      </div>
+    </header>
+
+    <section id="vistaBuscador" class="vista activa">
+      <div class="card buscador-card">
+        <label for="inputBuscarConcepto">Buscar artículo / concepto</label>
+        <input id="inputBuscarConcepto" placeholder="Ejemplo: BIG COLA 3.3" autocomplete="off">
+        <div id="estadoBusqueda">Escribe mínimo 3 letras.</div>
+        <div id="resultadosBusqueda"></div>
+      </div>
+    </section>
+
+    <section id="vistaDetalleFactura" class="vista">
+      <div class="card">
+        <button id="btnRegresarBuscador">← Regresar al buscador</button>
+        <div id="detalleFactura"></div>
+      </div>
+    </section>
+
+  </main>
+  <script type="module" src="./assets/js/app.js"></script>
+</body>
+</html>

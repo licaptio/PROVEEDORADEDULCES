@@ -1,0 +1,33 @@
+*{box-sizing:border-box}
+:root{
+  --rojo:#b91c1c;
+  --rojo-oscuro:#7f1d1d;
+  --rojo-suave:#fee2e2;
+  --blanco:#ffffff;
+  --gris-fondo:#fff5f5;
+  --gris-borde:#fecaca;
+  --texto:#1f2937;
+  --muted:#6b7280;
+}
+body{font-family:Arial,sans-serif;background:linear-gradient(180deg,#fff 0%,var(--gris-fondo) 100%);margin:0;color:var(--texto)}
+.app{max-width:1180px;margin:auto;padding:22px}
+.app-header{background:linear-gradient(135deg,var(--rojo-oscuro),var(--rojo));color:#fff;padding:18px;border-radius:16px;box-shadow:0 12px 28px rgba(127,29,29,.22);border:1px solid rgba(255,255,255,.25)}
+.brand-box{display:flex;align-items:center;gap:18px}.app-logo{width:86px;height:86px;object-fit:contain;background:#fff;border-radius:16px;padding:8px;border:2px solid rgba(255,255,255,.8)}
+.app-header h1{margin:0;font-size:26px;line-height:1.1;letter-spacing:.02em}.app-header p{margin:8px 0 0;font-weight:700;letter-spacing:.08em;font-size:13px;color:#fff7ed}
+.card{background:#fff;padding:18px;border-radius:16px;margin-top:16px;box-shadow:0 8px 26px rgba(185,28,28,.10);border:1px solid var(--gris-borde)}
+.vista{display:none}.vista.activa{display:block}.buscador-card label{display:block;font-weight:700;color:var(--rojo-oscuro);margin-bottom:8px;text-transform:uppercase;font-size:13px;letter-spacing:.05em}
+input{width:100%;padding:15px 16px;font-size:20px;border:2px solid var(--gris-borde);border-radius:12px;outline:none;background:#fff;color:var(--texto)}
+input:focus{border-color:var(--rojo);box-shadow:0 0 0 4px rgba(185,28,28,.12)}
+#estadoBusqueda{margin-top:10px;color:var(--muted);font-size:14px}
+#resultadosBusqueda{display:grid;gap:10px;margin-top:16px}.resultado{padding:14px;border:1px solid var(--gris-borde);border-left:6px solid var(--rojo);border-radius:12px;cursor:pointer;background:#fff;text-align:left;transition:.15s;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.resultado:hover{background:#fff1f2;transform:translateY(-1px)}.resultado strong{color:var(--rojo-oscuro);font-size:16px}.resultado br{line-height:1.6}
+#btnRegresarBuscador{border:0;background:var(--rojo);color:white;border-radius:10px;padding:11px 16px;margin-bottom:16px;font-weight:700}#btnRegresarBuscador:hover{background:var(--rojo-oscuro)}
+.cargando{padding:20px;color:var(--muted)}.alerta-error{padding:14px;background:var(--rojo-suave);color:var(--rojo-oscuro);border-radius:10px;border:1px solid var(--gris-borde)}
+.factura-card{border:1px solid var(--gris-borde);border-radius:16px;overflow:hidden;background:#fff}.factura-encabezado{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;background:#fff5f5;border-bottom:1px solid var(--gris-borde);padding:20px}
+.factura-encabezado h2{margin:4px 0;font-size:30px;color:var(--rojo-oscuro)}.etiqueta{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--rojo);font-weight:bold}.uuid{font-size:12px;color:var(--muted);word-break:break-all}
+.factura-total-box{text-align:right;background:linear-gradient(135deg,var(--rojo-oscuro),var(--rojo));color:white;border-radius:14px;padding:15px 20px;min-width:200px}.factura-total-box span{display:block;font-size:12px;color:#fee2e2}.factura-total-box strong{font-size:25px}
+.factura-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px;border-bottom:1px solid var(--gris-borde)}.dato{background:#fffafa;border:1px solid var(--gris-borde);border-radius:12px;padding:11px}.dato span{display:block;font-size:12px;color:var(--rojo);font-weight:700}.dato strong{display:block;margin-top:4px}
+.seccion-titulo{display:flex;justify-content:space-between;align-items:center;padding:16px}.seccion-titulo h3{margin:0;color:var(--rojo-oscuro)}.seccion-titulo span{color:var(--muted)}
+.tabla-wrap{overflow:auto;padding:0 16px 16px}.tabla-conceptos{width:100%;border-collapse:collapse;font-size:13px}.tabla-conceptos th{background:var(--rojo-oscuro);color:#fff;text-align:left;padding:11px}.tabla-conceptos td{border-bottom:1px solid var(--gris-borde);padding:10px;vertical-align:top}.tabla-conceptos tr:hover td{background:#fff1f2}.tabla-conceptos .desc{font-weight:700;color:#7f1d1d}.num{text-align:right;white-space:nowrap}
+.factura-resumen{display:flex;justify-content:flex-end;gap:10px;background:#fff5f5;border-top:1px solid var(--gris-borde);padding:16px}.factura-resumen div{min-width:140px;background:white;border:1px solid var(--gris-borde);border-radius:12px;padding:10px;text-align:right}.factura-resumen span{display:block;color:var(--rojo);font-size:12px;font-weight:700}.factura-resumen strong{display:block;font-size:16px;color:var(--rojo-oscuro)}
+@media(max-width:800px){.brand-box{align-items:flex-start}.app-logo{width:70px;height:70px}.app-header h1{font-size:19px}.factura-encabezado{display:block}.factura-total-box{text-align:left;margin-top:12px}.factura-grid{grid-template-columns:1fr}.factura-resumen{display:grid;grid-template-columns:1fr}}
