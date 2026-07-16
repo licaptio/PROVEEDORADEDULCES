@@ -339,16 +339,15 @@ function openDB() {
   });
 }
 async function cargarRutasReimpresion() {
-  const snap = await getDocs(collection(db, "almacenes"));
   const select = document.getElementById("rutaReimpresion");
 
-  select.innerHTML = `<option value="">Seleccione Ruta</option>`;
-
-  snap.forEach(doc => {
-    select.innerHTML += `<option value="${doc.id}">${doc.id}</option>`;
-  });
+  select.innerHTML = `
+    <option value="">Seleccione Ruta</option>
+    <option value="Almacen_Ruta_1">Almacén Ruta 1</option>
+    <option value="Almacen_Ruta_2">Almacén Ruta 2</option>
+  `;
 }
-
+  
 async function saveProductos(lista) {
   const db = await openDB();
   const tx = db.transaction("productos", "readwrite");
