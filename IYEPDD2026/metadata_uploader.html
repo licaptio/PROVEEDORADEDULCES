@@ -95,27 +95,67 @@ function setProgress(actual, total, extra=""){
     `${extra} ${actual}/${total} (${percent}%)`;
 }
 
-async function enviarLote(batch){
-  const res = await fetch(
-    SUPABASE_URL + "?on_conflict=uuid_cfdi",
-    {
-      method: "POST",
-      headers: {
-        "apikey": ANON_KEY,
-        "Authorization": "Bearer " + ANON_KEY,
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates"
-      },
-      body: JSON.stringify(batch)
-    }
-  );
-
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(t);
-  }
+function esperar(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function enviarLote(batch, intento = 1){
+  const MAX_REINTENTOS = 5;
+
+  try {
+    const res = await fetch(
+      SUPABASE_URL + "?on_conflict=uuid_cfdi",
+      {
+        method: "POST",
+        headers: {
+          "apikey": ANON_KEY,
+          "Authorization": "Bearer " + ANON_KEY,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates,return=minimal"
+        },
+        body: JSON.stringify(batch)
+      }
+    );
+
+    if (!res.ok) {
+      const texto = await res.text();
+
+      if (
+        res.status === 500 ||
+        res.status === 502 ||
+        res.status === 503 ||
+        res.status === 504 ||
+        texto.includes("statement timeout") ||
+        texto.includes("57014")
+      ) {
+        throw new Error(texto);
+      }
+
+      throw new Error(
+        `Error HTTP ${res.status}: ${texto}`
+      );
+    }
+
+    return true;
+
+  } catch (error) {
+    if (intento < MAX_REINTENTOS) {
+      const espera = intento * 2000;
+
+      log(
+        `⚠ Lote falló. Reintento ${intento}/${MAX_REINTENTOS - 1} en ${espera / 1000}s`
+      );
+
+      await esperar(espera);
+
+      return enviarLote(batch, intento + 1);
+    }
+
+    throw new Error(
+      `El lote falló después de ${MAX_REINTENTOS} intentos: ${error.message}`
+    );
+  }
+}
 async function procesarArchivos(){
   const input = document.getElementById("fileInput");
 
