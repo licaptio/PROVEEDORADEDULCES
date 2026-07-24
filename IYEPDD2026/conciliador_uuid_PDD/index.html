@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROVSOFT | Conciliador UUID</title>
+  <link rel="stylesheet" href="./assets/css/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">PROVSOFT · AUDITORÍA DE INFORMACIÓN</p>
+        <h1>Conciliador de UUID</h1>
+        <p class="subtitle">Compara metadata del SAT contra ingresos de PROVSOFT para identificar exactamente qué CFDI faltan en cada tabla.</p>
+      </div>
+      <div class="status-chip" id="connectionStatus">Listo para consultar</div>
+    </header>
+
+    <section class="control-panel">
+      <div class="field">
+        <label for="anio">Año</label>
+        <select id="anio"></select>
+      </div>
+      <button id="btnProcesar" class="btn btn-primary" type="button">Ejecutar conciliación</button>
+      <button id="btnExportar" class="btn btn-secondary" type="button" disabled>Exportar vista CSV</button>
+      <button id="btnLimpiar" class="btn btn-ghost" type="button">Limpiar</button>
+    </section>
+
+    <section class="process-panel" aria-live="polite">
+      <div class="process-top">
+        <strong id="processTitle">Sin proceso ejecutado</strong>
+        <span id="processPercent">0%</span>
+      </div>
+      <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+      <p id="bitacora">Selecciona el ejercicio y después ejecuta la conciliación.</p>
+    </section>
+
+    <section class="workspace">
+      <div class="tabs" role="tablist" aria-label="Resultados de conciliación">
+        <button class="tab active" data-view="faltan_ingresos" type="button">Faltan en ingresos <span id="cFaltanIngresos">0</span></button>
+        <button class="tab" data-view="faltan_metadata" type="button">Faltan en metadata <span id="cFaltanMetadata">0</span></button>
+        <button class="tab" data-view="coinciden" type="button">Coinciden <span id="cCoinciden">0</span></button>
+        <button class="tab" data-view="duplicados" type="button">Duplicados <span id="cDuplicados">0</span></button>
+      </div>
+
+      <div class="table-tools">
+        <div>
+          <h2 id="viewTitle">UUID que existen en metadata y faltan en ingresos</h2>
+          <p id="viewHelp">Estos CFDI deben incorporarse o revisarse en la tabla ingresos_pdd.</p>
+        </div>
+        <div class="search-box">
+          <label for="buscar">Buscar</label>
+          <input id="buscar" type="search" placeholder="UUID, RFC, receptor, folio...">
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody">
+            <tr><td class="empty">Ejecuta una conciliación para mostrar resultados.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span id="rowCount">0 registros visibles</span>
+        <span id="periodLabel">Sin ejercicio seleccionado</span>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./assets/js/app.js"></script>
+</body>
+</html>
