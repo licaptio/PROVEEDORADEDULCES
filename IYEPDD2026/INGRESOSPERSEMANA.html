@@ -520,7 +520,13 @@ function construirTabla(rows, semanas){
   const todasSeries =
     seriesLabels
       .concat(Array.from(desconocidas))
-      .sort();
+      .sort()
+      // Ocultar PP - NO DEFINIDO cuando no tenga datos
+      .filter(label => {
+        if(label !== "PP - NO DEFINIDO") return true;
+        const datos = mapa[label] || {};
+        return Object.values(datos).some(v => Number(v) !== 0);
+      });
 
   const thead =
     document.querySelector("#tabla thead");
