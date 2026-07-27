@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Estado financiero | Ingresos</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+
+  <link rel="stylesheet" href="./assets/css/styles.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./assets/js/config.js"></script>
+  <script src="./assets/js/utils.js"></script>
+  <script src="./assets/js/api.js"></script>
+  <script src="./assets/js/ui.js"></script>
+  <script src="./assets/js/app.js" defer></script>
+</head>
+
+<body>
+  <header class="encabezado">
+    <div class="encabezado__contenido">
+      <p class="encabezado__marca">PROVSOFT</p>
+      <h1>Estado financiero</h1>
+      <p>Ingresos mensuales y acumulado anual</p>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <section class="panel filtros" aria-label="Filtros de consulta">
+      <div class="campo">
+        <label for="anio">Año</label>
+        <select id="anio"></select>
+      </div>
+
+      <div class="campo">
+        <label for="mes">Mes</label>
+        <select id="mes"></select>
+      </div>
+
+      <button id="btnConsultar" type="button">Consultar ingresos</button>
+    </section>
+
+    <p id="estado" class="estado" role="status"></p>
+
+    <section id="contenido" class="oculto">
+      <section class="comparativo" aria-label="Comparativo mensual y anual">
+        <article class="periodo">
+          <div class="periodo__titulo">
+            <div>
+              <span>Periodo</span>
+              <h2 id="tituloMensual">Mensual</h2>
+              <p id="periodoMensual">—</p>
+            </div>
+            <div class="periodo__facturas">
+              <span>Facturas</span>
+              <strong id="facturasMensuales">0</strong>
+            </div>
+          </div>
+
+          <section class="resumen-periodo">
+            <article>
+              <span>Venta neta</span>
+              <strong id="ventaNetaMensual">$0.00</strong>
+            </article>
+            <article>
+              <span>IVA</span>
+              <strong id="ivaMensual">$0.00</strong>
+            </article>
+            <article>
+              <span>IEPS</span>
+              <strong id="iepsMensual">$0.00</strong>
+            </article>
+            <article class="destacado">
+              <span>Total facturado</span>
+              <strong id="totalMensual">$0.00</strong>
+            </article>
+          </section>
+
+          <section class="tarjetas-periodo">
+            <article class="bloque">
+              <div class="bloque__encabezado">
+                <div>
+                  <span>Ingresos</span>
+                  <h3>Contado</h3>
+                </div>
+                <strong id="facturasMensualContado">0 facturas</strong>
+              </div>
+              <div id="tablaMensualContado"></div>
+            </article>
+
+            <article class="bloque">
+              <div class="bloque__encabezado">
+                <div>
+                  <span>Ingresos</span>
+                  <h3>Crédito</h3>
+                </div>
+                <strong id="facturasMensualCredito">0 facturas</strong>
+              </div>
+              <div id="tablaMensualCredito"></div>
+            </article>
+          </section>
+        </article>
+
+        <article class="periodo">
+          <div class="periodo__titulo">
+            <div>
+              <span>Periodo</span>
+              <h2>Anual</h2>
+              <p id="periodoAnual">—</p>
+            </div>
+            <div class="periodo__facturas">
+              <span>Facturas</span>
+              <strong id="facturasAnuales">0</strong>
+            </div>
+          </div>
+
+          <section class="resumen-periodo">
+            <article>
+              <span>Venta neta</span>
+              <strong id="ventaNetaAnual">$0.00</strong>
+            </article>
+            <article>
+              <span>IVA</span>
+              <strong id="ivaAnual">$0.00</strong>
+            </article>
+            <article>
+              <span>IEPS</span>
+              <strong id="iepsAnual">$0.00</strong>
+            </article>
+            <article class="destacado">
+              <span>Total facturado</span>
+              <strong id="totalAnual">$0.00</strong>
+            </article>
+          </section>
+
+          <section class="tarjetas-periodo">
+            <article class="bloque">
+              <div class="bloque__encabezado">
+                <div>
+                  <span>Ingresos</span>
+                  <h3>Contado</h3>
+                </div>
+                <strong id="facturasAnualContado">0 facturas</strong>
+              </div>
+              <div id="tablaAnualContado"></div>
+            </article>
+
+            <article class="bloque">
+              <div class="bloque__encabezado">
+                <div>
+                  <span>Ingresos</span>
+                  <h3>Crédito</h3>
+                </div>
+                <strong id="facturasAnualCredito">0 facturas</strong>
+              </div>
+              <div id="tablaAnualCredito"></div>
+            </article>
+          </section>
+        </article>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
