@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Detalle CFDI – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- CSS externo -->
+  <link rel="stylesheet" href="detalle.css">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+</head>
+<body>
+
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div id="contenedor" class="tarjeta-principal"></div>
+
+ <section class="panel-fotos">
+  <h3>Fotos de factura</h3>
+
+  <div class="foto-botones">
+
+    <!-- BOTÓN DE CÁMARA VERDE CIRCULAR -->
+    <button class="btn-capturar" id="btnCapturar">
+      <img src="https://cdn-icons-png.flaticon.com/512/2920/2920156.png">
+    </button>
+
+    <!-- BOTÓN AZUL DE SUBIR FOTO -->
+    <button class="btn-upload" id="btnSubirFoto">
+      <img src="https://cdn-icons-png.flaticon.com/512/724/724933.png">
+      SUBIR FOTO
+    </button>
+
+    <!-- INPUT OCULTO QUE ACTIVA LA CÁMARA -->
+    <input type="file" id="fotoInput" accept="image/*" capture="environment" hidden>
+
+  </div>
+
+  <!-- BARRA DE CARGA -->
+  <div id="barraCargando" class="oculto">
+    <span></span>
+  </div>
+
+  <div id="galeriaFotos"></div>
+</section>
+
+
+  <!-- TOAST -->
+  <div id="toast" class="toast">Listo</div>
+
+  <!-- JS externo -->
+  <script src="detalle.js"></script>
+<!-- ===================== -->
+<!--   FOOTER NUEVO        -->
+<!-- ===================== -->
+<footer class="footer-regresar">
+  <button class="btn-back" onclick="history.back()">⬅ Regresar</button>
+  <h2>Detalle de Factura – PROVSOFT</h2>
+</footer>
+</body>
+</html>
+
