@@ -12,7 +12,22 @@ export async function cargarFacturasProveedor(rfc){
 
   const { data, error } = await sb
     .from('deuda_limpia_pdd')
-    .select('id,uuid_cfdi,serie,folio,fecha,total,razon_social_emisor,fotos,factura_fisicamente,descuentos')
+    .select(`
+  id,
+  uuid_cfdi,
+  serie,
+  folio,
+  fecha,
+  total,
+  subtotal,
+  descuento,
+  razon_social_emisor,
+  fotos,
+  factura_fisicamente,
+  descuentos,
+  impuestos_globales,
+  conceptos_detalle
+`)
     .eq('rfc_emisor', rfc)
     .eq('factura_pagada','NO')
     .order('fecha',{ascending:true});
