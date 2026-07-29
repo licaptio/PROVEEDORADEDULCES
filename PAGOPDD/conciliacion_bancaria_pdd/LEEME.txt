@@ -1,0 +1,25 @@
+PROVSOFT - CONCILIACIÓN BANCARIA
+
+1. En Supabase, ejecuta:
+   01_BD_CONCILIACION.sql
+
+2. Abre config.js y pega:
+   - SUPABASE_URL
+   - SUPABASE_ANON_KEY
+
+3. Ejecuta INICIAR.bat
+   o desde CMD:
+   python server.py
+
+4. Abre:
+   http://127.0.0.1:8000
+
+FLUJO:
+- Sección 1: elige mes/año/banco, selecciona los pagos que sí aparecen en el estado de cuenta y márcalos.
+- Sección 2: consulta el resumen fiscal conciliado y descarga el Excel.
+- El Excel contiene Resumen, Pagos conciliados y Facturas.
+
+NOTA DE SEGURIDAD:
+La política RLS incluida permite UPDATE al rol anon para comenzar a probar.
+Para producción conviene reemplazarla por una función RPC que solo actualice
+conciliado y periodo_conciliacion.

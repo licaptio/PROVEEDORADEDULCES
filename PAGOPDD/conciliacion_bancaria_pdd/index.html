@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROVSOFT · Conciliación bancaria</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Conciliación bancaria</h1>
+      <p>PROVSOFT · Pagos de proveedores e impuestos acreditables</p>
+    </div>
+    <button id="btnRecargar" class="btn secondary">Recargar</button>
+  </header>
+
+  <main class="app">
+    <nav class="tabs">
+      <button class="tab active" data-view="conciliacion">1. Conciliar pagos</button>
+      <button class="tab" data-view="resumen">2. Resumen conciliado</button>
+    </nav>
+
+    <section id="view-conciliacion" class="view active">
+      <div class="panel filters">
+        <label>
+          Mes
+          <select id="mesConciliacion"></select>
+        </label>
+        <label>
+          Año
+          <select id="anioConciliacion"></select>
+        </label>
+        <label>
+          Banco
+          <select id="bancoConciliacion">
+            <option value="">Todos</option>
+          </select>
+        </label>
+        <label>
+          Estado
+          <select id="estadoConciliacion">
+            <option value="pendientes">Pendientes</option>
+            <option value="conciliados">Conciliados del periodo</option>
+            <option value="todos">Todos los pagos del mes</option>
+          </select>
+        </label>
+        <label class="search">
+          Buscar
+          <input id="buscarConciliacion" type="search" placeholder="Proveedor, RFC, banco o importe">
+        </label>
+        <button id="btnConsultarConciliacion" class="btn primary">Consultar</button>
+      </div>
+
+      <div class="toolbar">
+        <div>
+          <strong id="seleccionInfo">0 seleccionados</strong>
+          <span id="resultadoInfo" class="muted"></span>
+        </div>
+        <div class="toolbar-actions">
+          <button id="btnMarcarConciliados" class="btn success" disabled>Marcar en estado de cuenta</button>
+          <button id="btnQuitarConciliacion" class="btn danger" disabled>Quitar conciliación</button>
+        </div>
+      </div>
+
+      <div id="mensajeConciliacion" class="message hidden"></div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="check"><input id="seleccionarTodos" type="checkbox"></th>
+              <th>Fecha</th>
+              <th>Banco</th>
+              <th>Proveedor</th>
+              <th>RFC</th>
+              <th class="num">Importe</th>
+              <th class="num">Subtotal</th>
+              <th class="num">IVA</th>
+              <th class="num">IEPS</th>
+              <th class="num">Facturas</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyConciliacion">
+            <tr><td colspan="11" class="empty">Selecciona periodo y presiona Consultar.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-resumen" class="view">
+      <div class="panel filters">
+        <label>
+          Mes
+          <select id="mesResumen"></select>
+        </label>
+        <label>
+          Año
+          <select id="anioResumen"></select>
+        </label>
+        <label>
+          Banco
+          <select id="bancoResumen">
+            <option value="">Todos</option>
+          </select>
+        </label>
+        <label class="search">
+          Buscar
+          <input id="buscarResumen" type="search" placeholder="Proveedor, RFC, banco o importe">
+        </label>
+        <button id="btnConsultarResumen" class="btn primary">Consultar</button>
+        <button id="btnExcel" class="btn success" disabled>Descargar Excel</button>
+      </div>
+
+      <div id="mensajeResumen" class="message hidden"></div>
+
+      <div class="cards">
+        <article class="metric">
+          <span>Total conciliado</span>
+          <strong id="mTotal">$0.00</strong>
+        </article>
+        <article class="metric">
+          <span>Pagos</span>
+          <strong id="mPagos">0</strong>
+        </article>
+        <article class="metric">
+          <span>Subtotal pagado</span>
+          <strong id="mSubtotal">$0.00</strong>
+        </article>
+        <article class="metric">
+          <span>IVA acreditable</span>
+          <strong id="mIva">$0.00</strong>
+        </article>
+        <article class="metric">
+          <span>IEPS acreditable</span>
+          <strong id="mIeps">$0.00</strong>
+        </article>
+        <article class="metric">
+          <span>Retenciones</span>
+          <strong id="mRetenciones">$0.00</strong>
+        </article>
+      </div>
+
+      <div class="section-title">
+        <div>
+          <h2>Detalle de pagos conciliados</h2>
+          <p id="resumenPeriodo" class="muted">Sin consulta.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Banco</th>
+              <th>Proveedor</th>
+              <th>RFC</th>
+              <th class="num">Importe</th>
+              <th class="num">Subtotal</th>
+              <th class="num">IVA</th>
+              <th class="num">IEPS</th>
+              <th class="num">Retenciones</th>
+              <th class="num">Facturas</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbodyResumen">
+            <tr><td colspan="11" class="empty">Selecciona un periodo y presiona Consultar.</td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="4">Totales visibles</th>
+              <th id="fImporte" class="num">$0.00</th>
+              <th id="fSubtotal" class="num">$0.00</th>
+              <th id="fIva" class="num">$0.00</th>
+              <th id="fIeps" class="num">$0.00</th>
+              <th id="fRet" class="num">$0.00</th>
+              <th id="fFacturas" class="num">0</th>
+              <th></th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="detalleModal">
+    <div class="modal-head">
+      <div>
+        <h2 id="modalProveedor">Detalle del pago</h2>
+        <p id="modalMeta" class="muted"></p>
+      </div>
+      <button id="cerrarModal" class="icon-btn" aria-label="Cerrar">×</button>
+    </div>
+    <div id="modalTotales" class="mini-cards"></div>
+    <div class="table-wrap modal-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha factura</th>
+            <th>Serie</th>
+            <th>Folio</th>
+            <th>UUID</th>
+            <th class="num">Importe original</th>
+            <th class="num">Descuento</th>
+            <th class="num">Importe final</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyFacturas"></tbody>
+      </table>
+    </div>
+  </dialog>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
