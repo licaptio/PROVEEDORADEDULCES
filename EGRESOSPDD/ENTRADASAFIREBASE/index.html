@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PROVSOFT | Entradas de Almacén</title>
+  <meta name="theme-color" content="#9b111e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/icon.svg">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">PROVSOFT</p>
+      <h1>Entradas de Almacén Central PDD</h1>
+      <p class="subtitle">Consulta de proveedores, documentos y mercancía recibida.</p>
+    </div>
+    <button id="btnRecargar" class="btn btn-light">Recargar</button>
+  </header>
+
+  <main class="shell">
+    <section class="panel filters">
+      <div class="field">
+        <label for="selAnio">Año</label>
+        <select id="selAnio"></select>
+      </div>
+      <div class="field">
+        <label for="selMes">Mes</label>
+        <select id="selMes">
+          <option value="">Todos</option>
+          <option value="01">Enero</option><option value="02">Febrero</option>
+          <option value="03">Marzo</option><option value="04">Abril</option>
+          <option value="05">Mayo</option><option value="06">Junio</option>
+          <option value="07">Julio</option><option value="08">Agosto</option>
+          <option value="09">Septiembre</option><option value="10">Octubre</option>
+          <option value="11">Noviembre</option><option value="12">Diciembre</option>
+        </select>
+      </div>
+      <div class="field field-grow">
+        <label for="txtBuscar">Buscar proveedor, folio o UUID</label>
+        <input id="txtBuscar" type="search" placeholder="Ej. Bolsas Tauro, 44677...">
+      </div>
+      <button id="btnLimpiar" class="btn btn-secondary">Limpiar</button>
+    </section>
+
+    <section class="stats" id="stats"></section>
+
+    <section>
+      <div class="section-head">
+        <div>
+          <p class="eyebrow dark">RESUMEN</p>
+          <h2>Proveedores encontrados</h2>
+        </div>
+        <span id="proveedoresCount" class="badge">0</span>
+      </div>
+      <div id="proveedores" class="supplier-grid"></div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <div>
+          <p class="eyebrow dark">DOCUMENTOS</p>
+          <h2>Entradas registradas</h2>
+        </div>
+        <span id="entradasCount" class="badge">0</span>
+      </div>
+      <div id="estado" class="state">Cargando entradas...</div>
+      <div id="entradas" class="entry-grid"></div>
+    </section>
+  </main>
+
+  <script type="module" src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PROVSOFT | Visor de Entrada</title>
+  <meta name="theme-color" content="#9b111e">
+  <link rel="icon" href="assets/icons/icon.svg">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="topbar compact">
+    <div>
+      <p class="eyebrow">PROVSOFT</p>
+      <h1>Visor de entrada</h1>
+      <p id="visorRuta" class="subtitle"></p>
+    </div>
+    <a href="index.html" class="btn btn-light">← Regresar</a>
+  </header>
+
+  <main class="shell">
+    <div id="visorEstado" class="state">Cargando documento...</div>
+    <section id="visorContenido" hidden>
+      <div id="detalleCabecera" class="detail-grid"></div>
+
+      <section class="panel">
+        <div class="section-head no-margin">
+          <div>
+            <p class="eyebrow dark">MERCANCÍA</p>
+            <h2>Conceptos de la entrada</h2>
+          </div>
+          <span id="conceptosCount" class="badge">0</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Código</th><th>Descripción</th><th>Cantidad</th>
+                <th>Unidad</th><th>Valor unitario</th><th>Importe</th><th>IVA</th>
+              </tr>
+            </thead>
+            <tbody id="tablaConceptos"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="fotosSeccion" class="panel" hidden>
+        <div class="section-head no-margin"><h2>Fotografías</h2></div>
+        <div id="fotos" class="photos"></div>
+      </section>
+
+      <details class="panel raw">
+        <summary>Ver información completa del nodo</summary>
+        <pre id="jsonRaw"></pre>
+      </details>
+    </section>
+  </main>
+  <script type="module" src="assets/visor.js"></script>
+</body>
+</html>
