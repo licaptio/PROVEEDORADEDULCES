@@ -1,0 +1,9 @@
+PROVSOFT - PAGOS A PROVEEDORES INTEGRADO
+
+1. Ejecuta INICIAR.bat.
+2. Busca un proveedor.
+3. Selecciona "Ver reporte" en el pago deseado.
+4. Usa "Imprimir / PDF oficial" para generar el documento con formato de impresión independiente de la pantalla.
+
+La app integra el visor y el antiguo CARDEX en una sola pantalla.
+Los estilos y JavaScript están dentro de /assets.
