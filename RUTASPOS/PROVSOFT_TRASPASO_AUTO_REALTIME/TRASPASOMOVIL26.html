@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traspaso entre Almacenes – PROVSOFT</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script type="module" src="assets/js/app.js"></script>
+</head>
+<body>
+
+<div id="pantallaCarga">
+  <div class="cargaCaja">
+    <img src="assets/img/logo.jfif" class="logoCargaImg" alt="PROVSOFT">
+    <div class="subCarga">Traspaso entre Almacenes</div>
+    <div class="barraCargaOuter"><div id="barraCargaInner"></div></div>
+    <div id="textoCarga">Iniciando...</div>
+    <div id="detalleCarga">Preparando aplicación</div>
+  </div>
+</div>
+
+<div id="appPrincipal">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <img src="assets/img/logo.jfif" class="brand-logo" alt="PROVSOFT">
+      <div class="brand-text">
+        <h1>Traspaso entre Almacenes</h1>
+        <span>Captura, búsqueda y envío de mercancía</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="card">
+      <label class="control-label" for="vendedorSelect">Vendedor / ruta destino</label>
+      <select id="vendedorSelect"></select>
+      <input id="rutaId" type="hidden">
+
+      <div class="buscador-wrap">
+        <label class="control-label" for="buscador">Código de barras o descripción</label>
+        <div class="buscador-row">
+          <input id="buscador" autocomplete="off" placeholder="Escanea código o escribe: BIG C/6">
+        </div>
+      </div>
+
+      <div id="estadoBusquedaFirebase" class="estado-busqueda"></div>
+
+      <input id="codigoSel" type="hidden">
+      <input id="conceptoSel" type="hidden">
+      <input id="precioSel" type="hidden">
+      <div id="preview"></div>
+      <div id="barraSesion">Sesión anterior recuperada ✓</div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Producto</th>
+              <th>Cant.</th>
+              <th>Precio</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tabla"></tbody>
+        </table>
+      </div>
+
+      <div class="acciones">
+        <button id="btnTraspaso" class="btn btn-rojo btn-block" type="button">Finalizar Traspaso</button>
+        <button id="btnReimpresion" class="btn btn-gris btn-block" type="button">Reimpresión de Traspaso</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Modal de coincidencias -->
+<div id="modalResultados" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <h2>Coincidencias de producto</h2>
+        <div id="contadorResultados" class="resultados-info"></div>
+      </div>
+      <button id="cerrarModal" class="btn btn-gris" type="button">Cerrar</button>
+    </div>
+    <div class="modal-body">
+      <input id="busquedaNombre" class="search-modal-input" autocomplete="off" placeholder="Ejemplo: BIG 3.3, COLA C/6, BIG C/6">
+      <div class="resultados-info">Puedes escribir solo partes del nombre; el orden no tiene que ser exacto.</div>
+      <div id="listaResultados"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal cantidad -->
+<div id="modalCantidad" class="modal-overlay">
+  <div class="modal-card" style="max-width:430px">
+    <div class="modal-head"><h3>Cantidad</h3></div>
+    <div class="modal-body">
+      <input id="inputCantidadNombre" type="number" min="0.001" step="any" placeholder="Ingrese cantidad">
+    </div>
+    <div class="modal-foot">
+      <button id="btnCancelarCantidad" class="btn btn-gris" type="button">Cancelar</button>
+      <button id="btnAceptarCantidad" class="btn btn-rojo" type="button">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal reimpresión -->
+<div id="modalReimpresion" class="modal-overlay">
+  <div class="modal-card" style="max-width:650px">
+    <div class="modal-head">
+      <h3>Reimpresión</h3>
+      <button id="cerrarReimpresion" class="btn btn-gris" type="button">Cerrar</button>
+    </div>
+    <div class="modal-body">
+      <select id="rutaReimpresion"></select>
+      <div id="listaReimpresion" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Firma entrega -->
+<div id="modalEntrega" class="modal-overlay firma-modal">
+  <div class="firma-header">
+    <h2>Firma quien entrega</h2>
+    <input id="nombreEntregaPaso1" placeholder="Nombre de quien entrega">
+  </div>
+  <canvas id="canvasEntregaPaso1" class="firma-canvas"></canvas>
+  <div class="firma-actions">
+    <button id="btnLimpiarPaso1" class="btn btn-gris" type="button">Limpiar</button>
+    <button id="btnContinuarPaso1" class="btn btn-rojo" type="button">Continuar</button>
+  </div>
+</div>
+
+<!-- Firma recibe -->
+<div id="modalRecibe" class="modal-overlay firma-modal">
+  <div class="firma-header">
+    <h2>Firma quien recibe</h2>
+    <input id="nombreRecibePaso2" readonly placeholder="Nombre de quien recibe">
+  </div>
+  <canvas id="canvasRecibePaso2" class="firma-canvas"></canvas>
+  <div class="firma-actions">
+    <button id="btnCancelarPaso2" class="btn btn-gris" type="button">Cancelar</button>
+    <button id="btnLimpiarPaso2" class="btn btn-gris" type="button">Limpiar</button>
+    <button id="btnConfirmarPaso2" class="btn btn-rojo" type="button">Confirmar y Enviar</button>
+  </div>
+</div>
+
+</body>
+</html>
