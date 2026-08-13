@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Impresión Traspaso – PROVSOFT</title>
+  <link rel="stylesheet" href="assets/css/impresion.css">
+  <script type="module" src="assets/js/impresion.js"></script>
+</head>
+<body>
+  <div class="ticket">
+    <div class="ticket-logo"><img src="assets/img/logo.jfif" alt="Proveedora"></div>
+    <div class="center h1">PROVEEDORA DE DULCES Y DESECHABLES</div>
+    <div class="center h2">TRASPASO ENTRE ALMACENES</div>
+
+    <div class="hr"></div>
+
+    <div class="kv"><b>Folio:</b> <span id="folio"></span></div>
+    <div class="kv"><b>Ruta:</b> <span id="rutaId"></span></div>
+    <div class="kv"><b>Vendedor ID:</b> <span id="vendedorId"></span></div>
+    <div class="kv"><b>Vendedor:</b> <span id="vendedorNombre"></span></div>
+    <div class="kv"><b>Fecha:</b> <span id="fecha"></span></div>
+
+    <div class="hr"></div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="right">Cant</th>
+          <th>Código</th>
+          <th>Producto</th>
+          <th class="right">P.U.</th>
+        </tr>
+      </thead>
+      <tbody id="items"></tbody>
+    </table>
+
+    <div class="btns">
+      <button class="print" id="btnPrint" type="button">IMPRIMIR</button>
+      <button class="close" id="btnClose" type="button">CERRAR</button>
+    </div>
+  </div>
+
+  <!-- Salida exclusiva para Generic / Text Only -->
+  <pre id="detalleTexto"></pre>
+</body>
+</html>

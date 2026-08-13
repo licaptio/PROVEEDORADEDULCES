@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#b5121b">
+  <title>Traspaso entre Almacenes – PROVSOFT</title>
+  <link rel="stylesheet" href="assets/css/app.css">
+  <script type="module" src="assets/js/app.js"></script>
+</head>
+<body>
+
+<!-- CARGA INICIAL -->
+<div id="pantallaCarga" class="loading-screen" aria-live="polite">
+  <div class="loading-card">
+    <div class="loading-logo-wrap">
+      <img src="assets/img/logo.jfif" class="logo-carga" alt="Proveedora">
+    </div>
+    <div class="loading-eyebrow">PROVSOFT · TRASPASOS</div>
+    <h1>Preparando sistema</h1>
+    <p class="loading-copy">Cargando catálogo, vendedores y datos necesarios para iniciar el traspaso.</p>
+
+    <div class="loading-status-list">
+      <div class="loading-status-row" id="estadoCargaCatalogo">
+        <span class="status-icon">1</span>
+        <div>
+          <b>Catálogo de productos</b>
+          <small id="detalleCargaCatalogo">Pendiente</small>
+        </div>
+        <span class="status-result" id="resultadoCargaCatalogo">···</span>
+      </div>
+      <div class="loading-status-row" id="estadoCargaVendedores">
+        <span class="status-icon">2</span>
+        <div>
+          <b>Vendedores y rutas</b>
+          <small id="detalleCargaVendedores">Pendiente</small>
+        </div>
+        <span class="status-result" id="resultadoCargaVendedores">···</span>
+      </div>
+    </div>
+
+    <div class="barra-carga-outer"><div id="barraCargaInner"></div></div>
+    <div id="textoCarga" class="loading-main-text">Iniciando...</div>
+    <div id="detalleCarga" class="loading-detail">Preparando aplicación</div>
+  </div>
+</div>
+
+<div id="appPrincipal" class="app-shell">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="assets/img/logo.jfif" class="brand-logo" alt="Proveedora">
+        </div>
+        <div class="brand-copy">
+          <span class="brand-kicker">PROVSOFT</span>
+          <h1>Traspaso entre Almacenes</h1>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <span id="estadoCatalogoVivo" class="live-pill" title="Estado de actualización del catálogo">
+          <span class="live-dot"></span> Catálogo en vivo
+        </span>
+        <div class="menu-wrap">
+          <button id="btnMenu" class="menu-trigger" type="button" aria-label="Abrir menú" aria-expanded="false">⋮</button>
+          <div id="menuApp" class="menu-dropdown" role="menu">
+            <button id="menuNuevaCaptura" type="button" role="menuitem">
+              <span class="menu-icon">＋</span>
+              <span><b>Captura actual</b><small>Regresar al traspaso en proceso</small></span>
+            </button>
+            <button id="menuReimpresion" type="button" role="menuitem">
+              <span class="menu-icon">↻</span>
+              <span><b>Reimpresiones</b><small>Consultar e imprimir traspasos anteriores</small></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <!-- VISTA PRINCIPAL DE OPERACIÓN -->
+    <section id="vistaOperacion">
+      <section class="operator-card">
+        <div class="operator-main">
+          <div class="operator-icon">V</div>
+          <div class="operator-copy">
+            <span class="section-eyebrow">TRASPASO ACTUAL</span>
+            <h2 id="nombreVendedorResumen">Sin vendedor seleccionado</h2>
+            <p id="rutaVendedorResumen">Primero selecciona el vendedor y la ruta destino.</p>
+          </div>
+        </div>
+        <div class="operator-actions">
+          <button id="btnCambiarVendedor" class="btn btn-gris" type="button">Cambiar vendedor</button>
+          <button id="btnAgregarProducto" class="btn btn-rojo" type="button" disabled>＋ Agregar producto</button>
+        </div>
+        <input id="vendedorSelect" type="hidden" value="">
+        <input id="rutaId" type="hidden" value="">
+      </section>
+
+      <section class="flow-card" aria-label="Flujo guiado">
+        <div class="flow-step done" id="flowVendedor">
+          <span>1</span>
+          <div><b>Vendedor</b><small id="flowVendedorTxt">Pendiente</small></div>
+        </div>
+        <div class="flow-line"></div>
+        <div class="flow-step" id="flowProducto">
+          <span>2</span>
+          <div><b>Producto</b><small>Escanear o buscar</small></div>
+        </div>
+        <div class="flow-line"></div>
+        <div class="flow-step" id="flowCantidad">
+          <span>3</span>
+          <div><b>Cantidad</b><small>Agregar al carrito</small></div>
+        </div>
+        <div class="flow-line"></div>
+        <div class="flow-step" id="flowFinalizar">
+          <span>4</span>
+          <div><b>Finalizar</b><small>Firmar e imprimir</small></div>
+        </div>
+      </section>
+
+      <div id="barraSesion" class="session-banner">Sesión anterior recuperada</div>
+
+      <section class="cart-card">
+        <div class="cart-head">
+          <div>
+            <span class="section-eyebrow">RESUMEN EN PANTALLA</span>
+            <h2>Carrito del traspaso</h2>
+          </div>
+          <div class="cart-stats">
+            <span><b id="contadorArticulos">0</b> artículos</span>
+            <span><b id="contadorUnidades">0</b> unidades</span>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tabla"></tbody>
+          </table>
+        </div>
+
+        <div class="cart-footer">
+          <div class="finish-copy">
+            <div class="finish-number">4</div>
+            <div><b>Finalizar, firmar e imprimir</b><small>El vendedor y todos los productos quedan ligados al mismo traspaso.</small></div>
+          </div>
+          <button id="btnTraspaso" class="btn btn-rojo btn-final" type="button" disabled>
+            Finalizar traspaso <span>→</span>
+          </button>
+        </div>
+      </section>
+    </section>
+
+    <!-- SECCIÓN APARTE DE REIMPRESIONES -->
+    <section id="vistaReimpresion" class="view-hidden">
+      <section class="section-page-card">
+        <div class="section-page-head">
+          <div>
+            <span class="section-eyebrow">REIMPRESIONES</span>
+            <h2>Traspasos anteriores</h2>
+            <p>Esta sección está separada de la captura para no mezclar operación con consultas históricas.</p>
+          </div>
+          <button id="btnVolverOperacion" class="btn btn-gris" type="button">← Regresar a captura</button>
+        </div>
+
+        <div class="reprint-toolbar">
+          <div>
+            <label class="control-label" for="rutaReimpresion">Ruta</label>
+            <select id="rutaReimpresion"></select>
+          </div>
+        </div>
+
+        <div id="listaReimpresion" class="reprint-list">
+          <div class="resultado-vacio">Selecciona una ruta para consultar.</div>
+        </div>
+      </section>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL 1 · VENDEDOR -->
+<div id="modalVendedor" class="modal-overlay modal-required" role="dialog" aria-modal="true" aria-labelledby="tituloVendedor">
+  <div class="modal-card modal-vendor">
+    <div class="modal-head">
+      <div>
+        <span class="step-badge compact">PASO 1</span>
+        <h2 id="tituloVendedor">Seleccionar vendedor</h2>
+        <p>Elige el vendedor. La ruta destino se asigna automáticamente.</p>
+      </div>
+      <button id="cerrarVendedor" class="modal-close" type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="listaVendedoresModal" class="vendor-modal-grid"></div>
+      <div id="vendedorModalEstado" class="vendor-modal-status">Selecciona un vendedor para continuar.</div>
+    </div>
+    <div class="modal-foot modal-foot-actions">
+      <div class="selected-vendor-mini">
+        <small>SELECCIÓN</small>
+        <b id="vendedorModalNombre">Ninguno</b>
+        <span id="vendedorModalRuta">—</span>
+      </div>
+      <button id="btnIniciarVendedor" class="btn btn-rojo btn-start" type="button" disabled>Iniciar con vendedor →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 2 · PRODUCTO -->
+<div id="modalProducto" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tituloProducto">
+  <div class="modal-card modal-product">
+    <div class="modal-head">
+      <div>
+        <span class="step-badge compact">PASO 2</span>
+        <h2 id="tituloProducto">Escanear o seleccionar producto</h2>
+        <p id="productoVendedorContexto">Vendedor: —</p>
+      </div>
+      <button id="cerrarProducto" class="modal-close" type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body product-modal-body">
+      <label class="control-label" for="buscador">Código de barras o descripción</label>
+      <div class="search-shell">
+        <span class="scan-mark">▥</span>
+        <input id="buscador" autocomplete="off" inputmode="search" placeholder="Escanea código o escribe: BIG C/6">
+        <span class="search-hint">ENTER</span>
+      </div>
+      <div id="estadoBusquedaFirebase" class="estado-busqueda"></div>
+      <div id="productoModalAyuda" class="modal-helper">Escáner: lee el código y presiona ENTER automáticamente. Texto: muestra coincidencias mientras escribes.</div>
+      <div id="listaProductosModal" class="product-results">
+        <div class="resultado-vacio">Escanea un código o escribe parte del nombre del producto.</div>
+      </div>
+      <input id="codigoSel" type="hidden">
+      <input id="conceptoSel" type="hidden">
+      <input id="precioSel" type="hidden">
+      <div id="preview" class="product-preview"></div>
+    </div>
+    <div class="modal-foot product-modal-foot">
+      <span><b id="productoCartCount">0</b> artículo(s) ya en carrito</span>
+      <button id="btnVerCarrito" class="btn btn-gris" type="button">Ver carrito</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 3 · CANTIDAD -->
+<div id="modalCantidad" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tituloCantidad">
+  <div class="modal-card modal-qty">
+    <div class="modal-head">
+      <div>
+        <span class="step-badge compact">PASO 3</span>
+        <h2 id="tituloCantidad">Seleccionar cantidad</h2>
+      </div>
+      <button id="btnCancelarCantidad" class="modal-close" type="button" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="qty-product">
+        <small>PRODUCTO SELECCIONADO</small>
+        <b id="cantidadProductoNombre">—</b>
+        <span id="cantidadProductoCodigo">—</span>
+      </div>
+      <label class="control-label qty-label" for="inputCantidadNombre">Cantidad</label>
+      <input id="inputCantidadNombre" class="qty-input" type="number" min="0.001" step="any" value="1" inputmode="decimal">
+      <div class="qty-quick" id="cantidadesRapidas">
+        <button type="button" data-qty="1">1</button>
+        <button type="button" data-qty="2">2</button>
+        <button type="button" data-qty="5">5</button>
+        <button type="button" data-qty="10">10</button>
+      </div>
+      <div id="notaCantidad" class="qty-note">Selecciona una cantidad rápida o captura manualmente.</div>
+    </div>
+    <div class="modal-foot">
+      <button id="btnAceptarCantidad" class="btn btn-rojo btn-block" type="button">Agregar al carrito y continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- FIRMA ENTREGA -->
+<div id="modalEntrega" class="modal-overlay firma-modal" role="dialog" aria-modal="true">
+  <div class="signature-shell">
+    <div class="signature-head">
+      <div>
+        <span class="step-badge compact">PASO 4</span>
+        <h2>Firma quien entrega</h2>
+        <p>Escribe el nombre y firma dentro del área blanca.</p>
+      </div>
+      <input id="nombreEntregaPaso1" placeholder="Nombre de quien entrega" autocomplete="name">
+    </div>
+    <canvas id="canvasEntregaPaso1" class="firma-canvas"></canvas>
+    <div class="firma-actions">
+      <button id="btnLimpiarPaso1" class="btn btn-gris" type="button">Limpiar firma</button>
+      <button id="btnContinuarPaso1" class="btn btn-rojo" type="button">Continuar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- FIRMA RECIBE -->
+<div id="modalRecibe" class="modal-overlay firma-modal" role="dialog" aria-modal="true">
+  <div class="signature-shell">
+    <div class="signature-head">
+      <div>
+        <span class="step-badge compact">PASO 4</span>
+        <h2>Firma quien recibe</h2>
+        <p>Confirma la recepción para guardar e imprimir el traspaso.</p>
+      </div>
+      <input id="nombreRecibePaso2" readonly placeholder="Nombre de quien recibe">
+    </div>
+    <canvas id="canvasRecibePaso2" class="firma-canvas"></canvas>
+    <div class="firma-actions">
+      <button id="btnCancelarPaso2" class="btn btn-gris" type="button">Regresar</button>
+      <button id="btnLimpiarPaso2" class="btn btn-gris" type="button">Limpiar firma</button>
+      <button id="btnConfirmarPaso2" class="btn btn-rojo" type="button">Guardar e imprimir</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
