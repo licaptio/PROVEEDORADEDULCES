@@ -1,0 +1,331 @@
+.btn{background:var(--orange);color:#fff}.btn:hover{background:var(--orange-dark)}.btn-main{padding:14px 22px;font-size:15px}.btn-outline{background:#fff;border:1px solid var(--orange);color:var(--orange)}.btn-outline:hover{background:var(--orange-soft)}.btn-mini{padding:8px 10px;font-size:12px;border-radius:8px;white-space:nowrap}.btn:disabled{opacity:.6;cursor:not-allowed}.toast{position:fixed;right:18px;bottom:18px;background:#263238;color:#fff;padding:12px 14px;border-radius:12px;box-shadow:0 12px 36px rgba(0,0,0,.2);display:none;z-index:11000;max-width:360px}.toast.activo{display:block}.resumen-final{display:flex;flex-direction:column;justify-content:center}.foto-links{display:flex;gap:6px;flex-wrap:wrap}.pdf-chip{font-size:12px;text-decoration:none;background:#E3F2FD;padding:4px 8px;border-radius:6px;border:1px solid #BBDEFB;display:inline-block;font-weight:700;color:#0c4f86}
+
+/* ===============================
+   FLUJO FINAL: BANCO -> RESUMEN
+   =============================== */
+#pantallaPago>.banco-card,
+#pantallaResumen>.resumen-full{
+  grid-row:2;
+  min-height:0;
+  overflow:auto;
+}
+
+.banco-card{
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+
+.banco-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:20px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--border);
+}
+
+.banco-total-box{
+  background:var(--orange-soft);
+  border:1px solid #ffd7b3;
+  border-radius:16px;
+  padding:16px 20px;
+  min-width:260px;
+  text-align:right;
+}
+.banco-total-box span{display:block;color:var(--muted);font-size:13px;font-weight:700;text-transform:uppercase}
+.banco-total-box strong{display:block;color:var(--orange-dark);font-size:34px;line-height:1.05;margin-top:5px}
+
+.banco-form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:18px;
+  align-items:start;
+}
+
+.resumen-full{
+  height:100%;
+  overflow:hidden !important;
+}
+
+.resumen-final-full{
+  height:100%;
+  display:grid;
+  grid-template-rows:auto auto minmax(0,1fr) auto;
+  gap:14px;
+  overflow:hidden;
+}
+
+.resumen-full-header{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:22px;
+  align-items:start;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+}
+
+.resumen-banco-final{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+}
+.resumen-banco-final>div{
+  background:#fff7ef;
+  border:1px solid #ffd7b3;
+  border-radius:14px;
+  padding:12px 14px;
+}
+.resumen-banco-final span{display:block;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase}
+.resumen-banco-final strong{display:block;color:#222;font-size:18px;margin-top:4px}
+
+.resumen-final-full .resumen-facturas-final{
+  min-height:0;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  overflow:hidden;
+}
+
+.resumen-final-full .facturas-final-scroll{
+  min-height:0;
+  overflow:auto;
+  padding-right:8px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:10px;
+}
+
+.resumen-final-full .totales-finales-pago{
+  margin-top:0;
+}
+
+@media(max-width:900px){
+  .banco-head,.resumen-full-header{grid-template-columns:1fr;display:grid}
+  .banco-form-grid,.resumen-banco-final{grid-template-columns:1fr}
+  .banco-total-box{text-align:left;min-width:0}
+}
+
+/* =========================================================
+   AJUSTE PROVSOFT - RESUMEN FINAL AUTO RESPONSIVE
+   No depende del zoom del navegador. Optimizado para laptop
+   1366x768 / media pantalla.
+   ========================================================= */
+#pantallaResumen.activa{
+  grid-template-rows:38px minmax(0,1fr) 44px !important;
+  gap:5px !important;
+}
+
+#pantallaResumen .topbar{
+  height:38px !important;
+  min-height:38px !important;
+  padding:3px 8px !important;
+  border-radius:8px !important;
+}
+
+#pantallaResumen .topbar h2{
+  font-size:15px !important;
+}
+
+#pantallaResumen .topbar p{
+  display:none !important;
+}
+
+#pantallaResumen > .resumen-full{
+  grid-row:2 !important;
+  height:100% !important;
+  min-height:0 !important;
+  overflow:hidden !important;
+}
+
+#pantallaResumen .resumen-final-full{
+  height:100% !important;
+  min-height:0 !important;
+  overflow:hidden !important;
+  display:grid !important;
+  grid-template-rows:auto auto minmax(0,1fr) auto !important;
+  gap:7px !important;
+  padding:8px 10px !important;
+  box-sizing:border-box !important;
+}
+
+#pantallaResumen .resumen-full-header{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(220px,.75fr) !important;
+  gap:10px !important;
+  align-items:start !important;
+  padding-bottom:5px !important;
+}
+
+#pantallaResumen .proveedor-resumen-final{
+  padding-bottom:3px !important;
+}
+
+#pantallaResumen .proveedor-label,
+#pantallaResumen .resumen-banco-final span,
+#pantallaResumen .factura-final-label,
+#pantallaResumen .factura-final-grid span{
+  font-size:9px !important;
+  line-height:1.05 !important;
+}
+
+#pantallaResumen .proveedor-nombre{
+  font-size:16px !important;
+  line-height:1.05 !important;
+  margin-top:1px !important;
+}
+
+#pantallaResumen .proveedor-rfc,
+#pantallaResumen #resumenFinalPago{
+  font-size:10px !important;
+  line-height:1.1 !important;
+  margin-top:2px !important;
+}
+
+#pantallaResumen .resumen-total-final h3{
+  font-size:14px !important;
+  margin:0 0 2px !important;
+}
+
+#pantallaResumen .total-grande{
+  font-size:26px !important;
+  line-height:1 !important;
+}
+
+#pantallaResumen .resumen-banco-final{
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:6px !important;
+}
+
+#pantallaResumen .resumen-banco-final > div{
+  border-radius:9px !important;
+  padding:7px 9px !important;
+  min-width:0 !important;
+}
+
+#pantallaResumen .resumen-banco-final strong{
+  font-size:14px !important;
+  margin-top:2px !important;
+  line-height:1.1 !important;
+}
+
+#pantallaResumen .resumen-facturas-final{
+  min-height:0 !important;
+  overflow:hidden !important;
+  display:grid !important;
+  grid-template-rows:18px minmax(0,1fr) !important;
+  gap:4px !important;
+}
+
+#pantallaResumen .resumen-facturas-final h4{
+  margin:0 !important;
+  font-size:12px !important;
+  line-height:18px !important;
+}
+
+#pantallaResumen .facturas-final-scroll{
+  min-height:0 !important;
+  height:100% !important;
+  overflow:auto !important;
+  padding:6px !important;
+  border-radius:8px !important;
+  display:grid !important;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr)) !important;
+  grid-auto-rows:max-content !important;
+  align-items:start !important;
+  align-content:start !important;
+  gap:6px !important;
+}
+
+#pantallaResumen .factura-final-card{
+  margin:0 !important;
+  padding:7px !important;
+  border-radius:8px !important;
+  align-self:start !important;
+}
+
+#pantallaResumen .factura-final-top{
+  gap:7px !important;
+}
+
+#pantallaResumen .factura-final-folio{
+  font-size:13px !important;
+  line-height:1.05 !important;
+}
+
+#pantallaResumen .factura-final-neto{
+  font-size:14px !important;
+  line-height:1.05 !important;
+}
+
+#pantallaResumen .factura-final-uuid{
+  margin:3px 0 5px !important;
+  font-size:9px !important;
+  line-height:1.1 !important;
+}
+
+#pantallaResumen .factura-final-grid{
+  gap:5px !important;
+}
+
+#pantallaResumen .factura-final-grid div{
+  padding:5px !important;
+  border-radius:7px !important;
+}
+
+#pantallaResumen .factura-final-grid strong{
+  font-size:11px !important;
+  margin-top:1px !important;
+  line-height:1.1 !important;
+}
+
+#pantallaResumen .factura-final-nota{
+  margin-top:5px !important;
+  padding:5px !important;
+  font-size:10px !important;
+}
+
+#pantallaResumen .totales-finales-pago{
+  padding-top:6px !important;
+  border-top:1px solid var(--border) !important;
+}
+
+#pantallaResumen .linea-total-final{
+  margin-bottom:3px !important;
+  font-size:11px !important;
+  line-height:1.1 !important;
+}
+
+#pantallaResumen .total-general-final{
+  margin-top:3px !important;
+  padding-top:4px !important;
+  font-size:13px !important;
+}
+
+#pantallaResumen .footer-actions{
+  height:44px !important;
+  padding:3px 0 0 !important;
+}
+
+#pantallaResumen .footer-actions .btn,
+#pantallaResumen .footer-actions button{
+  height:34px !important;
+  min-width:170px !important;
+  font-size:12px !important;
+}
+
+@media (max-height:740px){
+  #pantallaResumen.activa{grid-template-rows:34px minmax(0,1fr) 40px !important;}
+  #pantallaResumen .topbar{height:34px !important;min-height:34px !important;}
+  #pantallaResumen .resumen-final-full{gap:5px !important;padding:6px 8px !important;}
+  #pantallaResumen .total-grande{font-size:22px !important;}
+  #pantallaResumen .proveedor-nombre{font-size:14px !important;}
+  #pantallaResumen .resumen-banco-final > div{padding:5px 7px !important;}
+  #pantallaResumen .resumen-banco-final strong{font-size:12px !important;}
+  #pantallaResumen .facturas-final-scroll{grid-template-columns:repeat(auto-fit,minmax(230px,1fr)) !important;}
+}
+
+@media (max-width:760px){
+  #pantallaResumen .resumen-full-header{grid-template-columns:1fr !important;}
+  #pantallaResumen .resumen-banco-final{grid-template-columns:1fr !important;}
+  #pantallaResumen .facturas-final-scroll{grid-template-columns:1fr !important;}
+}

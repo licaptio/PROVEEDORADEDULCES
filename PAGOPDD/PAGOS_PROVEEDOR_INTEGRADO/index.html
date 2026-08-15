@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pagos a Proveedores | PROVSOFT</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar screen-only">
+    <div>
+      <div class="brand-kicker">PROVSOFT · PROVEEDORA DE DULCES Y DESECHABLES</div>
+      <h1>Pagos a Proveedores</h1>
+    </div>
+    <div class="topbar-actions">
+      <button id="btnPrint" class="btn btn-print" disabled>🖨️ Imprimir / PDF oficial</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section class="search-panel screen-only">
+      <div class="search-grid">
+        <div class="search-field">
+          <label for="proveedor">Proveedor</label>
+          <input id="proveedor" placeholder="Escribe nombre del proveedor" autocomplete="off">
+          <div id="sugerencias" class="suggestions"></div>
+        </div>
+        <button id="btnBuscar" class="btn btn-primary">🔍 Buscar pagos</button>
+      </div>
+      <div id="mensaje" class="status-line">Escribe un proveedor para consultar sus últimos 30 pagos.</div>
+    </section>
+
+    <section id="resultadosPanel" class="results-panel screen-only">
+      <div class="section-heading">
+        <div>
+          <h2>Pagos encontrados</h2>
+          <span id="resultadosMeta">Sin consulta</span>
+        </div>
+        <strong id="totalListado">$0.00</strong>
+      </div>
+      <div class="table-scroll">
+        <table class="payments-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Banco</th>
+              <th>Proveedor</th>
+              <th>Tipo</th>
+              <th class="num">Importe pagado</th>
+              <th class="num">Descuentos / ajustes</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyPagos">
+            <tr><td colspan="7" class="empty">Realiza una búsqueda para mostrar pagos.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="reporte" class="report-sheet hidden" aria-live="polite">
+      <div class="report-nav screen-only">
+        <button id="btnVolver" class="btn btn-back">← Volver a pagos</button>
+        <div class="report-nav-title">Detalle del pago seleccionado</div>
+      </div>
+      <div class="report-header">
+        <div class="report-brand">
+          <div class="official-mark">LP</div>
+          <div>
+            <div class="company-name">PROVEEDORA DE DULCES Y DESECHABLES</div>
+            <div class="company-sub">Control administrativo · PROVSOFT</div>
+          </div>
+        </div>
+        <div class="report-title-box">
+          <h2>COMPROBANTE DE PAGO A PROVEEDOR</h2>
+          <div class="doc-status">PAGO REGISTRADO</div>
+        </div>
+      </div>
+
+      <div class="document-meta">
+        <div><span>ID de pago</span><strong id="rId">—</strong></div>
+        <div><span>Fecha de pago</span><strong id="rFecha">—</strong></div>
+        <div><span>Banco</span><strong id="rBanco">—</strong></div>
+        <div><span>Tipo de pago</span><strong id="rTipo">—</strong></div>
+      </div>
+
+      <div class="provider-line">
+        <div><span>Proveedor</span><strong id="rProveedor">—</strong></div>
+        <div><span>RFC</span><strong id="rRfc">—</strong></div>
+      </div>
+
+      <div class="money-summary">
+        <div class="money-box">
+          <span>Total facturas original</span>
+          <strong id="rOriginal">$0.00</strong>
+        </div>
+        <div class="money-box discount">
+          <span>Descuentos / ajustes</span>
+          <strong id="rAjustes">-$0.00</strong>
+        </div>
+        <div class="money-box paid">
+          <span>Importe pagado</span>
+          <strong id="rPagado">$0.00</strong>
+        </div>
+      </div>
+
+      <div id="cuadreBox" class="reconcile-box">
+        <span>CUADRE DEL PAGO</span>
+        <strong id="rCuadre">—</strong>
+        <b id="rCuadreEstado">—</b>
+      </div>
+
+      <section class="report-section">
+        <div class="report-section-title">
+          <h3>Detalle de facturas pagadas</h3>
+          <span id="facturasCount">0 factura(s)</span>
+        </div>
+        <div class="report-table-wrap">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Serie</th>
+                <th>Folio</th>
+                <th>UUID / CFDI</th>
+                <th class="num">Importe original</th>
+                <th class="num">Desc. individual</th>
+                <th class="num">Desc. global</th>
+                <th class="num">Total descuento</th>
+                <th class="num">Importe final</th>
+                <th>Comentarios</th>
+                <th class="screen-only">Fotos</th>
+              </tr>
+            </thead>
+            <tbody id="facturasBody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4">TOTALES</td>
+                <td class="num" id="tfOriginal">$0.00</td>
+                <td class="num" id="tfIndividual">$0.00</td>
+                <td class="num" id="tfGlobal">$0.00</td>
+                <td class="num" id="tfDescuento">$0.00</td>
+                <td class="num" id="tfFinal">$0.00</td>
+                <td></td>
+                <td class="screen-only"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+
+      <section id="globalSection" class="report-section hidden">
+        <div class="report-section-title"><h3>Ajuste / descuento global</h3></div>
+        <div id="globalDetail" class="global-detail"></div>
+      </section>
+
+      <section class="report-section fiscal-section">
+        <div class="report-section-title"><h3>Resumen contable del pago</h3></div>
+        <table class="fiscal-table">
+          <thead>
+            <tr><th>Concepto</th><th class="num">Original</th><th class="num">Ajustado</th><th class="num">Pagado</th></tr>
+          </thead>
+          <tbody id="fiscalBody"></tbody>
+        </table>
+      </section>
+
+      <section class="notes-section">
+        <div><span>Notas generales del pago</span><p id="rNotas">Sin notas.</p></div>
+      </section>
+
+      <div class="signatures">
+        <div><span></span><b>ELABORÓ</b></div>
+        <div><span></span><b>REVISÓ</b></div>
+        <div><span></span><b>AUTORIZÓ</b></div>
+      </div>
+
+      <footer class="report-footer">
+        <span>Documento de control interno generado por PROVSOFT</span>
+        <span id="printStamp"></span>
+      </footer>
+    </section>
+  </main>
+
+
+  <div id="fotosModal" class="photo-modal hidden screen-only" role="dialog" aria-modal="true" aria-labelledby="fotosTitulo">
+    <div class="photo-modal-card">
+      <div class="photo-modal-head">
+        <div>
+          <h2 id="fotosTitulo">Fotos de la factura</h2>
+          <div id="fotosMeta" class="photo-meta"></div>
+        </div>
+        <button id="btnCerrarFotos" class="btn btn-back" type="button">✕ Cerrar</button>
+      </div>
+      <div id="fotosGaleria" class="photo-grid"></div>
+    </div>
+  </div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

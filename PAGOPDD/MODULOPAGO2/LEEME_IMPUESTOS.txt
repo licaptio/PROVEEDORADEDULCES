@@ -1,0 +1,20 @@
+MODULO DE PAGOS A PROVEEDORES - IMPUESTOS
+
+Cambios integrados:
+- Consulta subtotal, descuento CFDI, conceptos_detalle e impuestos_globales.
+- Guarda subtotal, IVA, IEPS y retenciones: original, pagado y ajustado.
+- El ajuste individual se aplica a su factura.
+- El ajuste global se distribuye proporcionalmente entre las facturas después de sus ajustes individuales.
+- Cada factura se registra como liquidada completa: importe pagado + ajustes = total original.
+- facturas_info conserva el desglose fiscal por factura.
+- impuestos_detalle conserva el resumen por impuesto, tipo y tasa.
+- total_facturas guarda el total original seleccionado.
+- total_ajustes guarda ajustes individuales más ajuste global.
+- importe_pagado debe coincidir con total_facturas menos total_ajustes.
+
+Columnas requeridas en pagos_proveedor:
+subtotal_original, subtotal_pagado, subtotal_ajustado,
+iva_original, iva_pagado, iva_ajustado,
+ieps_original, ieps_pagado, ieps_ajustado,
+retenciones_originales, retenciones_pagadas, retenciones_ajustadas,
+impuestos_detalle.
