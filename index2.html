@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>CONFIGURACION PDD</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(220, 38, 38, 0.15), transparent 35%),
+        linear-gradient(135deg, #f8fafc 0%, #ffffff 50%, #f1f5f9 100%);
+      color: #1f2937;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* =========================
+       ENCABEZADO
+       ========================= */
+
+    .header {
+      background: linear-gradient(135deg, #991b1b, #dc2626);
+      color: white;
+      padding: 22px 35px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-box {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+
+    .header h1 {
+      font-size: 25px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .header p {
+      margin-top: 3px;
+      font-size: 13px;
+      opacity: 0.85;
+    }
+
+    .badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    /* =========================
+       CONTENIDO
+       ========================= */
+
+    .main {
+      flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 50px 30px;
+    }
+
+    .section-title {
+      margin-bottom: 25px;
+    }
+
+    .section-title h2 {
+      font-size: 24px;
+      color: #111827;
+    }
+
+    .section-title p {
+      margin-top: 7px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+
+    /* =========================
+       MENÚ
+       ========================= */
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 22px;
+    }
+
+    .menu-card {
+      position: relative;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 28px;
+      text-decoration: none;
+      color: inherit;
+      min-height: 180px;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+
+      box-shadow: 0 5px 18px rgba(0,0,0,0.06);
+
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .menu-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 14px 30px rgba(153, 27, 27, 0.14);
+      border-color: #dc2626;
+    }
+
+    .menu-icon {
+      width: 55px;
+      height: 55px;
+      border-radius: 15px;
+      background: #fef2f2;
+      color: #b91c1c;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 27px;
+      margin-bottom: 20px;
+    }
+
+    .menu-card h3 {
+      font-size: 18px;
+      color: #111827;
+      margin-bottom: 7px;
+    }
+
+    .menu-card p {
+      color: #6b7280;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .open {
+      margin-top: 20px;
+      color: #b91c1c;
+      font-weight: bold;
+      font-size: 13px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .arrow {
+      font-size: 20px;
+      transition: transform 0.2s ease;
+    }
+
+    .menu-card:hover .arrow {
+      transform: translateX(5px);
+    }
+
+    /* =========================
+       PIE
+       ========================= */
+
+    footer {
+      text-align: center;
+      padding: 18px;
+      color: #9ca3af;
+      font-size: 12px;
+      border-top: 1px solid #e5e7eb;
+      background: rgba(255,255,255,0.7);
+    }
+
+    @media (max-width: 600px) {
+
+      .header {
+        padding: 18px 20px;
+      }
+
+      .header h1 {
+        font-size: 19px;
+      }
+
+      .badge {
+        display: none;
+      }
+
+      .main {
+        padding: 30px 18px;
+      }
+
+      .menu-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .menu-card {
+        min-height: 165px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="header">
+
+    <div class="header-left">
+
+      <div class="logo-box">
+        ⚙️
+      </div>
+
+      <div>
+        <h1>CONFIGURACION PDD</h1>
+        <p>Panel de configuración PROVSOFT</p>
+      </div>
+
+    </div>
+
+    <div class="badge">
+      PROVSOFT
+    </div>
+
+  </header>
+
+
+  <main class="main">
+
+    <div class="section-title">
+      <h2>Menú de configuración</h2>
+      <p>Seleccione el módulo que desea administrar.</p>
+    </div>
+
+
+    <div class="menu-grid">
+
+      <!-- INICIO DE CONFIGURACION -->
+
+      <a
+        class="menu-card"
+        href="PROVEEDORADEDULCES/PROVSOFT_USUARIOS_PDD/index.html"
+      >
+
+        <div>
+
+          <div class="menu-icon">
+            👥
+          </div>
+
+          <h3>INICIO DE CONFIGURACION</h3>
+
+          <p>
+            Acceso al módulo de configuración y administración
+            de usuarios de PROVSOFT PDD.
+          </p>
+
+        </div>
+
+        <div class="open">
+          ABRIR MÓDULO
+          <span class="arrow">→</span>
+        </div>
+
+      </a>
+
+    </div>
+
+  </main>
+
+
+  <footer>
+    CONFIGURACION PDD · PROVSOFT
+  </footer>
+
+</body>
+</html>
