@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PROVSOFT · Usuarios PDD</title>
+  <link rel="icon" href="assets/logo-proveedora.jfif">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div id="loading" class="loading-screen">
+    <div class="loading-card">
+      <img src="assets/logo-proveedora.jfif" alt="Proveedora">
+      <div class="spinner"></div>
+      <strong>Cargando usuarios...</strong>
+      <span>Conectando con Cloud Firestore</span>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <img src="assets/logo-proveedora.jfif" alt="Logo Proveedora">
+      <div>
+        <h1>Administración de Usuarios</h1>
+        <p>PROVSOFT · Proveedora de Dulces</p>
+      </div>
+    </div>
+    <button id="btnNuevo" class="btn btn-primary">+ Agregar usuario</button>
+  </header>
+
+  <main class="app-shell">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">CLIENTES / PDD031204KL5 / USUARIOS</div>
+        <h2>Usuarios registrados</h2>
+        <p>Consulta, agrega, modifica o elimina usuarios desde una sola pantalla.</p>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <span>Total</span>
+          <strong id="totalUsuarios">0</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <div class="search-wrap">
+        <span>⌕</span>
+        <input id="buscar" type="search" placeholder="Buscar por nombre, usuario, correo, ruta o cualquier campo...">
+      </div>
+      <button id="btnRecargar" class="btn btn-secondary">↻ Recargar</button>
+    </section>
+
+    <section class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Ruta / Rol</th>
+              <th>Estado</th>
+              <th class="actions-col">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="usuariosBody"></tbody>
+        </table>
+      </div>
+
+      <div id="emptyState" class="empty hidden">
+        <div class="empty-icon">👤</div>
+        <h3>No hay usuarios</h3>
+        <p>Agrega el primer usuario para comenzar.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="modalBackdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <span class="modal-kicker" id="modalKicker">Editar usuario</span>
+          <h3 id="modalTitle">Modificar usuario</h3>
+        </div>
+        <button id="btnCerrarModal" class="icon-btn" aria-label="Cerrar">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div id="docIdBox" class="doc-id-box hidden">
+          <span>ID del documento</span>
+          <code id="docIdText"></code>
+        </div>
+
+        <div id="formCampos" class="form-grid"></div>
+
+        <div class="add-field-box">
+          <div>
+            <strong>Agregar campo</strong>
+            <span>Para propiedades adicionales que no existan todavía.</span>
+          </div>
+          <div class="add-field-row">
+            <input id="nuevoCampoNombre" placeholder="nombreCampo">
+            <select id="nuevoCampoTipo">
+              <option value="string">Texto</option>
+              <option value="number">Número</option>
+              <option value="boolean">Sí / No</option>
+            </select>
+            <button id="btnAgregarCampo" class="btn btn-secondary">Agregar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btnEliminar" class="btn btn-danger hidden">Eliminar usuario</button>
+        <div class="footer-right">
+          <button id="btnCancelar" class="btn btn-secondary">Cancelar</button>
+          <button id="btnGuardar" class="btn btn-primary">Guardar cambios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="assets/app.js"></script>
+</body>
+</html>

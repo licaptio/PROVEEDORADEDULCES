@@ -1,0 +1,24 @@
+PROVSOFT - ADMINISTRACIÓN DE USUARIOS PDD
+
+Ruta Firestore:
+CLIENTES / PDD031204KL5 / USUARIOS
+
+FUNCIONES:
+- Lista todos los documentos de USUARIOS.
+- Buscador.
+- Agregar usuario.
+- Modificar usuario en modal.
+- Eliminar usuario con doble confirmación.
+- Edita dinámicamente todos los campos existentes.
+- Permite agregar campos adicionales.
+- Interfaz rojo/blanco con logo Proveedora.
+- Pantalla de "Cargando usuarios".
+- Mantiene el ID del documento al modificar.
+
+EJECUCIÓN:
+1. Ejecutar INICIAR.bat
+2. Se abrirá http://localhost:8080
+
+IMPORTANTE:
+Las operaciones dependen de las reglas de seguridad de Cloud Firestore.
+Si las reglas no permiten lectura/escritura, Firebase devolverá "Missing or insufficient permissions".
