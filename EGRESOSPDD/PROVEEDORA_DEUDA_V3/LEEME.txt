@@ -1,0 +1,19 @@
+PROVSOFT - DEUDA INTEGRA V1
+
+1. Descomprime toda la carpeta PROVEEDORA_DEUDA_V3.
+2. Da doble clic en EJECUTAR.bat.
+3. El navegador abre automaticamente:
+   http://127.0.0.1:8000/assets/DUDACONFI_V3.html
+
+La configuración de Supabase ya está incluida en:
+/assets/config.js
+
+Estructura principal:
+/assets/DUDACONFI_V3.html
+/assets/config.js
+/assets/css/desktop.css
+/assets/css/mobile.css
+/assets/js/app.js
+/assets/img/
+/server.py
+/EJECUTAR.bat
