@@ -1,0 +1,30 @@
+PROVSOFT - DEUDA INTEGRA V6
+
+1. Descomprime toda la carpeta PROVEEDORA_DEUDA_V6.
+2. Da doble clic en EJECUTAR.bat.
+3. El navegador abre automaticamente:
+   http://127.0.0.1:8000/DUDACONFI_V6.html
+
+La configuración de Supabase ya está incluida en:
+/assets/config.js
+
+Estructura principal:
+/DUDACONFI_V6.html
+/assets/config.js
+/assets/css/desktop.css
+/assets/css/mobile.css
+/assets/js/app.js
+/assets/img/
+/server.py
+/EJECUTAR.bat
+
+V4: conserva la posicion de scroll al cambiar de pagina, regresar a la app o actualizar datos en tiempo real.
+
+
+V6: El UUID ahora abre dentro de la app el detalle completo de la factura consultando deuda_limpia_pdd por uuid_cfdi y mostrando conceptos_detalle.
+
+
+ARCHIVOS PRINCIPALES:
+- DUDACONFI_V6.html  <- pantalla principal (esta fuera de assets)
+- detalle_completo.html <- visor completo al pulsar UUID
+- EJECUTAR.bat <- inicia el servidor y abre la app
