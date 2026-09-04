@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PROVSOFT - Migrador TecnoPro</title>
+  <link rel="stylesheet" href="./assets/css/app.css">
+</head>
+<body>
+  <main class="contenedor">
+    <header class="encabezado">
+      <div>
+        <span class="marca">PROVSOFT</span>
+        <h1>Migrador TecnoPro</h1>
+        <p>
+          Selecciona los tres archivos TXT y ejecuta la sincronización manual.
+        </p>
+      </div>
+      <div id="estadoGeneral" class="badge neutral">Listo</div>
+    </header>
+
+    <section class="panel">
+      <h2>1. Selección de archivos</h2>
+
+      <div class="archivo-row">
+        <div>
+          <strong>articulos.txt</strong>
+          <span id="estadoArticulos">No seleccionado</span>
+        </div>
+        <button id="btnArticulos" class="btn secundario">Seleccionar</button>
+      </div>
+
+      <div class="archivo-row">
+        <div>
+          <strong>precant.txt</strong>
+          <span id="estadoPrecios">No seleccionado</span>
+        </div>
+        <button id="btnPrecios" class="btn secundario">Seleccionar</button>
+      </div>
+
+      <div class="archivo-row">
+        <div>
+          <strong>equiv.txt</strong>
+          <span id="estadoEquiv">No seleccionado</span>
+        </div>
+        <button id="btnEquiv" class="btn secundario">Seleccionar</button>
+      </div>
+
+      <button id="btnSeleccionarTodos" class="btn auxiliar">
+        Seleccionar los 3 archivos en orden
+      </button>
+    </section>
+
+    <section class="panel">
+      <h2>2. Procesar</h2>
+      <p class="nota">
+        Al terminar correctamente, los tres archivos seleccionados se vacían a 0 bytes.
+      </p>
+
+      <button id="btnProcesar" class="btn principal" disabled>
+        Procesar catálogo
+      </button>
+    </section>
+
+    <section class="panel">
+      <h2>Resultado</h2>
+
+      <div class="metricas">
+        <div class="metrica">
+          <span>Productos leídos</span>
+          <strong id="productosLeidos">0</strong>
+        </div>
+        <div class="metrica">
+          <span>Nuevos</span>
+          <strong id="productosNuevos">0</strong>
+        </div>
+        <div class="metrica">
+          <span>Reactivados</span>
+          <strong id="productosReactivados">0</strong>
+        </div>
+        <div class="metrica">
+          <span>Actualizaciones</span>
+          <strong id="actualizados">0</strong>
+        </div>
+      </div>
+
+      <div id="mensaje" class="mensaje neutral">
+        Selecciona los archivos para comenzar.
+      </div>
+
+      <pre id="detalle">Sin datos.</pre>
+    </section>
+  </main>
+
+  <div id="overlay" class="overlay oculto">
+    <div class="loader-box">
+      <div class="spinner"></div>
+      <strong>Procesando catálogo...</strong>
+      <span>No cierres esta ventana.</span>
+    </div>
+  </div>
+
+  <script type="module" src="./assets/js/app.js"></script>
+</body>
+</html>
