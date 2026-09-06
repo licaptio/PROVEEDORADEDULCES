@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#b30000">
+
+  <title>PROVSOFT POSPDD26</title>
+
+  <link rel="stylesheet" href="./css/variables.css">
+  <link rel="stylesheet" href="./css/layout.css">
+  <link rel="stylesheet" href="./css/carrito.css">
+  <link rel="stylesheet" href="./css/modales.css">
+  <link rel="stylesheet" href="./css/ticket.css">
+  <link rel="stylesheet" href="./css/pos.css">
+  <link rel="stylesheet" href="./css/corte.css">
+  <link rel="stylesheet" href="./css/inicio.css">
+</head>
+
+<body>
+
+  <div id="bloqueoInicio" class="bloqueo-inicio">
+    <div class="inicio-card">
+      <img src="./assets/logo_proveedora.webp" alt="Proveedora de Dulces" class="inicio-logo">
+      <h1 id="inicioTitulo">PREPARANDO PROVSOFT POS</h1>
+      <div class="inicio-spinner" aria-hidden="true"></div>
+      <div id="inicioMensaje" class="inicio-mensaje">Iniciando sistema…</div>
+      <div class="inicio-barra"><div id="inicioProgreso" class="inicio-progreso"></div></div>
+      <div id="inicioPorcentaje" class="inicio-porcentaje">0%</div>
+      <div id="inicioDetalle" class="inicio-detalle"></div>
+      <div id="inicioAcciones" class="inicio-acciones oculto">
+        <button id="btnInicioReintentar" type="button">REINTENTAR</button>
+        <button id="btnInicioOffline" type="button" class="inicio-btn-secundario">CONTINUAR OFFLINE</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loginScreen" style="display:none;"></div>
+
+  <div id="posApp" style="display:none;">
+    <header class="header-pos">
+      <div class="header-info">
+        <div class="header-titulo">PROVSOFT POS 2026</div>
+
+        <div class="header-detalle">
+          <span id="headerUsuario">USUARIO</span>
+          <span>|</span>
+          <span id="headerEstado" class="estado-online">ONLINE ●</span>
+        </div>
+      </div>
+
+      <button id="btnMenuConfig" class="btn-engranaje" type="button" title="Configuración">⚙️</button>
+    </header>
+
+    <aside id="panelConfig" class="panel-config oculto">
+      <div class="panel-config-titulo">CONFIGURACIÓN</div>
+
+      <button type="button" data-accion="corte">Corte de Caja</button>
+      <button type="button" data-accion="reimpresion">Reimpresión</button>
+      <button type="button" data-accion="historial">Historial de Ventas</button>
+      <button type="button" data-accion="pendientes">Ventas Pendientes</button>
+      <button type="button" data-accion="sincronizar">Sincronización</button>
+
+      <hr>
+
+      <button type="button" data-accion="impresoras">Impresoras</button>
+      <button type="button" data-accion="rawbt">RawBT</button>
+      <button type="button" data-accion="ticket">Configuración Ticket</button>
+      <button type="button" data-accion="empresa">Configuración Empresa</button>
+
+      <hr>
+
+      <button type="button" data-accion="usuarios">Usuarios</button>
+      <button type="button" data-accion="permisos">Permisos</button>
+
+      <hr>
+
+      <button type="button" data-accion="acerca">Acerca de</button>
+      <button type="button" data-accion="salir">Cerrar Sesión</button>
+    </aside>
+
+    <main id="areaOperacion" class="area-operacion">
+      <!-- Aquí debe ir/renderizarse el POS actual: buscador, carrito, totales y cobro -->
+    </main>
+  </div>
+
+  <div id="modalCobro" class="modal"></div>
+
+  <div id="modalCantidad" class="modal"></div>
+
+  <div id="ticketArea"></div>
+
+  <script>
+    setTimeout(function () {
+      if (window.__PROVSOFT_ARRANQUE_INICIADO) return;
+      var titulo = document.getElementById("inicioTitulo");
+      var mensaje = document.getElementById("inicioMensaje");
+      var detalle = document.getElementById("inicioDetalle");
+      var acciones = document.getElementById("inicioAcciones");
+      var offline = document.getElementById("btnInicioOffline");
+      var reintentar = document.getElementById("btnInicioReintentar");
+      if (titulo) titulo.textContent = "NO SE PUDO INICIAR PROVSOFT";
+      if (mensaje) mensaje.textContent = "No se cargaron los componentes del sistema";
+      if (detalle) detalle.innerHTML = '<div class="error">✕ Revisa internet, Firebase y vuelve a intentar</div>';
+      if (acciones) acciones.classList.remove("oculto");
+      if (offline) offline.style.display = "none";
+      if (reintentar) reintentar.onclick = function () { location.reload(); };
+    }, 12000);
+  </script>
+  <script type="module" src="./js/ui/menuConfig.js"></script>
+  <script type="module" src="./js/app.js"></script>
+
+</body>
+</html>
