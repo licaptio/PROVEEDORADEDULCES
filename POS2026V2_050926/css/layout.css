@@ -1,0 +1,201 @@
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html,body{
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  font-family:'Segoe UI',Arial,sans-serif;
+}
+
+body{
+  background:linear-gradient(135deg,#7f0000 0%,#d71920 45%,#ffffff 100%);
+}
+
+/* LOGIN */
+#loginScreen{
+  width:100vw;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+.login-card{
+  width:min(92vw,430px);
+  background:#ffffff;
+  border-radius:26px;
+  padding:32px 24px;
+  text-align:center;
+  box-shadow:0 22px 55px rgba(80,0,0,.38);
+  border:1px solid rgba(255,255,255,.8);
+}
+
+.login-card h1{
+  color:#8b0000;
+  font-size:26px;
+  line-height:1.12;
+  margin-bottom:12px;
+  font-weight:900;
+  letter-spacing:.4px;
+}
+
+.login-card h2{
+  color:#333;
+  font-size:17px;
+  line-height:1.25;
+  margin-bottom:24px;
+  font-weight:800;
+}
+
+#loginUsuario,
+#loginPassword{
+  width:100%;
+  margin-top:10px;
+  padding:15px 14px;
+  border-radius:14px;
+  border:1px solid #ddd;
+  font-size:16px;
+  outline:none;
+  background:#fafafa;
+}
+
+#loginUsuario:focus,
+#loginPassword:focus{
+  border-color:#b30000;
+  box-shadow:0 0 0 3px rgba(179,0,0,.12);
+}
+
+#btnLogin{
+  width:100%;
+  margin-top:16px;
+  border:none;
+  padding:15px;
+  border-radius:15px;
+  background:linear-gradient(180deg,#e11d1d,#8b0000);
+  color:white;
+  font-size:17px;
+  font-weight:800;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(139,0,0,.28);
+}
+
+#btnLogin:active{
+  transform:scale(.98);
+}
+
+#loginMsg{
+  min-height:18px;
+  margin-top:14px;
+  color:#b30000;
+  font-weight:700;
+  font-size:14px;
+}
+
+/* POS APP BASE */
+#posApp{
+  display:none;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  background:linear-gradient(135deg,#b30000,#f7dede);
+}
+
+/* Cuando JS quite display:none */
+#posApp[style*="block"],
+#posApp[style*="flex"]{
+  display:block !important;
+}
+
+/* MENU CONFIG / ENGRANE */
+.btn-engranaje{
+  width:50px;
+  height:50px;
+  min-width:50px;
+  border:none;
+  border-radius:12px;
+  background:#990000;
+  color:#fff;
+  font-size:24px;
+  cursor:pointer;
+  box-shadow:0 6px 14px rgba(153,0,0,.25);
+}
+
+.btn-engranaje:active{
+  transform:scale(.96);
+}
+
+.panel-config{
+  position:fixed;
+  top:92px;
+  right:24px;
+  width:280px;
+  max-height:calc(100vh - 110px);
+  overflow:auto;
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 10px 35px rgba(0,0,0,.25);
+  padding:14px;
+  z-index:10000;
+}
+
+.panel-config-titulo{
+  font-weight:900;
+  color:#990000;
+  font-size:16px;
+  margin-bottom:10px;
+}
+
+.panel-config button{
+  width:100%;
+  min-height:38px;
+  border:none;
+  background:#fff;
+  text-align:left;
+  padding:0 10px;
+  font-size:15px;
+  font-weight:700;
+  cursor:pointer;
+  border-radius:8px;
+  color:#222;
+}
+
+.panel-config button:hover{
+  background:#ffe5e5;
+  color:#990000;
+}
+
+.panel-config hr{
+  border:none;
+  border-top:1px solid #eee;
+  margin:8px 0;
+}
+
+.panel-config-subtitulo{
+  padding:8px 10px 4px;
+  color:#990000;
+  font-weight:900;
+  font-size:15px;
+}
+
+.panel-config #btnVentaEspera,
+.panel-config #btnRecuperarVentaEspera,
+.panel-config #btnCancelarVenta{
+  padding-left:22px;
+}
+
+.oculto{
+  display:none !important;
+}
+
+@media(max-width:700px){
+  .panel-config{
+    top:86px;
+    right:8px;
+    width:min(300px,calc(100vw - 16px));
+  }
+}

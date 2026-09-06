@@ -1,0 +1,51 @@
+PROVSOFT POS - IMPRESION WINDOWS
+
+REQUISITOS
+
+1. Instalar driver Epson APD 6.12
+2. Configurar impresora Epson TM-T20III
+3. Establecer impresora como predeterminada
+4. Desactivar:
+   "Dejar que Windows administre mi impresora predeterminada"
+
+5. Ejecutar Chrome con:
+
+   --kiosk-printing
+
+Ejemplo:
+
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing
+
+CONFIGURACION PROVSOFT
+
+Metodo de impresion:
+WINDOWS
+
+FUNCIONAMIENTO
+
+COBRAR
+↓
+Guardar venta
+↓
+Generar ticket
+↓
+Abrir ventana temporal
+↓
+window.print()
+↓
+Impresion automatica Epson
+↓
+Cerrar ventana ticket
+↓
+Regresar al POS
+
+VENTAJAS
+
+✓ No requiere RawBT
+✓ No requiere Electron
+✓ No requiere OPOS
+✓ Compatible Epson TM-T20III
+✓ Compatible Generic Text Only
+✓ Compatible impresora predeterminada Windows
+✓ Impresion automatica
+✓ Lista para produccion

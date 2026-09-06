@@ -1,0 +1,60 @@
+PROVSOFT POS - IMPRESION CENTRALIZADA
+
+CONFIGURACION GLOBAL
+
+Ruta en la app:
+Configuracion -> Impresoras
+
+Modos:
+
+1. RAWBT
+   Para Android con app RawBT instalada.
+
+2. WINDOWS
+   Para PC con impresora instalada en Windows.
+   Ejemplo: EPSON TM-T(203dpi_1) Receipt6 o Generic / Text Only.
+
+EFECTO DE LA CONFIGURACION
+
+La seleccion de impresora afecta todo el POS:
+
+- Ticket de venta
+- Reimpresion de ticket
+- Corte operativo
+- Reportes futuros que usen impresionUniversal.js
+
+PRODUCCION WINDOWS CON EPSON
+
+1. Instalar driver Epson APD 6.12.
+2. Conectar Epson TM-T20III por USB.
+3. Desactivar en Windows:
+   "Dejar que Windows administre mi impresora predeterminada".
+4. Establecer Epson como impresora predeterminada.
+5. Abrir Chrome con:
+   --kiosk-printing
+
+Ejemplo destino de acceso directo:
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk-printing "http://localhost:5500"
+
+CONFIGURACION EN PROVSOFT
+
+Metodo de impresion: WINDOWS
+Copias: 1
+
+RESULTADO
+
+Al cobrar:
+Guardar venta -> imprimir ticket directo -> cerrar ventana -> regresar al POS.
+
+Al reimprimir:
+Usa la misma configuracion global.
+
+Al generar corte:
+Guarda corte -> marca ventas cortadas -> imprime corte directo -> cierra ventana.
+
+ARCHIVO CENTRAL
+
+js/ticket/impresionUniversal.js
+
+Toda impresion nueva debe usar:
+imprimirTextoConfigurado(texto, titulo)
