@@ -1,0 +1,63 @@
+.bloqueo-inicio {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255,255,255,.18), transparent 34%),
+    linear-gradient(145deg, #710000, #b00000 48%, #640000);
+  font-family: Arial, sans-serif;
+  transition: opacity .45s ease, visibility .45s ease;
+}
+
+.bloqueo-inicio.saliendo { opacity: 0; visibility: hidden; }
+
+.inicio-card {
+  width: min(520px, 94vw);
+  padding: 30px 34px;
+  border-radius: 24px;
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 24px 70px rgba(0,0,0,.42);
+  text-align: center;
+}
+
+.inicio-logo {
+  width: 190px;
+  height: 82px;
+  object-fit: contain;
+}
+
+.inicio-card h1 { margin: 8px 0 18px; color: #8b0000; font-size: 23px; }
+
+.inicio-spinner {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 16px;
+  border: 5px solid #f0caca;
+  border-top-color: #990000;
+  border-radius: 50%;
+  animation: giro-inicio .8s linear infinite;
+}
+
+.inicio-spinner.error { border-color: #d51f3c; animation: pulso-error 1s ease-in-out infinite; }
+.inicio-spinner.listo { border-color: #159447; animation: none; position: relative; }
+.inicio-spinner.listo::after { content: "✓"; color: #159447; font-size: 28px; font-weight: 900; line-height: 38px; }
+
+.inicio-mensaje { min-height: 24px; color: #333; font-size: 17px; font-weight: 800; }
+.inicio-barra { height: 12px; margin-top: 16px; overflow: hidden; border-radius: 999px; background: #eadede; }
+.inicio-progreso { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#800000,#df2338); transition: width .35s ease; }
+.inicio-porcentaje { margin-top: 6px; color: #7a0000; font-size: 13px; font-weight: 900; }
+.inicio-detalle { min-height: 105px; margin-top: 16px; padding: 12px; border-radius: 12px; background: #f8f5f5; color: #333; text-align: left; font-size: 14px; line-height: 1.7; }
+.inicio-detalle .ok { color: #08752c; font-weight: 800; }
+.inicio-detalle .aviso { color: #a55b00; font-weight: 800; }
+.inicio-detalle .error { color: #b00020; font-weight: 800; }
+.inicio-acciones { display: flex; justify-content: center; gap: 12px; margin-top: 18px; }
+.inicio-acciones.oculto { display: none; }
+.inicio-acciones button { min-width: 150px; }
+.inicio-btn-secundario { background: #555; }
+
+@keyframes giro-inicio { to { transform: rotate(360deg); } }
+@keyframes pulso-error { 50% { transform: scale(.83); opacity: .65; } }

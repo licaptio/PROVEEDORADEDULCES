@@ -1,0 +1,45 @@
+PROVSOFT POS 2026 V18 - IMPRESION DIRECTA WINDOWS
+=================================================
+
+ESTA VERSION ESTA PREPARADA PARA ESTA CAJA:
+
+  Cola Windows : MINIPRINTEREXCEL
+  Controlador  : Generic / Text Only
+  Puerto       : COM1:
+  Papel POS    : 58 mm
+
+COMO INICIAR
+------------
+1. Cierra cualquier servidor viejo de PROVSOFT que siga usando el puerto 8000.
+2. Ejecuta INICIAR_POS.bat.
+3. NO abras index.html directamente y NO abras el POS desde un Chrome normal.
+
+QUE HACE V18
+------------
+- Lee el nombre de la impresora desde IMPRESORA_WINDOWS.txt.
+- Intenta establecer esa cola como impresora predeterminada de Windows.
+- Inicia Chrome o Edge con --kiosk-printing.
+- Usa un perfil independiente: .provsoft_chrome_profile
+- Por eso un Chrome normal que ya este abierto no puede absorber los parametros del POS.
+- window.print() debe salir directo a la impresora sin mostrar el selector.
+
+OTRAS CAJAS
+-----------
+Para otra computadora solo cambia el contenido de IMPRESORA_WINDOWS.txt por el
+NOMBRE EXACTO de la impresora instalada en Windows, por ejemplo:
+
+  EPSON TM-T20III Receipt
+  EPSON TM-T88V Receipt
+  Generic / Text Only
+
+Puede ser una impresora con driver oficial Epson/Windows o una cola Generic/Text.
+El puerto fisico puede ser USB, COM, LPT o red: Windows resuelve el puerto.
+
+IMPORTANTE
+----------
+Si aparece nuevamente el cuadro de impresion, verifica primero que el POS haya
+sido iniciado con INICIAR_POS.bat y que la consola muestre:
+
+  Impresion silenciosa: ACTIVADA (--kiosk-printing)
+  Perfil aislado POS: ...\.provsoft_chrome_profile
+  Destino Windows: MINIPRINTEREXCEL
