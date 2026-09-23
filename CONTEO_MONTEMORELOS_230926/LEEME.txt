@@ -1,0 +1,16 @@
+PROVSOFT - MONTEMORELOS INVENTARIO 23/09/2026
+=======================================================
+
+INICIO:
+1. Descomprimir TODO el ZIP.
+2. Doble clic en EJECUTAR.bat.
+3. La aplicacion abre automaticamente en el navegador.
+4. Mantener abierta la ventana negra mientras se usa la app.
+
+FIREBASE:
+/TIENDAS/MONTEMORELOS/inventario1/inv230926
+
+IndexedDB independiente:
+PROVSOFT_CONTEO_MONTEMORELOS_230926
+
+Cada usuario se guarda debajo de USUARIOS y sus partidas debajo de PARTIDAS.
