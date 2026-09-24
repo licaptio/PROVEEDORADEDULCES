@@ -1,0 +1,22 @@
+PROVSOFT - BODEGA41 INVENTARIO 24/09/2026
+=======================================================
+
+INICIO:
+1. Descomprimir TODO el ZIP.
+2. Doble clic en EJECUTAR.bat.
+3. La aplicacion abre automaticamente en el navegador.
+4. Mantener abierta la ventana negra mientras se usa la app.
+
+FIREBASE:
+/TIENDAS/BOD41/INVENTARIOS/inv240926
+
+IndexedDB independiente:
+PROVSOFT_CONTEO_BODEGA41_240926
+
+Cada usuario se guarda debajo de USUARIOS y sus partidas debajo de PARTIDAS.
+
+ACTUALIZACION 24/09/2026 - CATALOGO BOD41
+- Catalogo exclusivo: /TIENDAS/BOD41/CATALOGOPRODUCTOS
+- Conserva codigoBarra y codigosEquivalentes para busqueda/escaneo.
+- Si existe un catalogo local anterior de /productos, la app lo descarta una sola vez y descarga el catalogo BOD41.
+- El inventario permanece en /TIENDAS/BOD41/INVENTARIOS/inv240926.
