@@ -1,0 +1,16 @@
+PROVSOFT - INVENTARIO BODEGA SAUL 29/09/2026
+=======================================================
+
+INICIO:
+1. Descomprimir TODO el ZIP.
+2. Doble clic en EJECUTAR.bat.
+3. La aplicacion abre automaticamente en el navegador.
+4. Mantener abierta la ventana negra mientras se usa la app.
+
+FIREBASE:
+/almacenes/almacensaul/INVENTARIOS/inv29092026
+
+IndexedDB independiente:
+PROVSOFT_INVENTARIO_BODEGA_SAUL_29092026
+
+Cada usuario se guarda debajo de USUARIOS y sus partidas debajo de PARTIDAS.
